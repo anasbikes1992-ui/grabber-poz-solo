@@ -1,343 +1,367 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Wrench, Plus, Search, CheckCircle2, Clock, Phone, MessageSquare, AlertCircle, X, ShieldAlert, ArrowRight } from 'lucide-react';
-
-interface RepairTicket {
-  id: string;
-  ticketNumber: string;
-  customerName: string;
-  phone: string;
-  device: string;
-  serialNumber: string;
-  issue: string;
-  technician: string;
-  estimatedCost: number;
-  status: 'INTAKE' | 'DIAGNOSING' | 'WAITING_PARTS' | 'REPAIRED' | 'COLLECTED';
-  warrantyDays: number;
-  receivedAt: string;
-}
+import Link from 'next/link';
+import {
+  Wrench,
+  Plus,
+  ArrowLeft,
+  CheckCircle2,
+  Phone,
+  FileText,
+  Printer,
+  ShieldCheck,
+  Smartphone,
+  Layers,
+  Sparkles,
+} from 'lucide-react';
 
 export default function RepairsPage() {
-  const [tickets, setTickets] = useState<RepairTicket[]>([
-    {
-      id: 'rep_1',
-      ticketNumber: 'REP-2026-101',
-      customerName: 'Roshan Fernando',
-      phone: '+94 77 444 5566',
-      device: 'Apple iPhone 14 Pro',
-      serialNumber: 'SN-99887711',
-      issue: 'Cracked OLED screen replacement & battery service',
-      technician: 'Kamal (Senior Tech)',
-      estimatedCost: 38500.0,
-      status: 'WAITING_PARTS',
-      warrantyDays: 90,
-      receivedAt: 'Today, 10:15 AM',
-    },
-    {
-      id: 'rep_2',
-      ticketNumber: 'REP-2026-102',
-      customerName: 'Dilshan Silva',
-      phone: '+94 71 222 3344',
-      device: 'Samsung 55" 4K Smart TV',
-      serialNumber: 'SN-TV-554433',
-      issue: 'Power supply board capacitor failure',
-      technician: 'Nimal (Electronics Tech)',
-      estimatedCost: 14500.0,
-      status: 'REPAIRED',
-      warrantyDays: 180,
-      receivedAt: 'Yesterday',
-    },
-  ]);
-
-  const [search, setSearch] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // New ticket form
+  const [jobNum, setJobNum] = useState('10078');
   const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [device, setDevice] = useState('');
-  const [serialNumber, setSerialNumber] = useState('');
-  const [issue, setIssue] = useState('');
-  const [estimatedCost, setEstimatedCost] = useState(15000);
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [deviceModel, setDeviceModel] = useState('');
 
-  const handleCreateTicket = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newT: RepairTicket = {
-      id: `rep_${Date.now()}`,
-      ticketNumber: `REP-2026-${Math.floor(100 + Math.random() * 900)}`,
-      customerName,
-      phone,
-      device,
-      serialNumber,
-      issue,
-      technician: 'Kamal (Senior Tech)',
-      estimatedCost: Number(estimatedCost),
-      status: 'INTAKE',
-      warrantyDays: 90,
-      receivedAt: 'Just now',
-    };
-    setTickets((prev) => [newT, ...prev]);
-    setIsModalOpen(false);
+  // Diagnosis & Charges
+  const [requiredParts, setRequiredParts] = useState('');
+  const [partsAmount, setPartsAmount] = useState<number>(0);
+  const [serviceCharge, setServiceCharge] = useState<number>(2500);
+  const [advancePaid, setAdvancePaid] = useState<number>(1000);
+  const [technician, setTechnician] = useState('Senior Tech - Nuwan');
+  const [commissionPct, setCommissionPct] = useState(15);
+  const [primaryFault, setPrimaryFault] = useState('');
+  const [inspectionRemarks, setInspectionRemarks] = useState('');
+
+  // Physical Verification Checklist
+  const [checklist, setChecklist] = useState({
+    simCard: false,
+    simTray: true,
+    memoryCard: false,
+    battery: true,
+    backPanel: true,
+    backCover: true,
+  });
+
+  const [lockType, setLockType] = useState('Numeric PIN Code');
+  const [passcode, setPasscode] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
+
+  const totalBalanceDue = partsAmount + serviceCharge - advancePaid;
+
+  const handleToggleCheck = (key: keyof typeof checklist) => {
+    setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const advanceStatus = (id: string) => {
-    const statusFlow: RepairTicket['status'][] = ['INTAKE', 'DIAGNOSING', 'WAITING_PARTS', 'REPAIRED', 'COLLECTED'];
-    setTickets((prev) =>
-      prev.map((t) => {
-        if (t.id === id) {
-          const currentIdx = statusFlow.indexOf(t.status);
-          const nextStatus = statusFlow[Math.min(statusFlow.length - 1, currentIdx + 1)];
-          return { ...t, status: nextStatus };
-        }
-        return t;
-      })
-    );
+  const handleSaveJobSheet = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 3000);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <span>Repairs & Service Workshop Desk</span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 font-semibold border border-blue-500/20">
-              Electronics & Service Vertical
-            </span>
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Job cards, device serial tracking, parts cost, warranty management, and WhatsApp repair notifications.
-          </p>
-        </div>
-
-        <button
-          onClick={() => {
-            setCustomerName('');
-            setPhone('+94 ');
-            setDevice('');
-            setSerialNumber('');
-            setIssue('');
-            setIsModalOpen(true);
-          }}
-          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center gap-2 shadow-sm shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 self-start sm:self-auto"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>New Repair Job Card</span>
-        </button>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <p className="text-muted-foreground font-medium">In Workshop</p>
-          <h3 className="text-xl font-bold text-foreground mt-1">2 Devices</h3>
-          <p className="text-[10px] text-blue-600 font-medium">1 Waiting Parts &bull; 1 Ready</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <p className="text-muted-foreground font-medium">Ready for Collection</p>
-          <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">1 Device</h3>
-          <p className="text-[10px] text-muted-foreground">Samsung 55" TV (LKR 14,500)</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <p className="text-muted-foreground font-medium">Avg Turnaround Time</p>
-          <h3 className="text-xl font-bold text-foreground mt-1">24.5 Hours</h3>
-          <p className="text-[10px] text-emerald-600 font-medium">96% on-time completion</p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <p className="text-muted-foreground font-medium">Service Revenue (MTD)</p>
-          <h3 className="text-xl font-bold text-primary mt-1">LKR 142,800.00</h3>
-          <p className="text-[10px] text-muted-foreground">Labor + Parts Margin</p>
-        </div>
-      </div>
-
-      {/* Repair Tickets Table */}
-      <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="relative max-w-sm w-full">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by customer, device or ticket..."
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-secondary border border-border focus:outline-none focus:ring-1 focus:ring-primary"
-            />
+    <div className="space-y-6 max-w-5xl mx-auto text-white">
+      {/* 1. Header & Quick Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="h-8 w-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div>
+            <h1 className="text-xl font-extrabold tracking-tight flex items-center gap-2">
+              <span>🔧 Electronics & Phone Repair Job Sheet</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30">
+                SERVICE MODULE
+              </span>
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Intake job card, device inspection checklist, parts tracker, technician commissions & claim slips.
+            </p>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground">
-                <th className="pb-2.5 font-medium">Job Card #</th>
-                <th className="pb-2.5 font-medium">Customer & Phone</th>
-                <th className="pb-2.5 font-medium">Device & Serial</th>
-                <th className="pb-2.5 font-medium">Reported Fault</th>
-                <th className="pb-2.5 font-medium text-right">Estimated Fee</th>
-                <th className="pb-2.5 font-medium text-right">Status</th>
-                <th className="pb-2.5 font-medium text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {tickets
-                .filter((t) => t.customerName.toLowerCase().includes(search.toLowerCase()) || t.device.toLowerCase().includes(search.toLowerCase()) || t.ticketNumber.toLowerCase().includes(search.toLowerCase()))
-                .map((t) => (
-                  <tr key={t.id} className="hover:bg-secondary/40 transition-colors">
-                    <td className="py-3 font-mono font-bold text-foreground">{t.ticketNumber}</td>
-                    <td className="py-3">
-                      <p className="font-semibold text-foreground">{t.customerName}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <Phone className="h-3 w-3" /> {t.phone}
-                      </p>
-                    </td>
-                    <td className="py-3">
-                      <p className="font-medium text-foreground">{t.device}</p>
-                      <p className="font-mono text-[10px] text-muted-foreground">{t.serialNumber}</p>
-                    </td>
-                    <td className="py-3 text-muted-foreground max-w-xs">{t.issue}</td>
-                    <td className="py-3 text-right font-mono font-bold text-foreground">
-                      LKR {t.estimatedCost.toLocaleString()}
-                    </td>
-                    <td className="py-3 text-right">
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                        t.status === 'COLLECTED'
-                          ? 'bg-secondary text-muted-foreground'
-                          : t.status === 'REPAIRED'
-                          ? 'bg-emerald-500/10 text-emerald-600'
-                          : t.status === 'WAITING_PARTS'
-                          ? 'bg-amber-500/10 text-amber-600'
-                          : 'bg-blue-500/10 text-blue-600'
-                      }`}>
-                        {t.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <a
-                          href={`https://wa.me/${t.phone.replace(/[^0-9]/g, '')}?text=Hi+${encodeURIComponent(t.customerName)}%2C+your+repair+job+${t.ticketNumber}+(${t.device})+is+currently%3A+${t.status}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 transition-colors"
-                          title="WhatsApp Update"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" />
-                        </a>
-                        {t.status !== 'COLLECTED' && (
-                          <button
-                            onClick={() => advanceStatus(t.id)}
-                            className="px-2.5 py-1 rounded-lg bg-primary text-primary-foreground font-semibold text-[11px] flex items-center gap-1 hover:bg-primary/90 transition-all"
-                          >
-                            <span>Next</span>
-                            <ArrowRight className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.print()}
+            className="px-3.5 py-2 rounded-xl bg-cyan-500 text-black font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-500/20 hover:bg-cyan-400 transition-all"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>+ Add Repaired Bill</span>
+          </button>
+          <button className="px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-semibold text-xs hover:bg-white/10 transition-all">
+            View Repaired Bills (0)
+          </button>
         </div>
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <form onSubmit={handleCreateTicket} className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="font-bold text-sm text-foreground">Intake New Repair Job</h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
+      {/* 2. Top Metric Indicator Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div className="p-4 rounded-2xl bg-[#0F172A]/80 border border-white/10 shadow-sm space-y-1">
+          <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Custom Bill / Job #</p>
+          <p className="text-xl font-extrabold text-white font-mono">{jobNum}</p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-[#0F172A]/80 border border-white/10 shadow-sm space-y-1">
+          <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Est. Service Charge</p>
+          <p className="text-xl font-extrabold text-cyan-400 font-mono">LKR {serviceCharge.toLocaleString()}</p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-[#0F172A]/80 border border-white/10 shadow-sm space-y-1">
+          <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Advance Collected</p>
+          <p className="text-xl font-extrabold text-emerald-400 font-mono">LKR {advancePaid.toLocaleString()}</p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-[#0F172A]/80 border border-white/10 shadow-sm space-y-1">
+          <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Full Total Balance Due</p>
+          <p className="text-xl font-extrabold text-amber-400 font-mono">LKR {totalBalanceDue.toLocaleString()}</p>
+        </div>
+      </div>
+
+      {/* 3. Comprehensive Form Intake */}
+      <form onSubmit={handleSaveJobSheet} className="space-y-5 text-xs">
+        {/* Section 1: Customer & Device Details */}
+        <div className="p-5 rounded-2xl bg-[#0F172A]/80 border border-white/10 shadow-sm space-y-4">
+          <h2 className="font-bold text-sm text-cyan-400 flex items-center gap-2">
+            <span>👤 1. CUSTOMER & DEVICE DETAILS</span>
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Customer Name *</label>
+              <input
+                type="text"
+                required
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Enter customer name"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-400"
+              />
             </div>
-
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-muted-foreground block mb-1 font-medium">Customer Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="e.g. Kasun Silva"
-                    className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="text-muted-foreground block mb-1 font-medium">Phone Number</label>
-                  <input
-                    type="text"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+94 77 123 4567"
-                    className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-muted-foreground block mb-1 font-medium">Device Model</label>
-                  <input
-                    type="text"
-                    required
-                    value={device}
-                    onChange={(e) => setDevice(e.target.value)}
-                    placeholder="e.g. iPhone 15 Pro"
-                    className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="text-muted-foreground block mb-1 font-medium">Serial / IMEI</label>
-                  <input
-                    type="text"
-                    value={serialNumber}
-                    onChange={(e) => setSerialNumber(e.target.value)}
-                    placeholder="SN-123456"
-                    className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-muted-foreground block mb-1 font-medium">Reported Fault / Symptoms</label>
-                <textarea
-                  rows={2}
-                  required
-                  value={issue}
-                  onChange={(e) => setIssue(e.target.value)}
-                  placeholder="e.g. No display output after drop, touch unresponsive"
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground"
-                />
-              </div>
-
-              <div>
-                <label className="text-muted-foreground block mb-1 font-medium">Estimated Repair Cost (LKR)</label>
-                <input
-                  type="number"
-                  required
-                  value={estimatedCost}
-                  onChange={(e) => setEstimatedCost(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono font-bold"
-                />
-              </div>
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Mobile Number *</label>
+              <input
+                type="text"
+                required
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                placeholder="0771234567"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-slate-600 font-mono focus:outline-none focus:border-cyan-400"
+              />
             </div>
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Address</label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Enter customer address"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-400"
+              />
+            </div>
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Device Model *</label>
+              <input
+                type="text"
+                required
+                value={deviceModel}
+                onChange={(e) => setDeviceModel(e.target.value)}
+                placeholder="e.g. iPhone 13 Pro Max / Galaxy S22"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-400"
+              />
+            </div>
+          </div>
+        </div>
 
+        {/* Section 2: Fault Diagnosis, Parts & Charges */}
+        <div className="p-5 rounded-2xl bg-[#0F172A]/80 border border-white/10 shadow-sm space-y-4">
+          <h2 className="font-bold text-sm text-cyan-400 flex items-center gap-2">
+            <span>⚙️ 2. FAULT DIAGNOSIS, PARTS & CHARGES</span>
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Required Parts</label>
+              <input
+                type="text"
+                value={requiredParts}
+                onChange={(e) => setRequiredParts(e.target.value)}
+                placeholder="e.g. OLED Display Assembly, Battery Pack"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Parts Amount (Rs)</label>
+              <input
+                type="number"
+                value={partsAmount}
+                onChange={(e) => setPartsAmount(Number(e.target.value))}
+                placeholder="0.00"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-mono focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Service Charge (Rs) *</label>
+              <input
+                type="number"
+                required
+                value={serviceCharge}
+                onChange={(e) => setServiceCharge(Number(e.target.value))}
+                placeholder="e.g. 2500"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-mono font-bold focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Advance Paid (Rs)</label>
+              <input
+                type="number"
+                value={advancePaid}
+                onChange={(e) => setAdvancePaid(Number(e.target.value))}
+                placeholder="e.g. 1000"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-emerald-400 font-mono font-bold focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Select Technician</label>
+              <select
+                value={technician}
+                onChange={(e) => setTechnician(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none"
+              >
+                <option value="Senior Tech - Nuwan">Senior Tech - Nuwan</option>
+                <option value="Hardware Specialist - Amal">Hardware Specialist - Amal</option>
+                <option value="Software Specialist - Kasun">Software Specialist - Kasun</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Technician Commission (%)</label>
+              <select
+                value={commissionPct}
+                onChange={(e) => setCommissionPct(Number(e.target.value))}
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none"
+              >
+                <option value={10}>10% of Service Charge</option>
+                <option value={15}>15% of Service Charge</option>
+                <option value={20}>20% of Service Charge</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Primary Fault / Issue *</label>
+              <textarea
+                rows={3}
+                required
+                value={primaryFault}
+                onChange={(e) => setPrimaryFault(e.target.value)}
+                placeholder="Enter main issue (e.g. Blank display after drop, touches ghosting)"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Other Issues / Inspection Remarks</label>
+              <textarea
+                rows={3}
+                value={inspectionRemarks}
+                onChange={(e) => setInspectionRemarks(e.target.value)}
+                placeholder="Scratches on body, rear camera glass cracked, water damage indicators red"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Received Item Checklist (Physical Verification) */}
+        <div className="p-5 rounded-2xl bg-[#0F172A]/80 border border-white/10 shadow-sm space-y-4">
+          <h2 className="font-bold text-sm text-cyan-400 flex items-center gap-2">
+            <span>📋 3. RECEIVED ITEM CHECKLIST (PHYSICAL VERIFICATION)</span>
+          </h2>
+
+          {/* Interactive Checkbox Buttons */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {(
+              [
+                { key: 'simCard', label: 'SIM Card' },
+                { key: 'simTray', label: 'SIM Tray' },
+                { key: 'memoryCard', label: 'Memory Card' },
+                { key: 'battery', label: 'Battery' },
+                { key: 'backPanel', label: 'Back Panel' },
+                { key: 'backCover', label: 'Back Cover' },
+              ] as const
+            ).map(({ key, label }) => {
+              const active = checklist[key];
+              return (
+                <button
+                  type="button"
+                  key={key}
+                  onClick={() => handleToggleCheck(key)}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    active
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-500/10'
+                      : 'bg-black/30 text-slate-400 border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <span>{active ? '✓' : '□'}</span>
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Device Lock / Security Type</label>
+              <select
+                value={lockType}
+                onChange={(e) => setLockType(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none"
+              >
+                <option value="Numeric PIN Code">Numeric PIN Code</option>
+                <option value="Pattern Sequence">Pattern Sequence</option>
+                <option value="Password">Alphanumeric Password</option>
+                <option value="No Lock">No Lock (Device Open)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-slate-400 block mb-1 font-medium">Passcode / Pattern Sequence</label>
+              <input
+                type="text"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
+                placeholder="e.g. 123456 or Top-Left to Bottom-Right"
+                className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-slate-600 font-mono focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <p className="text-[11px] text-slate-400">
+            Automatic customer SMS / WhatsApp alert will be ready on save.
+          </p>
+
+          {isSaved ? (
+            <div className="px-6 py-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Repair Job Card #10078 Saved & WhatsApp Dispatched!</span>
+            </div>
+          ) : (
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.99]"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-blue-500/25 transition-all transform hover:scale-[1.02] active:scale-95"
             >
-              Issue Job Card & Print Intake Slip
+              Save & Generate Repair Job Sheet
             </button>
-          </form>
+          )}
         </div>
-      )}
+      </form>
     </div>
   );
 }
