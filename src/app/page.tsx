@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp,
@@ -14,62 +14,98 @@ import {
   Sparkles,
   Truck,
   ShieldCheck,
+  Zap,
+  Clock,
+  ArrowDownRight,
+  Package,
+  Layers,
+  Calculator,
+  Barcode,
+  Users,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 
+const RECENT_TRANSACTIONS = [
+  { id: 'POS-2026-0091', channel: 'POS Counter', customer: 'Walk-in Cash Customer', amount: 10620.0, method: 'CASH', time: '5 mins ago', status: 'COMPLETED' },
+  { id: 'WEB-2026-1044', channel: 'Web Storefront', customer: 'Nimal Silva', amount: 9440.0, method: 'CARD (PayHere)', time: '18 mins ago', status: 'IN_TRANSIT' },
+  { id: 'POS-2026-0090', channel: 'POS Counter', customer: 'Sarath Perera', amount: 15340.0, method: 'POLIM_POTHA', time: '42 mins ago', status: 'COMPLETED' },
+  { id: 'WA-2026-0312', channel: 'WhatsApp Bot', customer: 'Kamal Gunaratne', amount: 5310.0, method: 'COD (Prompt)', time: '1 hour ago', status: 'OUT_FOR_DELIVERY' },
+];
+
+const TOP_PRODUCTS = [
+  { name: 'Linen Casual Shirt (Blue/L)', sku: 'LNN-SHT-BLU-L', sold: 42, revenue: 189000, progress: 85 },
+  { name: 'Oxford Button-Down (White/M)', sku: 'OXF-SHT-WHT-M', sold: 31, revenue: 161200, progress: 68 },
+  { name: 'Stretch Chino Trousers (Khaki/32)', sku: 'STC-CHN-KHK-32', sold: 19, revenue: 123500, progress: 48 },
+  { name: 'Pique Cotton Polo (Navy/XL)', sku: 'PIQ-POL-NVY-XL', sold: 14, revenue: 53200, progress: 32 },
+];
+
 export default function DashboardPage() {
+  const [timeRange, setTimeRange] = useState<'TODAY' | 'WEEK' | 'MONTH'>('TODAY');
+
   return (
     <div className="space-y-6">
-      {/* Top Banner / Welcome */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 border border-blue-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Top Banner / Welcome with Quick Action Bar */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 border border-blue-500/20 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-              Solo Instance Live
+              Solo Instance Live &bull; Colombo Flagship
             </span>
           </div>
-          <h2 className="text-xl font-bold text-foreground tracking-tight">
-            Colombo Flagship Commerce Hub
+          <h2 className="text-2xl font-extrabold text-foreground tracking-tight">
+            Executive Commerce Command Center
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Single-business database with active physical inventory & financial double-entry ledgers.
+            Real-time physical inventory, POS registers, automated WhatsApp orders, and double-entry general ledger.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/pos"
-            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium text-xs flex items-center gap-2 shadow-sm shadow-primary/25 hover:bg-primary/90 transition-all active:scale-95"
+            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center gap-2 shadow-md shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
           >
             <ShoppingCart className="h-3.5 w-3.5" />
-            <span>Launch POS Counter</span>
+            <span>Launch POS</span>
+          </Link>
+          <Link
+            href="/shifts"
+            className="px-3.5 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border border-border flex items-center gap-1.5 transition-all"
+          >
+            <Calculator className="h-3.5 w-3.5" />
+            <span>Till & Z-Report</span>
           </Link>
           <Link
             href="/creative"
-            className="px-3.5 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-medium text-xs border border-border flex items-center gap-1.5 transition-all"
+            className="px-3.5 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border border-border flex items-center gap-1.5 transition-all"
           >
             <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-            <span>Studio</span>
+            <span>AI Studio</span>
           </Link>
         </div>
       </div>
 
-      {/* Primary KPI Cards */}
+      {/* Primary KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Gross Revenue */}
-        <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-sm flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
-            <span>Today&apos;s Sales</span>
-            <DollarSign className="h-4 w-4 text-emerald-500" />
+            <span>Today&apos;s Gross Sales</span>
+            <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+              <DollarSign className="h-4 w-4" />
+            </div>
           </div>
-          <div className="my-3">
-            <h3 className="text-2xl font-bold tracking-tight text-foreground">LKR 47,790.00</h3>
-            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1 font-medium">
-              <TrendingUp className="h-3 w-3" />
+          <div className="my-2">
+            <h3 className="text-2xl font-extrabold tracking-tight text-foreground">LKR 47,790.00</h3>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1 font-semibold">
+              <TrendingUp className="h-3.5 w-3.5" />
               <span>+14.8% vs yesterday</span>
             </p>
           </div>
-          <div className="text-[11px] text-muted-foreground pt-2 border-t border-border/50 flex justify-between">
+          <div className="text-[10px] text-muted-foreground pt-2 border-t border-border/50 flex justify-between font-medium">
             <span>POS: 65%</span>
             <span>Web: 25%</span>
             <span>WA: 10%</span>
@@ -77,186 +113,183 @@ export default function DashboardPage() {
         </div>
 
         {/* 2. Physical Stock On Hand */}
-        <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-sm flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm flex flex-col justify-between hover:border-blue-500/40 transition-all">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
-            <span>Physical Stock</span>
-            <Boxes className="h-4 w-4 text-blue-500" />
+            <span>Physical Stock In Hubs</span>
+            <div className="h-8 w-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
+              <Boxes className="h-4 w-4" />
+            </div>
           </div>
-          <div className="my-3">
-            <h3 className="text-2xl font-bold tracking-tight text-foreground">76 Units</h3>
-            <p className="text-[11px] text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-1 font-medium">
-              <span>Colombo Branch: 31 | Central WH: 45</span>
+          <div className="my-2">
+            <h3 className="text-2xl font-extrabold tracking-tight text-foreground">76 Units</h3>
+            <p className="text-[11px] text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-1 font-semibold">
+              <span>Main Branch: 31 &bull; Central WH: 45</span>
             </p>
           </div>
-          <div className="text-[11px] text-muted-foreground pt-2 border-t border-border/50 flex justify-between">
+          <div className="text-[10px] text-muted-foreground pt-2 border-t border-border/50 flex justify-between font-medium">
             <span>Reserved: 0</span>
-            <span className="text-emerald-600 font-medium">Ledger: Verified</span>
+            <span className="text-emerald-600 font-semibold">Ledger Invariant: 100% OK</span>
           </div>
         </div>
 
         {/* 3. Polim Potha AR */}
-        <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-sm flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm flex flex-col justify-between hover:border-amber-500/40 transition-all">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
-            <span>Polim Potha (AR)</span>
-            <BookOpen className="h-4 w-4 text-amber-500" />
+            <span>Polim Potha Credit (AR)</span>
+            <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+              <BookOpen className="h-4 w-4" />
+            </div>
           </div>
-          <div className="my-3">
-            <h3 className="text-2xl font-bold tracking-tight text-foreground">LKR 11,240.00</h3>
-            <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1 font-medium">
-              <span>100% in 0–30 days bucket</span>
+          <div className="my-2">
+            <h3 className="text-2xl font-extrabold tracking-tight text-foreground">LKR 11,240.00</h3>
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1 font-semibold">
+              <span>100% in 0–30 days healthy bucket</span>
             </p>
           </div>
-          <div className="text-[11px] text-muted-foreground pt-2 border-t border-border/50 flex justify-between">
-            <span>Active Customers: 4</span>
-            <span className="text-emerald-600 font-medium">Overdue: LKR 0</span>
+          <div className="text-[10px] text-muted-foreground pt-2 border-t border-border/50 flex justify-between font-medium">
+            <span>4 Active Debtors</span>
+            <span className="text-emerald-600 font-semibold">Overdue: LKR 0.00</span>
           </div>
         </div>
 
         {/* 4. Suppliers & AP */}
-        <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-sm flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm flex flex-col justify-between hover:border-purple-500/40 transition-all">
           <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
-            <span>Accounts Payable</span>
-            <Truck className="h-4 w-4 text-purple-500" />
+            <span>Supplier Payables (AP)</span>
+            <div className="h-8 w-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+              <Truck className="h-4 w-4" />
+            </div>
           </div>
-          <div className="my-3">
-            <h3 className="text-2xl font-bold tracking-tight text-foreground">LKR 250,000.00</h3>
-            <p className="text-[11px] text-purple-600 dark:text-purple-400 flex items-center gap-1 mt-1 font-medium">
-              <span>Lanka Textiles Ltd (Due in 28d)</span>
+          <div className="my-2">
+            <h3 className="text-2xl font-extrabold tracking-tight text-foreground">LKR 250,000.00</h3>
+            <p className="text-[11px] text-purple-600 dark:text-purple-400 flex items-center gap-1 mt-1 font-semibold">
+              <span>Lanka Textiles Ltd &bull; Due in 28d</span>
             </p>
           </div>
-          <div className="text-[11px] text-muted-foreground pt-2 border-t border-border/50 flex justify-between">
-            <span>PO Status: Received</span>
-            <span className="text-emerald-600 font-medium">Matched to GRN</span>
+          <div className="text-[10px] text-muted-foreground pt-2 border-t border-border/50 flex justify-between font-medium">
+            <span>PO-2026-004 GRN Matched</span>
+            <span className="text-emerald-600 font-semibold">Net 30 Terms</span>
           </div>
         </div>
       </div>
 
-      {/* Grid: Channel Breakdown & Stock Ledger Feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Sales Channels & Operations */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Channel Activity */}
-          <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-sm text-foreground">Channel Operations</h3>
-              <span className="text-xs text-muted-foreground">Real-time Order Feed</span>
-            </div>
-
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-xl bg-secondary/50 border border-border/40 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-xs">
-                    <ShoppingCart className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">POS-2026-1001 (Colombo Main Branch)</p>
-                    <p className="text-[11px] text-muted-foreground">2x Linen Casual Shirt &bull; Cash + Card Tender</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-foreground">LKR 10,620.00</p>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-semibold">DELIVERED</span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-secondary/50 border border-border/40 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold text-xs">
-                    <Store className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">WEB-2026-2001 (Storefront Order)</p>
-                    <p className="text-[11px] text-muted-foreground">3x Linen Casual Shirt &bull; PayHere Online</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-foreground">LKR 15,930.00</p>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 font-semibold">DISPATCHED</span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-secondary/50 border border-border/40 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs">
-                    <MessageSquare className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">WA-2026-3001 (WhatsApp Hotline)</p>
-                    <p className="text-[11px] text-muted-foreground">1x Linen Casual Shirt &bull; COD Koombiyo Courier</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-foreground">LKR 5,310.00</p>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-semibold">COLLECTED</span>
-                </div>
-              </div>
-            </div>
+      {/* Hourly Sales Sparkline & Performance Visualizer */}
+      <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="font-bold text-sm text-foreground">Intraday Sales Velocity</h3>
+            <p className="text-[11px] text-muted-foreground">Live transaction volume distributed across business hours</p>
           </div>
-
-          {/* Quick Operations Matrix */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Link href="/pos" className="p-3.5 rounded-xl bg-card border border-border/80 hover:border-primary/50 transition-all text-center group">
-              <ShoppingCart className="h-5 w-5 mx-auto mb-1.5 text-primary group-hover:scale-110 transition-transform" />
-              <p className="text-xs font-semibold text-foreground">POS Counter</p>
-              <p className="text-[10px] text-muted-foreground">Fast Checkout</p>
-            </Link>
-
-            <Link href="/inventory" className="p-3.5 rounded-xl bg-card border border-border/80 hover:border-primary/50 transition-all text-center group">
-              <Boxes className="h-5 w-5 mx-auto mb-1.5 text-blue-500 group-hover:scale-110 transition-transform" />
-              <p className="text-xs font-semibold text-foreground">Stock Transfer</p>
-              <p className="text-[10px] text-muted-foreground">WH &harr; Branch</p>
-            </Link>
-
-            <Link href="/polim-potha" className="p-3.5 rounded-xl bg-card border border-border/80 hover:border-primary/50 transition-all text-center group">
-              <BookOpen className="h-5 w-5 mx-auto mb-1.5 text-amber-500 group-hover:scale-110 transition-transform" />
-              <p className="text-xs font-semibold text-foreground">Polim Potha</p>
-              <p className="text-[10px] text-muted-foreground">Credit & Aging</p>
-            </Link>
-
-            <Link href="/creative" className="p-3.5 rounded-xl bg-card border border-border/80 hover:border-primary/50 transition-all text-center group">
-              <Sparkles className="h-5 w-5 mx-auto mb-1.5 text-indigo-500 group-hover:scale-110 transition-transform" />
-              <p className="text-xs font-semibold text-foreground">Studio AI</p>
-              <p className="text-[10px] text-muted-foreground">Video Campaigns</p>
-            </Link>
+          <div className="flex bg-secondary rounded-lg p-0.5 border border-border text-[11px] font-semibold">
+            {(['TODAY', 'WEEK', 'MONTH'] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setTimeRange(r)}
+                className={`px-3 py-1 rounded-md transition-all ${
+                  timeRange === r ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Right Col: Ledger Mathematical Invariants Proof */}
-        <div className="space-y-6">
-          <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              <h3 className="font-semibold text-sm text-foreground">Ledger Invariant Audit</h3>
+        {/* Visual Bar Chart Simulator */}
+        <div className="h-28 flex items-end justify-between gap-2 pt-4 px-2 border-b border-border/60">
+          {[
+            { label: '08:00', val: 15, lkr: '4.5k' },
+            { label: '10:00', val: 35, lkr: '12.2k' },
+            { label: '12:00', val: 65, lkr: '21.5k' },
+            { label: '14:00', val: 45, lkr: '14.8k' },
+            { label: '16:00', val: 85, lkr: '31.2k' },
+            { label: '18:00', val: 95, lkr: '47.8k' },
+            { label: '20:00', val: 40, lkr: '18.0k' },
+          ].map((bar) => (
+            <div key={bar.label} className="flex-1 flex flex-col items-center gap-1 group">
+              <span className="text-[9px] font-mono font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                {bar.lkr}
+              </span>
+              <div
+                style={{ height: `${bar.val}%` }}
+                className="w-full max-w-[36px] bg-gradient-to-t from-primary/60 to-primary rounded-t-lg transition-all group-hover:from-primary group-hover:to-blue-400 group-hover:scale-105"
+              />
+              <span className="text-[10px] text-muted-foreground font-medium mt-1">{bar.label}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mb-4 leading-relaxed">
-              Mathematical invariants verified across physical stock movements and double-entry general ledger.
-            </p>
+          ))}
+        </div>
+      </div>
 
-            <div className="space-y-2.5 text-xs">
-              <div className="p-2.5 rounded-xl bg-secondary/60 border border-border/40">
-                <div className="flex justify-between font-medium">
-                  <span>Stock Ledger Balance</span>
-                  <span className="text-emerald-600 font-bold">100% Invariant Match</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Opening(0) + GRN(100) - Sales(10) = 76 Units</p>
-              </div>
+      {/* Grid: Recent Live Transactions vs Top Selling Products */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left 7 Cols: Live Transactions Feed */}
+        <div className="lg:col-span-7 p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-foreground">Live Omnichannel Orders</h3>
+            <span className="text-[11px] text-muted-foreground">POS &bull; Web &bull; WhatsApp</span>
+          </div>
 
-              <div className="p-2.5 rounded-xl bg-secondary/60 border border-border/40">
-                <div className="flex justify-between font-medium">
-                  <span>Accounting Ledger</span>
-                  <span className="text-emerald-600 font-bold">&Delta; Debits - Credits = 0.00</span>
+          <div className="space-y-2.5">
+            {RECENT_TRANSACTIONS.map((tx) => (
+              <div
+                key={tx.id}
+                className="p-3 rounded-xl bg-secondary/50 border border-border/40 flex items-center justify-between text-xs hover:bg-secondary transition-colors"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-foreground">{tx.id}</span>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                      tx.channel === 'POS Counter'
+                        ? 'bg-blue-500/10 text-blue-600'
+                        : tx.channel === 'Web Storefront'
+                        ? 'bg-purple-500/10 text-purple-600'
+                        : 'bg-emerald-500/10 text-emerald-600'
+                    }`}>
+                      {tx.channel}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">{tx.customer} &bull; {tx.time}</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">All 14 journal lines mathematically balanced</p>
-              </div>
 
-              <div className="p-2.5 rounded-xl bg-secondary/60 border border-border/40">
-                <div className="flex justify-between font-medium">
-                  <span>Customer Credit (AR)</span>
-                  <span className="text-emerald-600 font-bold">Verified</span>
+                <div className="text-right space-y-0.5">
+                  <p className="font-extrabold text-foreground font-mono">LKR {tx.amount.toLocaleString()}</p>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-card border border-border text-muted-foreground font-medium">
+                    {tx.method}
+                  </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Invoice (21,240) - Cash Repayment (10,000) = 11,240</p>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right 5 Cols: Top Selling Products Leaderboard */}
+        <div className="lg:col-span-5 p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-foreground">Top Performing SKUs</h3>
+            <span className="text-[11px] text-muted-foreground">By Revenue</span>
+          </div>
+
+          <div className="space-y-3">
+            {TOP_PRODUCTS.map((prod, idx) => (
+              <div key={prod.sku} className="space-y-1.5 text-xs">
+                <div className="flex justify-between font-semibold">
+                  <span className="truncate pr-2 text-foreground">
+                    #{idx + 1} {prod.name}
+                  </span>
+                  <span className="font-mono font-bold text-foreground">LKR {prod.revenue.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span>{prod.sku}</span>
+                  <span>{prod.sold} units sold</span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
+                  <div
+                    style={{ width: `${prod.progress}%` }}
+                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
