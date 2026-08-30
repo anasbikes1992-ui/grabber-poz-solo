@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Package, Plus, Search, Edit2, Trash2, Tag, CheckCircle2, X } from 'lucide-react';
 
 interface Product {
@@ -107,13 +108,21 @@ export default function ProductsCRUDPage() {
           </p>
         </div>
 
-        <button
-          onClick={openCreateModal}
-          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 shadow-sm shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 self-start sm:self-auto"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>New Product</span>
-        </button>
+        <div className="flex gap-2 self-start sm:self-auto">
+          <Link
+            href="/products/import"
+            className="px-3.5 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border border-border flex items-center gap-1.5 transition-all"
+          >
+            <span>Import Excel / CSV</span>
+          </Link>
+          <button
+            onClick={openCreateModal}
+            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 shadow-sm shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>New Product</span>
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}

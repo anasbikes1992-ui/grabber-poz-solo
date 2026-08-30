@@ -550,3 +550,14 @@ SELECT id, 'Main Counter Register 01', 'REG-01' FROM public.branches WHERE code 
 
 INSERT INTO public.users (name, email, role)
 VALUES ('Business Owner', 'owner@grabber.lk', 'OWNER');
+
+-- 10. Supabase Storage Buckets Setup (Run in Supabase SQL Editor if storage is enabled)
+INSERT INTO storage.buckets (id, name, public) 
+VALUES 
+    ('products', 'products', true),
+    ('brand', 'brand', true),
+    ('creative', 'creative', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public Read Storage Access" ON storage.objects FOR SELECT USING (bucket_id IN ('products', 'brand', 'creative'));
+CREATE POLICY "Authenticated Insert Storage Access" ON storage.objects FOR INSERT WITH CHECK (bucket_id IN ('products', 'brand', 'creative'));

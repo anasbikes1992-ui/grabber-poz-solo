@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Printer,
   X,
+  Lock,
+  Percent,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface CartItem {
@@ -39,14 +42,23 @@ export default function POSPage() {
 
   const [search, setSearch] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
+  const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedTender, setSelectedTender] = useState<'CASH' | 'CARD' | 'CREDIT' | 'SPLIT'>('CASH');
   const [completedOrder, setCompletedOrder] = useState<any>(null);
 
+  // Manager PIN Modal State
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinAction, setPinAction] = useState<{ type: 'DISCOUNT' | 'VOID' | 'CREDIT'; payload?: any } | null>(null);
+  const [enteredPin, setEnteredPin] = useState('');
+  const [pinError, setPinError] = useState(false);
+
   // Calculations
-  const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const taxTotal = Math.round(subtotal * 0.18 * 100) / 100;
-  const grandTotal = subtotal + taxTotal;
+  const grossSubtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const discountAmount = (grossSubtotal * discountPercent) / 100;
+  const netSubtotal = grossSubtotal - discountAmount;
+  const taxTotal = Math.round(netSubtotal * 0.18 * 100) / 100;
+  const grandTotal = netSubtotal + taxTotal;
 
   const addToCart = (item: typeof CATALOG_ITEMS[0]) => {
     setCart((prev) => {
@@ -81,11 +93,48 @@ export default function POSPage() {
     }
   };
 
+  const requestDiscount = (pct: number) => {
+    if (pct > 15) {
+      setPinAction({ type: 'DISCOUNT', payload: pct });
+      setEnteredPin('');
+      setPinError(false);
+      setIsPinModalOpen(true);
+    } else {
+      setDiscountPercent(pct);
+    }
+  };
+
+  const requestVoidCart = () => {
+    setPinAction({ type: 'VOID' });
+    setEnteredPin('');
+    setPinError(false);
+    setIsPinModalOpen(true);
+  };
+
+  const handleVerifyPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Default Manager PIN is 1234
+    if (enteredPin === '1234') {
+      if (pinAction?.type === 'DISCOUNT') {
+        setDiscountPercent(pinAction.payload);
+      } else if (pinAction?.type === 'VOID') {
+        setCart([]);
+        setDiscountPercent(0);
+      }
+      setIsPinModalOpen(false);
+      setPinAction(null);
+    } else {
+      setPinError(true);
+    }
+  };
+
   const handleCompleteSale = () => {
     const orderData = {
       orderNumber: `POS-${Date.now().toString().slice(-6)}`,
       items: [...cart],
-      subtotal,
+      grossSubtotal,
+      discountAmount,
+      discountPercent,
       taxTotal,
       grandTotal,
       tender: selectedTender,
@@ -94,6 +143,7 @@ export default function POSPage() {
     setCompletedOrder(orderData);
     setIsPaymentModalOpen(false);
     setCart([]);
+    setDiscountPercent(0);
   };
 
   return (
@@ -162,11 +212,11 @@ export default function POSPage() {
           </div>
           {cart.length > 0 && (
             <button
-              onClick={() => setCart([])}
+              onClick={requestVoidCart}
               className="text-xs text-destructive hover:underline flex items-center gap-1 font-medium"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              <span>Clear</span>
+              <span>Void Sale (PIN)</span>
             </button>
           )}
         </div>
@@ -214,16 +264,47 @@ export default function POSPage() {
           )}
         </div>
 
-        {/* Totals & Checkout Button */}
+        {/* Totals, Discount Selector & Checkout Button */}
         <div className="pt-3 border-t border-border space-y-2 text-xs">
-          <div className="flex justify-between text-muted-foreground">
-            <span>Subtotal</span>
-            <span>LKR {subtotal.toFixed(2)}</span>
+          {/* Quick Discount Presets */}
+          <div className="flex items-center justify-between py-1">
+            <span className="text-muted-foreground flex items-center gap-1">
+              <Percent className="h-3 w-3" /> Discount:
+            </span>
+            <div className="flex gap-1">
+              {[0, 5, 10, 20].map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => requestDiscount(pct)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${
+                    discountPercent === pct
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-secondary text-foreground border-border hover:bg-secondary/80'
+                  }`}
+                >
+                  {pct === 0 ? '0%' : `${pct}% ${pct > 15 ? '🔒' : ''}`}
+                </button>
+              ))}
+            </div>
           </div>
+
+          <div className="flex justify-between text-muted-foreground">
+            <span>Gross Subtotal</span>
+            <span>LKR {grossSubtotal.toFixed(2)}</span>
+          </div>
+
+          {discountPercent > 0 && (
+            <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+              <span>Discount ({discountPercent}%)</span>
+              <span>- LKR {discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+
           <div className="flex justify-between text-muted-foreground">
             <span>VAT (18%)</span>
             <span>LKR {taxTotal.toFixed(2)}</span>
           </div>
+
           <div className="flex justify-between text-sm font-bold text-foreground pt-1 border-t border-border/50">
             <span>Grand Total</span>
             <span className="text-primary text-base">LKR {grandTotal.toFixed(2)}</span>
@@ -240,6 +321,55 @@ export default function POSPage() {
           </button>
         </div>
       </div>
+
+      {/* Manager PIN Security Modal */}
+      {isPinModalOpen && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleVerifyPin} className="bg-card border border-border rounded-2xl p-6 max-w-xs w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 text-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <div className="flex items-center gap-1.5 font-bold text-destructive">
+                <ShieldAlert className="h-4 w-4" />
+                <span>Manager PIN Required</span>
+              </div>
+              <button type="button" onClick={() => setIsPinModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-muted-foreground text-[11px]">
+              {pinAction?.type === 'DISCOUNT' && `Authorizing high discount (${pinAction.payload}% > 15% threshold).`}
+              {pinAction?.type === 'VOID' && 'Authorizing cart void & cancellation.'}
+            </p>
+
+            <div>
+              <label className="text-muted-foreground block mb-1 font-medium">Enter 4-Digit Manager PIN</label>
+              <input
+                type="password"
+                maxLength={4}
+                autoFocus
+                required
+                value={enteredPin}
+                onChange={(e) => {
+                  setEnteredPin(e.target.value);
+                  setPinError(false);
+                }}
+                placeholder="••••"
+                className="w-full text-center tracking-[0.5em] text-xl font-bold py-2 rounded-xl bg-secondary border border-border text-foreground"
+              />
+              {pinError && (
+                <p className="text-destructive font-bold text-[10px] mt-1 text-center">Invalid Manager PIN (Default: 1234)</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold shadow-md hover:bg-primary/90 transition-all"
+            >
+              Authorize Action
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Payment Tender Modal */}
       {isPaymentModalOpen && (
@@ -285,7 +415,7 @@ export default function POSPage() {
                 }`}
               >
                 <BookOpen className="h-5 w-5" />
-                <span>Polim Potha (Credit)</span>
+                <span>Polim Potha (AR)</span>
               </button>
 
               <button
@@ -294,70 +424,90 @@ export default function POSPage() {
                   selectedTender === 'SPLIT' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-secondary'
                 }`}
               >
-                <span className="h-5 w-5 font-bold flex items-center justify-center">&frac12;</span>
-                <span>Split Tender</span>
+                <Banknote className="h-5 w-5" />
+                <span>Split Payment</span>
               </button>
             </div>
 
             <button
               onClick={handleCompleteSale}
-              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all active:scale-[0.99]"
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.99]"
             >
-              <CheckCircle2 className="h-4 w-4" />
-              <span>Complete Sale & Print Receipt</span>
+              Complete Sale & Print Thermal Bill
             </button>
           </div>
         </div>
       )}
 
-      {/* Completed Receipt Modal */}
+      {/* Thermal Receipt Print Modal */}
       {completedOrder && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-xs">
-            <div className="text-center pb-3 border-b border-border space-y-1">
-              <h3 className="font-bold text-sm text-foreground">GRABBER RETAIL STORE</h3>
-              <p className="text-muted-foreground text-[10px]">123 Main Street, Colombo 03</p>
-              <p className="text-muted-foreground text-[10px]">Tax ID: VAT-987654321</p>
-              <p className="font-semibold text-foreground mt-2">Receipt: {completedOrder.orderNumber}</p>
+            <div className="text-center space-y-1 pb-3 border-b border-border">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto" />
+              <h3 className="font-bold text-sm text-foreground">Sale Completed Successfully!</h3>
+              <p className="font-mono text-[10px] text-muted-foreground">{completedOrder.orderNumber}</p>
             </div>
 
-            <div className="space-y-1.5">
-              {completedOrder.items.map((i: any) => (
-                <div key={i.id} className="flex justify-between">
-                  <span>{i.quantity}x {i.name}</span>
-                  <span className="font-medium">LKR {(i.unitPrice * i.quantity).toFixed(2)}</span>
+            {/* Thermal Receipt Slip */}
+            <div className="p-4 bg-secondary/60 rounded-xl font-mono text-[11px] space-y-2 border border-border/40">
+              <div className="text-center border-b border-border/50 pb-2">
+                <p className="font-bold text-xs text-foreground">GRABBER FLAGSHIP STORE</p>
+                <p className="text-[10px] text-muted-foreground">123 Galle Road, Colombo 03</p>
+                <p className="text-[10px] text-muted-foreground">VAT: VAT-987654321-7000</p>
+              </div>
+
+              <div className="space-y-1 py-1">
+                {completedOrder.items.map((item: CartItem) => (
+                  <div key={item.id} className="flex justify-between">
+                    <span className="truncate pr-2">{item.quantity}x {item.name}</span>
+                    <span>LKR {(item.unitPrice * item.quantity).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-border/50 pt-2 space-y-1 font-semibold">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>LKR {completedOrder.grossSubtotal.toFixed(2)}</span>
                 </div>
-              ))}
+                {completedOrder.discountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Discount ({completedOrder.discountPercent}%)</span>
+                    <span>- LKR {completedOrder.discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-muted-foreground">
+                  <span>VAT (18%)</span>
+                  <span>LKR {completedOrder.taxTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-foreground font-bold text-xs pt-1 border-t border-border">
+                  <span>TOTAL PAID</span>
+                  <span className="text-primary">LKR {completedOrder.grandTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>Tender</span>
+                  <span>{completedOrder.tender}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-border space-y-1 text-right">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Subtotal</span>
-                <span>LKR {completedOrder.subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>VAT (18%)</span>
-                <span>LKR {completedOrder.taxTotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-foreground text-sm pt-1 border-t border-border/50">
-                <span>Total Paid ({completedOrder.tender})</span>
-                <span>LKR {completedOrder.grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="pt-3 flex gap-2">
+            <div className="flex gap-2">
               <button
                 onClick={() => setCompletedOrder(null)}
-                className="flex-1 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-medium"
+                className="flex-1 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold"
               >
-                Close
+                New Sale
               </button>
               <button
-                onClick={() => setCompletedOrder(null)}
-                className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground font-medium flex items-center justify-center gap-1.5"
+                onClick={() => {
+                  window.print();
+                  setCompletedOrder(null);
+                }}
+                className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-1.5"
               >
                 <Printer className="h-3.5 w-3.5" />
-                <span>Print</span>
+                <span>Print Bill</span>
               </button>
             </div>
           </div>
