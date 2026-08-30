@@ -26,6 +26,8 @@ import {
   Award,
   Tag,
   Layers,
+  Wrench,
+  UtensilsCrossed,
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -38,6 +40,14 @@ const NAV_SECTIONS = [
       { name: 'Web Storefront', href: '/store', icon: Store },
       { name: 'Store Builder', href: '/store/builder', icon: Palette },
       { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquareText },
+    ],
+  },
+  {
+    title: 'Specialized Verticals',
+    items: [
+      { name: 'Repairs & Workshop', href: '/repairs', icon: Wrench },
+      { name: 'Restaurant & Tables (KOT)', href: '/restaurant', icon: UtensilsCrossed },
+      { name: 'Wholesale B2B Tiers', href: '/wholesale', icon: Building2 },
     ],
   },
   {
