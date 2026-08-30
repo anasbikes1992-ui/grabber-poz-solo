@@ -21,6 +21,11 @@ import {
   Palette,
   MessageSquareText,
   Lock,
+  Calculator,
+  Barcode,
+  Award,
+  Tag,
+  Layers,
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -29,6 +34,7 @@ const NAV_SECTIONS = [
     items: [
       { name: 'Dashboard', href: '/', icon: LayoutDashboard },
       { name: 'POS Counter', href: '/pos', icon: ShoppingCart, highlight: true },
+      { name: 'Register Shifts (Z-Report)', href: '/shifts', icon: Calculator },
       { name: 'Web Storefront', href: '/store', icon: Store },
       { name: 'Store Builder', href: '/store/builder', icon: Palette },
       { name: 'WhatsApp Bot', href: '/whatsapp', icon: MessageSquareText },
@@ -38,16 +44,21 @@ const NAV_SECTIONS = [
     title: 'Catalog & Inventory',
     items: [
       { name: 'Products & SKUs', href: '/products', icon: Package },
+      { name: 'Smart Collections', href: '/collections', icon: Layers },
+      { name: 'Barcode Generator', href: '/barcodes', icon: Barcode },
       { name: 'Physical Stock', href: '/inventory', icon: Boxes },
+      { name: 'Delivery Board', href: '/delivery', icon: Truck },
       { name: 'Purchasing (PO/GRN)', href: '/purchasing', icon: Truck },
       { name: 'Suppliers (AP)', href: '/suppliers', icon: Building2 },
     ],
   },
   {
-    title: 'Financials & Credit',
+    title: 'Financials & Loyalty',
     items: [
       { name: 'Polim Potha (AR)', href: '/polim-potha', icon: BookOpen },
-      { name: 'Customers (CRM)', href: '/customers', icon: Users },
+      { name: 'Customer CRM', href: '/customers', icon: Users },
+      { name: 'Loyalty Rewards', href: '/loyalty', icon: Award },
+      { name: 'Coupons & Discounts', href: '/discounts', icon: Tag },
       { name: 'General Ledger', href: '/accounts', icon: DollarSign },
     ],
   },
