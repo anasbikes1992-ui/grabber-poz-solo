@@ -27,10 +27,35 @@ export default function SettingsPage() {
     }, 2000);
   };
 
-  const handleSaveIntegrations = (e: React.FormEvent) => {
+  const isMasked = (v: string) => !v || v.includes('•');
+
+  const handleSaveIntegrations = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2000);
+    try {
+      const secrets: Record<string, string> = {};
+      if (!isMasked(payhereSecret)) secrets.payhereSecret = payhereSecret;
+      if (!isMasked(koombiyoKey)) secrets.koombiyoApiKey = koombiyoKey;
+      if (!isMasked(whatsappToken)) secrets.whatsappToken = whatsappToken;
+      if (!isMasked(geminiKey)) secrets.geminiApiKey = geminiKey;
+
+      const res = await fetch('/api/settings/secrets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secrets,
+          publicConfig: {
+            payhereMerchantId,
+            whatsappPhoneId,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Save failed');
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch {
+      setSaveSuccess(false);
+    }
   };
 
   const handleExportData = () => {
@@ -54,37 +79,40 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-border/80 pb-2 text-xs">
+      <div className="flex gap-2 border-b border-zinc-800 pb-2 text-xs">
         <button
+          type="button"
           onClick={() => setActiveTab('GENERAL')}
-          className={`px-4 py-2 rounded-xl font-semibold transition-all ${
+          className={`px-4 py-2 min-h-11 rounded-xl font-semibold transition-all duration-200 cursor-pointer ${
             activeTab === 'GENERAL'
-              ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+              ? 'bg-emerald-500 text-zinc-950 shadow-glow-em'
+              : 'text-muted-foreground hover:text-foreground hover:bg-zinc-900'
           }`}
         >
           General Profile & Tax
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('INTEGRATIONS')}
-          className={`px-4 py-2 rounded-xl font-semibold flex items-center gap-1.5 transition-all ${
+          className={`px-4 py-2 min-h-11 rounded-xl font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer ${
             activeTab === 'INTEGRATIONS'
-              ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+              ? 'bg-emerald-500 text-zinc-950 shadow-glow-em'
+              : 'text-muted-foreground hover:text-foreground hover:bg-zinc-900'
           }`}
         >
-          <Key className="h-3.5 w-3.5" />
+          <Key className="h-3.5 w-3.5" aria-hidden="true" />
           <span>API Credentials & Integrations</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('BACKUPS')}
-          className={`px-4 py-2 rounded-xl font-semibold flex items-center gap-1.5 transition-all ${
+          className={`px-4 py-2 min-h-11 rounded-xl font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer ${
             activeTab === 'BACKUPS'
-              ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+              ? 'bg-emerald-500 text-zinc-950 shadow-glow-em'
+              : 'text-muted-foreground hover:text-foreground hover:bg-zinc-900'
           }`}
         >
-          <Database className="h-3.5 w-3.5" />
+          <Database className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Backups & Disaster Recovery</span>
         </button>
       </div>
@@ -93,46 +121,57 @@ export default function SettingsPage() {
       {activeTab === 'GENERAL' && (
         <div className="space-y-5">
           {/* Business Profile */}
-          <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-4 text-xs">
+          <div className="p-6 rounded-2xl glass-card space-y-4 text-xs">
             <h3 className="font-bold text-sm text-foreground">Business Profile</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-muted-foreground block mb-1">Business Trading Name</label>
+                <label htmlFor="settings-business-name" className="text-muted-foreground block mb-1">
+                  Business Trading Name
+                </label>
                 <input
+                  id="settings-business-name"
                   type="text"
                   defaultValue="Grabber Flagship Retail"
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-medium"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
                 />
               </div>
               <div>
-                <label className="text-muted-foreground block mb-1">Tax Registration Number</label>
+                <label htmlFor="settings-tax-reg" className="text-muted-foreground block mb-1">
+                  Tax Registration Number
+                </label>
                 <input
+                  id="settings-tax-reg"
                   type="text"
                   defaultValue="VAT-987654321-7000"
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-medium"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
                 />
               </div>
               <div>
-                <label className="text-muted-foreground block mb-1">Receipt Header Text</label>
+                <label htmlFor="settings-receipt-header" className="text-muted-foreground block mb-1">
+                  Receipt Header Text
+                </label>
                 <input
+                  id="settings-receipt-header"
                   type="text"
                   defaultValue="Welcome to Grabber Flagship Store • Colombo 03"
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-medium"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
                 />
               </div>
               <div>
-                <label className="text-muted-foreground block mb-1">Receipt Footer Text</label>
+                <label htmlFor="settings-receipt-footer" className="text-muted-foreground block mb-1">
+                  Receipt Footer Text
+                </label>
                 <input
+                  id="settings-receipt-footer"
                   type="text"
                   defaultValue="Thank you for shopping with us! Returns accepted within 7 days."
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-medium"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
                 />
               </div>
             </div>
           </div>
 
-          {/* Tax Engine */}
-          <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-4 text-xs">
+          <div className="p-6 rounded-2xl glass-card space-y-4 text-xs">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-sm text-foreground">Tax Configuration Engine</h3>
               <span className="text-[11px] text-muted-foreground">Effective-Dated Tax Rules</span>
@@ -141,7 +180,7 @@ export default function SettingsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-border text-muted-foreground">
+                  <tr className="border-b border-zinc-800 text-muted-foreground">
                     <th className="pb-2 font-medium">Tax Profile Code</th>
                     <th className="pb-2 font-medium">Name</th>
                     <th className="pb-2 font-medium text-right">Rate</th>
@@ -149,7 +188,7 @@ export default function SettingsPage() {
                     <th className="pb-2 font-medium text-right">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
+                <tbody className="divide-y divide-zinc-800">
                   <tr>
                     <td className="py-2.5 font-mono font-semibold text-foreground">STANDARD_VAT</td>
                     <td className="py-2.5 text-foreground">Sri Lankan VAT</td>
@@ -179,125 +218,144 @@ export default function SettingsPage() {
       {activeTab === 'INTEGRATIONS' && (
         <form onSubmit={handleSaveIntegrations} className="space-y-4 text-xs">
           {/* Payment Gateways */}
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div className="p-5 rounded-2xl glass-card space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
               <div className="flex items-center gap-2 font-bold text-sm text-foreground">
-                <CreditCard className="h-4 w-4 text-primary" />
+                <CreditCard className="h-4 w-4 text-emerald-400" aria-hidden="true" />
                 <span>Online Payment Gateways</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleTestConnection('PayHere')}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground font-medium flex items-center gap-1"
+                className="text-[11px] px-2.5 py-1 min-h-11 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-foreground font-medium flex items-center gap-1 cursor-pointer"
               >
-                {testedService === 'PayHere' ? <Check className="h-3 w-3 text-emerald-500" /> : <RefreshCw className="h-3 w-3" />}
+                {testedService === 'PayHere' ? <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" /> : <RefreshCw className="h-3 w-3" aria-hidden="true" />}
                 <span>{testedService === 'PayHere' ? 'PayHere Connected ✓' : 'Test PayHere API'}</span>
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-muted-foreground block mb-1">PayHere Merchant ID</label>
+                <label htmlFor="settings-payhere-merchant" className="text-muted-foreground block mb-1">
+                  PayHere Merchant ID
+                </label>
                 <input
+                  id="settings-payhere-merchant"
                   type="text"
                   value={payhereMerchantId}
                   onChange={(e) => setPayhereMerchantId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono"
                 />
               </div>
               <div>
-                <label className="text-muted-foreground block mb-1">PayHere Secret / Hash Key</label>
+                <label htmlFor="settings-payhere-secret" className="text-muted-foreground block mb-1">
+                  PayHere Secret / Hash Key
+                </label>
                 <input
+                  id="settings-payhere-secret"
                   type="password"
                   value={payhereSecret}
                   onChange={(e) => setPayhereSecret(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono"
                 />
               </div>
             </div>
           </div>
 
-          {/* Logistics & Couriers */}
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div className="p-5 rounded-2xl glass-card space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
               <div className="flex items-center gap-2 font-bold text-sm text-foreground">
-                <Truck className="h-4 w-4 text-purple-500" />
+                <Truck className="h-4 w-4 text-emerald-400" aria-hidden="true" />
                 <span>Islandwide Courier Integrations</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleTestConnection('Koombiyo')}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground font-medium flex items-center gap-1"
+                className="text-[11px] px-2.5 py-1 min-h-11 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-foreground font-medium flex items-center gap-1 cursor-pointer"
               >
-                {testedService === 'Koombiyo' ? <Check className="h-3 w-3 text-emerald-500" /> : <RefreshCw className="h-3 w-3" />}
+                {testedService === 'Koombiyo' ? <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" /> : <RefreshCw className="h-3 w-3" aria-hidden="true" />}
                 <span>{testedService === 'Koombiyo' ? 'Koombiyo API Valid ✓' : 'Test Courier API'}</span>
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-muted-foreground block mb-1">Koombiyo Courier API Key</label>
+                <label htmlFor="settings-koombiyo-key" className="text-muted-foreground block mb-1">
+                  Koombiyo Courier API Key
+                </label>
                 <input
+                  id="settings-koombiyo-key"
                   type="password"
                   value={koombiyoKey}
                   onChange={(e) => setKoombiyoKey(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono"
                 />
               </div>
               <div>
-                <label className="text-muted-foreground block mb-1">Prompt Express Client Code</label>
+                <label htmlFor="settings-prompt-code" className="text-muted-foreground block mb-1">
+                  Prompt Express Client Code
+                </label>
                 <input
+                  id="settings-prompt-code"
                   type="text"
                   defaultValue="PRM-GRAB-01"
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono"
                 />
               </div>
             </div>
           </div>
 
-          {/* WhatsApp Cloud API & AI */}
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div className="p-5 rounded-2xl glass-card space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
               <div className="flex items-center gap-2 font-bold text-sm text-foreground">
-                <MessageSquare className="h-4 w-4 text-emerald-500" />
+                <MessageSquare className="h-4 w-4 text-emerald-400" aria-hidden="true" />
                 <span>WhatsApp Meta Cloud API & Jarvis AI</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleTestConnection('WhatsApp')}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground font-medium flex items-center gap-1"
+                className="text-[11px] px-2.5 py-1 min-h-11 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-foreground font-medium flex items-center gap-1 cursor-pointer"
               >
-                {testedService === 'WhatsApp' ? <Check className="h-3 w-3 text-emerald-500" /> : <RefreshCw className="h-3 w-3" />}
+                {testedService === 'WhatsApp' ? <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" /> : <RefreshCw className="h-3 w-3" aria-hidden="true" />}
                 <span>{testedService === 'WhatsApp' ? 'Webhook Verified ✓' : 'Test Meta Webhook'}</span>
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-muted-foreground block mb-1">WhatsApp Phone Number ID</label>
+                <label htmlFor="settings-whatsapp-phone" className="text-muted-foreground block mb-1">
+                  WhatsApp Phone Number ID
+                </label>
                 <input
+                  id="settings-whatsapp-phone"
                   type="text"
                   value={whatsappPhoneId}
                   onChange={(e) => setWhatsappPhoneId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono"
                 />
               </div>
               <div>
-                <label className="text-muted-foreground block mb-1">Meta Graph Access Token</label>
+                <label htmlFor="settings-whatsapp-token" className="text-muted-foreground block mb-1">
+                  Meta Graph Access Token
+                </label>
                 <input
+                  id="settings-whatsapp-token"
                   type="password"
                   value={whatsappToken}
                   onChange={(e) => setWhatsappToken(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-muted-foreground block mb-1">Gemini AI / LLM API Key (Jarvis & Creative)</label>
+                <label htmlFor="settings-gemini-key" className="text-muted-foreground block mb-1">
+                  Gemini AI / LLM API Key (Jarvis & Creative)
+                </label>
                 <input
+                  id="settings-gemini-key"
                   type="password"
                   value={geminiKey}
                   onChange={(e) => setGeminiKey(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono"
                 />
               </div>
             </div>
@@ -305,14 +363,14 @@ export default function SettingsPage() {
 
           <div className="flex justify-end">
             {saveSuccess ? (
-              <div className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 font-bold flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
+              <div className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                 <span>API Credentials Encrypted & Saved!</span>
               </div>
             ) : (
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+                className="px-6 py-2.5 min-h-11 rounded-xl bg-emerald-500 text-zinc-950 font-bold shadow-glow-em hover:bg-emerald-400 transition-all duration-200 cursor-pointer btn-press"
               >
                 Save Integration Keys
               </button>
@@ -325,10 +383,10 @@ export default function SettingsPage() {
       {activeTab === 'BACKUPS' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           {/* 1. Open Business Data Export */}
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-3 flex flex-col justify-between">
+          <div className="p-5 rounded-2xl glass-card space-y-3 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 text-primary font-bold text-sm mb-1">
-                <FileSpreadsheet className="h-4 w-4" />
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm mb-1">
+                <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
                 <span>Business Data Export</span>
               </div>
               <p className="text-muted-foreground text-[11px] leading-relaxed">
@@ -344,10 +402,11 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <button
+                  type="button"
                   onClick={handleExportData}
-                  className="w-full py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 border border-border font-semibold flex items-center justify-center gap-2 transition-all"
+                  className="w-full min-h-11 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 font-semibold flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer"
                 >
-                  <Download className="h-3.5 w-3.5" />
+                  <Download className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Export All Business Data</span>
                 </button>
               )}
@@ -355,10 +414,10 @@ export default function SettingsPage() {
           </div>
 
           {/* 2. Full System Snapshot Backup */}
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-3 flex flex-col justify-between">
+          <div className="p-5 rounded-2xl glass-card space-y-3 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 text-purple-500 font-bold text-sm mb-1">
-                <Database className="h-4 w-4" />
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm mb-1">
+                <Database className="h-4 w-4" aria-hidden="true" />
                 <span>Disaster Recovery Snapshot</span>
               </div>
               <p className="text-muted-foreground text-[11px] leading-relaxed">
@@ -374,10 +433,11 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <button
+                  type="button"
                   onClick={handleCreateBackup}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold flex items-center justify-center gap-2 shadow-sm transition-all"
+                  className="w-full min-h-11 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-semibold flex items-center justify-center gap-2 shadow-glow-em hover:bg-emerald-400 transition-all duration-200 cursor-pointer btn-press"
                 >
-                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Create System Backup Archive</span>
                 </button>
               )}

@@ -1,235 +1,165 @@
 'use client';
 
-import React, { useState } from 'react';
-import { UtensilsCrossed, Plus, Printer, CheckCircle2, Clock, Users, Coffee, ShoppingBag, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { UtensilsCrossed, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-interface DiningTable {
+type TableRow = {
   id: string;
   name: string;
   capacity: number;
-  status: 'VACANT' | 'SEATED' | 'ORDERED' | 'SERVED';
-  activeOrder?: {
-    kotNumber: string;
-    items: Array<{ name: string; qty: number; notes?: string; price: number }>;
-    total: number;
-    waiter: string;
-    seatedTime: string;
-  };
-}
+  status: string;
+  activeOrder?: { kotNumber: string; items: Array<{ name: string; qty: number; price: number }>; total: number; waiter: string };
+};
 
 export default function RestaurantFloorPage() {
-  const [tables, setTables] = useState<DiningTable[]>([
-    {
-      id: 't1',
-      name: 'Table 01 (Window)',
-      capacity: 4,
-      status: 'ORDERED',
-      activeOrder: {
-        kotNumber: 'KOT-204',
-        items: [
-          { name: 'Kottu Roti (Chicken Special)', qty: 2, notes: 'Extra Spicy, No Leeks', price: 1800.0 },
-          { name: 'Iced Milo Dinosaur', qty: 2, price: 650.0 },
-        ],
-        total: 4900.0,
-        waiter: 'Saman',
-        seatedTime: '15 mins ago',
-      },
-    },
-    {
-      id: 't2',
-      name: 'Table 02 (Center)',
-      capacity: 2,
-      status: 'SERVED',
-      activeOrder: {
-        kotNumber: 'KOT-202',
-        items: [
-          { name: 'Egg Hoppers (Set of 4)', qty: 1, notes: 'Crispy edges', price: 950.0 },
-          { name: 'Ceylon Ginger Tea', qty: 2, price: 400.0 },
-        ],
-        total: 1750.0,
-        waiter: 'Amal',
-        seatedTime: '35 mins ago',
-      },
-    },
-    { id: 't3', name: 'Table 03 (Booth)', capacity: 6, status: 'VACANT' },
-    { id: 't4', name: 'Table 04 (Booth)', capacity: 6, status: 'VACANT' },
-    { id: 't5', name: 'VIP Lounge Dining', capacity: 10, status: 'VACANT' },
-    { id: 't6', name: 'Takeaway Counter #1', capacity: 1, status: 'VACANT' },
-  ]);
+  const [tables, setTables] = useState<TableRow[]>([]);
+  const [selected, setSelected] = useState<TableRow | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
-  const [selectedTable, setSelectedTable] = useState<DiningTable | null>(tables[0]);
+  const load = useCallback(async () => {
+    const res = await fetch('/api/restaurant');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Load failed');
+    setTables(data.tables || []);
+    if (selected) {
+      const next = (data.tables || []).find((t: TableRow) => t.id === selected.id);
+      setSelected(next || data.tables?.[0] || null);
+    } else if (data.tables?.[0]) {
+      setSelected(data.tables[0]);
+    }
+  }, [selected]);
 
-  const handleTableStatusChange = (tableId: string, newStatus: DiningTable['status']) => {
-    setTables((prev) =>
-      prev.map((t) => {
-        if (t.id === tableId) {
-          const updated = {
-            ...t,
-            status: newStatus,
-            activeOrder: newStatus === 'VACANT' ? undefined : t.activeOrder,
-          };
-          if (selectedTable?.id === tableId) setSelectedTable(updated);
-          return updated;
+  useEffect(() => {
+    (async () => {
+      try {
+        await fetch('/api/restaurant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'seed_floor' }),
+        });
+        const res = await fetch('/api/restaurant');
+        const data = await res.json();
+        if (data.success) {
+          setTables(data.tables || []);
+          setSelected(data.tables?.[0] || null);
         }
-        return t;
-      })
-    );
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    })();
+  }, []);
+
+  const setStatus = async (tableId: string, status: string) => {
+    setError(null);
+    try {
+      const res = await fetch('/api/restaurant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_status', tableId, status }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      setNote(`Table → ${status}`);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const createKot = async () => {
+    if (!selected) return;
+    try {
+      const res = await fetch('/api/restaurant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_kot',
+          tableId: selected.id,
+          waiterName: 'Floor',
+          items: [{ name: 'House Special', qty: 1, price: 1500, notes: 'Demo KOT' }],
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      setNote(`KOT ${data.ticket.kotNumber} fired`);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <span>Restaurant Floor & Kitchen Display (KDS)</span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 font-semibold border border-amber-500/20">
-              Food & Beverage Vertical
-            </span>
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Dine-in table management, Kitchen Order Tickets (KOT), item modifiers, and split table billing.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-xl font-extrabold tracking-tight flex items-center gap-2">
+          <UtensilsCrossed className="h-5 w-5 text-emerald-400" /> Restaurant floor & KOT
+        </h1>
+        <p className="text-xs text-muted-foreground">Durable tables via /api/restaurant</p>
+      </div>
+      {error && (
+        <p role="alert" className="text-xs text-amber-400 flex items-center gap-2">
+          <AlertCircle className="h-3.5 w-3.5" /> {error}
+        </p>
+      )}
+      {note && (
+        <p role="status" className="text-xs text-emerald-400 flex items-center gap-2">
+          <CheckCircle2 className="h-3.5 w-3.5" /> {note}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {tables.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setSelected(t)}
+            className={`p-4 rounded-2xl text-left glass-card transition-all ${
+              selected?.id === t.id ? 'glow-border-emerald' : ''
+            }`}
+          >
+            <p className="text-sm font-bold">{t.name}</p>
+            <p className="text-[10px] text-muted-foreground">{t.capacity} seats · {t.status}</p>
+            {t.activeOrder && (
+              <p className="text-[10px] text-emerald-400 mt-1 font-mono">{t.activeOrder.kotNumber}</p>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Main Floor Grid vs Table Order Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left 8 Cols: Floor Layout Grid */}
-        <div className="lg:col-span-8 p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-sm text-foreground">Dining Area Floor Plan</h3>
-            <div className="flex items-center gap-3 text-[11px] font-medium text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Vacant</span>
-              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Kitchen Order</span>
-              <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Served</span>
-            </div>
+      {selected && (
+        <div className="p-5 rounded-2xl glass-card space-y-3">
+          <h2 className="text-sm font-bold">{selected.name}</h2>
+          <div className="flex flex-wrap gap-2">
+            {(['VACANT', 'SEATED', 'ORDERED', 'SERVED'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatus(selected.id, s)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border ${
+                  selected.status === s ? 'border-emerald-400 text-emerald-400' : 'border-zinc-800'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+            <button type="button" onClick={createKot} className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-500 text-zinc-950">
+              Fire demo KOT
+            </button>
           </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {tables.map((table) => {
-              const isSelected = selectedTable?.id === table.id;
-              return (
-                <button
-                  key={table.id}
-                  onClick={() => setSelectedTable(table)}
-                  className={`p-4 rounded-2xl border text-left flex flex-col justify-between aspect-[4/3] transition-all hover:shadow-md ${
-                    isSelected ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border/80 bg-secondary/40'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-bold text-xs text-foreground">{table.name}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <Users className="h-3 w-3" /> {table.capacity} Seats
-                      </p>
-                    </div>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
-                      table.status === 'VACANT'
-                        ? 'bg-emerald-500/10 text-emerald-600'
-                        : table.status === 'ORDERED'
-                        ? 'bg-amber-500/10 text-amber-600'
-                        : 'bg-blue-500/10 text-blue-600'
-                    }`}>
-                      {table.status}
-                    </span>
-                  </div>
-
-                  <div className="pt-2 border-t border-border/40">
-                    {table.activeOrder ? (
-                      <div>
-                        <p className="font-mono text-xs font-bold text-foreground">LKR {table.activeOrder.total.toFixed(2)}</p>
-                        <p className="text-[9px] text-muted-foreground">{table.activeOrder.items.length} items &bull; {table.activeOrder.seatedTime}</p>
-                      </div>
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground">Ready for seating</span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right 4 Cols: Active Table Order & KOT Actions */}
-        <div className="lg:col-span-4 p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4 text-xs">
-          {selectedTable ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center pb-2 border-b border-border">
-                <div>
-                  <h3 className="font-bold text-sm text-foreground">{selectedTable.name}</h3>
-                  <p className="text-[10px] text-muted-foreground">Capacity: {selectedTable.capacity} Guests</p>
-                </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                  selectedTable.status === 'VACANT' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
-                }`}>
-                  {selectedTable.status}
-                </span>
-              </div>
-
-              {selectedTable.activeOrder ? (
-                <div className="space-y-3">
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Active KOT: <strong className="text-foreground">{selectedTable.activeOrder.kotNumber}</strong></span>
-                    <span>Waiter: {selectedTable.activeOrder.waiter}</span>
-                  </div>
-
-                  {/* KOT Items */}
-                  <div className="space-y-2 py-2 border-y border-border/50 max-h-48 overflow-y-auto">
-                    {selectedTable.activeOrder.items.map((item, idx) => (
-                      <div key={idx} className="p-2 rounded-xl bg-secondary/60 space-y-0.5">
-                        <div className="flex justify-between font-semibold text-foreground">
-                          <span>{item.qty}x {item.name}</span>
-                          <span className="font-mono">LKR {(item.price * item.qty).toFixed(2)}</span>
-                        </div>
-                        {item.notes && (
-                          <p className="text-[10px] text-amber-600 font-medium">★ Note: {item.notes}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-between font-bold text-sm text-foreground pt-1">
-                    <span>Table Total Due:</span>
-                    <span className="text-primary font-mono text-base">LKR {selectedTable.activeOrder.total.toFixed(2)}</span>
-                  </div>
-
-                  <div className="space-y-2 pt-2">
-                    <button
-                      onClick={() => handleTableStatusChange(selectedTable.id, 'SERVED')}
-                      className="w-full py-2 rounded-xl bg-secondary hover:bg-secondary/80 border border-border font-semibold flex items-center justify-center gap-1.5"
-                    >
-                      <span>Mark All Dishes Served</span>
-                    </button>
-                    <button
-                      onClick={() => handleTableStatusChange(selectedTable.id, 'VACANT')}
-                      className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold shadow-md flex items-center justify-center gap-2"
-                    >
-                      <Printer className="h-3.5 w-3.5" />
-                      <span>Print Customer Bill & Settle</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="py-8 text-center text-muted-foreground space-y-3">
-                  <UtensilsCrossed className="h-8 w-8 mx-auto opacity-40" />
-                  <p>Table is currently vacant.</p>
-                  <button
-                    onClick={() =>
-                      handleTableStatusChange(selectedTable.id, 'ORDERED')
-                    }
-                    className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold"
-                  >
-                    Seat Guests & Create KOT
-                  </button>
-                </div>
-              )}
+          {selected.activeOrder && (
+            <div className="text-xs space-y-1">
+              <p className="font-mono text-emerald-400">{selected.activeOrder.kotNumber}</p>
+              {selected.activeOrder.items?.map((i, idx) => (
+                <p key={idx} className="text-muted-foreground">
+                  {i.qty}× {i.name} — {i.price}
+                </p>
+              ))}
+              <p className="font-bold">Total LKR {Number(selected.activeOrder.total).toFixed(2)}</p>
             </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-8">Select a table to manage</p>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,95 +1,141 @@
-# GRABBER BUSINESS OS — CLIENT ONBOARDING & DEPLOYMENT PLAYBOOK
+# GRABBER BUSINESS OS — CLIENT ONBOARDING & PRODUCTION CERTIFICATION PLAYBOOK
 
-Complete operational launch manual for deploying **Wowthings.lk**, **Shoppingstation.lk**, and future clients in < 5 minutes.
+Operational handbook for provisioning, validating, certifying, and handing over dedicated **GRABBER Business OS** client instances.
 
----
-
-## 1. Active Client Deployment Profiles
-
-### Client Profile 1: Wowthings.lk
-* **Store Name:** `Wowthings`
-* **Custom Domain:** `wowthings.lk` (or `store.wowthings.lk`)
-* **Admin Login:** `wowthigs.lk@gmail.com`
-* **Initial Password:** `Aa123456`
-* **WhatsApp Hotline:** `+94750411011`
-* **Catalog Dataset:** `excel/wow_products_with_images.xlsx` (1,112 Products with barcodes & categories)
-* **Industry Vertical:** Apparel, Accessories & Gifts
-
-### Client Profile 2: Shoppingstation.lk
-* **Store Name:** `Shopping Station`
-* **Custom Domain:** `shoppingstation.lk` (or `store.shoppingstation.lk`)
-* **Admin Login:** `anasazeez1992@gmail.com`
-* **Initial Password:** `Aa123456`
-* **WhatsApp Hotline:** `+94779592288`
-* **Catalog Dataset:** `excel/Shopping Station Products data.csv` (1,613 Products with WooCommerce image links)
-* **Industry Vertical:** Supermarket, Grocery, Imported Goods & Lifestyle
+> **Readiness honesty:** Until Wave 1–2 in [`docs/correction.md`](./correction.md) are complete, treat UI pages as demos, commerce engines as in-memory, and `client:certify` as a **schema + synthetic SQL** gate — not full production proof (RBAC/RLS, CDN, or HTTP API durability are deferred).
 
 ---
 
-## 2. 5-Minute 4-Step Client Launch Workflow
+## 1. Commercial Architecture & Service Level Standard
+
+* **Architecture Model:** Dedicated Single-Business Instance (1 Business = 1 Isolated Supabase PostgreSQL + 1 Vercel Edge Deployment + 1 CDN Storage Bucket).
+* **Schema SSOT:** [`src/db/schema.ts`](../src/db/schema.ts) (41 tables). Prefer `npm run db:push` / Drizzle migrations. `drizzle/supabase_setup.sql` must stay in sync (tracked as W1-10).
+* **Delivery SLA:** Same-day go-live only after **schema/SQL cert passes** and **manual** owner auth + POS smoke — not after docs alone.
+* **Zero Cross-Tenant Leakage:** Dedicated database isolates Polim Potha, GL, customers, and inventory.
+
+---
+
+## 2. End-to-End Client Lifecycle Workflow
 
 ```mermaid
 flowchart TD
-    A["1. Create Supabase Project (Singapore)"] --> B["2. Run supabase_setup.sql & Seed Catalog"]
-    B --> C["3. Deploy Vercel with Environment Variables"]
-    C --> D["4. Connect Domain & Handover Credentials"]
+    A["1. Client Intake & Catalog Parsing"] --> B["2. Pre-Flight Env Validation (npm run env:validate)"]
+    B --> C["3. Database Provisioning & Parameterized Ingestion"]
+    C --> D["4. Vercel Production Deployment & Domain Binding"]
+    D --> E["5. Instance Certification (npm run client:certify)"]
+    E --> F["6. Owner Credential Setup & First-Login Reset"]
+    F --> G["7. Final Handover & Training"]
 ```
 
-### Step 1: Provision Supabase Database (1 minute)
-1. Open [Supabase Dashboard](https://supabase.com/dashboard) and click **New Project**.
-2. Name: `grabber-wowthings-prod` (or `grabber-shoppingstation-prod`).
-3. Region: `ap-southeast-1` (Singapore &bull; ~30ms latency to Sri Lanka).
-4. Set database password: `Aa123456` (or secure custom password).
+---
 
-### Step 2: Provision Schema & Migrate Products (1 minute)
-1. In Supabase **SQL Editor**, paste and run:
-   - **`drizzle/supabase_setup.sql`** (Creates all 41 tables, indexes, Chart of Accounts, VAT 18%, and Storage buckets).
-2. To import the client's catalog:
-   - Run the migration generator:
-     ```bash
-     node scripts/migrate-client-catalog.mjs --client "Shopping Station" --file "excel/Shopping Station Products data.csv"
-     ```
-   - Paste the generated **`drizzle/seed_shopping_station_catalog.sql`** into the Supabase SQL Editor and click **Run**.
-3. All 1,600+ products, prices, and CDN image references are live instantly.
+## 3. Operational Step-by-Step Execution
 
-### Step 3: Deploy on Vercel (2 minutes)
-1. In Vercel, click **Add New > Project** and select `anasbikes1992-ui/grabber-business-os`.
-2. Under **Environment Variables**, add:
-   ```env
-   DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
-   NEXT_PUBLIC_APP_URL="https://shoppingstation.lk"
-   ```
-3. Click **Deploy**. Vercel will complete the build and assign the global CDN edge URL in ~40 seconds.
+### Step 1: Pre-Flight Environment Validation
 
-### Step 4: Bind Custom Domain & Test POS (1 minute)
-1. In Vercel Project Settings > **Domains**, add `shoppingstation.lk` (or `wowthings.lk`).
-2. Add the `CNAME` record in the client's DNS (Cloudflare / LK Domain Registry / GoDaddy).
-3. Open `https://shoppingstation.lk/login` and test authentication with `anasazeez1992@gmail.com` / PIN `1234`.
-4. Scan a barcode at `/pos`, complete a test cash sale, and verify receipt printing.
+```bash
+npm run env:validate -- --env-file .env.client-production
+# Production-strict (AUTH_SECRET is P0):
+npm run env:validate -- --env-file .env.client-production --production
+```
+
+* **P0 Checks:** `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`; in production/`--production`: `AUTH_SECRET` (≥32 chars).
+* **P1 Warnings:** Transaction pooler detection; missing AUTH_SECRET in non-production.
+* **Integrations Detected:** PayHere, Koombiyo, Meta WhatsApp, Supabase CDN (optional).
 
 ---
 
-## 3. Remote Image Auto-Ingestion & CDN Self-Hosting
+### Step 2: Database Provisioning & Parameterized Ingestion
 
-When a client provides a product catalog with image URLs from an existing WordPress/WooCommerce site:
-* **The Problem:** If their old site goes offline or changes hosting, external image links break.
-* **Our Built-In Solution:**
-  1. The migration script parses remote URLs (`https://shoppingstation.lk/wp-content/uploads/...`).
-  2. Converts paths into standardized Supabase Storage CDN URLs (`/storage/v1/object/public/products/[sku].jpg`).
-  3. Product images load in < 50ms worldwide via Supabase global edge CDN without external dependency.
+1. Create a dedicated Supabase project in region `ap-southeast-1`.
+2. Apply schema from SSOT:
+   - Prefer `npm run db:push` against the client `DATABASE_URL`, **or**
+   - Run a SQL dump that matches `src/db/schema.ts` (do not assume older column names in a stale `supabase_setup.sql`).
+3. Seed Chart of Accounts codes: `1010`, `1020`, `1090`, `1100`, `1200`, `2000`, `2100`, `4000`, `5000`.
+4. Ingest catalog:
+
+```bash
+npm run client:migrate -- --client "Shopping Station" --file "excel/Shopping Station Products data.csv"
+```
+
+* Validate SKU uniqueness, barcode format, price positivity.
+* Rejected rows → `reports/rejected_rows_[client].csv`.
 
 ---
 
-## 4. How to Onboard Future Clients (Standardized Template)
+### Step 3: Vercel Edge Deployment & Custom Domain
 
-For any new client in the future:
-1. **Send Questionnaire:** Provide [`docs/CLIENT_ONBOARDING_CREDENTIALS.md`](file:///d:/GRABBER%20POZ%20SOLO/docs/CLIENT_ONBOARDING_CREDENTIALS.md) to collect Store Name, WhatsApp #, and Catalog Excel/CSV.
-2. **Execute Provisioning Command:**
-   ```bash
-   node scripts/provision-client.mjs --client "New Store Name" --slug "newstore" --domain "newstore.lk"
-   ```
-3. **Migrate Catalog:**
-   ```bash
-   node scripts/migrate-client-catalog.mjs --client "New Store" --file "path/to/catalog.xlsx"
-   ```
-4. **Collect Setup Fee:** Hand over the login credentials and collect the license payment.
+```env
+DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
+NEXT_PUBLIC_APP_URL="https://shoppingstation.lk"
+AUTH_SECRET="[secure-random-64-char-secret]"
+NEXT_PUBLIC_STORE_NAME="Shopping Station"
+```
+
+Bind custom domain and DNS. Do **not** ship hardcoded owner passwords in docs or repos.
+
+---
+
+### Step 4: Instance Certification Gate
+
+```bash
+npm run client:certify -- --dry-run --client "Shopping Station" --slug "shoppingstation"
+npm run client:certify -- --client "Shopping Station" --slug "shoppingstation"
+```
+
+**What the suite actually verifies today**
+
+1. **Schema:** All 41 tables from `schema.ts` present.
+2. **COA:** Standard ledger codes including `1010` / `1200` / `4000` / `5000`.
+3. **Users:** At least one active user; OWNER role when users exist.
+4. **Live SQL chains (not dry-run):** cash sale + stock + balanced journals; Polim `INVOICE`/`REPAYMENT`; return reversal; supplier AP + stock intake; webhook unique `(provider, provider_event_id)`; zero-residue cleanup.
+
+**Not verified yet (blocked / deferred — see correction.md)**
+
+* Security & RBAC / RLS policy probes
+* Storage & CDN read/write smoke
+* HTTP `/api/pos/checkout` path (engines still in-memory)
+
+> **P0 Gate Rule:** If `P0 Failures > 0`, handover is **BLOCKED**.  
+> Report: `reports/CLIENT_CERTIFICATION_[SLUG].md`.  
+> A green report means **schema/SQL gates passed**, not that the Next.js app persists commerce to Postgres.
+
+---
+
+### Step 5: Secure Owner Account Setup
+
+1. Provision OWNER via secure onboarding (hashed PIN/password — Wave 2).
+2. Until auth is durable, treat `/login` as a **demo gate** only.
+3. Target state: first login forces password + POS PIN rotation and verifies currency/tax/receipt header.
+
+---
+
+### Step 6: Rollback & Emergency Recovery
+
+```sql
+TRUNCATE public.order_items, public.orders, public.stock_movements, public.stock_balances,
+  public.product_variants, public.products CASCADE;
+```
+
+Full re-provision: drop/recreate schema from SSOT, then re-run certify.
+
+---
+
+## 4. Operational Handover Checklist
+
+- [ ] `npm run env:validate -- --production` → 0 P0 errors
+- [ ] Schema matches `src/db/schema.ts` (41 tables + COA seed)
+- [ ] Catalog migrated with rejected rows reviewed
+- [ ] Vercel domain + SSL active
+- [ ] `npm run client:certify` → no P0 failures
+- [ ] [`docs/correction.md`](./correction.md) Wave 1–2 blockers accepted or closed
+- [ ] Manual POS smoke (sale, receipt, drawer) on counter hardware
+- [ ] Owner credentials rotated (no shared demo PIN in production)
+
+---
+
+## 5. Related docs
+
+* [`docs/correction.md`](./correction.md) — master fix tracker  
+* [`docs/certification/CERTIFICATION_LEVELS.md`](./certification/CERTIFICATION_LEVELS.md)  
+* [`docs/certification/BUSINESS_INVARIANTS.md`](./certification/BUSINESS_INVARIANTS.md)  

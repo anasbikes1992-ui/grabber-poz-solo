@@ -126,4 +126,53 @@ export class ESCPOSPrinterController {
     if (typeof window === 'undefined') return;
     window.print();
   }
+
+  /**
+   * Generates ESC/POS binary buffer for end-of-day Z-report slip.
+   */
+  public static generateZReportBuffer(data: {
+    storeName: string;
+    registerName: string;
+    registerCode: string;
+    cashierName: string;
+    shiftId: string;
+    openedAt: string;
+    closedAt: string;
+    openingFloat: number;
+    cashSales: number;
+    cardSales: number;
+    creditSales: number;
+    expectedCash: number;
+    closingCash: number;
+    variance: number;
+  }): Uint8Array {
+    const bytes: number[] = [];
+    bytes.push(0x1b, 0x40);
+    bytes.push(0x1b, 0x61, 0x01);
+    bytes.push(0x1d, 0x21, 0x11);
+    this.appendString(bytes, `${data.storeName}\n`);
+    bytes.push(0x1d, 0x21, 0x00);
+    this.appendString(bytes, `*** Z-REPORT ***\n`);
+    this.appendString(bytes, `${data.registerName} (${data.registerCode})\n`);
+    this.appendString(bytes, `------------------------------------------------\n`);
+    bytes.push(0x1b, 0x61, 0x00);
+    this.appendString(bytes, `Shift: ${data.shiftId.slice(0, 8)}\n`);
+    this.appendString(bytes, `Cashier: ${data.cashierName}\n`);
+    this.appendString(bytes, `Opened: ${data.openedAt}\n`);
+    this.appendString(bytes, `Closed: ${data.closedAt}\n`);
+    this.appendString(bytes, `------------------------------------------------\n`);
+    this.appendString(bytes, `Opening Float:     LKR ${data.openingFloat.toFixed(2)}\n`);
+    this.appendString(bytes, `Cash Sales:        LKR ${data.cashSales.toFixed(2)}\n`);
+    this.appendString(bytes, `Card Sales:        LKR ${data.cardSales.toFixed(2)}\n`);
+    this.appendString(bytes, `Credit Sales:      LKR ${data.creditSales.toFixed(2)}\n`);
+    this.appendString(bytes, `Expected Cash:     LKR ${data.expectedCash.toFixed(2)}\n`);
+    this.appendString(bytes, `Counted Cash:      LKR ${data.closingCash.toFixed(2)}\n`);
+    bytes.push(0x1b, 0x45, 0x01);
+    this.appendString(bytes, `Variance:          LKR ${data.variance.toFixed(2)}\n`);
+    bytes.push(0x1b, 0x45, 0x00);
+    bytes.push(0x1b, 0x61, 0x01);
+    this.appendString(bytes, `\nPowered by Grabber Business OS\n\n\n`);
+    bytes.push(0x1d, 0x56, 0x41, 0x00);
+    return new Uint8Array(bytes);
+  }
 }

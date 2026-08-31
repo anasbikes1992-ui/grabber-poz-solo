@@ -1,0 +1,117 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { COOKIE_NAME, CUSTOMER_COOKIE_NAME } from '@/lib/auth/session-constants';
+
+/** Public marketing / storefront / auth / webhooks */
+const PUBLIC_EXACT = new Set(['/', '/store', '/shop/login', '/login']);
+const PUBLIC_PREFIXES = [
+  '/shop/',
+  '/store/',
+  '/api/auth/',
+  '/api/webhooks',
+  '/api/health',
+  '/api/seed',
+  '/api/pos/catalog',
+  '/api/pos/checkout', // storefront checkout (validates customerId server-side)
+  '/api/config/flags',
+];
+
+/** Staff back-office surfaces (require staff cookie in production) */
+const STAFF_PREFIXES = [
+  '/app',
+  '/pos',
+  '/shifts',
+  '/products',
+  '/inventory',
+  '/purchasing',
+  '/suppliers',
+  '/customers',
+  '/polim-potha',
+  '/accounts',
+  '/settings',
+  '/setup',
+  '/repairs',
+  '/restaurant',
+  '/hire-purchase',
+  '/appointments',
+  '/loyalty',
+  '/returns',
+  '/delivery',
+  '/discounts',
+  '/barcodes',
+  '/wholesale',
+  '/whatsapp',
+  '/creative',
+  '/collections',
+];
+
+function isPublic(pathname: string) {
+  if (PUBLIC_EXACT.has(pathname)) return true;
+  return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
+}
+
+function isStaffSurface(pathname: string) {
+  return STAFF_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/**
+ * Dual auth:
+ * - Storefront + shopper APIs: public (or customer cookie for /shop/account)
+ * - Staff OS: staff grabber_session in production
+ */
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    /\.(png|jpg|jpeg|svg|ico|css|js|map|webp)$/.test(pathname)
+  ) {
+    return NextResponse.next();
+  }
+
+  if (isPublic(pathname) && pathname !== '/shop/account') {
+    return NextResponse.next();
+  }
+
+  // Shopper account page
+  if (pathname.startsWith('/shop/account')) {
+    if (process.env.NODE_ENV !== 'production' || process.env.AUTH_OPTIONAL === 'true') {
+      return NextResponse.next();
+    }
+    if (!req.cookies.get(CUSTOMER_COOKIE_NAME)?.value) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/shop/login';
+      url.searchParams.set('next', pathname);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
+  const optional = process.env.NODE_ENV !== 'production' || process.env.AUTH_OPTIONAL === 'true';
+
+  // Staff API mutating routes still gated lightly in prod via cookie presence
+  if (pathname.startsWith('/api/')) {
+    if (optional || isPublic(pathname)) return NextResponse.next();
+    if (!req.cookies.get(COOKIE_NAME)?.value) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
+
+  if (isStaffSurface(pathname) || pathname.startsWith('/api/')) {
+    if (optional) return NextResponse.next();
+    if (!req.cookies.get(COOKIE_NAME)?.value) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/login';
+      url.searchParams.set('next', pathname);
+      return NextResponse.redirect(url);
+    }
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image).*)'],
+};

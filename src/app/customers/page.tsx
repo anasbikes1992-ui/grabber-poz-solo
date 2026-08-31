@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Users, Plus, Search, Edit2, BookOpen, CheckCircle2, X, Phone, Mail } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Users, Plus, Search, Edit2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
 
 interface Customer {
   id: string;
@@ -15,19 +16,14 @@ interface Customer {
 }
 
 export default function CustomersCRUDPage() {
-  const [customers, setCustomers] = useState<Customer[]>([
-    { id: 'c1', name: 'Sarath Perera', phone: '+94 77 123 4567', email: 'sarath@gmail.com', address: '45 Lake Road, Colombo 05', creditAllowed: true, creditLimit: 50000.0, currentBalance: 11240.0 },
-    { id: 'c2', name: 'Chaminda Silva', phone: '+94 71 987 6543', email: 'chaminda@yahoo.com', address: '12 Temple Lane, Kandy', creditAllowed: true, creditLimit: 30000.0, currentBalance: 8500.0 },
-    { id: 'c3', name: 'Kamal Gunaratne', phone: '+94 76 555 4433', email: 'kamal@gmail.com', address: '88 High Level Road, Nugegoda', creditAllowed: true, creditLimit: 40000.0, currentBalance: 0.0 },
-    { id: 'c4', name: 'Nimal Silva (WhatsApp Buyer)', phone: '+94 70 111 2233', email: 'nimal@gmail.com', address: '23 Beach Road, Mount Lavinia', creditAllowed: false, creditLimit: 0.0, currentBalance: 0.0 },
-  ]);
-
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  // Form State
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -35,10 +31,26 @@ export default function CustomersCRUDPage() {
   const [creditAllowed, setCreditAllowed] = useState(false);
   const [creditLimit, setCreditLimit] = useState(0);
 
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/customers');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Load failed');
+      setCustomers(data.customers || []);
+      setError(null);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const openCreateModal = () => {
     setEditingCustomer(null);
     setName('');
-    setPhone('+94 ');
+    setPhone('+94');
     setEmail('');
     setAddress('');
     setCreditAllowed(false);
@@ -57,218 +69,133 @@ export default function CustomersCRUDPage() {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingCustomer) {
-      setCustomers((prev) =>
-        prev.map((c) =>
-          c.id === editingCustomer.id
-            ? { ...c, name, phone, email, address, creditAllowed, creditLimit: Number(creditLimit) }
-            : c
-        )
-      );
-    } else {
-      const newC: Customer = {
-        id: `c_${Date.now()}`,
+    setBusy(true);
+    try {
+      const payload = {
         name,
         phone,
         email,
         address,
         creditAllowed,
         creditLimit: Number(creditLimit),
-        currentBalance: 0,
       };
-      setCustomers((prev) => [...prev, newC]);
+      const res = await fetch('/api/customers', {
+        method: editingCustomer ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingCustomer ? { id: editingCustomer.id, ...payload } : payload),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Save failed');
+      setSaveSuccess(true);
+      await load();
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setSaveSuccess(false);
+      }, 600);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
     }
-
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setIsModalOpen(false);
-      setSaveSuccess(false);
-    }, 800);
   };
+
+  const filtered = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.phone.includes(search) ||
+      c.email.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-foreground tracking-tight">Customer CRM & Credit Accounts</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Customer directory, contact profiles, and Polim Potha credit limit configurations.
-          </p>
+          <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            <Users className="h-5 w-5 text-emerald-400" /> Customers
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Durable CRM via /api/customers</p>
         </div>
-
-        <button
-          onClick={openCreateModal}
-          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 shadow-sm shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 self-start sm:self-auto"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>New Customer</span>
+        <button type="button" onClick={openCreateModal} className="px-4 py-2 min-h-11 rounded-xl bg-emerald-500 text-zinc-950 text-xs font-bold flex items-center gap-2">
+          <Plus className="h-3.5 w-3.5" /> New Customer
         </button>
       </div>
 
-      {/* Search Bar */}
+      {error && (
+        <p role="alert" className="text-xs text-amber-400 flex items-center gap-2">
+          <AlertCircle className="h-3.5 w-3.5" /> {error}
+        </p>
+      )}
+
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by customer name, phone, or email..."
-          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-card border border-border focus:outline-none focus:ring-1 focus:ring-primary"
-        />
+        <label htmlFor="cust-search" className="sr-only">Search</label>
+        <input id="cust-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or phone…" className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl bg-zinc-900/80 border border-zinc-800" />
       </div>
 
-      {/* Customers Table */}
-      <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm space-y-4">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground">
-                <th className="pb-2.5 font-medium">Customer Name</th>
-                <th className="pb-2.5 font-medium">Contact</th>
-                <th className="pb-2.5 font-medium">Address</th>
-                <th className="pb-2.5 font-medium text-right">Credit Limit</th>
-                <th className="pb-2.5 font-medium text-right">Current Balance</th>
-                <th className="pb-2.5 font-medium text-right">Available</th>
-                <th className="pb-2.5 font-medium text-right">Actions</th>
+      <div className="p-5 rounded-2xl glass-card overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-zinc-800 text-muted-foreground">
+              <th className="pb-2.5">Name</th>
+              <th className="pb-2.5">Phone</th>
+              <th className="pb-2.5 text-right">Credit limit</th>
+              <th className="pb-2.5 text-right">Balance</th>
+              <th className="pb-2.5 text-right">Edit</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-800">
+            {filtered.map((c) => (
+              <tr key={c.id}>
+                <td className="py-3 font-semibold">{c.name}</td>
+                <td className="py-3 font-mono text-muted-foreground">{c.phone}</td>
+                <td className="py-3 text-right font-mono">{c.creditLimit.toFixed(2)}</td>
+                <td className="py-3 text-right font-mono text-emerald-400">{c.currentBalance.toFixed(2)}</td>
+                <td className="py-3 text-right">
+                  <button type="button" onClick={() => openEditModal(c)} className="p-1.5 rounded-lg hover:bg-zinc-800" aria-label={`Edit ${c.name}`}>
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {customers
-                .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search))
-                .map((c) => (
-                  <tr key={c.id} className="hover:bg-secondary/40 transition-colors">
-                    <td className="py-3 font-semibold text-foreground">{c.name}</td>
-                    <td className="py-3 text-muted-foreground">
-                      <p className="flex items-center gap-1"><Phone className="h-3 w-3" /> {c.phone}</p>
-                      <p className="text-[10px] text-muted-foreground/80">{c.email}</p>
-                    </td>
-                    <td className="py-3 text-muted-foreground max-w-xs truncate">{c.address}</td>
-                    <td className="py-3 text-right font-medium text-muted-foreground">
-                      {c.creditAllowed ? `LKR ${c.creditLimit.toLocaleString()}` : <span className="text-[10px] text-muted-foreground/60">No Credit</span>}
-                    </td>
-                    <td className="py-3 text-right font-bold text-amber-600 dark:text-amber-400">
-                      LKR {c.currentBalance.toLocaleString()}
-                    </td>
-                    <td className="py-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                      LKR {(c.creditLimit - c.currentBalance).toLocaleString()}
-                    </td>
-                    <td className="py-3 text-right space-x-1">
-                      <button
-                        onClick={() => openEditModal(c)}
-                        className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* Create / Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <form onSubmit={handleSave} className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="font-bold text-sm text-foreground">
-                {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
-              </h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-muted-foreground block mb-1 font-medium">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Sarath Perera"
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-medium"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-muted-foreground block mb-1 font-medium">Phone Number</label>
-                  <input
-                    type="text"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="text-muted-foreground block mb-1 font-medium">Email Address</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-muted-foreground block mb-1 font-medium">Physical Delivery Address</label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground"
-                />
-              </div>
-
-              <div className="pt-2 border-t border-border/50 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">Allow Polim Potha Credit Sales</span>
-                  <input
-                    type="checkbox"
-                    checked={creditAllowed}
-                    onChange={(e) => setCreditAllowed(e.target.checked)}
-                    className="h-4 w-4 rounded bg-secondary border-border text-primary focus:ring-0"
-                  />
-                </div>
-
-                {creditAllowed && (
-                  <div>
-                    <label className="text-muted-foreground block mb-1 font-medium">Credit Limit (LKR)</label>
-                    <input
-                      type="number"
-                      value={creditLimit}
-                      onChange={(e) => setCreditLimit(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-bold"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {saveSuccess ? (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center gap-2 font-bold">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Customer Profile Saved!</span>
-              </div>
-            ) : (
-              <button
-                type="submit"
-                className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.99]"
-              >
-                Save Customer
-              </button>
-            )}
-          </form>
+      <Modal isOpen={isModalOpen} onClose={() => !busy && setIsModalOpen(false)} title={editingCustomer ? 'Edit customer' : 'New customer'} as="form" onSubmit={handleSave}>
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="c-name" className="text-xs font-semibold block mb-1">Name</label>
+            <input id="c-name" required value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm" />
+          </div>
+          <div>
+            <label htmlFor="c-phone" className="text-xs font-semibold block mb-1">Phone</label>
+            <input id="c-phone" required value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm font-mono" />
+          </div>
+          <div>
+            <label htmlFor="c-email" className="text-xs font-semibold block mb-1">Email</label>
+            <input id="c-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm" />
+          </div>
+          <div>
+            <label htmlFor="c-addr" className="text-xs font-semibold block mb-1">Address</label>
+            <input id="c-addr" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm" />
+          </div>
+          <div className="flex items-center gap-2">
+            <input id="c-credit" type="checkbox" checked={creditAllowed} onChange={(e) => setCreditAllowed(e.target.checked)} />
+            <label htmlFor="c-credit" className="text-xs font-semibold">Allow Polim credit</label>
+          </div>
+          <div>
+            <label htmlFor="c-limit" className="text-xs font-semibold block mb-1">Credit limit</label>
+            <input id="c-limit" type="number" value={creditLimit} onChange={(e) => setCreditLimit(Number(e.target.value))} className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm font-mono" />
+          </div>
+          {saveSuccess ? (
+            <p className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Saved</p>
+          ) : (
+            <button type="submit" disabled={busy} className="w-full min-h-11 rounded-xl bg-emerald-500 text-zinc-950 text-xs font-bold disabled:opacity-50">{busy ? 'Saving…' : 'Save'}</button>
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

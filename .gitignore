@@ -18,6 +18,16 @@
 .env
 .env*.local
 .env.production
+.env.client*
+.env.*.production
+
+# Generated certification / migration reports (may contain business metadata)
+/reports/client_certification_*
+/reports/CLIENT_CERTIFICATION_*
+/reports/rejected_rows_*
+/reports/provision_*
+/public/uploads
+
 
 # Vercel
 .vercel

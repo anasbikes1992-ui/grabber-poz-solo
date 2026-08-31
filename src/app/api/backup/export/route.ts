@@ -1,29 +1,76 @@
 import { NextResponse } from 'next/server';
-import { BackupService } from '@/lib/backup/backup-service';
-import { defaultInventoryEngine } from '@/lib/commerce/inventory-engine';
-import { defaultCreditEngine } from '@/lib/commerce/credit-engine';
-import { defaultAccountingEngine } from '@/lib/commerce/accounting-engine';
+import { db, orders, orderItems, payments, journalEntries, journalLines, polimPothaAccounts, customers, products, stockBalances } from '@/db';
+import { getSession } from '@/lib/auth/session';
 
 export async function GET() {
   try {
-    const payload = await BackupService.exportBusinessData({
-      business: { name: 'Grabber Flagship Retail', currency: 'LKR', timezone: 'Asia/Colombo' },
-      branches: [{ id: 'br_colombo_main', name: 'Colombo Main Branch' }, { id: 'br_kandy_outlet', name: 'Kandy Outlet' }],
-      warehouses: [{ id: 'wh_central_colombo', name: 'Central Colombo Warehouse' }],
-      products: [{ id: 'prod_linen_shirt', name: 'Linen Casual Shirt' }],
-      stockBalances: [],
-      customers: [{ id: 'cust_sarath_perera', name: 'Sarath Perera' }],
-      polimPothaEntries: defaultCreditEngine.getEntries(),
-      suppliers: [{ id: 'sup_textiles_ltd', name: 'Lanka Textiles Ltd' }],
-      orders: [],
-      journalEntries: defaultAccountingEngine.getEntries(),
-    });
+    const session = await getSession();
+    if (process.env.NODE_ENV === 'production' && !session) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
 
-    return NextResponse.json({
-      success: true,
-      export: payload,
+    const [
+      orderRows,
+      itemRows,
+      paymentRows,
+      jeRows,
+      jlRows,
+      polimRows,
+      customerRows,
+      productRows,
+      stockRows,
+    ] = await Promise.all([
+      db.select().from(orders).limit(5000),
+      db.select().from(orderItems).limit(20000),
+      db.select().from(payments).limit(5000),
+      db.select().from(journalEntries).limit(5000),
+      db.select().from(journalLines).limit(20000),
+      db.select().from(polimPothaAccounts).limit(5000),
+      db.select().from(customers).limit(5000),
+      db.select().from(products).limit(10000),
+      db.select().from(stockBalances).limit(20000),
+    ]);
+
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      source: 'postgres',
+      counts: {
+        orders: orderRows.length,
+        orderItems: itemRows.length,
+        payments: paymentRows.length,
+        journalEntries: jeRows.length,
+        journalLines: jlRows.length,
+        polimAccounts: polimRows.length,
+        customers: customerRows.length,
+        products: productRows.length,
+        stockBalances: stockRows.length,
+      },
+      data: {
+        orders: orderRows,
+        orderItems: itemRows,
+        payments: paymentRows,
+        journalEntries: jeRows,
+        journalLines: jlRows,
+        polimPothaAccounts: polimRows,
+        customers: customerRows,
+        products: productRows,
+        stockBalances: stockRows,
+      },
+    };
+
+    return new NextResponse(JSON.stringify(payload, null, 2), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Disposition': `attachment; filename="grabber-backup-${Date.now()}.json"`,
+      },
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const e = err as { message?: string };
+    return NextResponse.json({
+      success: false,
+      error: e.message,
+      hint: 'Backup requires live DATABASE_URL — in-memory export removed',
+    }, { status: 500 });
   }
 }

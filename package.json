@@ -13,7 +13,11 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "creative:start": "python creative-engine/main.py"
+    "creative:start": "python creative-engine/main.py",
+    "env:validate": "node scripts/validate-env.mjs",
+    "client:provision": "node scripts/provision-client.mjs",
+    "client:certify": "node scripts/certify-client.mjs",
+    "client:migrate": "node scripts/migrate-client-catalog.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.6",

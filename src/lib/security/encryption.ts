@@ -6,7 +6,13 @@ const AUTH_TAG_LENGTH = 16;
 
 // Derive a 32-byte key from MASTER_ENCRYPTION_KEY or a secure fallback
 const getMasterKey = (): Buffer => {
-  const masterSecret = process.env.MASTER_ENCRYPTION_KEY || 'grabber-business-os-master-key-2026-production-vault';
+  const masterSecret = process.env.MASTER_ENCRYPTION_KEY;
+  if (!masterSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('MASTER_ENCRYPTION_KEY is required in production');
+    }
+    return crypto.createHash('sha256').update('grabber-dev-only-insecure-master-key').digest();
+  }
   return crypto.createHash('sha256').update(masterSecret).digest();
 };
 

@@ -1,317 +1,334 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
-import {
-  ShoppingCart,
-  UtensilsCrossed,
-  Wrench,
-  CreditCard,
-  Building2,
-  Calendar,
-  Zap,
-  TrendingUp,
-  Boxes,
-  ShieldCheck,
-  ArrowUpRight,
-  ArrowRight,
-  Activity,
-  Package,
-  Layers,
-  Sparkles,
-} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BrandLogo } from '@/components/ui/brand-logo';
 
-const OPERATION_MODES = [
-  {
-    title: 'Retail Mode',
-    desc: 'Fast Barcode & Cashier',
-    badge: 'FAST 3S RING-UP',
-    href: '/pos',
-    icon: ShoppingCart,
-    border: 'border-cyan-500/40 hover:border-cyan-400 hover:shadow-cyan-500/20',
-    iconBg: 'bg-cyan-500/10 text-cyan-400',
-    badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-  },
-  {
-    title: 'Restaurant & KOT',
-    desc: 'Table Map & Kitchen Orders',
-    badge: 'TABLE MANAGEMENT',
-    href: '/restaurant',
-    icon: UtensilsCrossed,
-    border: 'border-amber-500/40 hover:border-amber-400 hover:shadow-amber-500/20',
-    iconBg: 'bg-amber-500/10 text-amber-400',
-    badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  },
-  {
-    title: 'Repair & Job Sheet',
-    desc: 'Job Cards & Intake Slips',
-    badge: 'JOB SHEET GENERATOR',
-    href: '/repairs',
-    icon: Wrench,
-    border: 'border-blue-500/40 hover:border-blue-400 hover:shadow-blue-500/20',
-    iconBg: 'bg-blue-500/10 text-blue-400',
-    badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  },
-  {
-    title: 'Hire Purchase',
-    desc: 'Installment Contracts & NIC',
-    badge: 'MICRO-CREDIT',
-    href: '/hire-purchase',
-    icon: CreditCard,
-    border: 'border-emerald-500/40 hover:border-emerald-400 hover:shadow-emerald-500/20',
-    iconBg: 'bg-emerald-500/10 text-emerald-400',
-    badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  },
-  {
-    title: 'B2B Quotations',
-    desc: 'Wholesale & Proforma Bills',
-    badge: 'PROFORMA SUITE',
-    href: '/wholesale',
-    icon: Building2,
-    border: 'border-purple-500/40 hover:border-purple-400 hover:shadow-purple-500/20',
-    iconBg: 'bg-purple-500/10 text-purple-400',
-    badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-  },
-  {
-    title: 'Appointments',
-    desc: 'Client Slots & Specialists',
-    badge: 'BOOKING HUB',
-    href: '/appointments',
-    icon: Calendar,
-    border: 'border-teal-500/40 hover:border-teal-400 hover:shadow-teal-500/20',
-    iconBg: 'bg-teal-500/10 text-teal-400',
-    badgeColor: 'bg-teal-500/10 text-teal-400 border-teal-500/30',
-  },
-];
+type CatalogItem = {
+  id: string;
+  name: string;
+  sku: string;
+  barcode: string | null;
+  unitPrice: number;
+  unitCost?: number;
+  stock: number;
+  taxRate?: number;
+};
 
-export default function DashboardPage() {
+type CartLine = CatalogItem & { qty: number };
+
+type Shopper = { id: string; name: string; phone: string | null; email: string | null };
+
+function money(n: number) {
+  return `LKR ${n.toLocaleString('en-LK', { maximumFractionDigits: 0 })}`;
+}
+
+export default function StorefrontHomePage() {
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [branchId, setBranchId] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [shopper, setShopper] = useState<Shopper | null>(null);
+  const [q, setQ] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+
+  const refreshSession = useCallback(async () => {
+    const res = await fetch('/api/auth/shopper');
+    const data = (await res.json()) as { authenticated?: boolean; customer?: Shopper };
+    setShopper(data.authenticated && data.customer ? data.customer : null);
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [catRes] = await Promise.all([fetch('/api/pos/catalog'), refreshSession()]);
+        if (!catRes.ok) throw new Error('Catalog unavailable');
+        const data = (await catRes.json()) as { items?: CatalogItem[]; branchId?: string };
+        setCatalog(data.items ?? []);
+        setBranchId(data.branchId ?? null);
+      } catch (e) {
+        setLoadErr(e instanceof Error ? e.message : 'Could not load store');
+      }
+    })();
+  }, [refreshSession]);
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return catalog;
+    return catalog.filter(
+      (p) =>
+        p.name.toLowerCase().includes(needle) ||
+        p.sku.toLowerCase().includes(needle) ||
+        (p.barcode ?? '').toLowerCase().includes(needle),
+    );
+  }, [catalog, q]);
+
+  const totals = useMemo(() => {
+    const subtotal = cart.reduce((s, l) => s + Number(l.unitPrice) * l.qty, 0);
+    return { subtotal, itemCount: cart.reduce((s, l) => s + l.qty, 0) };
+  }, [cart]);
+
+  function addToCart(item: CatalogItem) {
+    setCart((prev) => {
+      const existing = prev.find((l) => l.id === item.id);
+      if (existing) {
+        return prev.map((l) => (l.id === item.id ? { ...l, qty: l.qty + 1 } : l));
+      }
+      return [...prev, { ...item, qty: 1 }];
+    });
+    setMsg(null);
+  }
+
+  function setQty(id: string, qty: number) {
+    setCart((prev) =>
+      prev
+        .map((l) => (l.id === id ? { ...l, qty: Math.max(0, qty) } : l))
+        .filter((l) => l.qty > 0),
+    );
+  }
+
+  async function checkout() {
+    if (!shopper) {
+      setMsg('Sign in to place an online order.');
+      return;
+    }
+    if (cart.length === 0) {
+      setMsg('Your bag is empty.');
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    try {
+      const clientUuid =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `web_${Date.now()}`;
+      const res = await fetch('/api/pos/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: 'STOREFRONT',
+          branchId,
+          customerId: shopper.id,
+          paymentMethod: 'CARD',
+          amount: totals.subtotal,
+          clientUuid,
+          idempotencyKey: `web_${clientUuid}`,
+          items: cart.map((l) => ({
+            productId: l.id,
+            name: l.name,
+            quantity: l.qty,
+            unitPrice: Number(l.unitPrice),
+            unitCost: l.unitCost,
+          })),
+        }),
+      });
+      const data = (await res.json()) as { error?: string; orderNumber?: string; order?: { orderNumber?: string } };
+      if (!res.ok) throw new Error(data.error ?? 'Checkout failed');
+      setCart([]);
+      setMsg(`Order ${data.orderNumber || data.order?.orderNumber} placed. We'll prepare it for you.`);
+      const catRes = await fetch('/api/pos/catalog');
+      if (catRes.ok) {
+        const cat = (await catRes.json()) as { items?: CatalogItem[]; branchId?: string };
+        setCatalog(cat.items ?? []);
+        if (cat.branchId) setBranchId(cat.branchId);
+      }
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Checkout failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function signOut() {
+    await fetch('/api/auth/shopper', { method: 'DELETE' });
+    setShopper(null);
+  }
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* 1. Hero Command Center Banner */}
-      <div className="relative rounded-3xl bg-gradient-to-br from-[#0F172A]/90 via-[#0B0F17]/90 to-[#020617] border border-white/10 p-6 sm:p-8 shadow-2xl overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-3 max-w-2xl z-10">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold tracking-wider flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-              OWNER COMMAND CENTER
-            </span>
-            <span className="px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold tracking-wider flex items-center gap-1.5">
-              <Sparkles className="h-3 w-3" />
-              AI OMNICHANNEL ENGINE
-            </span>
-          </div>
-
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
-            Welcome back, <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Shopping Station</span>
-          </h1>
-
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-            Unified retail sales terminal, inventory warehouse radar, WhatsApp automation & multi-channel commerce.
-          </p>
-        </div>
-
-        <div className="z-10 shrink-0">
-          <Link
-            href="/pos"
-            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-black font-extrabold text-xs sm:text-sm flex items-center gap-2.5 shadow-lg shadow-emerald-500/25 transition-all transform hover:scale-105 active:scale-95"
-          >
-            <Zap className="h-4 w-4 fill-black" />
-            <span>Launch Counter POS &rarr;</span>
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#ecfdf5_0%,_#f8fafc_45%,_#ffffff_100%)] text-slate-900">
+      <header className="sticky top-0 z-40 border-b border-emerald-900/10 bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Link href="/" className="inline-flex">
+            <BrandLogo size="md" showTagline={false} showSoloBadge={false} />
           </Link>
-        </div>
-
-        {/* Ambient Glows */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-      </div>
-
-      {/* 2. Operation Mode Launcher */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="h-5 w-5 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
-            ⚡
-          </div>
-          <h2 className="text-sm font-bold text-white tracking-wide">Operation Mode Launcher</h2>
-          <span className="text-xs text-slate-400">&bull; Select active business workflow</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-          {OPERATION_MODES.map((mode) => {
-            const Icon = mode.icon;
-            return (
+          <nav className="flex items-center gap-2 text-sm" aria-label="Store">
+            {shopper ? (
+              <>
+                <Link
+                  href="/shop/account"
+                  className="rounded-full px-3 py-1.5 font-medium text-emerald-900 hover:bg-emerald-50"
+                >
+                  Hi, {shopper.name.split(' ')[0]}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void signOut()}
+                  className="rounded-full px-3 py-1.5 text-slate-600 hover:bg-slate-100"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
               <Link
-                key={mode.title}
-                href={mode.href}
-                className={`p-4 rounded-2xl bg-[#0F172A]/60 backdrop-blur-md border ${mode.border} transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 hover:shadow-lg aspect-[4/3]`}
+                href="/shop/login"
+                className="rounded-full bg-emerald-700 px-4 py-1.5 font-semibold text-white hover:bg-emerald-800"
+              >
+                Sign in
+              </Link>
+            )}
+            <Link
+              href="/login?next=/app"
+              className="rounded-full border border-slate-200 px-3 py-1.5 text-slate-500 hover:bg-slate-50"
+            >
+              Staff
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section className="relative overflow-hidden border-b border-emerald-900/5">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(16,185,129,0.12),transparent_50%)]" />
+          <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:py-20">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">Online store</p>
+              <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+                Shop Grabber
+              </h1>
+              <p className="mt-4 max-w-xl text-lg text-slate-600">
+                Browse live inventory, sign in as a customer, and place orders online — same catalog your store runs on POS.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a
+                  href="#catalog"
+                  className="inline-flex rounded-full bg-emerald-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20 hover:bg-emerald-800"
+                >
+                  Browse products
+                </a>
+                {!shopper && (
+                  <Link
+                    href="/shop/login"
+                    className="inline-flex rounded-full border border-emerald-800/20 bg-white/80 px-6 py-3 text-sm font-semibold text-emerald-900 hover:bg-white"
+                  >
+                    Create account
+                  </Link>
+                )}
+              </div>
+            </div>
+            <div className="rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl shadow-emerald-900/10 backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Your bag</p>
+              <p className="mt-2 font-display text-3xl font-bold text-emerald-900">{money(totals.subtotal)}</p>
+              <p className="mt-1 text-sm text-slate-500">{totals.itemCount} item(s)</p>
+              <button
+                type="button"
+                disabled={busy || cart.length === 0}
+                onClick={() => void checkout()}
+                className="mt-5 w-full rounded-full bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-40"
+              >
+                {busy ? 'Placing order…' : shopper ? 'Checkout' : 'Sign in to checkout'}
+              </button>
+              {msg && <p className="mt-3 text-sm text-emerald-800" role="status">{msg}</p>}
+            </div>
+          </div>
+        </section>
+
+        <section id="catalog" className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-display text-2xl font-bold text-slate-900">Catalog</h2>
+              <p className="mt-1 text-sm text-slate-500">Live stock from your Grabber inventory.</p>
+            </div>
+            <label className="block w-full max-w-sm text-sm">
+              <span className="sr-only">Search products</span>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search name, SKU, barcode…"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm outline-none ring-emerald-500/30 focus:ring-2"
+              />
+            </label>
+          </div>
+
+          {loadErr && (
+            <p className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {loadErr}. Run seed / check DATABASE_URL for live products.
+            </p>
+          )}
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((item) => (
+              <article
+                key={item.id}
+                className="flex flex-col justify-between rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm"
               >
                 <div>
-                  <div className="flex justify-between items-start">
-                    <div className={`h-8 w-8 rounded-xl ${mode.iconBg} flex items-center justify-center`}>
-                      <Icon className="h-4 w-4" />
+                  <h3 className="font-semibold text-slate-900">{item.name}</h3>
+                  <p className="mt-1 text-xs text-slate-500">{item.sku}</p>
+                  <p className="mt-3 font-display text-xl font-bold text-emerald-800">
+                    {money(Number(item.unitPrice))}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={item.stock <= 0}
+                  onClick={() => addToCart(item)}
+                  className="mt-4 rounded-full bg-emerald-700 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-40"
+                >
+                  Add to bag
+                </button>
+              </article>
+            ))}
+          </div>
+
+          {cart.length > 0 && (
+            <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-5">
+              <h3 className="font-semibold text-slate-900">Bag details</h3>
+              <ul className="mt-4 space-y-3">
+                {cart.map((l) => (
+                  <li key={l.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium text-slate-800">{l.name}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="h-8 w-8 rounded-full border"
+                        onClick={() => setQty(l.id, l.qty - 1)}
+                        aria-label={`Decrease ${l.name}`}
+                      >
+                        −
+                      </button>
+                      <span className="w-6 text-center">{l.qty}</span>
+                      <button
+                        type="button"
+                        className="h-8 w-8 rounded-full border"
+                        onClick={() => setQty(l.id, l.qty + 1)}
+                        aria-label={`Increase ${l.name}`}
+                      >
+                        +
+                      </button>
+                      <span className="w-24 text-right font-semibold">{money(Number(l.unitPrice) * l.qty)}</span>
                     </div>
-                    <span className="text-[10px] text-slate-400 group-hover:text-white flex items-center gap-0.5 font-medium">
-                      Launch <ArrowUpRight className="h-3 w-3" />
-                    </span>
-                  </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      </main>
 
-                  <h3 className="font-bold text-xs text-white mt-3 leading-snug group-hover:text-cyan-300 transition-colors">
-                    {mode.title}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5 truncate">{mode.desc}</p>
-                </div>
-
-                <div className="pt-2">
-                  <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-md border block text-center uppercase tracking-wider ${mode.badgeColor}`}>
-                    {mode.badge}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. Operations & Stock Radar */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-cyan-400" />
-            <h2 className="text-sm font-bold text-white tracking-wide">Operations & Stock Radar</h2>
-            <span className="text-xs text-slate-400">&bull; Real-time inventory intelligence</span>
-          </div>
-
-          <Link href="/accounts" className="text-xs font-semibold text-cyan-400 hover:underline">
-            Full Analytics Report &rarr;
+      <footer className="border-t border-slate-200 bg-white/60 py-8 text-center text-sm text-slate-500">
+        <p>
+          Staff &amp; admin?{' '}
+          <Link href="/login?next=/app" className="font-semibold text-emerald-800 hover:underline">
+            Open backend login
           </Link>
-        </div>
-
-        {/* 4 Radar Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 rounded-2xl bg-[#0F172A]/70 border border-white/10 shadow-sm space-y-2">
-            <div className="flex justify-between items-center text-xs text-slate-400">
-              <span>Total Inventory Items</span>
-              <Boxes className="h-4 w-4 text-cyan-400" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-white">1,613</span>
-              <span className="text-xs font-bold text-emerald-400">Live SKUs</span>
-            </div>
-            <p className="text-[10px] text-slate-400">Active catalog items across all branches</p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[#0F172A]/70 border border-white/10 shadow-sm space-y-2">
-            <div className="flex justify-between items-center text-xs text-slate-400">
-              <span>Low Stock Warnings</span>
-              <span className="text-amber-400 font-bold text-xs">⚠️</span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-white">0</span>
-              <span className="text-xs font-bold text-emerald-400">Stock Healthy</span>
-            </div>
-            <p className="text-[10px] text-slate-400">Items below minimum reorder threshold</p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[#0F172A]/70 border border-white/10 shadow-sm space-y-2">
-            <div className="flex justify-between items-center text-xs text-slate-400">
-              <span>Warehouse Utilization</span>
-              <span className="text-blue-400 font-bold text-xs">📦</span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-cyan-400">45%</span>
-              <span className="text-xs font-bold text-slate-300">Optimal Space</span>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden mt-1">
-              <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 w-[45%] rounded-full" />
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[#0F172A]/70 border border-white/10 shadow-sm space-y-2">
-            <div className="flex justify-between items-center text-xs text-slate-400">
-              <span>Today Sales Volume</span>
-              <span className="text-purple-400 font-bold text-xs">💰</span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-white">LKR 47,790</span>
-            </div>
-            <p className="text-[10px] text-slate-400">Omnichannel: POS + Web Store + WhatsApp</p>
-          </div>
-        </div>
-
-        {/* 4. Stock Velocity Graph & Inventory Turnover Meter */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Velocity Trend Spline Graph (8 Cols) */}
-          <div className="lg:col-span-8 p-5 rounded-2xl bg-[#0F172A]/80 border border-white/10 space-y-4">
-            <div className="flex justify-between items-center text-xs">
-              <div>
-                <h3 className="font-bold text-white">Stock Velocity & Demand Trend</h3>
-                <p className="text-[10px] text-slate-400">Moving average stock consumption rate</p>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
-                1,613 SKUs Monitored
-              </span>
-            </div>
-
-            {/* Simulated Animated Curved Spline */}
-            <div className="h-36 w-full relative flex items-end justify-between pt-6 px-2">
-              <svg className="w-full h-full absolute inset-0 overflow-visible" preserveAspectRatio="none" viewBox="0 0 500 100">
-                <defs>
-                  <linearGradient id="gradSpline" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#06B6D4" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M 0,80 Q 80,95 150,55 T 300,75 T 450,20 L 500,25 L 500,100 L 0,100 Z"
-                  fill="url(#gradSpline)"
-                />
-                <path
-                  d="M 0,80 Q 80,95 150,55 T 300,75 T 450,20 L 500,25"
-                  fill="none"
-                  stroke="#00F298"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-                {/* Node Points */}
-                <circle cx="150" cy="55" r="4" fill="#00F298" />
-                <circle cx="300" cy="75" r="4" fill="#00F298" />
-                <circle cx="450" cy="20" r="4" fill="#00F298" />
-              </svg>
-            </div>
-
-            <div className="flex justify-between text-[10px] font-mono text-slate-500 pt-2 border-t border-white/5">
-              <span>08:00</span>
-              <span>10:00</span>
-              <span>12:00</span>
-              <span>14:00</span>
-              <span>16:00</span>
-              <span>18:00</span>
-              <span>20:00</span>
-            </div>
-          </div>
-
-          {/* Turnover Velocity Speedometer (4 Cols) */}
-          <div className="lg:col-span-4 p-5 rounded-2xl bg-[#0F172A]/80 border border-white/10 flex flex-col justify-between text-xs">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-white">Inventory Turnover Velocity</h3>
-            </div>
-            <p className="text-[10px] text-slate-400">Annualized stock circulation health</p>
-
-            {/* Circular Gauge Meter */}
-            <div className="my-4 flex flex-col items-center justify-center relative">
-              <div className="h-28 w-28 rounded-full border-8 border-white/5 border-t-cyan-400 border-r-emerald-400 flex flex-col items-center justify-center transform -rotate-45">
-                <span className="text-xl font-extrabold text-white transform rotate-45">18%</span>
-                <span className="text-[9px] font-bold text-cyan-400 transform rotate-45 uppercase tracking-wider">Fast Moving</span>
-              </div>
-            </div>
-
-            <div className="flex justify-between text-[9px] text-slate-400 pt-2 border-t border-white/5">
-              <span>Slow (0%)</span>
-              <span className="text-cyan-400 font-bold">Target (65%)</span>
-              <span>Elite (100%)</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        </p>
+        <p className="mt-2">© {new Date().getFullYear()} Grabber Business OS</p>
+      </footer>
     </div>
   );
 }

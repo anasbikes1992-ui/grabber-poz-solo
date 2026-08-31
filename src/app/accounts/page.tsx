@@ -49,27 +49,30 @@ export default function AccountsPage() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-secondary p-1 rounded-xl border border-border text-xs font-medium self-start sm:self-auto">
+        <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-xs font-medium self-start sm:self-auto">
           <button
+            type="button"
             onClick={() => setActiveTab('PL')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${
-              activeTab === 'PL' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`px-3 py-1.5 min-h-11 rounded-lg transition-all duration-200 cursor-pointer ${
+              activeTab === 'PL' ? 'bg-emerald-500 text-zinc-950 shadow-glow-em' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Profit & Loss
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('COA')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${
-              activeTab === 'COA' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`px-3 py-1.5 min-h-11 rounded-lg transition-all duration-200 cursor-pointer ${
+              activeTab === 'COA' ? 'bg-emerald-500 text-zinc-950 shadow-glow-em' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Chart of Accounts
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('JOURNALS')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${
-              activeTab === 'JOURNALS' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`px-3 py-1.5 min-h-11 rounded-lg transition-all duration-200 cursor-pointer ${
+              activeTab === 'JOURNALS' ? 'bg-emerald-500 text-zinc-950 shadow-glow-em' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Journal Entries
@@ -80,11 +83,11 @@ export default function AccountsPage() {
       {activeTab === 'PL' ? (
         <div className="space-y-6">
           {/* P&L Statement */}
-          <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-4 max-w-2xl">
+          <div className="p-6 rounded-2xl glass-card space-y-4 max-w-2xl">
             <h3 className="font-bold text-sm text-foreground">Income Statement (Profit & Loss)</h3>
             
             <div className="space-y-3 text-xs">
-              <div className="flex justify-between py-2 border-b border-border/60">
+              <div className="flex justify-between py-2 border-b border-zinc-800">
                 <span className="font-semibold text-foreground">Sales Revenue (Net of VAT)</span>
                 <span className="font-bold text-foreground">LKR {grossRevenue.toFixed(2)}</span>
               </div>
@@ -104,30 +107,30 @@ export default function AccountsPage() {
                 <span className="text-destructive font-medium">- LKR {operatingExpenses.toFixed(2)}</span>
               </div>
 
-              <div className="flex justify-between py-3 pt-4 border-t-2 border-primary/40 font-extrabold text-sm text-foreground">
+              <div className="flex justify-between py-3 pt-4 border-t-2 border-emerald-500/30 font-extrabold text-sm text-foreground">
                 <span>Net Operating Profit</span>
-                <span className="text-primary text-base">LKR {netProfit.toFixed(2)}</span>
+                <span className="text-emerald-400 text-base tabular-nums">LKR {netProfit.toFixed(2)}</span>
               </div>
             </div>
           </div>
         </div>
       ) : activeTab === 'COA' ? (
         /* Chart of Accounts */
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+        <div className="p-5 rounded-2xl glass-card space-y-4">
           <h3 className="font-semibold text-sm text-foreground">Chart of Accounts (COA)</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
+                <tr className="border-b border-zinc-800 text-muted-foreground">
                   <th className="pb-2.5 font-medium">Account Code</th>
                   <th className="pb-2.5 font-medium">Account Name</th>
                   <th className="pb-2.5 font-medium">Category Type</th>
                   <th className="pb-2.5 font-medium text-right">Balance</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50">
+              <tbody className="divide-y divide-zinc-800">
                 {chartOfAccounts.map((a) => (
-                  <tr key={a.code} className="hover:bg-secondary/40 transition-colors">
+                  <tr key={a.code} className="hover:bg-zinc-900/60 transition-colors duration-200">
                     <td className="py-3 font-mono font-bold text-foreground">{a.code}</td>
                     <td className="py-3 font-medium text-foreground">{a.name}</td>
                     <td className="py-3">
@@ -144,12 +147,12 @@ export default function AccountsPage() {
         </div>
       ) : (
         /* Journal Entries Explorer */
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+        <div className="p-5 rounded-2xl glass-card space-y-4">
           <h3 className="font-semibold text-sm text-foreground">Double-Entry Journal Postings</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
+                <tr className="border-b border-zinc-800 text-muted-foreground">
                   <th className="pb-2.5 font-medium">Entry Number</th>
                   <th className="pb-2.5 font-medium">Date & Memo</th>
                   <th className="pb-2.5 font-medium">Debits (Dr)</th>
@@ -157,9 +160,9 @@ export default function AccountsPage() {
                   <th className="pb-2.5 font-medium text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50">
+              <tbody className="divide-y divide-zinc-800">
                 {recentJournals.map((j) => (
-                  <tr key={j.id} className="hover:bg-secondary/40 transition-colors">
+                  <tr key={j.id} className="hover:bg-zinc-900/60 transition-colors duration-200">
                     <td className="py-3 font-mono font-semibold text-foreground">{j.entryNumber}</td>
                     <td className="py-3">
                       <p className="font-medium text-foreground">{j.memo}</p>

@@ -66,7 +66,7 @@ export default function DeliveryBoardPage() {
         <div>
           <h2 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
             <span>Logistics & Courier Dispatch Board</span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 font-semibold border border-purple-500/20">
+            <span className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/30">
               Live Courier Tracking
             </span>
           </h2>
@@ -78,25 +78,25 @@ export default function DeliveryBoardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
+        <div className="p-4 rounded-2xl glass-card">
           <p className="text-muted-foreground font-medium">Pending Dispatch</p>
           <h3 className="text-xl font-bold text-foreground mt-1">0 Orders</h3>
           <p className="text-[10px] text-emerald-600 font-medium">All orders assigned to couriers</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
+        <div className="p-4 rounded-2xl glass-card">
           <p className="text-muted-foreground font-medium">In Transit / Out</p>
           <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">2 Shipments</h3>
           <p className="text-[10px] text-muted-foreground">Koombiyo &bull; Prompt Express</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
+        <div className="p-4 rounded-2xl glass-card">
           <p className="text-muted-foreground font-medium">Pending COD Cash</p>
           <h3 className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">LKR 5,310.00</h3>
           <p className="text-[10px] text-muted-foreground">To be remitted by courier</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
+        <div className="p-4 rounded-2xl glass-card">
           <p className="text-muted-foreground font-medium">Delivery Success Rate</p>
           <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">98.5%</h3>
           <p className="text-[10px] text-emerald-600 font-medium">Average 24.2h Islandwide</p>
@@ -104,11 +104,11 @@ export default function DeliveryBoardPage() {
       </div>
 
       {/* Deliveries Table */}
-      <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm space-y-4">
+      <div className="p-5 rounded-2xl glass-card space-y-4">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-border text-muted-foreground">
+              <tr className="border-b border-zinc-800 text-muted-foreground">
                 <th className="pb-2.5 font-medium">Order Number</th>
                 <th className="pb-2.5 font-medium">Customer & Address</th>
                 <th className="pb-2.5 font-medium">Courier Partner</th>
@@ -118,9 +118,9 @@ export default function DeliveryBoardPage() {
                 <th className="pb-2.5 font-medium text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
+            <tbody className="divide-y divide-zinc-800">
               {deliveries.map((d) => (
-                <tr key={d.id} className="hover:bg-secondary/40 transition-colors">
+                <tr key={d.id} className="hover:bg-zinc-900/60 transition-colors duration-200">
                   <td className="py-3 font-mono font-bold text-foreground">{d.orderNumber}</td>
                   <td className="py-3">
                     <p className="font-semibold text-foreground">{d.customerName}</p>
@@ -130,7 +130,7 @@ export default function DeliveryBoardPage() {
                   </td>
                   <td className="py-3">
                     <p className="font-medium text-foreground">{d.courier}</p>
-                    <p className="font-mono text-[10px] text-primary">{d.trackingNumber}</p>
+                    <p className="font-mono text-[10px] text-emerald-400">{d.trackingNumber}</p>
                   </td>
                   <td className="py-3 text-muted-foreground max-w-xs">{d.items}</td>
                   <td className="py-3 text-right">
@@ -164,7 +164,7 @@ export default function DeliveryBoardPage() {
                     {d.status !== 'DELIVERED' && (
                       <button
                         onClick={() => updateStatus(d.id, 'DELIVERED', true)}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-medium text-[11px] hover:bg-emerald-700 transition-colors"
+                        className="px-2.5 py-1.5 min-h-11 rounded-lg bg-emerald-500 text-zinc-950 font-semibold text-[11px] hover:bg-emerald-400 transition-colors cursor-pointer"
                       >
                         Mark Delivered
                       </button>

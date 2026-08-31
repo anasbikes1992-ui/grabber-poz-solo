@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
 /**
- * GRABBER BUSINESS OS — AUTOMATED CLIENT PROVISIONING ENGINE
- * Rapidly spins up a dedicated client instance (Supabase PostgreSQL + Storage Buckets + Vercel Deployment) in under 3 minutes.
+ * GRABBER BUSINESS OS — CLIENT PROVISIONING CHECKLIST GENERATOR
+ * Produces env + runbook artifacts. Does not call Supabase/Vercel APIs without tokens.
  *
  * Usage:
  *   node scripts/provision-client.mjs --client "Urban Trendz" --slug "urban-trendz" --domain "urbantrendz.lk"
  */
 
-import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 const args = process.argv.slice(2);
 const getArg = (flag) => {
@@ -19,58 +19,53 @@ const getArg = (flag) => {
 };
 
 const clientName = getArg('--client') || 'Demo Client Retail';
-const clientSlug = getArg('--slug') || `client-${Date.now().toString().slice(-4)}`;
+const clientSlug = (getArg('--slug') || `client-${Date.now().toString().slice(-4)}`)
+  .toLowerCase()
+  .replace(/[^a-z0-9-]/g, '-');
 const clientDomain = getArg('--domain') || `${clientSlug}.grabberpos.com`;
+const authSecret = crypto.randomBytes(48).toString('hex');
 
 console.log(`\n======================================================`);
-console.log(`🚀 GRABBER BUSINESS OS: PROVISIONING NEW CLIENT INSTANCE`);
+console.log(`GRABBER BUSINESS OS: PROVISIONING PACKET`);
 console.log(`======================================================`);
 console.log(`Client Name:     ${clientName}`);
 console.log(`Client Slug:     ${clientSlug}`);
 console.log(`Target Domain:   https://${clientDomain}`);
-console.log(`Region:          ap-southeast-1 (Singapore - ~30ms Latency to LK)`);
 console.log(`======================================================\n`);
 
-async function runProvisioning() {
-  try {
-    // Step 1: Schema File Verification
-    console.log(`[1/4] Verifying canonical SQL schema & storage definitions...`);
-    const sqlPath = path.resolve('drizzle/supabase_setup.sql');
-    if (!fs.existsSync(sqlPath)) {
-      throw new Error(`Schema file not found at ${sqlPath}`);
-    }
-    console.log(`      ✓ Verified drizzle/supabase_setup.sql (41 tables + storage buckets)`);
+const outDir = path.resolve('reports', `provision_${clientSlug}`);
+fs.mkdirSync(outDir, { recursive: true });
 
-    // Step 2: Vercel Project Link
-    console.log(`[2/4] Initializing Vercel production deployment alias...`);
-    console.log(`      ✓ Linking project to Vercel team under slug: grabber-${clientSlug}`);
-    console.log(`      ✓ Target custom domain configured: ${clientDomain}`);
+const envContent = `# Generated ${new Date().toISOString()} — DO NOT COMMIT
+DATABASE_URL="postgresql://postgres.[REF]:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres"
+NEXT_PUBLIC_APP_URL="https://${clientDomain}"
+NEXT_PUBLIC_STORE_NAME="${clientName}"
+AUTH_SECRET="${authSecret}"
+NODE_ENV="production"
+`;
 
-    // Step 3: Seed Configuration
-    console.log(`[3/4] Generating single-business configuration snapshot...`);
-    const configSnapshot = {
-      businessName: clientName,
-      currency: 'LKR',
-      taxRate: 18.0,
-      domain: clientDomain,
-      provisionedAt: new Date().toISOString(),
-    };
-    console.log(`      ✓ Business Profile: ${JSON.stringify(configSnapshot)}`);
+fs.writeFileSync(path.join(outDir, `.env.${clientSlug}.production`), envContent);
 
-    // Step 4: Output Deployment Credentials
-    console.log(`[4/4] Provisioning completed successfully in 1.8s! 🎉\n`);
-    console.log(`======================================================`);
-    console.log(`📦 CLIENT HANDOVER PACKET`);
-    console.log(`======================================================`);
-    console.log(`Storefront URL:   https://${clientDomain}`);
-    console.log(`POS Counter:      https://${clientDomain}/pos`);
-    console.log(`Executive Admin:  https://${clientDomain}/login`);
-    console.log(`Default Login:    owner@${clientSlug}.lk (PIN: 1234)`);
-    console.log(`======================================================\n`);
-  } catch (err) {
-    console.error(`❌ Provisioning failed:`, err.message);
-    process.exit(1);
-  }
-}
+const runbook = `# Provision runbook — ${clientName}
 
-runProvisioning();
+1. Create Supabase project in \`ap-southeast-1\`
+2. Apply schema: \`npm run db:push\` with DATABASE_URL, **or** run SQL matching \`src/db/schema.ts\`
+3. Optional RLS: run \`drizzle/rls_baseline.sql\`
+4. Copy env from \`.env.${clientSlug}.production\` into Vercel
+5. \`npm run env:validate -- --env-file .env.${clientSlug}.production --production\`
+6. \`npm run db\` seed: \`curl -X POST "$NEXT_PUBLIC_APP_URL/api/seed" -H "Content-Type: application/json" -d '{"storeName":"${clientName}","slug":"${clientSlug}"}'\`
+7. \`npm run client:certify -- --client "${clientName}" --slug "${clientSlug}" --env .env.${clientSlug}.production\`
+8. Owner first login → rotate TEMP PIN if seeded with TEMP$
+9. Bind domain ${clientDomain} in Vercel + DNS
+
+## Honesty
+Provisioning does **not** auto-create cloud projects without SUPABASE_ACCESS_TOKEN / Vercel tokens.
+This script generates the packet + secrets only.
+`;
+
+fs.writeFileSync(path.join(outDir, 'RUNBOOK.md'), runbook);
+
+console.log(`[1/3] Schema SSOT: src/db/schema.ts`);
+console.log(`[2/3] Wrote ${path.join(outDir, `.env.${clientSlug}.production`)}`);
+console.log(`[3/3] Wrote ${path.join(outDir, 'RUNBOOK.md')}`);
+console.log(`\nNext: create Supabase + Vercel manually, then run env:validate + client:certify.\n`);

@@ -343,6 +343,7 @@ export const customers = pgTable('customers', {
   phone: text('phone').notNull().unique(),
   email: text('email'),
   address: text('address'),
+  hashedPassword: text('hashed_password'), // shopper storefront login (optional)
   creditLimit: numeric('credit_limit', { precision: 12, scale: 2 }).notNull().default('0.00'),
   segment: text('segment').notNull().default('NEW'),
   active: boolean('active').notNull().default(true),
@@ -407,7 +408,9 @@ export const supplierEntries = pgTable('supplier_entries', {
   dueDate: timestamp('due_date', { withTimezone: true }),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  supplierIdIdx: index('supplier_entries_supplier_id_idx').on(t.supplierId),
+}));
 
 // ==========================================
 // 7. ORDERS, PAYMENTS & FULFILLMENT
@@ -450,6 +453,8 @@ export const orders = pgTable('orders', {
   orderNumIdx: uniqueIndex('orders_order_num_idx').on(t.orderNumber),
   channelStatusIdx: index('orders_channel_status_idx').on(t.channel, t.orderStatus),
   createdIdx: index('orders_created_idx').on(t.createdAt),
+  customerIdx: index('orders_customer_id_idx').on(t.customerId),
+  clientUuidIdx: index('orders_client_uuid_idx').on(t.clientUuid),
 }));
 
 export const orderItems = pgTable('order_items', {
@@ -464,7 +469,10 @@ export const orderItems = pgTable('order_items', {
   taxAmount: numeric('tax_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
   discountAmount: numeric('discount_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
   lineTotal: numeric('line_total', { precision: 12, scale: 2 }).notNull(),
-});
+}, (t) => ({
+  orderIdIdx: index('order_items_order_id_idx').on(t.orderId),
+  productIdIdx: index('order_items_product_id_idx').on(t.productId),
+}));
 
 export const payments = pgTable('payments', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -476,7 +484,9 @@ export const payments = pgTable('payments', {
   status: text('status').notNull().default('SUCCESS'), // PENDING, SUCCESS, FAILED, REFUNDED
   idempotencyKey: text('idempotency_key').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  orderIdIdx: index('payments_order_id_idx').on(t.orderId),
+}));
 
 export const deliveries = pgTable('deliveries', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -583,7 +593,10 @@ export const journalLines = pgTable('journal_lines', {
   debit: numeric('debit', { precision: 12, scale: 2 }).notNull().default('0.00'),
   credit: numeric('credit', { precision: 12, scale: 2 }).notNull().default('0.00'),
   memo: text('memo'),
-});
+}, (t) => ({
+  journalEntryIdx: index('journal_lines_journal_entry_id_idx').on(t.journalEntryId),
+  accountIdx: index('journal_lines_account_id_idx').on(t.accountId),
+}));
 
 // ==========================================
 // 10. MEDIA LIBRARY & CREATIVE FACTORY
@@ -688,3 +701,140 @@ export const backupRecords = pgTable('backup_records', {
   checksum: text('checksum'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ==========================================
+// 12. VERTICAL MODULES (W5-06)
+// ==========================================
+
+export const repairJobs = pgTable('repair_jobs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobNumber: text('job_number').notNull().unique(),
+  customerName: text('customer_name').notNull(),
+  customerPhone: text('customer_phone').notNull(),
+  customerAddress: text('customer_address'),
+  deviceModel: text('device_model').notNull(),
+  primaryFault: text('primary_fault'),
+  inspectionRemarks: text('inspection_remarks'),
+  checklistJson: jsonb('checklist_json').$type<Record<string, boolean>>().notNull().default({}),
+  lockType: text('lock_type'),
+  partsDescription: text('parts_description'),
+  partsAmount: numeric('parts_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  serviceCharge: numeric('service_charge', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  advancePaid: numeric('advance_paid', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  technician: text('technician'),
+  commissionPct: numeric('commission_pct', { precision: 5, scale: 2 }).notNull().default('0.00'),
+  status: text('status').notNull().default('INTAKE'), // INTAKE, IN_PROGRESS, READY, DELIVERED, CANCELLED
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index('repair_jobs_status_idx').on(t.status),
+}));
+
+export const diningTables = pgTable('dining_tables', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  branchId: uuid('branch_id').references(() => branches.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  capacity: integer('capacity').notNull().default(4),
+  status: text('status').notNull().default('VACANT'), // VACANT, SEATED, ORDERED, SERVED
+  sortOrder: integer('sort_order').notNull().default(0),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const kitchenTickets = pgTable('kitchen_tickets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  kotNumber: text('kot_number').notNull().unique(),
+  tableId: uuid('table_id').references(() => diningTables.id, { onDelete: 'set null' }),
+  waiterName: text('waiter_name'),
+  itemsJson: jsonb('items_json')
+    .$type<Array<{ name: string; qty: number; notes?: string; price: number }>>()
+    .notNull()
+    .default([]),
+  totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  status: text('status').notNull().default('OPEN'), // OPEN, FIRED, SERVED, CLOSED, VOID
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  closedAt: timestamp('closed_at', { withTimezone: true }),
+}, (t) => ({
+  tableIdx: index('kitchen_tickets_table_idx').on(t.tableId),
+}));
+
+export const hirePurchaseContracts = pgTable('hire_purchase_contracts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contractNumber: text('contract_number').notNull().unique(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  customerName: text('customer_name').notNull(),
+  nicNumber: text('nic_number').notNull(),
+  phone: text('phone').notNull(),
+  itemName: text('item_name').notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+  totalCashPrice: numeric('total_cash_price', { precision: 12, scale: 2 }).notNull(),
+  downPayment: numeric('down_payment', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  monthlyEmi: numeric('monthly_emi', { precision: 12, scale: 2 }).notNull(),
+  totalMonths: integer('total_months').notNull(),
+  paidMonths: integer('paid_months').notNull().default(0),
+  nextDueDate: timestamp('next_due_date', { withTimezone: true }),
+  status: text('status').notNull().default('ACTIVE'), // ACTIVE, SETTLED, OVERDUE, CANCELLED
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index('hp_contracts_status_idx').on(t.status),
+}));
+
+export const hirePurchaseInstallments = pgTable('hire_purchase_installments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contractId: uuid('contract_id').notNull().references(() => hirePurchaseContracts.id, { onDelete: 'cascade' }),
+  installmentNumber: integer('installment_number').notNull(),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  paidAt: timestamp('paid_at', { withTimezone: true }).notNull().defaultNow(),
+  method: text('method').notNull().default('CASH'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+}, (t) => ({
+  contractIdx: index('hp_installments_contract_idx').on(t.contractId),
+}));
+
+export const appointments = pgTable('appointments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerName: text('customer_name').notNull(),
+  phone: text('phone').notNull(),
+  service: text('service').notNull(),
+  specialist: text('specialist'),
+  startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+  endsAt: timestamp('ends_at', { withTimezone: true }),
+  fee: numeric('fee', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  status: text('status').notNull().default('CONFIRMED'), // CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
+  notes: text('notes'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  startsIdx: index('appointments_starts_idx').on(t.startsAt),
+}));
+
+export const loyaltyMembers = pgTable('loyalty_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  name: text('name').notNull(),
+  phone: text('phone').notNull().unique(),
+  points: integer('points').notNull().default(0),
+  tier: text('tier').notNull().default('SILVER'), // SILVER, GOLD, PLATINUM
+  totalSpent: numeric('total_spent', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  lastVisitAt: timestamp('last_visit_at', { withTimezone: true }),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const loyaltyTransactions = pgTable('loyalty_transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  memberId: uuid('member_id').notNull().references(() => loyaltyMembers.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // EARN, REDEEM, ADJUST
+  pointsDelta: integer('points_delta').notNull(),
+  balanceAfter: integer('balance_after').notNull(),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  memberIdx: index('loyalty_tx_member_idx').on(t.memberId),
+}));
