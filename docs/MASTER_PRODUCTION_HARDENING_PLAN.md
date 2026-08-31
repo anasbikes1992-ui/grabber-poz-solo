@@ -5,6 +5,8 @@
 **Jurisdiction & Operating Context:** Sri Lanka (LKR Currency, 18% VAT, Polim Potha Micro-Credit, Multi-Branch/Warehouse, WhatsApp-First)  
 **Evaluated Repository:** `anasbikes1992-ui/grabber-business-os` &bull; **Live App:** `https://grabber-business-os.vercel.app`
 
+> **Superseding process truth (2026-09-01):** Use [`docs/correction.md`](./correction.md) for fix status, [`docs/READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md) for the active re-test gate, and [`docs/CLIENT_ONBOARDING_PLAYBOOK.md`](./CLIENT_ONBOARDING_PLAYBOOK.md) for provisioning. Sections below may still describe aspirational module scores; do not treat them as a live honesty matrix.
+
 ---
 
 ## 1. PHASE 0 — ENVIRONMENT & CODEBASE DISCOVERY

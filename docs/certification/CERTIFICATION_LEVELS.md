@@ -2,8 +2,9 @@
 
 Before any client instance is declared ready for production handover, it is graded against four certification tiers.
 
-> **Implementation status (2026-08-31):** Automated `npm run client:certify` covers **schema + synthetic SQL** chains for L1 (partial), L3 (partial), and L4 (idempotency + cleanup).  
-> L1 RLS/CDN, L2 HTTP POS latency/reservation, and L4 concurrent last-unit races are **not** automated yet — see [`docs/correction.md`](../correction.md).
+> **Implementation status (2026-09-01):** Waves 0–5 closed. Automated `npm run client:certify` covers **schema + synthetic SQL** for L1/L3/L4 resilience basics, plus **optional HTTP** when `CERTIFY_HTTP_BASE_URL` is set.  
+> App durability (checkout, GRN, returns, shifts, dual auth) is implemented — prove it via [`docs/READY_FOR_RETESTING.md`](../READY_FOR_RETESTING.md), not cert SQL alone.  
+> L1 RLS/CDN automation and L4 concurrent last-unit load tests are still **not** in the cert script.
 
 ---
 
@@ -27,26 +28,26 @@ Before any client instance is declared ready for production handover, it is grad
 
 * **Scope:** PostgreSQL schema, COA seed, active users / OWNER.
 * **Automated today:**
-  1. All **41** tables from `src/db/schema.ts` present.
+  1. All **49** tables from `src/db/schema.ts` present (incl. verticals).
   2. Chart of Accounts includes `1010`, `1200`, `4000`, `5000` (and seed set ≥5).
   3. At least one **active** user; **OWNER** role when users exist.
-* **Not automated yet (manual / Wave 2):**
-  4. RLS policies on commerce tables; revoke anon DML.
-  5. Storage CDN bucket read/write smoke.
-  6. First-login credential rotation flag.
+* **Manual / ops:**
+  4. Apply `drizzle/rls_baseline.sql`; revoke anon DML (already removed from setup SQL).
+  5. Storage bucket smoke (when using Supabase Storage).
+  6. First-login credential rotation before client handover.
+  7. Dual auth: staff cookie vs shopper cookie isolation.
 
 ---
 
 ### Level 2 (L2) — Commerce & Inventory Integrity
 
 * **Scope:** POS checkout, barcode, stock movements, returns via **application APIs**.
-* **Target checks (Wave 1 — not in cert script yet):**
-  1. Cash & card checkout via `/api/pos/checkout` with durable Postgres writes.
-  2. Stock decrements `on_hand` at branch location.
-  3. Online/WA orders use `reserved` without premature branch sale deduction.
-  4. Returns restore `on_hand` and write `order_returns`.
-
-*Current cert script approximates L2/L3 with **raw SQL** inserts — useful for schema fitness, not app wiring.*
+* **Implemented in app (prove in Ready for Re-Testing):**
+  1. Cash & card checkout via `/api/pos/checkout` with durable Postgres writes (POS + `STOREFRONT`).
+  2. Stock decrements `on_hand` at branch location (concurrent-safe `UPDATE`).
+  3. Returns restore `on_hand` and write `order_returns` + inverse GL.
+  4. GRN / transfer / shifts bound to durable repos.
+* **Cert script:** still approximates with **raw SQL** inserts for schema fitness; use optional HTTP + manual smoke for app wiring.
 
 ---
 
@@ -58,7 +59,8 @@ Before any client instance is declared ready for production handover, it is grad
   2. Cash sale posts to `1010` / `4000` / `5000` / `1200`.
   3. Polim `INVOICE` + `REPAYMENT` updates `polim_potha_accounts.current_balance`.
   4. Supplier `BILL` updates `supplier_accounts` with stock intake.
-* **Still missing:** aging buckets, credit-limit enforcement via app, VAT period reports.
+* **App-backed:** repay API, reports (sales by channel, AR aging, trial balance) — verify manually / via UI.
+* **Still soft:** full VAT period lock / period-close enforcement depth.
 
 ---
 
@@ -67,16 +69,18 @@ Before any client instance is declared ready for production handover, it is grad
 * **Automated today:**
   1. `webhook_events` unique on `(provider, provider_event_id)`.
   2. Synthetic entities purged with residue check.
-* **Not automated yet:**
-  3. Checkout idempotency keys end-to-end via API.
-  4. Provider webhook signature verification.
-  5. Concurrent last-unit race (`UPDATE … WHERE available qty`).
+* **Implemented in app (manual / optional HTTP):**
+  3. Checkout idempotency keys / `client_uuid`.
+  4. PayHere webhook signature verification.
+  5. Concurrent stock guard in checkout repo.
+* **Not automated:** multi-terminal load race suite.
 
-**Level naming in reports:** successful full run may report `L4_SCHEMA_SQL_CERTIFIED` — intentionally **not** “production certified” until Wave 1–2 close.
+**Level naming in reports:** successful full SQL run may report `L4_SCHEMA_SQL_CERTIFIED`. Production handover additionally requires **Ready for Re-Testing P0 PASS**.
 
 ---
 
 ## Related
 
+* Re-test gate: [`docs/READY_FOR_RETESTING.md`](../READY_FOR_RETESTING.md)
 * Playbook: [`docs/CLIENT_ONBOARDING_PLAYBOOK.md`](../CLIENT_ONBOARDING_PLAYBOOK.md)
 * Fix tracker: [`docs/correction.md`](../correction.md)

@@ -3,13 +3,23 @@
 Master fix list from full code review (security, database, quality, a11y, completeness).  
 **Status legend:** `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
-Last updated: 2026-08-31 (waves 1–5 + dual storefront/staff auth)
+Last updated: 2026-09-01 (**READY_FOR_RETESTING** opened)
+
+---
+
+## Gate status
+
+| Gate | Status | Doc |
+|------|--------|-----|
+| Waves 0–5 + dual auth | DONE | this file |
+| Process docs refreshed | DONE | playbook, cert levels, acceptance, test plan |
+| **Ready for Re-Testing** | **OPEN** | [`docs/READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md) |
 
 ---
 
 ## Verdict
 
-Durable Postgres commerce is wired end-to-end for core retail ops **and W5-06 verticals** (repairs, restaurant/KOT, hire-purchase, appointments, loyalty) behind feature flags. **`/` = public storefront**; **`/app` + staff PIN login** = backend; **`/shop/login`** = shopper accounts. Host RLS apply + live `db:push` E2E remain operator steps.
+Durable Postgres commerce is wired end-to-end for core retail ops **and W5-06 verticals** (repairs, restaurant/KOT, hire-purchase, appointments, loyalty) behind feature flags. **`/` = public storefront**; **`/app` + staff PIN login** = backend; **`/shop/login`** = shopper accounts. Host RLS apply + live `db:push` E2E remain operator steps. **Re-test before handover** using the Ready for Re-Testing checklist.
 
 | ID | Item | Status |
 |----|------|--------|
@@ -177,3 +187,4 @@ Durable Postgres commerce is wired end-to-end for core retail ops **and W5-06 ve
 | 2026-08-31 | Waves 1–5 durable APIs, auth, offline queue, integrations stubs, design rollout; tracker statuses updated |
 | 2026-08-31 | Closed remaining mock UIs: products/customers/suppliers/PO CRUD APIs; inventory + polim list; honest creative stub; seed credit customer |
 | 2026-08-31 | Dual surface: `/` storefront + shopper auth; staff hub `/app`; checkout accepts STOREFRONT |
+| 2026-09-01 | Process docs completed; gate **READY_FOR_RETESTING** opened |

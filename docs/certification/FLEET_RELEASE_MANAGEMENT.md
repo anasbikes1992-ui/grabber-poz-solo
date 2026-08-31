@@ -21,9 +21,10 @@ Operational guidelines for managing multiple dedicated client instances from a s
 ## 2. Semantic Release Cycle
 
 1. **Development & Hardening:** Features and bug fixes are developed on `main`.
-2. **Certification Gate:** New releases must achieve **L4 PRODUCTION CERTIFIED** via `npm run client:certify`.
-3. **Release Tagging:**
-   * `v1.0.0` — Initial certified single-business retail release.
+2. **Certification Gate:** `npm run client:certify` → `L4_SCHEMA_SQL_CERTIFIED` (or equivalent) with **0 P0 failures**.
+3. **Ready for Re-Testing:** Complete [`docs/READY_FOR_RETESTING.md`](../READY_FOR_RETESTING.md) P0 before tagging a client-facing release.
+4. **Release Tagging:**
+   * `v1.0.0` — Initial schema/SQL-certified single-business retail release.
    * `v1.0.1` — Patch (hotfix, zero schema changes).
    * `v1.1.0` — Minor (backward-compatible feature + migration scripts).
    * `v2.0.0` — Major (breaking structural schema revisions).

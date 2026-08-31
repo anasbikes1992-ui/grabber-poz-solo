@@ -2,4 +2,6 @@
 
 Canonical file: **[docs/correction.md](./docs/correction.md)**
 
-Use that document for the full Wave 0–5 fix inventory, honesty matrix, and build order.
+Re-test gate (open): **[docs/READY_FOR_RETESTING.md](./docs/READY_FOR_RETESTING.md)**
+
+Use those documents for the Wave 0–5 inventory, honesty matrix, and Ready for Re-Testing checklist.

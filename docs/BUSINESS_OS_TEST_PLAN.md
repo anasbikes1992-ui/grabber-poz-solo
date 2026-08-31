@@ -54,3 +54,26 @@ The automated E2E test suite executes the complete operational lifecycle in sequ
 13. CREATIVE FACTORY: Upload asset to Media Library -> Enqueue video render job -> Verify status transition.
 14. AUDIT & PORTABILITY: Verify immutable audit log completeness -> Trigger Backup & Data Export.
 ```
+
+---
+
+## 4. Current automated suite (repo)
+
+| Command | What it covers |
+|---------|----------------|
+| `npm test` | Golden business invariants, vertical math, a11y smoke (≥25 tests) |
+| `npm run typecheck` | TypeScript compile |
+| `npm run client:certify` | Schema (49 tables) + synthetic SQL commerce/GL chains |
+| `CERTIFY_HTTP_BASE_URL=… npm run client:certify` | Optional live HTTP probes |
+
+**Process gate for human / UAT re-test:** [`docs/READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md)  
+**Pilot after re-test PASS:** [`docs/certification/CLIENT_ACCEPTANCE_TEST.md`](./certification/CLIENT_ACCEPTANCE_TEST.md)
+
+---
+
+## 5. Dual-auth smoke (manual, required in re-test)
+
+1. Browse `/` as anonymous — catalog only (no staff chrome).
+2. `/shop/login` → checkout `channel: STOREFRONT`.
+3. `/login` → `/app` → `/pos` cash sale with open shift.
+4. Confirm shopper cookie cannot open staff routes in production (`AUTH_OPTIONAL` unset).
