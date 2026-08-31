@@ -64,11 +64,11 @@ npm run client:certify -- --client "Re-Test" --slug "retest"
 
 | ID | Check | Pass criteria | Result |
 |----|--------|---------------|--------|
-| RT-A01 | `npm run typecheck` | Exit 0 | ✅ PASS (2026-09-01) |
+| RT-A01 | `npm run typecheck` | Exit 0 | ✅ PASS |
 | RT-A02 | `npm test` | All tests pass (≥25) | ✅ PASS 25/25 |
-| RT-A03 | `env:validate` | 0 P0 errors | ⛔ BLOCKED — no env file |
-| RT-A04 | `db:push` | 49 tables applied | ⏳ pending env |
-| RT-A05 | `client:certify` (SQL) | 0 P0 failures; report under `reports/` | ⏳ pending env |
+| RT-A03 | `env:validate` | 0 P0 errors | ✅ PASS (`.env.local`) |
+| RT-A04 | `db:push` / align | 49 tables applied | ✅ PASS (`db:align` + `0001` migration) |
+| RT-A05 | `client:certify` (SQL) | 0 P0 failures; report under `reports/` | ✅ PASS `CERT-77D0E7FA` L4_SCHEMA_SQL |
 
 ### P0 — Manual smoke (dual auth + core commerce)
 

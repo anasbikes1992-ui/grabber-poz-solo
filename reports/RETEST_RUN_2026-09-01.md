@@ -1,23 +1,30 @@
-# Re-Test run log — 2026-09-01
+# Re-Test run log — 2026-09-01 (updated)
 
 **Gate:** READY_FOR_RETESTING  
-**Baseline commit:** `6cdecb0` (docs commit may follow)  
-**Operator:** automated agent kickoff
+**Baseline commit (app):** `a538384` (+ env/cert follow-up)  
+**Live app:** https://grabber-business-os.vercel.app  
+**DB project:** `nvsejnlnulplmptnptpj` (Business OS — not MyPoz `sauzjjbk…`)
 
 ## Automated results
 
 | ID | Check | Result | Notes |
 |----|--------|--------|-------|
-| RT-A01 | `npm run typecheck` | **PASS** | Exit 0 |
+| RT-A01 | `npm run typecheck` | **PASS** | |
 | RT-A02 | `npm test` | **PASS** | 25/25 |
-| RT-A03 | `env:validate` | **BLOCKED** | No `.env` / `.env.local` in workspace — `DATABASE_URL` + `NEXT_PUBLIC_APP_URL` missing |
-| RT-A04 | `db:push` | **SKIPPED** | Blocked by RT-A03 |
-| RT-A05 | `client:certify` dry-run | **BLOCKED** | `DATABASE_URL` not defined |
-| RT-M01…M08 | Manual smoke | **PENDING** | Requires seeded DB + running app |
+| RT-A03 | `env:validate --env-file .env.local` | **PASS** | P0 clear; pooler recommended for Vercel |
+| RT-A04 | Schema align + verticals | **PASS** | 49 tables; `npm run db:align` + migration `0001` |
+| RT-A05 | `client:certify` live SQL | **PASS** | `CERT-77D0E7FA` → `L4_SCHEMA_SQL_CERTIFIED` (12/12) |
+| RT-M01…M08 | Manual smoke | **PENDING** | Needs Vercel env parity + seed |
 
-## Next operator actions
+## Env alignment decisions
 
-1. Provide `.env.local` with `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, `AUTH_SECRET`.
-2. `npm run db:push` → `POST /api/seed` → live SQL `client:certify`.
-3. Execute manual dual-auth + POS checklist in [`docs/READY_FOR_RETESTING.md`](../docs/READY_FOR_RETESTING.md).
-4. Sign §5 of Ready for Re-Testing when P0 complete.
+* **Kept:** `DATABASE_URL` → `nvsejnln…`, `NEXT_PUBLIC_APP_URL` → Business OS Vercel URL, generated `AUTH_SECRET` / `MASTER_ENCRYPTION_KEY`
+* **Rejected:** MyPoz `sauzjjbk…` keys, GMS/Redis/Resend/Stripe/pixel template block
+* **Supabase client keys:** leave empty until Dashboard keys for **same** DB project are pasted
+
+## Operator next
+
+1. Mirror `.env.local` core vars onto Vercel project (use **pooler** `6543` URL in production).
+2. `POST /api/seed` on a running instance.
+3. Manual dual-auth checklist in `docs/READY_FOR_RETESTING.md`.
+4. **Rotate** DB password + any keys pasted in chat.

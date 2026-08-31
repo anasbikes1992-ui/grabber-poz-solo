@@ -309,9 +309,12 @@ async function runCertification() {
 
     const [testProd] = await sql`
       INSERT INTO public.products (
-        sku, slug, name, sale_price, cost_price, is_active
+        sku, slug, name, sale_price, cost_price, is_active,
+        base_price, base_cost, active
       ) VALUES (
-        ${testSku}, ${testSlug}, 'Certification High-Integrity Item', 2000.00, 1200.00, true
+        ${testSku}, ${testSlug}, 'Certification High-Integrity Item',
+        2000.00, 1200.00, true,
+        2000.00, 1200.00, true
       ) RETURNING id
     `;
     testProductId = testProd.id;
@@ -351,20 +354,22 @@ async function runCertification() {
 
     const [jrnCash] = await sql`
       INSERT INTO public.journal_entries (
-        entry_number, entry_date, description, reference_type, reference_id
+        entry_number, entry_date, description, reference_type, reference_id,
+        source_type, source_id, memo
       ) VALUES (
-        ${'JRN-CASH-' + testSku}, CURRENT_DATE, 'Cash Sale & COGS Recognition', 'ORDER', ${order1.id}
+        ${'JRN-CASH-' + testSku}, CURRENT_DATE, 'Cash Sale & COGS Recognition', 'ORDER', ${order1.id},
+        'ORDER', ${order1.id}, 'Cash Sale & COGS Recognition'
       ) RETURNING id
     `;
     createdJournalIds.push(jrnCash.id);
 
     await sql`
-      INSERT INTO public.journal_lines (journal_entry_id, account_id, debit, credit, memo)
+      INSERT INTO public.journal_lines (journal_entry_id, account_id, account_code, debit, credit, memo)
       VALUES
-      (${jrnCash.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '1010' LIMIT 1), 4000.00, 0.00, 'Cash Received'),
-      (${jrnCash.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '4000' LIMIT 1), 0.00, 4000.00, 'Sales Revenue'),
-      (${jrnCash.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '5000' LIMIT 1), 2400.00, 0.00, 'COGS Expensed'),
-      (${jrnCash.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '1200' LIMIT 1), 0.00, 2400.00, 'Inventory Relieved')
+      (${jrnCash.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '1010' LIMIT 1), '1010', 4000.00, 0.00, 'Cash Received'),
+      (${jrnCash.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '4000' LIMIT 1), '4000', 0.00, 4000.00, 'Sales Revenue'),
+      (${jrnCash.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '5000' LIMIT 1), '5000', 2400.00, 0.00, 'COGS Expensed'),
+      (${jrnCash.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '1200' LIMIT 1), '1200', 0.00, 2400.00, 'Inventory Relieved')
     `;
 
     const [jrnCashBal] = await sql`
@@ -444,20 +449,22 @@ async function runCertification() {
 
     const [jrnReturn] = await sql`
       INSERT INTO public.journal_entries (
-        entry_number, entry_date, description, reference_type, reference_id
+        entry_number, entry_date, description, reference_type, reference_id,
+        source_type, source_id, memo
       ) VALUES (
-        ${'JRN-RET-' + testSku}, CURRENT_DATE, 'Sales Return 1 Unit Reversal', 'ORDER_RETURN', ${order1.id}
+        ${'JRN-RET-' + testSku}, CURRENT_DATE, 'Sales Return 1 Unit Reversal', 'ORDER_RETURN', ${order1.id},
+        'ORDER_RETURN', ${order1.id}, 'Sales Return 1 Unit Reversal'
       ) RETURNING id
     `;
     createdJournalIds.push(jrnReturn.id);
 
     await sql`
-      INSERT INTO public.journal_lines (journal_entry_id, account_id, debit, credit, memo)
+      INSERT INTO public.journal_lines (journal_entry_id, account_id, account_code, debit, credit, memo)
       VALUES
-      (${jrnReturn.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '4000' LIMIT 1), 2000.00, 0.00, 'Sales Reversal'),
-      (${jrnReturn.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '1010' LIMIT 1), 0.00, 2000.00, 'Cash Refunded'),
-      (${jrnReturn.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '1200' LIMIT 1), 1200.00, 0.00, 'Inventory Restored'),
-      (${jrnReturn.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '5000' LIMIT 1), 0.00, 1200.00, 'COGS Relieved')
+      (${jrnReturn.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '4000' LIMIT 1), '4000', 2000.00, 0.00, 'Sales Reversal'),
+      (${jrnReturn.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '1010' LIMIT 1), '1010', 0.00, 2000.00, 'Cash Refunded'),
+      (${jrnReturn.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '1200' LIMIT 1), '1200', 1200.00, 0.00, 'Inventory Restored'),
+      (${jrnReturn.id}, (SELECT id FROM public.chart_of_accounts WHERE code = '5000' LIMIT 1), '5000', 0.00, 1200.00, 'COGS Relieved')
     `;
 
     const [stockAfterRet] = await sql`
@@ -501,8 +508,8 @@ async function runCertification() {
     `;
 
     await sql`
-      INSERT INTO public.supplier_entries (supplier_id, type, amount, balance_after)
-      VALUES (${testSupplierId}, 'BILL', 10000.00, 10000.00)
+      INSERT INTO public.supplier_entries (supplier_id, type, amount, balance_after, reference_no)
+      VALUES (${testSupplierId}, 'BILL', 10000.00, 10000.00, ${'BILL-' + testSku})
     `;
     await sql`
       UPDATE public.supplier_accounts
@@ -533,15 +540,15 @@ async function runCertification() {
 
     eventId = `EVT_${testSku}`;
     await sql`
-      INSERT INTO public.webhook_events (provider, provider_event_id, payload, status)
-      VALUES ('payhere', ${eventId}, ${sql.json({ status: 'success' })}, 'PROCESSED')
+      INSERT INTO public.webhook_events (provider, provider_event_id, event_type, payload, status, processed)
+      VALUES ('payhere', ${eventId}, 'PAYMENT_SUCCESS', ${sql.json({ status: 'success' })}, 'PROCESSED', true)
     `;
 
     let duplicateCaught = false;
     try {
       await sql`
-        INSERT INTO public.webhook_events (provider, provider_event_id, payload, status)
-        VALUES ('payhere', ${eventId}, ${sql.json({ status: 'success' })}, 'PROCESSED')
+        INSERT INTO public.webhook_events (provider, provider_event_id, event_type, payload, status, processed)
+        VALUES ('payhere', ${eventId}, 'PAYMENT_SUCCESS', ${sql.json({ status: 'success' })}, 'PROCESSED', true)
       `;
     } catch {
       duplicateCaught = true;

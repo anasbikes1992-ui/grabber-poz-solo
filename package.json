@@ -13,6 +13,8 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
+    "db:align": "node scripts/align-legacy-schema.mjs",
+    "db:apply-sql": "node scripts/apply-sql-migration.mjs",
     "creative:start": "python creative-engine/main.py",
     "env:validate": "node scripts/validate-env.mjs",
     "client:provision": "node scripts/provision-client.mjs",
