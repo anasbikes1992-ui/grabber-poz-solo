@@ -27,7 +27,7 @@ Optional: set `DATABASE_URL` to the same pooler URL for clarity in scripts.
 |----------|------------------|
 | `AUTH_SECRET` | `openssl rand -hex 48` |
 | `MASTER_ENCRYPTION_KEY` | `openssl rand -hex 32` |
-| `NEXT_PUBLIC_APP_URL` | `https://grabber-poz-solo-….vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | `https://grabber-poz-solo-cqpd085c3-anas-projects-7ceb7b61.vercel.app` |
 | `NEXT_PUBLIC_STORE_NAME` | `Grabber Poz Solo` |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://rbayhrskowtahepwccrq.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → API → anon key |
