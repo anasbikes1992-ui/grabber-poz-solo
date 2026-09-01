@@ -61,8 +61,8 @@ Agent READ (handlers.ts)
     → recommendations[] + metrics
     → agentLogs
     → Approval Center PROPOSE (actionable recommendations → createApproval)
-    → EXECUTE with confirmationToken (staff at /approvals)
-    → audit_logs
+    → EXECUTE at /approvals (AGENT_* token → approval-execute.ts → audit_logs)
+    → Jarvis tools still use confirmationToken → jarvis-tools confirm
 ```
 
 Actionable patterns (PO lines, repair tickets, EMI collection, KOT serve, creative promos) auto-create **DRAFT** approvals when agents run with a staff session.
@@ -73,6 +73,8 @@ Actionable patterns (PO lines, repair tickets, EMI collection, KOT serve, creati
 
 ```powershell
 npm test -- tests/agents-vertical.test.ts
+npm test -- tests/agents-approval-bridge.test.ts
+npm test -- tests/agents-approval-execute.test.ts
 npm run release:gate -- --env-file .env.prod.txt --production
 node scripts/release-gate.mjs r6 --env-file .env.prod.txt --production
 ```

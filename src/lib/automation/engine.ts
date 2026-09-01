@@ -35,14 +35,22 @@ async function runAction(rule: AutomationRule, ctx: AutomationContext) {
     if (!to || to.replace(/\D/g, '').length < 9) {
       throw new Error('WhatsApp recipient phone missing — ensure customer has phone on file');
     }
-    const result = await sendWhatsAppText({ to, text });
-    if (!result.success) throw new Error(result.error || 'WhatsApp send failed');
-    return {
-      channel: 'WHATSAPP',
-      to,
-      stub: result.stub === true,
-      messageId: 'messageId' in result ? result.messageId : undefined,
-    };
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const result = await sendWhatsAppText({ to, text });
+      if (result.success) {
+        return {
+          channel: 'WHATSAPP',
+          to,
+          stub: result.stub === true,
+          messageId: 'messageId' in result ? result.messageId : undefined,
+          attempt,
+        };
+      }
+      lastError = new Error(result.error || 'WhatsApp send failed');
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 400));
+    }
+    throw lastError ?? new Error('WhatsApp send failed');
   }
   if (action.type === 'LOG') {
     return { channel: 'LOG', message: interpolate(action.message, ctx) };

@@ -103,7 +103,7 @@ npm run ops:sync-env -- --env-file .env.prod.txt
 | Repair WhatsApp automations (`REPAIR_*` events) | DONE |
 | 12 DB-grounded agents (all verticals) | DONE — [`AGENTS.md`](./AGENTS.md) |
 | `/api/agents/brief` combined daily brief | DONE |
-| HTTP cert `/shop/repairs*` on production | **Pending deploy** |
+| HTTP cert `/shop/repairs*` on production | **Re-run after push** (`c74e829+`) |
 
 **After git push:** Vercel redeploy → re-run `npm run release:gate -- --env-file .env.prod.txt --production --http`
 
@@ -111,15 +111,32 @@ npm run ops:sync-env -- --env-file .env.prod.txt
 
 ## What remains (priority order)
 
-| Priority | Item | Type |
-|----------|------|------|
-| 1 | Rotate owner PIN at `/adminpoz` | Operator |
-| 2 | Meta WhatsApp webhook verify + test COD order | Operator |
-| 3 | Manual commerce smoke RT-M01–M08 | Operator |
-| 4 | Mobile Lighthouse on product + checkout | Operator |
-| 5 | Jarvis live parity vs dashboard (staff session) | Operator |
-| 6 | Agent → Approval Center EXECUTE bridge | Engineering | **PROPOSE done** — EXECUTE at /approvals |
+| Priority | Item | Type | Status |
+|----------|------|------|--------|
+| 1 | Rotate owner PIN at `/adminpoz` | Operator | TODO |
+| 2 | Meta WhatsApp webhook verify + test COD order | Operator | TODO |
+| 3 | Manual commerce smoke RT-M01–M08 | Operator | TODO |
+| 4 | Mobile Lighthouse on product + checkout | Operator | TODO |
+| 5 | Jarvis live parity vs dashboard (staff session) | Operator | TODO |
+| 6 | Agent → Approval Center EXECUTE bridge | Engineering | **DONE** (`approval-execute.ts`) |
 | 7 | Staff `/repairs/[id]` workspace | Engineering | **DONE** |
-| 8 | Stock reservation API (optional R2.1) | Engineering |
-| 9 | LKR online payments | Engineering |
-| 10 | Repairs Phase 2b (parts from stock) | Engineering |
+| 8 | Stock reservation API (`POST/DELETE /api/inventory/reserve`) | Engineering | **DONE** |
+| 9 | LKR online payments (PayHere/WebXPay) | Engineering | TODO |
+| 10 | Repairs parts-from-stock | Engineering | **DONE** |
+| 11 | SEC-05 API rate limits | Engineering | **DONE** |
+| 12 | AUTO-03 `STOCK_LOW` owner alerts | Engineering | **DONE** |
+| 13 | Live creative media (FAL/Replicate) | Engineering | TODO |
+
+**Stock reservation (R2.1):**
+
+```powershell
+# Reserve 2 units for a POS hold or quote
+curl -X POST https://grabber-poz-solo.vercel.app/api/inventory/reserve `
+  -H "Content-Type: application/json" `
+  -d '{"productId":"<uuid>","qty":2,"referenceType":"HOLD","referenceId":"HOLD-001"}'
+
+# Release when hold cancelled
+curl -X DELETE https://grabber-poz-solo.vercel.app/api/inventory/reserve `
+  -H "Content-Type: application/json" `
+  -d '{"productId":"<uuid>","qty":2,"referenceType":"HOLD","referenceId":"HOLD-001"}'
+```

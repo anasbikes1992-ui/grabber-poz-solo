@@ -30,14 +30,14 @@ Ship / no-ship checklist for Grabber Poz Solo.
 | Release | Verdict | Remaining blocker |
 |---------|---------|-------------------|
 | **R1** Solo Foundation | **CONDITIONALLY READY** | Manual: rotate owner PIN; legacy `0003` trigger drop (doc only) |
-| **R2** Commerce Complete | **CONDITIONALLY READY** | Manual POS/return/GRN smoke; optional stock reservation API |
+| **R2** Commerce Complete | **CONDITIONALLY READY** | Manual POS/return/GRN smoke; stock reservation API **shipped** |
 | **R3** Storefront | **CONDITIONALLY READY** | Mobile Lighthouse ≥ 80 (manual) |
 | **R4** Communication | **CONDITIONALLY READY** | Meta webhook verify + live delivery proof in `automationLogs` |
 | **R5** Jarvis | **CONDITIONALLY READY** | Live Jarvis vs dashboard parity (staff session); EXECUTE audit → R6 |
-| **R6** Agents | **CONDITIONALLY READY** | 12 agents live; Approval EXECUTE bridge open |
+| **R6** Agents | **CONDITIONALLY READY** | 12 agents + PROPOSE/EXECUTE bridge; deploy + operator smoke |
 | **R7** Creative | **CONDITIONALLY READY** | Approve-to-storefront MVP; live media optional |
 
-**R6/R7 MVP shipped locally.** Deploy to Vercel for `/shop/repairs` HTTP cert. Full autonomy needs Approval EXECUTE + FAL/Replicate keys.
+**R6/R7 MVP shipped in `c74e829+`.** Push to Vercel for `/shop/repairs` HTTP cert. Full autonomy needs operator smoke + FAL/Replicate keys for live media.
 
 **Automated foundation (R1–R5 code + prod RLS + HTTP):** ✅ green as of 2026-09-01.
 

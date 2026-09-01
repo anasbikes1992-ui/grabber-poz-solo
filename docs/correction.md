@@ -29,7 +29,7 @@ Do **not** rebuild POS. Prioritize: **migration reproducibility → storefront p
 | Sprint S2 (RLS + settings persistence) | DONE |
 | Release R1 gate | CONDITIONALLY READY (automated PASS 2026-09-01) |
 | Release R6 agents | CONDITIONALLY READY (12 agents — [`AGENTS.md`](./AGENTS.md)) |
-| Repairs storefront MVP | DONE locally — deploy pending |
+| Repairs storefront MVP | DONE — push `c74e829+` for prod HTTP cert |
 | Full Business OS (doc §106 E2E) | BLOCKED |
 
 ---
@@ -115,7 +115,7 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | COM-02 | Split payment (not collapsed to CASH) | DONE (S3) |
 | COM-03 | Product variants UI + stock by variant | DONE (S4) |
 | COM-04 | Multi-barcode, member price, SEO product fields | TODO (S5) |
-| COM-05 | Inventory reservations + incoming | TODO |
+| COM-05 | Inventory reservations + incoming | DONE (`/api/inventory/reserve`) |
 | COM-06 | Unified order state machine (POS + store + admin) | DONE (S3) |
 | COM-07 | Promotion rules engine (server-side) | DONE (S3) |
 | COM-08 | Import validate → preview → commit | DONE (S4) |
@@ -157,7 +157,7 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | AUTO-01 | Event → condition → action engine | DONE |
 | AUTO-02 | `ORDER_CREATED` → WhatsApp rule | DONE |
 | AUTO-03 | `STOCK_LOW` → owner notify | DONE (checkout + repair parts; default rules) |
-| AUTO-04 | Retry + idempotency + delivery log | PARTIAL (logs exist; retry TODO) |
+| AUTO-04 | Retry + idempotency + delivery log | PARTIAL (1× WhatsApp retry + logs; full retry queue TODO) |
 
 ---
 
@@ -168,7 +168,7 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | JAR-01 | DB tools: sales, inventory, orders, customers | DONE (11+ tools) |
 | JAR-02 | `get_dashboard_summary` | DONE |
 | JAR-03 | Draft tools (promotion, PO, message) | PARTIAL |
-| JAR-04 | EXECUTE → approval required | PARTIAL (token flow exists) |
+| JAR-04 | EXECUTE → approval required | PARTIAL (Jarvis token + agent EXECUTE at `/approvals`) |
 | JAR-05 | Approval Center UI | DONE |
 | JAR-06 | Daily business brief | DONE |
 | JAR-07 | LLM orchestrator (intent → tool) | PARTIAL |
@@ -183,7 +183,7 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | AGT-01 | Agent orchestrator (12 agents, vertical flags) | DONE |
 | AGT-02 | Core + vertical agents (SALES…CREATIVE) | DONE |
 | AGT-03 | `/api/agents/brief` + run-all | DONE |
-| AGT-04 | Agent → Approval EXECUTE bridge | DONE (PROPOSE drafts; EXECUTE via Approval Center) |
+| AGT-04 | Agent → Approval EXECUTE bridge | DONE (PROPOSE drafts + EXECUTE via `/approvals` + audit) |
 | CRE-01 | Brand brain in config | DONE |
 | CRE-02 | Brief → generate → review → approve → publish | PARTIAL (approve-to-storefront) |
 | CRE-03 | Store banner + WhatsApp from creative | PARTIAL |
@@ -275,7 +275,7 @@ DUAL-01 … DUAL-04
 | RLS automated | PARTIAL (`db:apply-rls`, `db:test-rls`) |
 | Storage CDN | NO (honest) |
 | Storefront SEO | YES (S5 SSR + sitemap) |
-| Automation engine | PARTIAL (config_json rules + logs, S7) |
+| Automation engine | PARTIAL (rules + logs + STOCK_LOW + 1× retry) |
 
 ---
 
@@ -346,5 +346,5 @@ Staff: `/adminpoz` → `/app` · Shopper: `/` · Jarvis tools: `POST /api/jarvis
 | 2026-09-01 | **S3:** Channel-aware checkout statuses, split payments, promotion engine + APIs, orders PATCH transitions |
 | 2026-09-01 | **S4:** POS hold/resume (DRAFT orders), variant CRUD + catalog, CSV import validate/commit |
 | 2026-09-01 | **S5:** SSR `/products/[slug]`, Product JSON-LD, sitemap.xml, robots.txt, storefront PDP links |
-| 2026-09-01 | **S6–S10:** CMS, automation, WhatsApp webhook, Approval Center, Jarvis brief, HTTP cert |
-| 2026-09-01 | **Cleanup:** removed orphan layout/libs; mock pages redirected; `/store/builder` staff-only; `FRESH_START.md` |
+| 2026-09-01 | **S11+:** AGT-04 bridge, storefront CMS, vertical CRUD, `/repairs/[id]`, parts-from-stock, rate limits, STOCK_LOW |
+| 2026-09-01 | **S11+ (cont.):** Stock reservation API, agent EXECUTE at `/approvals`, WhatsApp retry |

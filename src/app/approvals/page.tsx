@@ -52,7 +52,7 @@ export default function ApprovalsPage() {
         <h1 className="text-2xl font-extrabold text-white flex items-center gap-2 mt-2">
           <ShieldCheck className="w-6 h-6 text-amber-400" /> Approval Center
         </h1>
-        <p className="text-xs text-zinc-400 mt-1">Review Jarvis high-risk actions before execution.</p>
+        <p className="text-xs text-zinc-400 mt-1">Review Jarvis and agent actions before execution.</p>
       </div>
       <div className="space-y-3">
         {loading && <p className="text-zinc-500 text-sm">Loading…</p>}

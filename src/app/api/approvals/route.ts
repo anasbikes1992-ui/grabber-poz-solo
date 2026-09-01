@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createApproval, listApprovals, resolveApproval } from '@/lib/approvals/approval-store';
+import { executeAgentApproval, isAgentApprovalToken } from '@/lib/agents/approval-execute';
 import { defaultJarvisToolRegistry } from '@/lib/ai/jarvis-tools';
 import { assertRole, getSession } from '@/lib/auth/session';
 
@@ -30,6 +31,13 @@ export async function POST(req: Request) {
       const resolved = await resolveApproval(body.id, 'APPROVED', session!.userId);
       if (!resolved) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
       if (body.confirmationToken) {
+        if (isAgentApprovalToken(body.confirmationToken)) {
+          const execution = await executeAgentApproval(resolved, {
+            actorId: session!.userId,
+            actorRole: session!.role,
+          });
+          return NextResponse.json({ success: true, approval: resolved, execution });
+        }
         const result = await defaultJarvisToolRegistry.confirmToolExecution(body.confirmationToken);
         return NextResponse.json({ success: true, approval: resolved, execution: result });
       }
