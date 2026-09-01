@@ -4,11 +4,12 @@
  */
 import postgres from 'postgres';
 import { config as loadEnv } from 'dotenv';
+import { postgresClientOptions, resolveDatabaseUrl } from './lib/resolve-db-url.mjs';
 
 loadEnv({ path: '.env.local' });
 loadEnv({ path: '.env' });
 
-const url = process.env.DATABASE_URL || process.env.database_url;
+const url = resolveDatabaseUrl();
 if (!url) {
   console.log('SKIP: DATABASE_URL not set');
   process.exit(0);
@@ -23,11 +24,12 @@ const RLS_TABLES = [
   'polim_potha_accounts',
   'users',
   'audit_logs',
+  'products',
 ];
 
 const REQUIRED_POLICIES = ['staff_read_orders', 'staff_read_products'];
 
-const db = postgres(url, { max: 1, prepare: false, ssl: 'require' });
+const db = postgres(url, postgresClientOptions(url));
 
 let fail = 0;
 

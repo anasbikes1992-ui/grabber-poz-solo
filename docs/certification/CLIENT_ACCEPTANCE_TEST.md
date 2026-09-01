@@ -29,7 +29,7 @@ Adjust calendar dates per client kickoff; keep sequence.
 
 ### Day 0: Ready for Re-Testing Sign-Off
 * Complete automated + manual P0 in [`READY_FOR_RETESTING.md`](../READY_FOR_RETESTING.md).
-* Confirm dual auth: shopper `/` vs staff `/login` → `/app`.
+* Confirm dual auth: shopper `/` vs staff `/adminpoz` → `/app`.
 * Rotate demo PINs/passwords if this instance will hold real data.
 
 ### Day 1: Catalog & Opening Balance Ingestion

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import {
   db,
   orderItems,
@@ -54,7 +54,16 @@ export async function POST(req: Request) {
               onHand: sql`${stockBalances.onHand} + ${line.quantity}`,
               updatedAt: new Date(),
             })
-            .where(eq(stockBalances.productId, line.productId));
+            .where(
+              and(
+                eq(stockBalances.locationType, 'BRANCH'),
+                eq(stockBalances.locationId, order.branchId),
+                eq(stockBalances.productId, line.productId),
+                line.variantId
+                  ? eq(stockBalances.variantId, line.variantId)
+                  : sql`${stockBalances.variantId} IS NULL`,
+              ),
+            );
           await tx.insert(stockMovements).values({
             locationType: 'BRANCH',
             locationId: order.branchId,
@@ -71,6 +80,9 @@ export async function POST(req: Request) {
       }
 
       const refund = Number(refundAmount ?? order.grandTotal);
+      if (refund < 0 || refund > Number(order.grandTotal)) {
+        throw new Error(`Refund amount must be between 0 and order total (${order.grandTotal})`);
+      }
       const totalCost = items.reduce((s, l) => s + Number(l.unitCost) * l.quantity, 0);
       const resolve = async (code: string) => {
         const [a] = await tx.select().from(chartOfAccounts).where(eq(chartOfAccounts.code, code)).limit(1);

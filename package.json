@@ -27,6 +27,8 @@
     "client:provision": "node scripts/provision-client.mjs",
     "client:certify": "node scripts/certify-client.mjs",
     "client:certify:http": "node scripts/certify-http.mjs",
+    "release:gate-r1": "node scripts/release-gate.mjs r1",
+    "release:gate": "node scripts/release-gate.mjs all",
     "client:migrate": "node scripts/migrate-client-catalog.mjs",
     "ops:sync-env": "node scripts/sync-vercel-env.mjs",
     "ops:inspect-db": "node scripts/inspect-db-tables.mjs"

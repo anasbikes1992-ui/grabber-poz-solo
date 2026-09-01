@@ -1,24 +1,56 @@
 # Grabber Business OS — Release Gate
 
-Ship / no-ship checklist for MyPoz Solo releases.  
-Aligned with master prompt §118 and [`ROADMAP.md`](./ROADMAP.md).
+Ship / no-ship checklist for Grabber Poz Solo.  
+**Strategy:** finish **R1 → R2 → R3** before R4–R7. Do not jump to agents/creative until foundation is green.
 
 **Verdict values:** `READY` · `CONDITIONALLY READY` · `BLOCKED`
 
 ---
 
+## Recommended execution order
+
+| Priority | Release | Why |
+|----------|---------|-----|
+| 🔴 **1** | **R1 — Solo Foundation** | DB bootstrap, RLS, auth, settings, certification |
+| 🔴 **2** | **R2 — Commerce Complete** | POS + inventory + orders commercially reliable |
+| 🟠 **3** | **R3 — Storefront** | Sellable POS + online store (COD) |
+| 🟠 **4** | **R4 — Communication** | ORDER_CREATED → WhatsApp + automation logs |
+| 🟡 **5** | **R5 — Jarvis** | READ tools + approvals on trustworthy data |
+| 🟢 **6** | **R6 — Agents** | After READ → PROPOSE → APPROVE → EXECUTE → AUDIT |
+| 🟢 **7** | **R7 — Creative** | Campaign/content automation last |
+
+**Commercial shortcut:** You can **sell at R3** (POS + inventory + storefront + COD). R4/R5 are upgrades, not blockers for a usable product.
+
+---
+
 ## Current overall verdict
 
-| Release | Verdict | Blocker |
-|---------|---------|---------|
-| **R1** Solo Foundation | **CONDITIONALLY READY** | Run `db:apply-rls` on each new Supabase project |
-| **R2** Commerce Complete | **CONDITIONALLY READY** | Refunds + reservations still open |
-| **R3** Storefront | **CONDITIONALLY READY** | CMS + checkout done; Lighthouse budgets open |
-| **R4** Communication | **CONDITIONALLY READY** | Automation + webhook stub; live WhatsApp needs credentials |
-| **R5** Jarvis | **CONDITIONALLY READY** | Approval Center + brief; full EXECUTE audit trail partial |
-| **R6–R7** | **BLOCKED** | Agent/creative depth deferred |
+| Release | Verdict | Remaining blocker |
+|---------|---------|-------------------|
+| **R1** Solo Foundation | **CONDITIONALLY READY** | Run `npm run db:apply-rls` + `npm run db:test-rls` on each Supabase project |
+| **R2** Commerce Complete | **CONDITIONALLY READY** | Stock reservations for async channels (design); partial refund paths |
+| **R3** Storefront | **CONDITIONALLY READY** | Mobile Lighthouse budgets |
+| **R4** Communication | **CONDITIONALLY READY** | Live WhatsApp credentials + delivery proof |
+| **R5** Jarvis | **CONDITIONALLY READY** | HTTP parity test on live URL; EXECUTE audit trail (R6) |
+| **R6–R7** | **BLOCKED** | Deferred by design |
 
-**Production today:** Core POS + inventory ops can run after `db:bootstrap` + seed. Do not claim full Business OS until R3+.
+---
+
+## Automated gate commands
+
+```powershell
+# R1 — run before every production deploy
+npm run release:gate-r1
+
+# With live HTTP smoke (set CERTIFY_HTTP_BASE_URL first)
+$env:CERTIFY_HTTP_BASE_URL="https://grabber-poz-solo.vercel.app"
+npm run release:gate-r1 -- --http
+
+# Fresh Supabase project (direct :5432 URL in .env.local)
+npm run db:bootstrap -- --rls --certify
+npm run env:validate
+POST /api/seed
+```
 
 ---
 
@@ -26,117 +58,177 @@ Aligned with master prompt §118 and [`ROADMAP.md`](./ROADMAP.md).
 
 | Section | R1 | R2 | R3 | R4 | R5 | Evidence |
 |---------|:--:|:--:|:--:|:--:|:--:|----------|
-| **DATABASE** | 🟡 | — | — | — | — | `db:bootstrap`, certify L4 |
-| **AUTH** | 🟢 | — | — | — | 🟡 | Staff + shopper sessions |
-| **SECURITY** | 🟡 | — | — | — | 🟡 | RLS SQL exists; not auto-probed |
-| **POS** | 🟢 | 🟡 | — | — | — | Checkout + shifts |
-| **INVENTORY** | 🟢 | 🟡 | — | — | — | GRN + transfers |
+| **DATABASE** | 🟡 | — | — | — | — | `db:bootstrap`, L4 certify |
+| **AUTH** | 🟢 | — | — | — | 🟡 | Staff `/adminpoz` + shopper sessions |
+| **SECURITY** | 🟡 | — | — | — | 🟡 | RLS SQL + `db:test-rls` |
+| **POS** | 🟢 | 🟡 | — | — | — | Checkout, shifts, split pay |
+| **INVENTORY** | 🟢 | 🟡 | — | — | — | GRN, transfers, variant stock |
 | **PURCHASING** | 🟢 | — | — | — | — | PO + GRN |
-| **STORE** | — | — | 🟡 | — | — | SSR `/products/[slug]` + home catalog |
-| **ORDERS** | 🟡 | 🟡 | — | — | — | Unified state machine (S3) |
-| **PAYMENTS** | 🟢 | 🟡 | — | — | — | Split pay done (S3) |
-| **WHATSAPP** | — | — | — | 🟡 | — | Webhook + send stub |
-| **AUTOMATION** | — | — | — | 🟡 | — | config_json rules engine |
-| **JARVIS** | — | — | — | — | 🟡 | DB tools + approval queue |
-| **AGENTS** | — | — | — | — | 🟡 | Stub orchestrator (S11+) |
-| **CREATIVE ENGINE** | — | — | — | — | 🟡 | Generate only |
-| **SEO** | — | — | 🟡 | — | — | Meta + JSON-LD + sitemap (S5) |
-| **PERFORMANCE** | 🟡 | — | 🟡 | — | — | No formal budgets |
-| **DEPLOYMENT** | 🟢 | — | — | — | — | Vercel + Supabase |
-| **BACKUP** | 🟡 | — | — | — | — | Export API exists |
-| **TESTING** | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 25 unit; no full E2E |
+| **STORE** | — | — | 🟢 | — | — | SSR catalog + COD checkout |
+| **ORDERS** | 🟡 | 🟢 | — | — | — | Unified state machine |
+| **PAYMENTS** | 🟢 | 🟢 | — | — | — | Split pay validated |
+| **REFUNDS** | — | 🟢 | — | — | — | `/api/returns` + GL + audit |
+| **WHATSAPP** | — | — | — | 🟡 | — | Webhook + stub send |
+| **AUTOMATION** | — | — | — | 🟡 | — | Rules in `business_config` |
+| **JARVIS** | — | — | — | — | 🟡 | 11+ READ DB tools |
+| **AGENTS** | — | — | — | — | 🔴 | Stub only — R6 |
+| **CREATIVE** | — | — | — | — | 🔴 | Generate only — R7 |
+| **SEO** | — | — | 🟢 | — | — | Meta, JSON-LD, sitemap |
+| **PERFORMANCE** | 🟡 | — | 🟡 | — | — | Lighthouse open |
+| **DEPLOYMENT** | 🟢 | — | — | — | — | Vercel + Supabase live |
+| **TESTING** | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | Unit tests; E2E partial |
 
-Legend: 🟢 pass · 🟡 partial · 🔴 fail · — not in scope for release
+Legend: 🟢 pass · 🟡 partial · 🔴 fail · — not in scope
 
 ---
 
-## R1 exit criteria (Solo Foundation)
+## R1 exit criteria (Solo Foundation) — **do this first**
 
-- [x] Numbered migrations `0000`–`0002` in repo
-- [x] `npm run db:bootstrap` documented and runnable
-- [x] `client:certify` L4 SQL passes on seeded DB
-- [x] Jarvis uses real staff session (not hardcoded owner)
-- [x] 10+ DB-grounded Jarvis READ tools
-- [ ] RLS applied on host + automated policy test
-- [ ] Legacy sync triggers removed OR documented drop plan
-- [ ] Settings pages persist to `business_config` (not local toast)
+Target: **Fresh Supabase → bootstrap → seed → certify → app works** (no manual SQL surgery).
 
-**R1 sign-off command:**
+- [x] Numbered migrations `0000`–`0002` (guarded legacy backfill)
+- [x] `npm run db:bootstrap` documented; `--rls` runs probe
+- [x] `client:certify` L4 SQL on seeded DB
+- [x] Jarvis uses real staff session
+- [x] 11+ DB-grounded Jarvis READ tools
+- [x] Settings persist via `/api/settings/business` + `/api/settings/secrets`
+- [ ] **RLS applied on host + `npm run db:test-rls` PASS** ← hard gate
+- [ ] Legacy triggers documented drop plan → [`LEGACY_MIGRATION_BRIDGE.md`](./LEGACY_MIGRATION_BRIDGE.md)
 
-```bash
-npm run env:validate
-npm run db:bootstrap -- --certify
-# POST /api/seed (dev)
-npm run typecheck && npm test
+**R1 sign-off:**
+
+```powershell
+npm run release:gate-r1
+npm run db:bootstrap -- --rls --certify   # fresh project only
 ```
 
 ---
 
 ## R2 exit criteria (Commerce Complete)
 
-- [x] Single order state machine for POS + storefront + admin
-- [x] Server-side promotion rules engine
-- [x] Split payment in checkout
-- [x] POS hold / resume verified
-- [x] Product variants end-to-end
-- [x] Import validate → commit pipeline
+Priority within R2:
+
+**A. Unified order state machine** — POS, storefront, admin use `order-lifecycle.ts` + `order-state-machine.ts` (no per-UI status logic).
+
+**B. Refunds** — server workflow via `/api/returns`: return record → GL reversal → stock restock (variant-aware) → audit log.
+
+**C. Reservations** — separate capability for async channels (COD/web); POS continues immediate decrement. *Design open — do not mix into ordinary POS sale path.*
+
+**D. Variants end-to-end** — catalog → checkout (`variantId`) → stock movements → returns.
+
+**E. Import pipeline** — Excel/CSV validate → preview → commit (`/api/products/import`).
+
+Checklist:
+
+- [x] Single order state machine
+- [x] Promotion rules engine (server)
+- [x] Split payment with total validation
+- [x] POS hold / resume
+- [x] Variants in checkout + returns
+- [x] Import validate → commit
+- [x] Refund API with GL + audit
+- [ ] Stock reservation API for storefront COD hold (optional R2.1)
 
 ---
 
 ## R3 exit criteria (Storefront)
 
-- [x] SSR `/products/[slug]` with meta + Product JSON-LD
-- [x] `/sitemap.xml` + `/robots.txt`
-- [x] Persisted homepage blocks (CMS in `business_config.config_json.storefront`)
-- [x] Theme token system (primary color + WhatsApp number)
-- [x] Guest + account checkout with COD (`/shop/checkout`)
-- [ ] Mobile Lighthouse acceptable on product + checkout
+Minimum sellable package: **POS + Inventory + Online Store + COD**
+
+- [x] SSR `/products/[slug]` + Product JSON-LD
+- [x] `/sitemap.xml` + `/robots.txt` (disallow `/adminpoz`)
+- [x] CMS blocks in `business_config`
+- [x] Theme tokens (stone/gold storefront)
+- [x] Guest + account COD checkout
+- [ ] Mobile Lighthouse ≥ 80 on product + checkout
 
 ---
 
 ## R4 exit criteria (Communication)
 
-- [x] Automation rules in `business_config` + event log
-- [x] `ORDER_CREATED` → WhatsApp template action (stub send + audit log)
-- [x] Inbound webhook handler (`/api/webhooks/whatsapp`)
-- [x] Idempotent message delivery log (`automationLogs`)
+Pipeline:
+
+```text
+ORDER_CREATED → automation engine → WhatsApp template → automationLogs
+```
+
+- [x] Automation rules + event log
+- [x] ORDER_CREATED action (stub send + audit)
+- [x] Inbound webhook `/api/webhooks/whatsapp`
+- [ ] Live Meta credentials + delivery proof in `automationLogs`
 
 ---
 
 ## R5 exit criteria (Jarvis)
 
-- [x] Approval Center UI for EXECUTE tools (`/approvals`)
-- [x] Daily brief from deterministic metrics (`/api/jarvis/brief`)
-- [ ] HTTP E2E: Jarvis `get_sales_summary` matches dashboard
-- [ ] Agent execution audit trail (full R6)
+Jarvis = **business intelligence + controlled operations**, not autonomous agent.
+
+- READ → real DB (`sales-metrics.ts` SSOT shared with dashboard)
+- PROPOSE → Approval Center → EXECUTE → audit log
+
+Checklist:
+
+- [x] Approval Center UI (`/approvals`)
+- [x] Daily brief (`/api/jarvis/brief`)
+- [x] Dashboard + Jarvis share `completedOrderFilter` (unit tested)
+- [ ] HTTP E2E: `get_sales_summary` matches `/api/dashboard/stats` on live data
+- [ ] Full EXECUTE audit trail (R6)
+
+Example READ questions Jarvis should answer reliably:
+
+- Today's sales, low stock, top products, pending COD, branch totals, reorder hints
 
 ---
 
-## Doc §106 E2E (full Business OS)
+## R6–R7 — blocked until R5 green
 
-Full master workflow test — **BLOCKED** until R4–R6:
+**R6 Agents:** inventory agent (low stock → draft PO → approve), sales agent (weak SKU → promo draft → approve).
+
+**R7 Creative:** brief → generate → approve → publish to storefront/WhatsApp.
+
+---
+
+## Architecture target
 
 ```text
-Fresh DB → migrate → seed → POS sale → storefront COD →
-WhatsApp notify → complete order → Jarvis sales query →
-creative draft → owner approve → campaign execute
+             GRABBER BUSINESS OS
+                     │
+       ┌─────────────┼─────────────┐
+       POS        Storefront     Inventory
+       │             │             │
+       └─────────────┼─────────────┘
+                     ▼
+                  ORDERS
+                     ▼
+              COMMUNICATION
+                     ▼
+                 WHATSAPP
+                     ▼
+                  JARVIS
+                     ▼
+            APPROVAL CENTER
+                     ▼
+                  AGENTS
+                     ▼
+            CREATIVE FACTORY
 ```
 
-Track progress in [`correction.md`](./correction.md) item `E2E-01`.
+**Rule:** One pricing engine, one checkout, one inventory engine — shared by UI, store, Jarvis, WhatsApp.
 
 ---
 
-## Honesty rules (from Wave 0)
+## Honesty rules
 
-1. Do not claim RLS/CDN/API cert unless automated probes pass.
-2. Do not claim WhatsApp live unless credentials set and delivery logged.
-3. Do not claim SEO-ready storefront until SSR + sitemap exist.
+1. Do not claim RLS certification until `db:test-rls` passes on the host.
+2. Do not claim WhatsApp live until credentials set and delivery logged.
+3. Do not claim SEO-ready until SSR + sitemap exist.
 4. Database truth > documentation > AI interpretation.
 
 ---
 
 ## Related
 
-- [`correction.md`](./correction.md)
-- [`READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md)
-- [`certification/CERTIFICATION_LEVELS.md`](./certification/CERTIFICATION_LEVELS.md)
+- [`NEXT_PHASES.md`](./NEXT_PHASES.md) — deploy rollout
+- [`LEGACY_MIGRATION_BRIDGE.md`](./LEGACY_MIGRATION_BRIDGE.md) — trigger drop plan
+- [`correction.md`](./correction.md) — sprint tracker
+- [`READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md) — operator checklist

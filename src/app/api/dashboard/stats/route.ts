@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, desc, eq, gte, inArray, ne } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import {
   db,
   products,
@@ -10,6 +10,7 @@ import {
   branches,
 } from '@/db';
 import { getSession } from '@/lib/auth/session';
+import { completedOrderFilter, startOfToday, sumOrderRevenue } from '@/lib/commerce/sales-metrics';
 
 export async function GET() {
   try {
@@ -60,8 +61,7 @@ export async function GET() {
       }
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = startOfToday();
     const todayOrders = await db
       .select({
         id: orders.id,
@@ -70,17 +70,11 @@ export async function GET() {
         createdAt: orders.createdAt,
       })
       .from(orders)
-      .where(
-        and(
-          gte(orders.createdAt, today),
-          ne(orders.orderStatus, 'DRAFT'),
-          ne(orders.orderStatus, 'CANCELLED'),
-        ),
-      )
+      .where(completedOrderFilter(today))
       .orderBy(desc(orders.createdAt))
       .limit(100);
 
-    const todayRevenue = todayOrders.reduce((acc, o) => acc + Number(o.grandTotal || 0), 0);
+    const todayRevenue = sumOrderRevenue(todayOrders);
 
     let topProducts: Array<{ name: string; soldQty: number; revenue: number }> = [];
     if (todayOrders.length > 0) {

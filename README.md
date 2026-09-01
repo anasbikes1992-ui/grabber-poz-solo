@@ -48,6 +48,6 @@ npm run ops:sync-env   # push .env.local → Vercel (set VERCEL_PROJECT)
 | [`FRESH_START.md`](docs/FRESH_START.md) | New Supabase + Vercel deploy |
 | [`VERCEL_ENV.md`](docs/VERCEL_ENV.md) | Environment variable checklist |
 | [`ROADMAP.md`](docs/ROADMAP.md) | Planned features |
-| [`RELEASE_GATE.md`](docs/RELEASE_GATE.md) | Release criteria |
+| [`RELEASE_GATE.md`](docs/RELEASE_GATE.md) | Release criteria + execution order |
 
 Legacy audit / GTM docs remain under `docs/` for reference; use **FRESH_START** and **VERCEL_ENV** for current deploys.

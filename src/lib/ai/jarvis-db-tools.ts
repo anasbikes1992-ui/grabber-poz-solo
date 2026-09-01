@@ -13,19 +13,7 @@ import {
   stockBalances,
 } from '@/db';
 import type { JarvisToolDefinition } from './jarvis-types';
-
-function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function daysAgo(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+import { completedOrderFilter, daysAgo, startOfToday, sumOrderRevenue } from '@/lib/commerce/sales-metrics';
 
 export const JARVIS_DB_TOOLS: JarvisToolDefinition[] = [
   {
@@ -38,14 +26,8 @@ export const JARVIS_DB_TOOLS: JarvisToolDefinition[] = [
       const todayOrders = await db
         .select({ id: orders.id, grandTotal: orders.grandTotal })
         .from(orders)
-        .where(
-          and(
-            gte(orders.createdAt, today),
-            ne(orders.orderStatus, 'DRAFT'),
-            ne(orders.orderStatus, 'CANCELLED'),
-          ),
-        );
-      const revenue = todayOrders.reduce((a, o) => a + Number(o.grandTotal || 0), 0);
+        .where(completedOrderFilter(today));
+      const revenue = sumOrderRevenue(todayOrders);
       const productRows = await db
         .select({ id: products.id, reorderLevel: products.reorderLevel })
         .from(products)
@@ -81,10 +63,8 @@ export const JARVIS_DB_TOOLS: JarvisToolDefinition[] = [
           orderStatus: orders.orderStatus,
         })
         .from(orders)
-        .where(
-          and(gte(orders.createdAt, from), ne(orders.orderStatus, 'DRAFT'), ne(orders.orderStatus, 'CANCELLED')),
-        );
-      const total = rows.reduce((a, r) => a + Number(r.grandTotal || 0), 0);
+        .where(completedOrderFilter(from));
+      const total = sumOrderRevenue(rows);
       const byChannel: Record<string, number> = {};
       for (const r of rows) {
         const ch = String(r.channel || 'UNKNOWN');

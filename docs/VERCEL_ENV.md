@@ -91,14 +91,25 @@ Schema supports `STRIPE` tender type on POS; online Stripe checkout is not imple
 
 | Variable | Wired? | Notes |
 |----------|--------|-------|
-| `WHATSAPP_VERIFY_TOKEN` | ✅ webhook | Meta webhook challenge at `/api/integrations/whatsapp` |
-| `WHATSAPP_TOKEN` | ⚙️ | Outbound API |
-| `WHATSAPP_PHONE_ID` | ⚙️ | WhatsApp Business phone |
+| `WHATSAPP_VERIFY_TOKEN` | ✅ webhook | Meta challenge at **`/api/webhooks/whatsapp`** |
+| `WHATSAPP_TOKEN` | ✅ send | Outbound Cloud API (alias: `WHATSAPP_ACCESS_TOKEN`) |
+| `WHATSAPP_PHONE_ID` | ✅ send | Phone number ID (alias: `WHATSAPP_PHONE_NUMBER_ID`) |
+| `WHATSAPP_APP_SECRET` | ✅ webhook | Validates `X-Hub-Signature-256` on inbound POST |
+| `WHATSAPP_API_VERSION` | ✅ send | Graph API version (default `v21.0`) |
 | `KOOMBIYO_API_KEY` | ⚙️ | Courier integration |
 | `CERTIFY_HTTP_BASE_URL` | ⚙️ | Release certification scripts |
 | `FAL_KEY` | ⚙️ | Creative engine |
 
-`npm run ops:sync-env` pushes all set values from `.env.local` to **production + preview**.
+`npm run ops:sync-env` pushes all set values from `.env.local` or `--env-file .env.prod.txt` to **production + preview**.
+
+**Meta webhook (production):**
+
+```text
+Callback URL:  https://grabber-poz-solo.vercel.app/api/webhooks/whatsapp
+Verify token:  (same as WHATSAPP_VERIFY_TOKEN in Vercel)
+```
+
+After storefront COD order, automation sends WhatsApp if customer has phone on file (`automationLogs` in Settings → Automation).
 
 ---
 

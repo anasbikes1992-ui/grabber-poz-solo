@@ -61,6 +61,7 @@ run('Align missing columns', 'node', ['scripts/align-missing-columns.mjs']);
 
 if (args.has('--rls')) {
   run('Apply RLS baseline', 'node', ['scripts/apply-sql-migration.mjs', 'drizzle/rls_baseline.sql']);
+  run('Verify RLS policies', 'npm', ['run', 'db:test-rls']);
 }
 
 if (args.has('--certify')) {

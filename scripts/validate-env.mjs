@@ -23,7 +23,7 @@ const isProduction =
   args.includes('--production');
 
 if (fs.existsSync(targetEnvFile)) {
-  dotenv.config({ path: path.resolve(targetEnvFile) });
+  dotenv.config({ path: path.resolve(targetEnvFile), override: true });
 } else if (fs.existsSync('.env.local')) {
   dotenv.config({ path: path.resolve('.env.local') });
 } else {
@@ -99,7 +99,7 @@ export async function runEnvironmentValidation() {
     }
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').trim();
   if (!appUrl) {
     p0Errors.push('NEXT_PUBLIC_APP_URL is missing. Required for canonical URLs, receipt links, and webhooks.');
     console.log(`  ✗ NEXT_PUBLIC_APP_URL:      MISSING (CRITICAL)`);
@@ -203,11 +203,16 @@ export async function runEnvironmentValidation() {
     console.log(`  ℹ Koombiyo Courier:         Disabled (In-house delivery)`);
   }
 
-  if (process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN) {
-    console.log(
-      `  ✓ WhatsApp Cloud API:       ACTIVE (Phone ID: ${maskSecret(process.env.WHATSAPP_PHONE_NUMBER_ID)})`
-    );
-    activeIntegrations.push('Meta WhatsApp Cloud Bot');
+  const waToken = (process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || '').trim();
+  const waPhoneId = (process.env.WHATSAPP_PHONE_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || '').trim();
+  const waVerify = (process.env.WHATSAPP_VERIFY_TOKEN || '').trim();
+
+  if (waToken && waPhoneId) {
+    console.log(`  ✓ WhatsApp Cloud API:       ACTIVE (Phone ID: ${maskSecret(waPhoneId)})`);
+    if (waVerify) console.log(`    ↳ Verify token:         ${maskSecret(waVerify)}`);
+    if (process.env.WHATSAPP_APP_SECRET) console.log(`    ↳ App secret:           configured (webhook signature)`);
+    if (process.env.WHATSAPP_API_VERSION) console.log(`    ↳ API version:          ${process.env.WHATSAPP_API_VERSION.trim()}`);
+    activeIntegrations.push('Meta WhatsApp Cloud API');
   } else if (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER) {
     console.log(`  ✓ WhatsApp Direct Hotline:  ACTIVE (${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER})`);
     activeIntegrations.push('WhatsApp Direct Click-to-Chat');

@@ -41,31 +41,28 @@ curl -X POST https://grabber-poz-solo.vercel.app/api/seed `
 
 ---
 
-## Phase 3 — Payments, WhatsApp, marketing env (TODO)
-
-Optional env vars — sync via `npm run ops:sync-env` (preview + production):
-
-| Area | Variables |
-|------|-----------|
-| LKR payments | `PAYMENTS_LKR_PROVIDER`, `WEBXPAY_*`, `PAYHERE_*` |
-| Global payments | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
-| Marketing pixels | `NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID`, `NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID`, `NEXT_PUBLIC_TIKTOK_PIXEL_ID`, `META_CONVERSIONS_API_TOKEN` |
-| WhatsApp | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_VERIFY_TOKEN` |
-| Logistics | `KOOMBIYO_API_KEY` |
-| Certify | `CERTIFY_HTTP_BASE_URL` |
-
-Storefront checkout remains **COD** until Phase 3 payment wiring is complete.
-
----
-
-## Phase 4 — RLS + release gate (TODO)
+## Phase 3 — Payments, WhatsApp, marketing env (IN PROGRESS)
 
 | Step | Status |
 |------|--------|
-| `npm run db:apply-rls` on production Supabase | TODO |
-| `npm run db:test-rls` | TODO |
-| `npm run client:certify` against live URL | TODO |
+| WhatsApp env on Vercel (`WHATSAPP_*`) | DONE (user) |
+| Live send via Graph API (`sendWhatsAppText`) | DONE |
+| Webhook `/api/webhooks/whatsapp` + signature verify | DONE |
+| `ORDER_CREATED` → WhatsApp automation (storefront + phone) | DONE |
+| Marketing pixels env or `/marketing` UI | Optional |
+| LKR online checkout (PayHere/WebXPay) | TODO — storefront COD today |
+
+---
+
+## Phase 4 — RLS + release gate (IN PROGRESS)
+
+| Step | Status |
+|------|--------|
+| `npm run db:apply-rls` on production Supabase | DONE (2026-09-01) |
+| `npm run db:test-rls` | Run locally with pooler `DATABASE_URL` |
+| `npm run release:gate-r1` before deploy | TODO each release |
+| `npm run db:bootstrap -- --rls --certify` on fresh project | TODO for new clients |
 | Rotate `TEMP$` owner PIN after first login | TODO |
-| [`RELEASE_GATE.md`](./RELEASE_GATE.md) sign-off | TODO |
+| [`RELEASE_GATE.md`](./RELEASE_GATE.md) sign-off | IN PROGRESS |
 
 **Exit criteria:** Fresh DB → bootstrap → seed → certify → RLS applied → owner PIN rotated → pilot in [`certification/CLIENT_ACCEPTANCE_TEST.md`](./certification/CLIENT_ACCEPTANCE_TEST.md).

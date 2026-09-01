@@ -55,7 +55,7 @@ Do **not** rebuild POS. Prioritize: **migration reproducibility → storefront p
 | DB-05 | HIGH | `scripts/align-missing-columns.mjs` | DONE |
 | DB-06 | HIGH | Drop legacy columns + triggers after backfill | TODO (S2) |
 | DB-07 | CRITICAL | Fresh DB: migrate → seed → certify path documented | DONE |
-| DB-08 | HIGH | RLS baseline apply + automated tests | DONE (`db:apply-rls`, `db:test-rls`) |
+| DB-08 | HIGH | RLS baseline apply + automated tests | DONE (`db:apply-rls`, `db:test-rls`, `release:gate-r1`) |
 
 **Target flow:**
 
