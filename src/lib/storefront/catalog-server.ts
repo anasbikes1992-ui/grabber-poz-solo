@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import { db, branches, categories, products, productVariants, stockBalances } from '@/db';
 
 export type StorefrontVariant = {
@@ -106,4 +106,73 @@ export async function getCategoryWithProducts(categorySlug: string) {
     .where(and(eq(products.categoryId, cat.id), eq(products.isActive, true)))
     .limit(100);
   return { category: cat, products: prods };
+}
+
+export type StorefrontSearchHit = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  barcode: string | null;
+  salePrice: number;
+  category: string | null;
+};
+
+/** Server-side storefront product search (STR-03). */
+export async function searchStorefrontProducts(
+  query: string,
+  opts?: { categorySlug?: string; limit?: number },
+): Promise<StorefrontSearchHit[]> {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+
+  const limit = opts?.limit ?? 50;
+  const pattern = `%${q}%`;
+
+  let categoryId: string | undefined;
+  if (opts?.categorySlug) {
+    const [cat] = await db.select().from(categories).where(eq(categories.slug, opts.categorySlug)).limit(1);
+    categoryId = cat?.id;
+  }
+
+  const conditions = [
+    eq(products.isActive, true),
+    or(
+      sql`lower(${products.name}) like ${pattern}`,
+      sql`lower(${products.sku}) like ${pattern}`,
+      sql`lower(coalesce(${products.barcode}, '')) like ${pattern}`,
+    ),
+  ];
+  if (categoryId) conditions.push(eq(products.categoryId, categoryId));
+
+  const rows = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      slug: products.slug,
+      sku: products.sku,
+      barcode: products.barcode,
+      salePrice: products.salePrice,
+      categoryId: products.categoryId,
+    })
+    .from(products)
+    .where(and(...conditions))
+    .limit(limit);
+
+  const categoryIds = [...new Set(rows.map((r) => r.categoryId).filter(Boolean))] as string[];
+  const categoryRows =
+    categoryIds.length > 0
+      ? await db.select().from(categories).where(or(...categoryIds.map((id) => eq(categories.id, id))))
+      : [];
+  const categoryMap = new Map(categoryRows.map((c) => [c.id, c.name]));
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    sku: r.sku,
+    barcode: r.barcode,
+    salePrice: Number(r.salePrice),
+    category: r.categoryId ? categoryMap.get(r.categoryId) ?? null : null,
+  }));
 }

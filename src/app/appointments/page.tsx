@@ -71,6 +71,14 @@ export default function AppointmentsPage() {
     else await load();
   };
 
+  const remove = async (id: string) => {
+    if (!confirm('Delete this appointment?')) return;
+    const res = await fetch(`/api/appointments?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!data.success) setError(data.error);
+    else await load();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between gap-4">
@@ -98,6 +106,7 @@ export default function AppointmentsPage() {
               <th className="pb-2">When</th>
               <th className="pb-2 text-right">Fee</th>
               <th className="pb-2 text-right">Status</th>
+              <th className="pb-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
@@ -122,8 +131,20 @@ export default function AppointmentsPage() {
                     ))}
                   </select>
                 </td>
+                <td className="py-2 text-right">
+                  <button type="button" onClick={() => remove(a.id)} className="text-red-400 font-bold text-[11px]">
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  No appointments booked yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

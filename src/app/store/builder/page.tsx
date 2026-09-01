@@ -2,8 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Eye, Layers, MessageCircle, Palette, Save, CheckCircle2 } from 'lucide-react';
-import type { StorefrontBlock, StorefrontConfig } from '@/lib/config/storefront-config';
-import { DEFAULT_STOREFRONT } from '@/lib/config/storefront-config';
+import type { StorefrontBlock, StorefrontConfig } from '@/lib/config/storefront-config.shared';
+import { DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
 
 const SLOT_LABELS: Record<string, string> = {
   TOP: 'Top announcement bar',

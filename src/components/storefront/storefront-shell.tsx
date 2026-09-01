@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { MessageCircle, Package, Search, ShoppingBag, Wrench } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
-import type { StorefrontConfig } from '@/lib/config/storefront-config';
-import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-config';
+import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
+import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { storefrontThemeStyle, whatsappHref } from '@/lib/storefront/theme-vars';
 

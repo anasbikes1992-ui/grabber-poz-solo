@@ -10,11 +10,13 @@ const PUBLIC_PREFIXES = [
   '/categories/',
   '/api/auth/',
   '/api/webhooks',
+  '/api/whatsapp/webhook',
   '/api/health',
   '/api/seed',
   '/api/pos/catalog',
   '/api/pos/checkout', // storefront checkout (validates customerId server-side)
   '/api/storefront/public',
+  '/api/storefront/search',
   '/api/config/flags',
   '/api/repairs/public',
 ];

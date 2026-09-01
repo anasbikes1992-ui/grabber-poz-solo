@@ -9,8 +9,8 @@ import {
   StorefrontFooterCta,
   StorefrontMidBlocks,
 } from '@/components/storefront/storefront-blocks';
-import type { StorefrontConfig } from '@/lib/config/storefront-config';
-import { blocksForSlot } from '@/lib/config/storefront-config';
+import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
+import { blocksForSlot } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { whatsappHref } from '@/lib/storefront/theme-vars';
 

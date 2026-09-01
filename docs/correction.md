@@ -127,8 +127,8 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | ID | Item | Status |
 |----|------|--------|
 | STR-01 | SSR `/products/[slug]` | DONE (S5) |
-| STR-02 | Category / brand / collection routes | PARTIAL (`/categories/[slug]`) |
-| STR-03 | Server-side search + filters | PARTIAL (home catalog search) |
+| STR-02 | Category / brand / collection routes | DONE (`/categories/[slug]`, `/collections/[slug]` → category) |
+| STR-03 | Server-side search + filters | DONE (`GET /api/storefront/search`) |
 | STR-04 | Cart + checkout pages | DONE (`/shop/checkout`) |
 | STR-05 | Guest + account COD checkout | DONE |
 | STR-06 | Homepage block CMS (persisted) | DONE |
@@ -153,11 +153,11 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | REP-04 | Staff ticket workspace `/repairs/[id]` | DONE (parts-from-stock via `/api/repairs/[id]/parts`) |
 | WA-01 | Outbound send (live when env set) | DONE |
 | WA-02 | Inbound webhooks + signature verify | DONE |
-| WA-03 | Template registry + variables | PARTIAL |
+| WA-03 | Template registry + variables | DONE (declare/validate variables on save) |
 | AUTO-01 | Event → condition → action engine | DONE |
 | AUTO-02 | `ORDER_CREATED` → WhatsApp rule | DONE |
 | AUTO-03 | `STOCK_LOW` → owner notify | DONE (checkout + repair parts; default rules) |
-| AUTO-04 | Retry + idempotency + delivery log | PARTIAL (1× WhatsApp retry + logs; full retry queue TODO) |
+| AUTO-04 | Retry + idempotency + delivery log | DONE (dedup keys, failed-log retry API + UI) |
 
 ---
 
@@ -167,7 +167,7 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 |----|------|--------|
 | JAR-01 | DB tools: sales, inventory, orders, customers | DONE (11+ tools) |
 | JAR-02 | `get_dashboard_summary` | DONE |
-| JAR-03 | Draft tools (promotion, PO, message) | PARTIAL |
+| JAR-03 | Draft tools (promotion, PO, message) | DONE (DRAFT → Approvals queue) |
 | JAR-04 | EXECUTE → approval required | PARTIAL (Jarvis token + agent EXECUTE at `/approvals`) |
 | JAR-05 | Approval Center UI | DONE |
 | JAR-06 | Daily business brief | DONE |
@@ -186,7 +186,7 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | AGT-04 | Agent → Approval EXECUTE bridge | DONE (PROPOSE drafts + EXECUTE via `/approvals` + audit) |
 | CRE-01 | Brand brain in config | DONE |
 | CRE-02 | Brief → generate → review → approve → publish | PARTIAL (approve-to-storefront) |
-| CRE-03 | Store banner + WhatsApp from creative | PARTIAL |
+| CRE-03 | Store banner + WhatsApp from creative | DONE (MID_BANNER slot + owner WhatsApp on approve) |
 | INT-01 | Jarvis → agents → creative → approval pipeline | PARTIAL |
 
 ---
@@ -195,9 +195,9 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 
 | ID | Item | Status |
 |----|------|--------|
-| VERT-01 | Restaurant / repair / HP / appointments depth | PARTIAL |
+| VERT-01 | Restaurant / repair / HP / appointments depth | PARTIAL (delivery + barcodes wired; warranties POST; loyalty redeem; appointments DELETE) |
 | CRM-01 | Segmentation UI + Jarvis targeting | TODO |
-| LOY-01 | Points / tiers / rewards | PARTIAL |
+| LOY-01 | Points / tiers / rewards | DONE (earn/redeem/enroll/delete via `/api/loyalty` + UI) |
 | PROM-01 | Full IF/THEN promotion engine | TODO |
 | ANA-01 | Deterministic KPI layer | PARTIAL (dashboard stats) |
 | TST-01 | E2E doc §106 workflow | TODO → `E2E-01` |
@@ -275,7 +275,7 @@ DUAL-01 … DUAL-04
 | RLS automated | PARTIAL (`db:apply-rls`, `db:test-rls`) |
 | Storage CDN | NO (honest) |
 | Storefront SEO | YES (S5 SSR + sitemap) |
-| Automation engine | PARTIAL (rules + logs + STOCK_LOW + 1× retry) |
+| Automation engine | DONE (rules + logs + idempotency + retry + STOCK_LOW) |
 
 ---
 

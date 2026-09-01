@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { StorefrontTheme } from '@/lib/config/storefront-config';
+import type { StorefrontTheme } from '@/lib/config/storefront-config.shared';
 
 /** Map CMS theme → storefront CSS custom properties (stone/gold defaults as fallback). */
 export function storefrontThemeStyle(theme: StorefrontTheme): CSSProperties {

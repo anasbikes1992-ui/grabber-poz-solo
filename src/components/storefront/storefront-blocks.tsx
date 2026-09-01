@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { MessageCircle, Wrench } from 'lucide-react';
-import type { StorefrontBlock, StorefrontConfig } from '@/lib/config/storefront-config';
-import { blocksForSlot } from '@/lib/config/storefront-config';
+import type { StorefrontBlock, StorefrontConfig } from '@/lib/config/storefront-config.shared';
+import { blocksForSlot } from '@/lib/config/storefront-config.shared';
 import { whatsappHref } from '@/lib/storefront/theme-vars';
 
 type FeaturedCatalogItem = {

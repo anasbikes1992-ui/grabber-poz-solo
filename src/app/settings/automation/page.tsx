@@ -56,6 +56,17 @@ export default function AutomationSettingsPage() {
     await load();
   }
 
+  async function retryLog(logId: string) {
+    const res = await fetch('/api/automation/rules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'retry', logId }),
+    });
+    const data = await res.json();
+    if (!data.success) alert(data.error || 'Retry failed');
+    await load();
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -90,11 +101,22 @@ export default function AutomationSettingsPage() {
         <h2 className="text-sm font-bold text-zinc-300 mb-2">Recent logs</h2>
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {logs.map((l) => (
-            <div key={l.id} className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs">
-              <span className={l.status === 'SUCCESS' ? 'text-emerald-400' : 'text-red-400'}>{l.status}</span>
-              {' · '}
-              {l.event} · {l.ruleId}
-              <div className="text-zinc-500 mt-0.5">{new Date(l.createdAt).toLocaleString()}</div>
+            <div key={l.id} className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs flex justify-between gap-2 items-start">
+              <div>
+                <span className={l.status === 'SUCCESS' ? 'text-emerald-400' : 'text-red-400'}>{l.status}</span>
+                {' · '}
+                {l.event} · {l.ruleId}
+                <div className="text-zinc-500 mt-0.5">{new Date(l.createdAt).toLocaleString()}</div>
+              </div>
+              {l.status === 'FAILED' && (
+                <button
+                  type="button"
+                  onClick={() => void retryLog(l.id)}
+                  className="shrink-0 px-2 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-bold text-[10px]"
+                >
+                  Retry
+                </button>
+              )}
             </div>
           ))}
           {!loading && logs.length === 0 && <p className="text-zinc-500 text-xs">No automation logs yet.</p>}

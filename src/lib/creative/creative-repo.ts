@@ -1,6 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { db, creativeJobs, creativeProjects } from '@/db';
 import { readStorefrontConfig, writeStorefrontConfig } from '@/lib/config/storefront-config';
+import { sendWhatsAppText } from '@/lib/integrations/whatsapp';
 
 export type CreateCreativeInput = {
   title: string;
@@ -83,9 +84,35 @@ export async function approveCreativeCampaign(projectId: string, draft: {
       slot: 'HERO' as const,
       enabled: true,
     },
-    ...current.blocks.filter((b) => b.type !== 'ANNOUNCEMENT' && b.type !== 'HERO'),
+    {
+      id: `mid_creative_${projectId.slice(0, 8)}`,
+      type: 'MID_BANNER' as const,
+      title: heroTitle,
+      body: announcement,
+      ctaLabel: 'Shop campaign',
+      ctaHref: '/products',
+      slot: 'MID' as const,
+      enabled: true,
+    },
+    ...current.blocks.filter(
+      (b) => b.type !== 'ANNOUNCEMENT' && b.type !== 'HERO' && b.type !== 'MID_BANNER',
+    ),
   ];
 
   const storefront = await writeStorefrontConfig({ blocks });
-  return { projectId, storefront };
+
+  const ownerPhone = current.theme.whatsappNumber;
+  let whatsapp: { sent: boolean; stub?: boolean } | undefined;
+  if (ownerPhone) {
+    const result = await sendWhatsAppText({
+      to: ownerPhone,
+      text: `Campaign approved: ${heroTitle}. ${announcement}`,
+    });
+    whatsapp = {
+      sent: result.success,
+      stub: result.success && 'stub' in result ? result.stub === true : undefined,
+    };
+  }
+
+  return { projectId, storefront, whatsapp };
 }

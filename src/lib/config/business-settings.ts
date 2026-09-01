@@ -23,6 +23,9 @@ export type BrandConfig = {
   fontFamily?: string;
 };
 
+/** In-memory fallback when DATABASE_URL is unset (tests / local stubs). */
+let memoryConfigJson: Record<string, unknown> = {};
+
 async function ensureConfigRow() {
   const [row] = await db.select().from(businessConfig).limit(1);
   if (row) return row;
@@ -34,16 +37,20 @@ async function ensureConfigRow() {
 }
 
 export async function readConfigJson(): Promise<Record<string, unknown>> {
-  if (!hasDatabaseUrl()) return {};
+  if (!hasDatabaseUrl()) return { ...memoryConfigJson };
   try {
     const row = await ensureConfigRow();
     return (row.configJson || {}) as Record<string, unknown>;
   } catch {
-    return {};
+    return { ...memoryConfigJson };
   }
 }
 
 export async function mergeConfigJson(patch: Record<string, unknown>) {
+  if (!hasDatabaseUrl()) {
+    memoryConfigJson = { ...memoryConfigJson, ...patch };
+    return { ...memoryConfigJson };
+  }
   const row = await ensureConfigRow();
   const prev = (row.configJson || {}) as Record<string, unknown>;
   const next = { ...prev, ...patch };

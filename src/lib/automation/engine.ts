@@ -1,4 +1,9 @@
-import { listAutomationRules, appendAutomationLog, type AutomationRule } from '@/lib/automation/rules-store';
+import {
+  listAutomationRules,
+  appendAutomationLog,
+  listAutomationLogs,
+  type AutomationRule,
+} from '@/lib/automation/rules-store';
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp';
 
 export type AutomationEvent =
@@ -25,6 +30,20 @@ function ruleMatches(rule: AutomationRule, event: AutomationEvent, ctx: Automati
   if (rule.condition?.channel && ctx.channel !== rule.condition.channel) return false;
   if (rule.condition?.minTotal != null && Number(ctx.grandTotal || 0) < rule.condition.minTotal) return false;
   return true;
+}
+
+export function buildAutomationIdempotencyKey(
+  ruleId: string,
+  event: AutomationEvent,
+  ctx: AutomationContext,
+) {
+  const entity = ctx.orderId || ctx.repairId || ctx.productId || ctx.customerId;
+  return `${ruleId}:${event}:${entity || 'global'}`;
+}
+
+async function wasAlreadySuccessful(idempotencyKey: string): Promise<boolean> {
+  const logs = await listAutomationLogs(200);
+  return logs.some((l) => l.idempotencyKey === idempotencyKey && l.status === 'SUCCESS');
 }
 
 async function runAction(rule: AutomationRule, ctx: AutomationContext) {
@@ -58,13 +77,58 @@ async function runAction(rule: AutomationRule, ctx: AutomationContext) {
   throw new Error('Unknown automation action type');
 }
 
+export async function retryFailedAutomationLog(logId: string) {
+  const logs = await listAutomationLogs(200);
+  const entry = logs.find((l) => l.id === logId);
+  if (!entry) throw new Error('Log entry not found');
+  if (entry.status !== 'FAILED') throw new Error('Only failed logs can be retried');
+
+  const rules = await listAutomationRules();
+  const rule = rules.find((r) => r.id === entry.ruleId);
+  if (!rule) throw new Error('Automation rule not found');
+
+  const ctx = (entry.detail?.context as AutomationContext) || {};
+  const retryKey = `${entry.idempotencyKey}:retry:${logId}`;
+
+  if (await wasAlreadySuccessful(retryKey)) {
+    return { ruleId: rule.id, status: 'SKIPPED' as const, reason: 'Already retried successfully' };
+  }
+
+  try {
+    const outcome = await runAction(rule, ctx);
+    await appendAutomationLog({
+      ruleId: rule.id,
+      event: entry.event as AutomationEvent,
+      status: 'SUCCESS',
+      idempotencyKey: retryKey,
+      detail: { ...outcome, context: ctx, retriedFrom: logId },
+    });
+    return { ruleId: rule.id, status: 'SUCCESS' as const, outcome };
+  } catch (err) {
+    await appendAutomationLog({
+      ruleId: rule.id,
+      event: entry.event as AutomationEvent,
+      status: 'FAILED',
+      idempotencyKey: retryKey,
+      detail: { error: (err as Error).message, context: ctx, retriedFrom: logId },
+    });
+    throw err;
+  }
+}
+
 export async function dispatchAutomationEvent(event: AutomationEvent, ctx: AutomationContext) {
   const rules = await listAutomationRules();
   const results = [];
 
   for (const rule of rules) {
     if (!ruleMatches(rule, event, ctx)) continue;
-    const idempotencyKey = `${rule.id}:${event}:${ctx.orderId || ctx.repairId || ctx.productId || Date.now()}`;
+    const idempotencyKey = buildAutomationIdempotencyKey(rule.id, event, ctx);
+
+    if (await wasAlreadySuccessful(idempotencyKey)) {
+      results.push({ ruleId: rule.id, status: 'SKIPPED' as const, reason: 'idempotent' });
+      continue;
+    }
+
     try {
       const outcome = await runAction(rule, ctx);
       await appendAutomationLog({
@@ -72,7 +136,7 @@ export async function dispatchAutomationEvent(event: AutomationEvent, ctx: Autom
         event,
         status: 'SUCCESS',
         idempotencyKey,
-        detail: outcome,
+        detail: { ...outcome, context: ctx },
       });
       results.push({ ruleId: rule.id, status: 'SUCCESS' as const });
     } catch (err) {
@@ -81,7 +145,7 @@ export async function dispatchAutomationEvent(event: AutomationEvent, ctx: Autom
         event,
         status: 'FAILED',
         idempotencyKey,
-        detail: { error: (err as Error).message },
+        detail: { error: (err as Error).message, context: ctx },
       });
       results.push({ ruleId: rule.id, status: 'FAILED' as const, error: (err as Error).message });
     }

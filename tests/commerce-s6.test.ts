@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DEFAULT_STOREFRONT } from '../src/lib/config/storefront-config';
-import { interpolateTemplate } from '../src/lib/automation/engine';
+import { interpolateTemplate, buildAutomationIdempotencyKey } from '../src/lib/automation/engine';
 
 describe('storefront cms config', () => {
   it('ships default hero and announcement blocks', () => {
@@ -17,5 +17,10 @@ describe('automation engine helpers', () => {
       customerName: 'Sam',
     });
     expect(text).toBe('Order ORD-001 for Sam');
+  });
+
+  it('builds stable idempotency keys from entity ids', () => {
+    const key = buildAutomationIdempotencyKey('rule_1', 'ORDER_CREATED', { orderId: 'ord-99' });
+    expect(key).toBe('rule_1:ORDER_CREATED:ord-99');
   });
 });

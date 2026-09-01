@@ -5,7 +5,7 @@
 
 import { JarvisToolDefinition, JarvisUserContext, JarvisToolExecutionResult } from './jarvis-types';
 import { JARVIS_DB_TOOLS } from './jarvis-db-tools';
-import { createApproval } from '@/lib/approvals/approval-store';
+import { createApproval, findApprovalByToken } from '@/lib/approvals/approval-store';
 import { defaultCommerceService, CommerceService } from '../commerce/commerce-service';
 import { defaultInventoryEngine, InventoryEngine } from '../commerce/inventory-engine';
 import { defaultCreditEngine, CreditEngine } from '../commerce/credit-engine';
@@ -71,7 +71,7 @@ export class JarvisToolRegistry {
     // 3. DRAFT: Draft Purchase Order
     this.registerTool({
       name: 'draft_purchase_order',
-      description: 'Draft a purchase order for supplier restocking without committing an approval or financial entry.',
+      description: 'Draft a purchase order for supplier restocking. Requires approval before staff follow-up.',
       risk: 'DRAFT',
       execute: async (args: { supplierId: string; warehouseId: string; items: any[] }, context) => {
         return {
@@ -79,6 +79,47 @@ export class JarvisToolRegistry {
           supplierId: args.supplierId,
           warehouseId: args.warehouseId,
           items: args.items,
+          status: 'DRAFT_CREATED',
+          createdBy: context.userId,
+        };
+      },
+    });
+
+    this.registerTool({
+      name: 'draft_promotion',
+      description: 'Draft a storefront promotion (discount code or banner copy) for marketing review.',
+      risk: 'DRAFT',
+      requiredRole: ['OWNER', 'ADMIN', 'MARKETING'],
+      execute: async (
+        args: { name: string; code?: string; discountPercent?: number; bannerText?: string },
+        context,
+      ) => {
+        return {
+          draftPromotionId: `DRAFT-PROMO-${Date.now()}`,
+          name: args.name,
+          code: args.code || args.name.toUpperCase().replace(/\s+/g, '-').slice(0, 12),
+          discountPercent: args.discountPercent ?? 10,
+          bannerText: args.bannerText || `${args.name} — limited time offer`,
+          status: 'DRAFT_CREATED',
+          createdBy: context.userId,
+        };
+      },
+    });
+
+    this.registerTool({
+      name: 'draft_whatsapp_message',
+      description: 'Draft a WhatsApp broadcast message for customer outreach. Requires approval before send.',
+      risk: 'DRAFT',
+      requiredRole: ['OWNER', 'ADMIN', 'MARKETING'],
+      execute: async (
+        args: { audience: string; message: string; templateName?: string },
+        context,
+      ) => {
+        return {
+          draftMessageId: `DRAFT-WA-${Date.now()}`,
+          audience: args.audience,
+          message: args.message,
+          templateName: args.templateName || 'custom_broadcast',
           status: 'DRAFT_CREATED',
           createdBy: context.userId,
         };
@@ -141,11 +182,53 @@ export class JarvisToolRegistry {
       };
     }
 
-    // Safe execution for READ and DRAFT
-    if (tool.risk === 'READ' || tool.risk === 'DRAFT' || tool.risk === 'LOW_RISK_WRITE') {
+    // Safe execution for READ and LOW_RISK_WRITE
+    if (tool.risk === 'READ' || tool.risk === 'LOW_RISK_WRITE') {
       try {
         const data = await tool.execute(args, context);
         return { toolName, risk: tool.risk, status: 'EXECUTED', data };
+      } catch (err: any) {
+        return { toolName, risk: tool.risk, status: 'ERROR', errorMessage: err.message };
+      }
+    }
+
+    // DRAFT: preview + approval queue (JAR-03)
+    if (tool.risk === 'DRAFT') {
+      try {
+        const preview = await tool.execute(args, context);
+        const token = `DRAFT_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        this.pendingConfirmations.set(token, {
+          tool,
+          args,
+          context,
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        });
+
+        await createApproval({
+          token,
+          toolName,
+          description: tool.description,
+          risk: 'DRAFT',
+          payload: args,
+          requestedBy: context.userId,
+          role: context.role,
+          expiresAt,
+        });
+
+        return {
+          toolName,
+          risk: tool.risk,
+          status: 'CONFIRMATION_REQUIRED',
+          confirmationToken: token,
+          data: preview,
+          confirmationDetails: {
+            actionDescription: tool.description,
+            affectedEntities: Object.keys(args),
+            riskSummary: 'Draft saved to Approvals — confirm to mark ready for staff execution.',
+            payload: args,
+          },
+        };
       } catch (err: any) {
         return { toolName, risk: tool.risk, status: 'ERROR', errorMessage: err.message };
       }
@@ -200,7 +283,28 @@ export class JarvisToolRegistry {
    * Confirms and executes a pending high-risk tool action.
    */
   public async confirmToolExecution(token: string): Promise<JarvisToolExecutionResult> {
-    const pending = this.pendingConfirmations.get(token);
+    let pending = this.pendingConfirmations.get(token);
+    if (!pending) {
+      const approval = await findApprovalByToken(token);
+      if (approval) {
+        const tool = this.tools.get(approval.toolName);
+        if (tool) {
+          pending = {
+            tool,
+            args: approval.payload,
+            context: {
+              userId: approval.requestedBy,
+              userName: 'Staff',
+              role: approval.role as JarvisUserContext['role'],
+              assignedBranchIds: [],
+              assignedWarehouseIds: [],
+            },
+            expiresAt: new Date(approval.expiresAt).getTime(),
+          };
+        }
+      }
+    }
+
     if (!pending) {
       return {
         toolName: 'unknown',
