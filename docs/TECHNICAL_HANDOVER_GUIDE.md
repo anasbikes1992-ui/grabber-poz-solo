@@ -64,7 +64,7 @@ flowchart LR
 ## 3. Backup, Disaster Recovery & Open Data Export
 
 * **Automated Daily Backups:** Handled natively by Supabase PostgreSQL PITR (Point-in-Time Recovery).
-* **1-Click Open Data Export:** At any time, the client can navigate to [`/settings`](https://grabber-business-os.vercel.app/settings) and click **Export All Business Data**.
+* **1-Click Open Data Export:** At any time, the client can navigate to [`/settings`](https://grabber-poz-solo.vercel.app/settings) and click **Export All Business Data**.
   - Generates downloadable CSV / JSON packages of all Products, Customers, Orders, Stock Movements, Polim Potha Credit Ledger, and Suppliers.
   - Zero vendor lock-in.
 

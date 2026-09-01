@@ -3,7 +3,7 @@
 **Document Version:** 2.0-ENTERPRISE  
 **Target Platform:** Single-Tenant Retail ERP, POS, Omnichannel Commerce & Double-Entry Accounting OS  
 **Jurisdiction & Operating Context:** Sri Lanka (LKR Currency, 18% VAT, Polim Potha Micro-Credit, Multi-Branch/Warehouse, WhatsApp-First)  
-**Evaluated Repository:** `anasbikes1992-ui/grabber-business-os` &bull; **Live App:** `https://grabber-business-os.vercel.app`
+**Evaluated Repository:** `anasbikes1992-ui/grabber-poz-solo` &bull; **Live App:** `https://grabber-poz-solo.vercel.app`
 
 > **Superseding process truth (2026-09-01):** Use [`docs/correction.md`](./correction.md) for fix status, [`docs/READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md) for the active re-test gate, and [`docs/CLIENT_ONBOARDING_PLAYBOOK.md`](./CLIENT_ONBOARDING_PLAYBOOK.md) for provisioning. Sections below may still describe aspirational module scores; do not treat them as a live honesty matrix.
 
@@ -139,6 +139,6 @@ flowchart TD
 │ [Gate 4] Database Schema:                 41 Tables + Storage Buckets   │
 │ [Gate 5] Security Vault:                  AES-256-GCM Field Encryption  │
 │ [Gate 6] GitHub Repository:               anasbikes1992-ui/grabber-os   │
-│ [Gate 7] Live Production Edge:            grabber-business-os.vercel.app│
+│ [Gate 7] Live Production Edge:            grabber-poz-solo.vercel.app│
 └─────────────────────────────────────────────────────────────────────────┘
 ```

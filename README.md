@@ -6,9 +6,20 @@ Single-business retail OS: POS, storefront, inventory, finance, and automation.
 
 | | |
 |--|--|
-| GitHub | [anasbikes1992-ui/grabber-poz-solo](https://github.com/anasbikes1992-ui/grabber-poz-solo) |
-| Supabase | Project ref in your provision vault / Vercel integration |
-| Vercel | `grabber-poz-solo` |
+| GitHub | [anasbikes1992-ui/grabber-poz-solo](https://github.com/anasbikes1992-ui/grabber-poz-solo) **(canonical — Vercel deploys from here)** |
+| Supabase | Project `rbayhrskowtahepwccrq` · migrations in `supabase/migrations/` |
+| Vercel | `grabber-poz-solo` → https://grabber-poz-solo.vercel.app |
+
+### Git remotes
+
+Push production changes **only** to `grabber-poz-solo`:
+
+```powershell
+git push poz-solo main
+# or: npm run push:poz-solo
+```
+
+Do **not** push to `origin` (`grabber-business-os`) for this solo deployment — that repo is a legacy/fleet template mirror.
 
 ---
 

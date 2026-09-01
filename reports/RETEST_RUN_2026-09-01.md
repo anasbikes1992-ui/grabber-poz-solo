@@ -2,7 +2,7 @@
 
 **Gate:** READY_FOR_RETESTING  
 **Baseline commit (app):** `a538384` (+ env/cert follow-up)  
-**Live app:** https://grabber-business-os.vercel.app  
+**Live app:** https://grabber-poz-solo.vercel.app  
 **DB project:** `nvsejnlnulplmptnptpj` (Business OS — not MyPoz `sauzjjbk…`)
 
 ## Automated results

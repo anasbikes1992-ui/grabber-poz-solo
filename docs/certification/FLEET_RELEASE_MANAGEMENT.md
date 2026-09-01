@@ -7,8 +7,8 @@ Operational guidelines for managing multiple dedicated client instances from a s
 ## 1. Upstream Template Hierarchy
 
 ```
-                      GRABBER CORE TEMPLATE
-                   (anasbikes1992-ui/grabber-business-os)
+                      GRABBER POZ SOLO (production)
+                   (anasbikes1992-ui/grabber-poz-solo)
                                  │
                  ┌───────────────┼───────────────┐
                  ↓ Tag v1.0.0    ↓ Tag v1.0.0    ↓ Tag v1.1.0
