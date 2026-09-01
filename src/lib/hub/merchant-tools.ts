@@ -302,7 +302,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
   {
     id: 'sales_agents',
     title: 'Agent Orchestrator',
-    description: 'Sales, inventory, and marketing agents with DB-grounded briefs',
+    description: '12 DB-grounded agents: core commerce + all vertical modules',
     href: '/ai/agents',
     icon: Sparkles,
     badge: 'R6',

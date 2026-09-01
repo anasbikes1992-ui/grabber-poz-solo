@@ -164,7 +164,25 @@ export default function RepairsPage() {
                 <td className="py-2 font-mono">{j.jobNumber}</td>
                 <td className="py-2">{j.customerName}</td>
                 <td className="py-2 text-muted-foreground">{j.deviceModel}</td>
-                <td className="py-2 text-right">{j.status}</td>
+                <td className="py-2 text-right">
+                  <select
+                    value={j.status}
+                    onChange={async (e) => {
+                      await fetch('/api/repairs', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: j.id, status: e.target.value }),
+                      });
+                      await load();
+                    }}
+                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs"
+                    aria-label={`Status for ${j.jobNumber}`}
+                  >
+                    {['INTAKE', 'CHECKED_IN', 'DIAGNOSIS', 'IN_PROGRESS', 'READY', 'DELIVERED', 'CANCELLED'].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </td>
               </tr>
             ))}
           </tbody>

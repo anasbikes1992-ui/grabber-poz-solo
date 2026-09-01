@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { desc, eq } from 'drizzle-orm';
 import { db, repairJobs } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
+import { dispatchAutomationEvent } from '@/lib/automation/engine';
 
 async function actor() {
   let session = await getSession();
@@ -73,6 +74,27 @@ export async function PATCH(req: Request) {
       })
       .where(eq(repairJobs.id, body.id))
       .returning();
+
+    if (job && body.status === 'READY') {
+      await dispatchAutomationEvent('REPAIR_READY', {
+        repairId: job.id,
+        ticketCode: job.jobNumber,
+        customerName: job.customerName,
+        customerPhone: job.customerPhone,
+        deviceModel: job.deviceModel,
+        status: job.status,
+      });
+    } else if (job && body.status) {
+      await dispatchAutomationEvent('REPAIR_STATUS_CHANGED', {
+        repairId: job.id,
+        ticketCode: job.jobNumber,
+        customerName: job.customerName,
+        customerPhone: job.customerPhone,
+        deviceModel: job.deviceModel,
+        status: job.status,
+      });
+    }
+
     return NextResponse.json({ success: true, job });
   } catch (err: unknown) {
     return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });

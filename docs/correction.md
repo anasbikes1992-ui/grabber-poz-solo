@@ -13,7 +13,7 @@ Roadmap: [`ROADMAP.md`](./ROADMAP.md) · Gate: [`RELEASE_GATE.md`](./RELEASE_GAT
 
 ## Executive verdict
 
-> **poz-solo live on Vercel; storefront ~85%; admin at `/adminpoz` not linked from storefront.**
+> **poz-solo live on Vercel; storefront ~85%; admin at `/adminpoz` not linked from storefront; R1–R5 automated gate PASS (2026-09-01).**
 
 Strong commerce/operations engine with unfinished experience + intelligence layers.
 
@@ -27,7 +27,9 @@ Do **not** rebuild POS. Prioritize: **migration reproducibility → storefront p
 | Storefront UX (stone/gold theme, motion) | ~85% |
 | Sprint S1 (migrations + Jarvis session + docs) | DONE |
 | Sprint S2 (RLS + settings persistence) | DONE |
-| Release R1 gate | CONDITIONALLY READY |
+| Release R1 gate | CONDITIONALLY READY (automated PASS 2026-09-01) |
+| Release R6 agents | CONDITIONALLY READY (12 agents — [`AGENTS.md`](./AGENTS.md)) |
+| Repairs storefront MVP | DONE locally — deploy pending |
 | Full Business OS (doc §106 E2E) | BLOCKED |
 
 ---
@@ -125,16 +127,16 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | ID | Item | Status |
 |----|------|--------|
 | STR-01 | SSR `/products/[slug]` | DONE (S5) |
-| STR-02 | Category / brand / collection routes | TODO (S6) |
-| STR-03 | Server-side search + filters | TODO (S6) |
-| STR-04 | Cart + checkout pages (not inline on `/`) | TODO (S6) |
-| STR-05 | Guest checkout + COD | PARTIAL |
-| STR-06 | Homepage block CMS (persisted) | TODO (S6) |
-| STR-07 | Theme engine | TODO (S6) |
+| STR-02 | Category / brand / collection routes | PARTIAL (`/categories/[slug]`) |
+| STR-03 | Server-side search + filters | PARTIAL (home catalog search) |
+| STR-04 | Cart + checkout pages | DONE (`/shop/checkout`) |
+| STR-05 | Guest + account COD checkout | DONE |
+| STR-06 | Homepage block CMS (persisted) | DONE |
+| STR-07 | Theme engine (stone/gold) | DONE |
 | STR-08 | SEO meta + OG + JSON-LD | DONE (S5) |
 | STR-09 | `sitemap.xml` + `robots.txt` | DONE (S5) |
 | STR-10 | Wishlist + reviews | TODO |
-| STR-11 | `/` refactor from client-only SPA | PARTIAL (PDP links; home still client) |
+| STR-11 | Storefront shell + repairs nav | DONE (`StorefrontShell`, `/shop/repairs`) |
 
 ---
 
@@ -142,13 +144,17 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 
 | ID | Item | Status |
 |----|------|--------|
+| REP-01 | Public repairs landing + wizard + track | DONE |
+| REP-02 | Staff queue status + WhatsApp on READY | DONE |
+| REP-03 | Repair agent (R6) | DONE |
+| REP-04 | Staff ticket workspace `/repairs/[id]` | TODO (Phase 2) |
 | WA-01 | Outbound send (live when env set) | DONE |
-| WA-02 | Inbound webhooks | TODO (S8) |
-| WA-03 | Template registry + variables | TODO (S8) |
-| AUTO-01 | Event → condition → action engine | TODO (S7) |
-| AUTO-02 | `ORDER_CREATED` → WhatsApp rule | TODO (S7) |
-| AUTO-03 | `STOCK_LOW` → owner notify | TODO (S7) |
-| AUTO-04 | Retry + idempotency + delivery log | TODO |
+| WA-02 | Inbound webhooks + signature verify | DONE |
+| WA-03 | Template registry + variables | PARTIAL |
+| AUTO-01 | Event → condition → action engine | DONE |
+| AUTO-02 | `ORDER_CREATED` → WhatsApp rule | DONE |
+| AUTO-03 | `STOCK_LOW` → owner notify | TODO |
+| AUTO-04 | Retry + idempotency + delivery log | PARTIAL (logs exist; retry TODO) |
 
 ---
 
@@ -156,13 +162,13 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 
 | ID | Item | Status |
 |----|------|--------|
-| JAR-01 | DB tools: sales, inventory, orders, customers | IN_PROGRESS (11 tools) |
+| JAR-01 | DB tools: sales, inventory, orders, customers | DONE (11+ tools) |
 | JAR-02 | `get_dashboard_summary` | DONE |
 | JAR-03 | Draft tools (promotion, PO, message) | PARTIAL |
 | JAR-04 | EXECUTE → approval required | PARTIAL (token flow exists) |
-| JAR-05 | Approval Center UI | TODO (S9) |
-| JAR-06 | Daily business brief | TODO (S10) |
-| JAR-07 | LLM orchestrator (intent → tool) | TODO |
+| JAR-05 | Approval Center UI | DONE |
+| JAR-06 | Daily business brief | DONE |
+| JAR-07 | LLM orchestrator (intent → tool) | PARTIAL |
 | JAR-08 | AI provider abstraction | DEFERRED |
 
 ---
@@ -171,12 +177,14 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 
 | ID | Item | Status |
 |----|------|--------|
-| AGT-01 | Agent orchestrator | TODO |
-| AGT-02 | Sales / Inventory / Marketing agents | TODO |
-| CRE-01 | Brand brain in config | TODO |
-| CRE-02 | Brief → generate → review → approve → publish | TODO |
-| CRE-03 | Store banner + WhatsApp from creative | TODO |
-| INT-01 | Jarvis → agents → creative → approval pipeline | TODO |
+| AGT-01 | Agent orchestrator (12 agents, vertical flags) | DONE |
+| AGT-02 | Core + vertical agents (SALES…CREATIVE) | DONE |
+| AGT-03 | `/api/agents/brief` + run-all | DONE |
+| AGT-04 | Agent → Approval EXECUTE bridge | TODO |
+| CRE-01 | Brand brain in config | DONE |
+| CRE-02 | Brief → generate → review → approve → publish | PARTIAL (approve-to-storefront) |
+| CRE-03 | Store banner + WhatsApp from creative | PARTIAL |
+| INT-01 | Jarvis → agents → creative → approval pipeline | PARTIAL |
 
 ---
 
@@ -309,8 +317,8 @@ Staff: `/adminpoz` → `/app` · Shopper: `/` · Jarvis tools: `POST /api/jarvis
 | **S8** | WhatsApp webhook + templates API | DONE |
 | **S9** | Approval Center + Jarvis EXECUTE queue | DONE |
 | **S10** | Daily brief API + HTTP cert script | DONE |
-| S11+ | Wire Jarvis/Creative/WhatsApp UI + R6 workflow | DONE |
-| R7 vertical depth | Restaurant/repair/loyalty polish | DEFERRED |
+| S11+ | R6–R7 + repairs storefront | 12 agents, `/shop/repairs`, automations | DONE |
+| R7 vertical depth | Restaurant/repair/loyalty polish (Phase 2 ops) | PARTIAL |
 
 ---
 

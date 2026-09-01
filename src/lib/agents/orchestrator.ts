@@ -1,91 +1,78 @@
-import { sql } from 'drizzle-orm';
-import { db, orders, stockBalances, products } from '@/db';
-import { mergeConfigJson, readConfigJson } from '@/lib/config/business-settings';
+import { readConfigJson, mergeConfigJson } from '@/lib/config/business-settings';
+import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
+import { executeAgent } from './handlers';
+import { listEnabledAgentIds } from './registry';
+import type { AgentId, AgentLogEntry, AgentResult, AgentTask } from './types';
 
-export type AgentTask = {
-  agent: 'SALES' | 'INVENTORY' | 'MARKETING';
-  prompt: string;
-};
+export type { AgentId, AgentResult, AgentTask, AgentLogEntry } from './types';
+export { AGENT_REGISTRY, getAgentDefinition, listEnabledAgents } from './registry';
+export { isAgentId, AGENT_IDS } from './types';
 
-export type AgentResult = {
-  agent: AgentTask['agent'];
-  summary: string;
-  recommendations: string[];
-};
+export async function readVerticalFlagsForAgents(): Promise<VerticalFlags> {
+  try {
+    const cfg = await readConfigJson();
+    return { ...DEFAULT_VERTICAL_FLAGS, ...((cfg.verticalFlags as Partial<VerticalFlags>) || {}) };
+  } catch {
+    return DEFAULT_VERTICAL_FLAGS;
+  }
+}
 
-type AgentLog = {
-  id: string;
-  agent: AgentTask['agent'];
-  summary: string;
-  createdAt: string;
-};
-
-async function appendAgentLog(entry: Omit<AgentLog, 'id' | 'createdAt'>) {
+async function appendAgentLog(entry: Omit<AgentLogEntry, 'id' | 'createdAt'>) {
   const cfg = await readConfigJson();
-  const rows = (cfg.agentLogs as AgentLog[] | undefined) || [];
-  const row: AgentLog = {
+  const rows = (cfg.agentLogs as AgentLogEntry[] | undefined) || [];
+  const row: AgentLogEntry = {
     ...entry,
-    id: `agent_${Date.now()}`,
+    id: `agent_${Date.now()}_${entry.agent}`,
     createdAt: new Date().toISOString(),
   };
-  await mergeConfigJson({ agentLogs: [row, ...rows].slice(0, 100) });
+  await mergeConfigJson({ agentLogs: [row, ...rows].slice(0, 200) });
   return row;
 }
 
 export async function runAgentTaskDb(task: AgentTask): Promise<AgentResult> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  if (task.agent === 'SALES') {
-    const [salesToday] = await db
-      .select({ total: sql<string>`coalesce(sum(${orders.grandTotal}), 0)`, count: sql<number>`count(*)` })
-      .from(orders)
-      .where(sql`${orders.createdAt} >= ${todayStart} AND ${orders.orderStatus} != 'DRAFT'`);
-
-    const result: AgentResult = {
-      agent: 'SALES',
-      summary: `Today: ${salesToday?.count || 0} orders, LKR ${Number(salesToday?.total || 0).toLocaleString('en-LK')} revenue.`,
-      recommendations: [
-        'Follow up on pending storefront COD orders within 2 hours.',
-        'Promote top 3 SKUs with healthy margin in the hero banner.',
-      ],
+  const flags = await readVerticalFlagsForAgents();
+  const enabled = listEnabledAgentIds(flags);
+  if (!enabled.includes(task.agent)) {
+    return {
+      agent: task.agent,
+      summary: `${task.agent} agent is disabled for this store (vertical flag off).`,
+      recommendations: ['Enable the module in Settings or vertical flags, then re-run.'],
     };
-    await appendAgentLog({ agent: task.agent, summary: result.summary });
-    return result;
   }
 
-  if (task.agent === 'INVENTORY') {
-    const lowStock = await db
-      .select({ name: products.name, onHand: stockBalances.onHand })
-      .from(stockBalances)
-      .innerJoin(products, sql`${products.id} = ${stockBalances.productId}`)
-      .where(sql`${stockBalances.onHand} <= ${products.reorderLevel}`)
-      .limit(5);
-
-    const result: AgentResult = {
-      agent: 'INVENTORY',
-      summary: `${lowStock.length} SKUs at/below reorder level.`,
-      recommendations: lowStock.length
-        ? lowStock.map((r) => `Replenish ${r.name} (${Number(r.onHand)} on hand).`)
-        : ['Stock levels healthy — review weekend promo demand.'],
-    };
-    await appendAgentLog({ agent: task.agent, summary: result.summary });
-    return result;
-  }
-
-  const result: AgentResult = {
-    agent: 'MARKETING',
-    summary: 'Marketing agent reviewed brand brain + automation hooks.',
-    recommendations: [
-      'Run WELCOME500 promo on homepage announcement bar.',
-      'Schedule WhatsApp order confirmation template for storefront COD.',
-      'Approve a creative campaign to update hero banner.',
-    ],
-  };
+  const result = await executeAgent(task.agent);
   await appendAgentLog({ agent: task.agent, summary: result.summary });
   return result;
 }
 
+export async function runAllEnabledAgents(): Promise<AgentResult[]> {
+  const flags = await readVerticalFlagsForAgents();
+  const ids = listEnabledAgentIds(flags);
+  const results: AgentResult[] = [];
+
+  for (const id of ids) {
+    try {
+      const result = await executeAgent(id);
+      await appendAgentLog({ agent: id, summary: result.summary });
+      results.push(result);
+    } catch (err) {
+      results.push({
+        agent: id,
+        summary: `Agent failed: ${(err as Error).message}`,
+        recommendations: ['Check database connection and vertical module data.'],
+      });
+    }
+  }
+
+  return results;
+}
+
 export async function runAgentTask(task: AgentTask): Promise<AgentResult> {
   return runAgentTaskDb(task);
+}
+
+export async function listRecentAgentLogs(limit = 30): Promise<AgentLogEntry[]> {
+  const cfg = await readConfigJson();
+  const rows = (cfg.agentLogs as AgentLogEntry[] | undefined) || [];
+  return rows.slice(0, limit);
 }

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { BrandLogo } from '@/components/ui/brand-logo';
+import { StorefrontShell } from '@/components/storefront/storefront-shell';
 import type { StorefrontConfig } from '@/lib/config/storefront-config';
 
 type CatalogItem = {
@@ -174,57 +174,9 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
     window.location.href = '/shop/checkout';
   }
 
-  async function signOut() {
-    await fetch('/api/auth/shopper', { method: 'DELETE' });
-    setShopper(null);
-  }
-
   return (
-    <div
-      data-surface="storefront"
-      className="storefront min-h-screen bg-[var(--sf-background)] text-[var(--sf-foreground)]"
-      style={{ ['--store-primary' as string]: cms.theme.primaryColor }}
-    >
-      {announcement?.type === 'ANNOUNCEMENT' && (
-        <div className="bg-[var(--sf-primary)] text-[var(--sf-on-primary)] text-center text-xs font-semibold py-2 px-4">
-          {announcement.text}
-        </div>
-      )}
-      <header className="sticky top-0 z-40 border-b border-[var(--sf-border)] bg-[var(--sf-background)]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link href="/" className="inline-flex cursor-pointer">
-            <BrandLogo size="md" showTagline={false} showSoloBadge={false} />
-          </Link>
-          <nav className="flex items-center gap-2 text-sm" aria-label="Store">
-            {shopper ? (
-              <>
-                <Link
-                  href="/shop/account"
-                  className="inline-flex min-h-11 items-center rounded-full px-3 py-1.5 font-medium text-[var(--sf-primary)] hover:bg-[var(--sf-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
-                >
-                  Hi, {shopper.name.split(' ')[0]}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => void signOut()}
-                  className="inline-flex min-h-11 cursor-pointer items-center rounded-full px-3 py-1.5 text-[var(--sf-secondary)] hover:bg-[var(--sf-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/shop/login"
-                className="inline-flex min-h-11 items-center rounded-full bg-[var(--sf-accent)] px-4 py-1.5 font-semibold text-white hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
-              >
-                Sign in
-              </Link>
-            )}
-          </nav>
-        </div>
-      </header>
-
-      <main>
+    <StorefrontShell announcement={announcement?.type === 'ANNOUNCEMENT' ? announcement.text : undefined}>
+      <main style={{ ['--store-primary' as string]: cms.theme.primaryColor }}>
         <section className="relative overflow-hidden border-b border-[var(--sf-border)]">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(161,98,7,0.08),transparent_50%)]" />
           <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:py-20">
@@ -257,6 +209,12 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                 >
                   Browse products
                 </a>
+                <Link
+                  href="/shop/repairs"
+                  className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-repair)] bg-[var(--sf-repair-muted)] px-6 py-3 text-sm font-semibold text-[var(--sf-repair)] transition-colors duration-200 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                >
+                  Device repairs
+                </Link>
                 {!shopper && (
                   <Link
                     href="/shop/login"
@@ -400,11 +358,11 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
             </div>
           )}
         </section>
-      </main>
 
       <footer className="border-t border-[var(--sf-border)] bg-white/60 py-8 text-center text-sm text-[var(--sf-secondary)]">
         <p>© {new Date().getFullYear()} Grabber Business OS</p>
       </footer>
-    </div>
+      </main>
+    </StorefrontShell>
   );
 }

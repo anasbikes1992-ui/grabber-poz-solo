@@ -5,7 +5,10 @@ export type AutomationEvent =
   | 'ORDER_CREATED'
   | 'ORDER_PAID'
   | 'STOCK_LOW'
-  | 'CUSTOMER_CREATED';
+  | 'CUSTOMER_CREATED'
+  | 'REPAIR_CREATED'
+  | 'REPAIR_STATUS_CHANGED'
+  | 'REPAIR_READY';
 
 export type AutomationContext = Record<string, unknown>;
 
@@ -53,7 +56,7 @@ export async function dispatchAutomationEvent(event: AutomationEvent, ctx: Autom
 
   for (const rule of rules) {
     if (!ruleMatches(rule, event, ctx)) continue;
-    const idempotencyKey = `${rule.id}:${event}:${ctx.orderId || ctx.productId || Date.now()}`;
+    const idempotencyKey = `${rule.id}:${event}:${ctx.orderId || ctx.repairId || ctx.productId || Date.now()}`;
     try {
       const outcome = await runAction(rule, ctx);
       await appendAutomationLog({

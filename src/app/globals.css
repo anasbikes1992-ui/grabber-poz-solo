@@ -172,9 +172,42 @@
   --sf-border: #d6d3d1;
   --sf-destructive: #dc2626;
   --sf-ring: #1c1917;
+  --sf-repair: #0f766e;
+  --sf-repair-muted: rgba(15, 118, 110, 0.1);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+.storefront .field-input {
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 1rem;
+  border: 1px solid var(--sf-border);
+  background: #fff;
+  padding: 0.625rem 1rem;
+  font-size: 1rem;
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.storefront .field-input:focus {
+  outline: none;
+  border-color: var(--sf-accent);
+  box-shadow: 0 0 0 3px rgba(161, 98, 7, 0.15);
+}
+
+.storefront .font-display {
+  font-family: var(--font-rubik), var(--font-plus-jakarta), system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront *,
+  .storefront *::before,
+  .storefront *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 ::-webkit-scrollbar {

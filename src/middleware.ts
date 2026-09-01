@@ -15,6 +15,7 @@ const PUBLIC_PREFIXES = [
   '/api/pos/checkout', // storefront checkout (validates customerId server-side)
   '/api/storefront/public',
   '/api/config/flags',
+  '/api/repairs/public',
 ];
 
 /** Crawlable storefront product detail pages (not staff /products admin) */

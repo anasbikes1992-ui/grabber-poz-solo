@@ -3,7 +3,14 @@ import { mergeConfigJson, readConfigJson } from '@/lib/config/business-settings'
 export type AutomationRule = {
   id: string;
   name: string;
-  event: 'ORDER_CREATED' | 'ORDER_PAID' | 'STOCK_LOW' | 'CUSTOMER_CREATED';
+  event:
+    | 'ORDER_CREATED'
+    | 'ORDER_PAID'
+    | 'STOCK_LOW'
+    | 'CUSTOMER_CREATED'
+    | 'REPAIR_CREATED'
+    | 'REPAIR_STATUS_CHANGED'
+    | 'REPAIR_READY';
   active: boolean;
   condition?: { channel?: string; minTotal?: number };
   action:
@@ -42,6 +49,38 @@ const DEFAULT_RULES: AutomationRule[] = [
     action: {
       type: 'LOG',
       message: 'Order {{orderNumber}} created on channel {{channel}}',
+    },
+  },
+  {
+    id: 'auto_repair_created_whatsapp',
+    name: 'Repair request confirmation WhatsApp',
+    event: 'REPAIR_CREATED',
+    active: true,
+    action: {
+      type: 'WHATSAPP_TEXT',
+      to: '{{customerPhone}}',
+      text: 'Hi {{customerName}}, we received repair ticket {{ticketCode}} for {{deviceModel}}. Issue: {{issue}}. We will contact you with an estimate soon.',
+    },
+  },
+  {
+    id: 'auto_repair_ready_whatsapp',
+    name: 'Repair ready for collection WhatsApp',
+    event: 'REPAIR_READY',
+    active: true,
+    action: {
+      type: 'WHATSAPP_TEXT',
+      to: '{{customerPhone}}',
+      text: 'Good news {{customerName}}! Repair {{ticketCode}} for {{deviceModel}} is ready for collection. Reply or visit us to arrange pickup.',
+    },
+  },
+  {
+    id: 'auto_repair_created_log',
+    name: 'Repair intake audit log',
+    event: 'REPAIR_CREATED',
+    active: true,
+    action: {
+      type: 'LOG',
+      message: 'Repair {{ticketCode}} created — {{serviceName}} ({{mode}})',
     },
   },
 ];

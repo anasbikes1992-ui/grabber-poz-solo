@@ -105,7 +105,7 @@ Last updated: 2026-09-01
 | DB-grounded tools | IN_PROGRESS | `src/lib/ai/jarvis-db-tools.ts` | 11 READ tools (S1) |
 | Jarvis context | KEEP | `src/lib/ai/jarvis-context.ts` | Session-based |
 | Jarvis drawer UI | KEEP | `src/components/ai/jarvis-drawer.tsx` | Wire to tools |
-| Agents | FUTURE | — | R6 |
+| Agents | PARTIAL | `src/lib/agents/*`, `/ai/agents` | R6 — 12 agents live |
 | Creative generate | COMPLETE | `/api/creative/generate`, `/creative` | No approval workflow |
 | AI demand | COMPLETE | `/ai/demand` | Placeholder |
 
@@ -116,7 +116,8 @@ Last updated: 2026-09-01
 | Vertical | Class | Flag | Pages |
 |----------|-------|------|-------|
 | Restaurant / KOT | KEEP | `restaurant` | `/restaurant` |
-| Repairs | KEEP | `repairs` | `/repairs` |
+| Repairs (staff) | KEEP | `repairs`, `/api/repairs` | `/repairs` |
+| Repairs (public) | KEEP | `repairs/public`, `lib/repairs/*` | `/shop/repairs`, `/shop/repairs/request`, `/shop/repairs/track` |
 | Hire purchase | KEEP | `hirePurchase` | `/hire-purchase` |
 | Appointments | KEEP | `appointments` | `/appointments` |
 | Loyalty | COMPLETE | `loyalty` | `/loyalty` |

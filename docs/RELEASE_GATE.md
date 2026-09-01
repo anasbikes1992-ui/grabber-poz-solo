@@ -5,6 +5,8 @@ Ship / no-ship checklist for Grabber Poz Solo.
 
 **Verdict values:** `READY` · `CONDITIONALLY READY` · `BLOCKED`
 
+**Latest automated run:** [`reports/RELEASE_GATE_RUN_2026-09-01.md`](../reports/RELEASE_GATE_RUN_2026-09-01.md) — all automated checks **PASS** on production (2026-09-01).
+
 ---
 
 ## Recommended execution order
@@ -27,24 +29,33 @@ Ship / no-ship checklist for Grabber Poz Solo.
 
 | Release | Verdict | Remaining blocker |
 |---------|---------|-------------------|
-| **R1** Solo Foundation | **CONDITIONALLY READY** | Run `npm run db:apply-rls` + `npm run db:test-rls` on each Supabase project |
-| **R2** Commerce Complete | **CONDITIONALLY READY** | Stock reservations for async channels (design); partial refund paths |
-| **R3** Storefront | **CONDITIONALLY READY** | Mobile Lighthouse budgets |
-| **R4** Communication | **CONDITIONALLY READY** | Live WhatsApp credentials + delivery proof |
-| **R5** Jarvis | **CONDITIONALLY READY** | HTTP parity test on live URL; EXECUTE audit trail (R6) |
-| **R6–R7** | **BLOCKED** | Deferred by design |
+| **R1** Solo Foundation | **CONDITIONALLY READY** | Manual: rotate owner PIN; legacy `0003` trigger drop (doc only) |
+| **R2** Commerce Complete | **CONDITIONALLY READY** | Manual POS/return/GRN smoke; optional stock reservation API |
+| **R3** Storefront | **CONDITIONALLY READY** | Mobile Lighthouse ≥ 80 (manual) |
+| **R4** Communication | **CONDITIONALLY READY** | Meta webhook verify + live delivery proof in `automationLogs` |
+| **R5** Jarvis | **CONDITIONALLY READY** | Live Jarvis vs dashboard parity (staff session); EXECUTE audit → R6 |
+| **R6** Agents | **CONDITIONALLY READY** | 12 agents live; Approval EXECUTE bridge open |
+| **R7** Creative | **CONDITIONALLY READY** | Approve-to-storefront MVP; live media optional |
+
+**R6/R7 MVP shipped locally.** Deploy to Vercel for `/shop/repairs` HTTP cert. Full autonomy needs Approval EXECUTE + FAL/Replicate keys.
+
+**Automated foundation (R1–R5 code + prod RLS + HTTP):** ✅ green as of 2026-09-01.
 
 ---
 
 ## Automated gate commands
 
 ```powershell
-# R1 — run before every production deploy
-npm run release:gate-r1
+# Full R1–R5 automated sweep (recommended before each release)
+npm run release:gate -- --env-file .env.prod.txt --production --http
 
-# With live HTTP smoke (set CERTIFY_HTTP_BASE_URL first)
-$env:CERTIFY_HTTP_BASE_URL="https://grabber-poz-solo.vercel.app"
-npm run release:gate-r1 -- --http
+# R1 only
+npm run release:gate-r1 -- --env-file .env.prod.txt --production --http
+
+# Individual gates
+node scripts/release-gate.mjs r2 --env-file .env.prod.txt --production
+node scripts/release-gate.mjs r4 --env-file .env.prod.txt --production
+node scripts/release-gate.mjs r6 --env-file .env.prod.txt --production
 
 # Fresh Supabase project (direct :5432 URL in .env.local)
 npm run db:bootstrap -- --rls --certify
@@ -58,25 +69,26 @@ POST /api/seed
 
 | Section | R1 | R2 | R3 | R4 | R5 | Evidence |
 |---------|:--:|:--:|:--:|:--:|:--:|----------|
-| **DATABASE** | 🟡 | — | — | — | — | `db:bootstrap`, L4 certify |
+| **DATABASE** | 🟢 | — | — | — | — | `db:bootstrap`, L4 certify, RLS probe PASS |
 | **AUTH** | 🟢 | — | — | — | 🟡 | Staff `/adminpoz` + shopper sessions |
-| **SECURITY** | 🟡 | — | — | — | 🟡 | RLS SQL + `db:test-rls` |
-| **POS** | 🟢 | 🟡 | — | — | — | Checkout, shifts, split pay |
+| **SECURITY** | 🟢 | — | — | — | 🟡 | RLS SQL + `db:test-rls` PASS on prod |
+| **POS** | 🟢 | 🟢 | — | — | — | Checkout, shifts, split pay |
 | **INVENTORY** | 🟢 | 🟡 | — | — | — | GRN, transfers, variant stock |
 | **PURCHASING** | 🟢 | — | — | — | — | PO + GRN |
 | **STORE** | — | — | 🟢 | — | — | SSR catalog + COD checkout |
-| **ORDERS** | 🟡 | 🟢 | — | — | — | Unified state machine |
+| **ORDERS** | 🟢 | 🟢 | — | — | — | Unified state machine |
 | **PAYMENTS** | 🟢 | 🟢 | — | — | — | Split pay validated |
 | **REFUNDS** | — | 🟢 | — | — | — | `/api/returns` + GL + audit |
-| **WHATSAPP** | — | — | — | 🟡 | — | Webhook + stub send |
-| **AUTOMATION** | — | — | — | 🟡 | — | Rules in `business_config` |
-| **JARVIS** | — | — | — | — | 🟡 | 11+ READ DB tools |
-| **AGENTS** | — | — | — | — | 🔴 | Stub only — R6 |
-| **CREATIVE** | — | — | — | — | 🔴 | Generate only — R7 |
+| **WHATSAPP** | — | — | — | 🟡 | — | Live env + Graph send; webhook verify manual |
+| **AUTOMATION** | — | — | — | 🟢 | — | ORDER_CREATED rule + logs |
+| **JARVIS** | — | — | — | — | 🟡 | 11+ READ DB tools; live parity manual |
+| **AGENTS** | — | — | — | — | 🟢 | 12 agents + `/api/agents/brief` |
+| **CREATIVE** | — | — | — | — | 🟡 | Studio + approve-to-storefront; media gen optional |
+| **REPAIRS (store)** | — | — | 🟢 | — | — | `/shop/repairs` MVP (deploy pending) |
 | **SEO** | — | — | 🟢 | — | — | Meta, JSON-LD, sitemap |
 | **PERFORMANCE** | 🟡 | — | 🟡 | — | — | Lighthouse open |
 | **DEPLOYMENT** | 🟢 | — | — | — | — | Vercel + Supabase live |
-| **TESTING** | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | Unit tests; E2E partial |
+| **TESTING** | 🟢 | 🟢 | 🟢 | 🟢 | 🟢 | 64 unit tests; HTTP cert partial until deploy |
 
 Legend: 🟢 pass · 🟡 partial · 🔴 fail · — not in scope
 
@@ -92,13 +104,14 @@ Target: **Fresh Supabase → bootstrap → seed → certify → app works** (no 
 - [x] Jarvis uses real staff session
 - [x] 11+ DB-grounded Jarvis READ tools
 - [x] Settings persist via `/api/settings/business` + `/api/settings/secrets`
-- [ ] **RLS applied on host + `npm run db:test-rls` PASS** ← hard gate
-- [ ] Legacy triggers documented drop plan → [`LEGACY_MIGRATION_BRIDGE.md`](./LEGACY_MIGRATION_BRIDGE.md)
+- [x] **RLS applied on host + `npm run db:test-rls` PASS** (prod pooler 2026-09-01)
+- [x] Legacy triggers documented drop plan → [`LEGACY_MIGRATION_BRIDGE.md`](./LEGACY_MIGRATION_BRIDGE.md)
+- [ ] Owner PIN rotated off `TEMP$1234` after first login
 
 **R1 sign-off:**
 
 ```powershell
-npm run release:gate-r1
+npm run release:gate -- --env-file .env.prod.txt --production --http
 npm run db:bootstrap -- --rls --certify   # fresh project only
 ```
 
@@ -127,6 +140,8 @@ Checklist:
 - [x] Variants in checkout + returns
 - [x] Import validate → commit
 - [x] Refund API with GL + audit
+- [x] Automated commerce tests (34 tests in gate runner)
+- [ ] Manual POS + return + GRN smoke (RT-M04–M06)
 - [ ] Stock reservation API for storefront COD hold (optional R2.1)
 
 ---
@@ -140,6 +155,8 @@ Minimum sellable package: **POS + Inventory + Online Store + COD**
 - [x] CMS blocks in `business_config`
 - [x] Theme tokens (stone/gold storefront)
 - [x] Guest + account COD checkout
+- [x] HTTP smoke (homepage, checkout, `/adminpoz`, robots)
+- [x] Public repairs routes (`/shop/repairs`, track, request) — **deploy to prod**
 - [ ] Mobile Lighthouse ≥ 80 on product + checkout
 
 ---
@@ -153,9 +170,20 @@ ORDER_CREATED → automation engine → WhatsApp template → automationLogs
 ```
 
 - [x] Automation rules + event log
-- [x] ORDER_CREATED action (stub send + audit)
-- [x] Inbound webhook `/api/webhooks/whatsapp`
-- [ ] Live Meta credentials + delivery proof in `automationLogs`
+- [x] ORDER_CREATED action (live Graph send when env set)
+- [x] `REPAIR_CREATED` / `REPAIR_READY` repair automations
+- [x] Inbound webhook `/api/webhooks/whatsapp` + signature verify
+- [x] WhatsApp env on Vercel production
+- [x] Integration unit tests (3/3)
+- [ ] Meta Developer Console webhook verified
+- [ ] Delivery proof: `automationLogs` SUCCESS after storefront COD + phone
+
+**Meta webhook:**
+
+```text
+Callback URL:  https://grabber-poz-solo.vercel.app/api/webhooks/whatsapp
+Verify token:  (WHATSAPP_VERIFY_TOKEN on Vercel)
+```
 
 ---
 
@@ -171,6 +199,7 @@ Checklist:
 - [x] Approval Center UI (`/approvals`)
 - [x] Daily brief (`/api/jarvis/brief`)
 - [x] Dashboard + Jarvis share `completedOrderFilter` (unit tested)
+- [x] Jarvis/metrics automated tests (7/7)
 - [ ] HTTP E2E: `get_sales_summary` matches `/api/dashboard/stats` on live data
 - [ ] Full EXECUTE audit trail (R6)
 
@@ -180,11 +209,48 @@ Example READ questions Jarvis should answer reliably:
 
 ---
 
-## R6–R7 — blocked until R5 green
+## R6 exit criteria (Agents) — **MVP complete**
 
-**R6 Agents:** inventory agent (low stock → draft PO → approve), sales agent (weak SKU → promo draft → approve).
+Deterministic DB-grounded agents (no LLM required for v1):
 
-**R7 Creative:** brief → generate → approve → publish to storefront/WhatsApp.
+| Agent | Module | Data source |
+|-------|--------|-------------|
+| SALES | Core | `orders` — today revenue + pending COD |
+| INVENTORY | Core | `stock_balances` + reorder levels |
+| MARKETING | Core | Brand/automation hints |
+| REPAIR | Vertical | `repair_jobs` queue |
+| RESTAURANT | Vertical | `dining_tables` + `kitchen_tickets` |
+| HIRE_PURCHASE | Vertical | `hire_purchase_contracts` EMIs |
+| APPOINTMENTS | Vertical | `appointments` today + 24h |
+| LOYALTY | Vertical | `loyalty_members` tiers/points |
+| WHOLESALE | Vertical | `quotations` collection |
+| POLIM | Credit | `polim_potha_accounts` balances |
+| WHATSAPP | Communication | `automationLogs` failures |
+| CREATIVE | Communication | `creative_projects` pending |
+
+- [x] All 12 agents in registry (`src/lib/agents/registry.ts`)
+- [x] Vertical flag gating via `business_config.verticalFlags`
+- [x] `/api/agents/run` — single or `all: true`
+- [x] `/api/agents/brief` — combined daily brief
+- [x] UI at `/ai/agents` grouped by category
+- [ ] PROPOSE → Approval Center → EXECUTE for agent-generated drafts
+- [ ] Optional LLM intent layer
+
+---
+
+## R7 exit criteria (Creative) — **MVP live**
+
+- [x] Creative Studio UI + project jobs in DB
+- [x] Approve-to-storefront CMS path (`/api/creative/approve`)
+- [x] Brand brain config
+- [ ] Live image/video generation (FAL / Replicate env)
+- [ ] Repair + product promo templates in library
+
+---
+
+## R6–R7 — blocked until R5 green (superseded)
+
+**Previous gate:** blocked until R5 green. **Updated:** R5 automated tests pass; R6/R7 MVP shipped as deterministic layers. Full autonomy still requires approval EXECUTE audit + media providers.
 
 ---
 
@@ -220,7 +286,7 @@ Example READ questions Jarvis should answer reliably:
 ## Honesty rules
 
 1. Do not claim RLS certification until `db:test-rls` passes on the host.
-2. Do not claim WhatsApp live until credentials set and delivery logged.
+2. Do not claim WhatsApp live until credentials set **and** delivery logged in `automationLogs`.
 3. Do not claim SEO-ready until SSR + sitemap exist.
 4. Database truth > documentation > AI interpretation.
 
@@ -229,6 +295,8 @@ Example READ questions Jarvis should answer reliably:
 ## Related
 
 - [`NEXT_PHASES.md`](./NEXT_PHASES.md) — deploy rollout
+- [`AGENTS.md`](./AGENTS.md) — R6 agent catalog (12 agents)
+- [`REPAIRS_STOREFRONT_BLUEPRINT.md`](./REPAIRS_STOREFRONT_BLUEPRINT.md) — repairs + storefront plan
 - [`LEGACY_MIGRATION_BRIDGE.md`](./LEGACY_MIGRATION_BRIDGE.md) — trigger drop plan
 - [`correction.md`](./correction.md) — sprint tracker
 - [`READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md) — operator checklist

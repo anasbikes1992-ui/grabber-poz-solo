@@ -18,7 +18,7 @@ Single-business retail OS: POS, storefront, inventory, finance, and automation.
 - **Storefront** — SSR catalog, checkout, CMS blocks, SEO
 - **Inventory** — multi-location stock, transfers, GRN
 - **Finance** — Polim Potha (AR), reports, ledger
-- **Ops** — approvals, automation rules, Jarvis brief, agents
+- **Ops** — approvals, automation rules, Jarvis brief, **12 vertical agents**, public repairs
 
 ---
 
@@ -49,5 +49,7 @@ npm run ops:sync-env   # push .env.local → Vercel (set VERCEL_PROJECT)
 | [`VERCEL_ENV.md`](docs/VERCEL_ENV.md) | Environment variable checklist |
 | [`ROADMAP.md`](docs/ROADMAP.md) | Planned features |
 | [`RELEASE_GATE.md`](docs/RELEASE_GATE.md) | Release criteria + execution order |
+| [`AGENTS.md`](docs/AGENTS.md) | R6 agent catalog (12 agents) |
+| [`REPAIRS_STOREFRONT_BLUEPRINT.md`](docs/REPAIRS_STOREFRONT_BLUEPRINT.md) | Repairs + storefront plan |
 
 Legacy audit / GTM docs remain under `docs/` for reference; use **FRESH_START** and **VERCEL_ENV** for current deploys.

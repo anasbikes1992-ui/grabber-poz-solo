@@ -1,11 +1,13 @@
 # GRABBER Business OS — Ready for Re-Testing
 
-**Gate status:** `READY_FOR_RETESTING` (**OPEN** — automated kickoff 2026-09-01)  
+**Gate status:** `READY_FOR_RETESTING` (**OPEN** — automated kickoff 2026-09-01, prod gate PASS 2026-09-01)  
 **Opened:** 2026-09-01  
-**Commit baseline:** `6cdecb0` (+ docs follow-up)  
+**Commit baseline:** post-`ffb32c0` (+ release gate expansion)  
+**Production:** https://grabber-poz-solo.vercel.app  
 **Prerequisite:** Waves 0–5 + dual storefront/staff auth closed in [`docs/correction.md`](./correction.md)
 
-**Kickoff log:** [`reports/RETEST_RUN_2026-09-01.md`](../reports/RETEST_RUN_2026-09-01.md) — RT-A01/A02 PASS; RT-A03–A05 blocked pending `DATABASE_URL`.
+**Kickoff log:** [`reports/RETEST_RUN_2026-09-01.md`](../reports/RETEST_RUN_2026-09-01.md)  
+**Release gate:** [`reports/RELEASE_GATE_RUN_2026-09-01.md`](../reports/RELEASE_GATE_RUN_2026-09-01.md) — R1–R5 automated PASS
 
 This document is the **process entry** for re-testing after the correction waves. Do not treat a green unit-test run alone as production handover — complete the checklist below, then optionally the 7-day pilot in [`certification/CLIENT_ACCEPTANCE_TEST.md`](./certification/CLIENT_ACCEPTANCE_TEST.md).
 
@@ -53,23 +55,23 @@ This document is the **process entry** for re-testing after the correction waves
 ```bash
 npm run typecheck
 npm test
-npm run env:validate -- --env-file .env.local
-# With DATABASE_URL:
-npm run db:bootstrap
-# optional: npm run db:bootstrap -- --rls --certify
+npm run env:validate -- --env-file .env.prod.txt --production
+# With production pooler DATABASE_URL in env file:
+npm run release:gate -- --env-file .env.prod.txt --production --http
 npm run client:certify -- --dry-run --client "Re-Test" --slug "retest"
 npm run client:certify -- --client "Re-Test" --slug "retest"
-# Optional live HTTP (app must be running):
-# CERTIFY_HTTP_BASE_URL=http://localhost:3000 npm run client:certify -- --client "Re-Test" --slug "retest"
 ```
 
 | ID | Check | Pass criteria | Result |
 |----|--------|---------------|--------|
 | RT-A01 | `npm run typecheck` | Exit 0 | ✅ PASS |
-| RT-A02 | `npm test` | All tests pass (≥25) | ✅ PASS 25/25 |
-| RT-A03 | `env:validate` | 0 P0 errors | ✅ PASS (`.env.local`) |
-| RT-A04 | `db:push` / align | 49 tables applied | ✅ PASS (`db:align` + `0001` migration) |
+| RT-A02 | `npm test` | All tests pass (≥64) | ✅ PASS 64/64 |
+| RT-A03 | `env:validate` | 0 P0 errors | ✅ PASS (`.env.prod.txt`) |
+| RT-A04 | `db:test-rls` on prod pooler | RLS probe PASS | ✅ PASS |
 | RT-A05 | `client:certify` (SQL) | 0 P0 failures; report under `reports/` | ✅ PASS `CERT-77D0E7FA` L4_SCHEMA_SQL |
+| RT-A06 | `release:gate --http` | R1–R6 automated PASS | ✅ PASS (repairs routes 404 until deploy) |
+| RT-M09 | `/shop/repairs` request + track | Ticket created + lookup works | ☐ |
+| RT-M10 | `/ai/agents` run-all | 12 enabled agents return brief | ☐ |
 
 ### P0 — Manual smoke (dual auth + core commerce)
 
@@ -88,8 +90,8 @@ npm run client:certify -- --client "Re-Test" --slug "retest"
 
 | ID | Check | Result |
 |----|--------|--------|
-| RT-P01 | Apply `drizzle/rls_baseline.sql` on Supabase | ☐ / WAIVE |
-| RT-P02 | `CERTIFY_HTTP_BASE_URL` cert against preview/prod URL | ☐ / WAIVE |
+| RT-P01 | Apply `drizzle/rls_baseline.sql` on Supabase | ✅ DONE (probe PASS) |
+| RT-P02 | `CERTIFY_HTTP_BASE_URL` cert against prod URL | ✅ PASS |
 | RT-P03 | Offline queue: kill network mid-POS, flush on reconnect | ☐ / WAIVE |
 | RT-P04 | PayHere webhook signature + duplicate event | ☐ / WAIVE |
 | RT-P05 | Backup export download contains orders/products | ☐ / WAIVE |

@@ -18,6 +18,7 @@ import {
   RotateCcw,
   BarChart3,
   Sparkles,
+  Wrench,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { readLang, t, type Lang } from '@/lib/i18n/translations';
@@ -82,6 +83,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     { href: '/pos', label: t('counterPos', lang), icon: Zap, highlight: true },
     { href: '/products', label: t('inventory', lang), icon: Package },
     { href: '/orders', label: t('orders', lang), icon: ShoppingBag },
+    { href: '/repairs', label: 'Repairs', icon: Wrench },
     { href: '/returns', label: t('returns', lang), icon: RotateCcw },
     { href: '/reports', label: t('reports', lang), icon: BarChart3 },
     { href: '/customers', label: t('customers', lang), icon: Users },

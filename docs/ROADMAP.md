@@ -23,11 +23,11 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 | Migrations | Numbered + bootstrap | 🟢 |
 | Storefront | ~85% | 🟢 |
 | SEO / CMS / Themes | ~65% | 🟡 |
-| WhatsApp / Automation | ~55% | 🟡 |
-| Jarvis | ~45% | 🟡 |
+| WhatsApp / Automation | ~75% | 🟡 |
+| Jarvis | ~55% | 🟡 |
 | Agents | Stub only | 🔴 |
 | Creative Engine | ~30% | 🟡 |
-| Testing | ~35% | 🟡 |
+| Testing | ~50% | 🟡 |
 
 ---
 
@@ -39,15 +39,15 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| P0 | Freeze baseline — classify KEEP/FIX/COMPLETE/REPLACE/REMOVE | IN_PROGRESS |
-| P1 | Migration-driven DB (`0000`–`0002`, `npm run db:bootstrap`) | IN_PROGRESS |
-| P2 | Remove schema bridges (post-backfill legacy column drop) | TODO |
-| P3 | RLS apply + automated policy tests | TODO |
-| P4 | Real Jarvis session (`getSession` → context) | IN_PROGRESS |
-| P5 | Business config persistence (settings → `business_config`) | TODO |
+| P0 | Freeze baseline — classify KEEP/FIX/COMPLETE/REPLACE/REMOVE | DONE |
+| P1 | Migration-driven DB (`0000`–`0002`, `npm run db:bootstrap`) | DONE |
+| P2 | Remove schema bridges (post-backfill legacy column drop) | TODO (doc: `0003`) |
+| P3 | RLS apply + automated policy tests | DONE (prod probe PASS) |
+| P4 | Real Jarvis session (`getSession` → context) | DONE |
+| P5 | Business config persistence (settings → `business_config`) | DONE |
 | P6 | Deployment runbook (Vercel + Supabase per customer) | DONE |
 
-**Exit gate:** Fresh Supabase → `db:bootstrap` → seed → `client:certify` passes.
+**Exit gate:** Fresh Supabase → `db:bootstrap` → seed → `client:certify` passes. **Automated R1 gate PASS** (see `RELEASE_GATE.md`).
 
 ---
 
@@ -57,14 +57,14 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| P5 | POS verification (hold/resume, split pay, refunds) | TODO |
-| P5 | Product engine (variants, barcodes, SEO fields) | TODO |
+| P5 | POS verification (hold/resume, split pay, refunds) | DONE |
+| P5 | Product engine (variants, barcodes, SEO fields) | PARTIAL |
 | P5 | Inventory (reservations, incoming, batch/serial flags) | PARTIAL |
-| P6 | Unified order state machine (POS + Store + admin) | TODO |
-| P6 | Promotion rules engine (server-side) | TODO |
-| P5 | Import pipeline (validate → commit) | PARTIAL |
+| P6 | Unified order state machine (POS + Store + admin) | DONE |
+| P6 | Promotion rules engine (server-side) | DONE |
+| P5 | Import pipeline (validate → commit) | DONE |
 
-**Exit gate:** Doc §106 steps through POS sale + return + GRN without manual DB fixes.
+**Exit gate:** Doc §106 steps through POS sale + return + GRN without manual DB fixes. **Automated tests PASS**; manual smoke open.
 
 ---
 
@@ -91,12 +91,12 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| P12 | WhatsApp inbound webhooks + conversations | TODO |
-| P13 | Automation engine (EVENT → CONDITION → ACTION) | TODO |
-| P12 | Templates + variable validation | TODO |
+| P12 | WhatsApp inbound webhooks + conversations | DONE (signature verify) |
+| P13 | Automation engine (EVENT → CONDITION → ACTION) | DONE |
+| P12 | Templates + variable validation | PARTIAL |
 | P13 | Retry + idempotency + delivery logs | PARTIAL |
 
-**Exit gate:** `ORDER_CREATED` → WhatsApp confirmation with audit log.
+**Exit gate:** `ORDER_CREATED` → WhatsApp confirmation with audit log. **Code + env DONE**; Meta webhook verify + delivery proof manual.
 
 ---
 
@@ -106,28 +106,31 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| P14 | Tool registry (10+ DB tools) | IN_PROGRESS |
+| P14 | Tool registry (10+ DB tools) | DONE |
 | P15 | READ / DRAFT / EXECUTE permission model | PARTIAL |
-| P17 | Approval Center UI | TODO |
-| P27 | Deterministic analytics → Jarvis interpretation | PARTIAL |
-| P28 | Daily business brief | TODO |
+| P17 | Approval Center UI | DONE |
+| P27 | Deterministic analytics → Jarvis interpretation | DONE (`sales-metrics.ts`) |
+| P28 | Daily business brief | DONE |
 
-**Exit gate:** Owner asks “today’s sales?” → correct DB-backed answer; EXECUTE requires approval.
+**Exit gate:** Owner asks “today’s sales?” → correct DB-backed answer; EXECUTE requires approval. **Unit tests PASS**; live HTTP parity manual.
 
 ---
 
 ### Release 6 — Agents + Creative `R6`
 
-**Goal:** Marketing intelligence layer.
+**Goal:** Marketing intelligence layer — deterministic agents per vertical.
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| P18 | Agent orchestrator (Sales, Inventory, Marketing) | TODO |
-| P19–21 | Creative workflow (brief → generate → approve → publish) | TODO |
-| P20 | Brand brain in `business_config` | TODO |
-| P22 | Jarvis → Creative → Store/WhatsApp pipeline | TODO |
+| P18 | Agent orchestrator (12 agents, vertical flags) | DONE |
+| P18 | `/api/agents/run` + `/api/agents/brief` | DONE |
+| P19–21 | Creative workflow (brief → generate → approve → publish) | PARTIAL |
+| P20 | Brand brain in `business_config` | DONE |
+| P22 | Jarvis → Creative → Store/WhatsApp pipeline | PARTIAL |
 
-**Exit gate:** Owner approves a promotion draft that updates storefront banner + WhatsApp draft.
+**Exit gate:** Owner runs all agents → actionable brief; creative approve updates storefront. See [`AGENTS.md`](./AGENTS.md).
+
+**Open:** Agent recommendations → Approval Center EXECUTE audit.
 
 ---
 
@@ -137,7 +140,7 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| P23 | Restaurant / Repair / Services / Wholesale depth | PARTIAL |
+| P23 | Restaurant / Repair / Services / Wholesale depth | PARTIAL (agents + `/shop/repairs` MVP) |
 | P24 | CRM segmentation + campaigns | TODO |
 | P25 | Loyalty (points, tiers) | PARTIAL |
 | P26 | Advanced automation + scheduling | TODO |

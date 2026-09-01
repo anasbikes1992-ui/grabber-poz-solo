@@ -19,9 +19,9 @@ export type StorefrontConfig = {
 
 export const DEFAULT_STOREFRONT: StorefrontConfig = {
   theme: {
-    primaryColor: '#047857',
-    accentColor: '#059669',
-    fontFamily: 'Plus Jakarta Sans',
+    primaryColor: '#1C1917',
+    accentColor: '#A16207',
+    fontFamily: 'Rubik, Nunito Sans',
     whatsappNumber: '+94771234567',
   },
   blocks: [

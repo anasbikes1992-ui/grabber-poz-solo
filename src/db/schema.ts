@@ -715,7 +715,7 @@ export const repairJobs = pgTable('repair_jobs', {
   deviceModel: text('device_model').notNull(),
   primaryFault: text('primary_fault'),
   inspectionRemarks: text('inspection_remarks'),
-  checklistJson: jsonb('checklist_json').$type<Record<string, boolean>>().notNull().default({}),
+  checklistJson: jsonb('checklist_json').$type<Record<string, unknown>>().notNull().default({}),
   lockType: text('lock_type'),
   partsDescription: text('parts_description'),
   partsAmount: numeric('parts_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
