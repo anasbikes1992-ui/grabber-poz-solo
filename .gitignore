@@ -18,6 +18,7 @@
 .env
 .env*.local
 .env.production
+.env.prod.txt
 .env.client*
 .env.*.production
 
