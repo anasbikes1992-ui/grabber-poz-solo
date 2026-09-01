@@ -168,10 +168,10 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | JAR-01 | DB tools: sales, inventory, orders, customers | DONE (11+ tools) |
 | JAR-02 | `get_dashboard_summary` | DONE |
 | JAR-03 | Draft tools (promotion, PO, message) | DONE (DRAFT → Approvals queue) |
-| JAR-04 | EXECUTE → approval required | PARTIAL (Jarvis token + agent EXECUTE at `/approvals`) |
+| JAR-04 | EXECUTE → approval required | DONE (HIGH_RISK + DRAFT → /approvals, audit on execute) |
 | JAR-05 | Approval Center UI | DONE |
 | JAR-06 | Daily business brief | DONE |
-| JAR-07 | LLM orchestrator (intent → tool) | PARTIAL |
+| JAR-07 | LLM orchestrator (intent → tool) | DONE (keyword intent router + chat API) |
 | JAR-08 | AI provider abstraction | DEFERRED |
 
 ---

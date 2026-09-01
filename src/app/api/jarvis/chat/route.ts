@@ -45,6 +45,10 @@ export async function POST(req: Request) {
           'get_customer_orders',
           'get_product',
           'search_products',
+          'draft_purchase_order',
+          'draft_promotion',
+          'draft_whatsapp_message',
+          'propose_stock_transfer',
         ],
       });
     }

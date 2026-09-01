@@ -2,6 +2,65 @@ import { eq } from 'drizzle-orm';
 import { db, branches, customers } from '@/db';
 import type { JarvisToolExecutionResult } from './jarvis-types';
 
+/** Pure keyword routing — no DB (for tests and fast paths). */
+export function matchJarvisIntent(message: string): { toolName: string; args: Record<string, unknown> } | null {
+  const q = message.toLowerCase().trim();
+
+  if (/draft po|purchase order|restock|supplier order/.test(q)) {
+    return {
+      toolName: 'draft_purchase_order',
+      args: { supplierId: 'pending-selection', warehouseId: 'pending-selection', items: [] },
+    };
+  }
+
+  if (/draft promo|promotion|discount campaign|campaign draft/.test(q)) {
+    const name = message.replace(/draft promo|promotion|discount campaign|campaign draft/gi, '').trim() || 'Seasonal promo';
+    return { toolName: 'draft_promotion', args: { name, discountPercent: 10 } };
+  }
+
+  if (/draft whatsapp|broadcast|message blast|whatsapp draft/.test(q)) {
+    return {
+      toolName: 'draft_whatsapp_message',
+      args: { audience: 'customers', message: message.slice(0, 280) || 'Hello from Grabber!' },
+    };
+  }
+
+  if (/low stock|reorder|stockout/.test(q)) {
+    return { toolName: 'get_low_stock', args: { limit: 10 } };
+  }
+
+  if (/top product|best seller|top sku/.test(q)) {
+    return { toolName: 'get_top_products', args: { days: 7, limit: 5 } };
+  }
+
+  if (/pending order|open order|awaiting fulfillment/.test(q)) {
+    return { toolName: 'get_pending_orders', args: { limit: 10 } };
+  }
+
+  if (/sales trend|revenue trend/.test(q)) {
+    return { toolName: 'get_sales_trend', args: { daysBack: 7 } };
+  }
+
+  if (/inventory snapshot|stock on hand|on hand/.test(q)) {
+    return { toolName: 'get_inventory', args: { limit: 10 } };
+  }
+
+  if (/search product|find product|lookup sku/.test(q)) {
+    const term = message.replace(/search product|find product|lookup sku/gi, '').trim() || 'shirt';
+    return { toolName: 'search_products', args: { query: term, limit: 5 } };
+  }
+
+  if (/sales|revenue|today|performance/.test(q)) {
+    return { toolName: 'get_sales_summary', args: { daysBack: 0 } };
+  }
+
+  if (/dashboard|daily brief|business brief|how are we/.test(q)) {
+    return { toolName: 'get_dashboard_summary', args: {} };
+  }
+
+  return null;
+}
+
 export async function routeJarvisMessage(message: string): Promise<{ toolName: string; args: Record<string, unknown> }> {
   const q = message.toLowerCase().trim();
 
@@ -22,32 +81,7 @@ export async function routeJarvisMessage(message: string): Promise<{ toolName: s
     return { toolName: 'get_customer_credit_report', args: { customerId: cust?.id || 'unknown' } };
   }
 
-  if (/low stock|reorder|stockout/.test(q)) {
-    return { toolName: 'get_low_stock', args: { limit: 10 } };
-  }
-
-  if (/top product|best seller|top sku/.test(q)) {
-    return { toolName: 'get_top_products', args: { days: 7, limit: 5 } };
-  }
-
-  if (/pending order|open order|awaiting/.test(q)) {
-    return { toolName: 'get_pending_orders', args: { limit: 10 } };
-  }
-
-  if (/sales trend|trend/.test(q)) {
-    return { toolName: 'get_sales_trend', args: { daysBack: 7 } };
-  }
-
-  if (/sales|revenue|today|performance/.test(q)) {
-    return { toolName: 'get_sales_summary', args: { daysBack: 0 } };
-  }
-
-  if (/search product|find product|lookup sku/.test(q)) {
-    const term = message.replace(/search product|find product|lookup sku/gi, '').trim() || 'shirt';
-    return { toolName: 'search_products', args: { query: term, limit: 5 } };
-  }
-
-  return { toolName: 'get_dashboard_summary', args: {} };
+  return matchJarvisIntent(message) || { toolName: 'get_dashboard_summary', args: {} };
 }
 
 function money(n: number) {
@@ -56,7 +90,8 @@ function money(n: number) {
 
 export function formatJarvisReply(result: JarvisToolExecutionResult): string {
   if (result.status === 'CONFIRMATION_REQUIRED') {
-    return `${result.confirmationDetails?.actionDescription || 'High-risk action staged.'} Review details and confirm to execute.`;
+    const draftHint = result.risk === 'DRAFT' ? ' Draft queued — open /approvals to approve.' : '';
+    return `${result.confirmationDetails?.actionDescription || 'Action staged.'}${draftHint} Review and confirm at /approvals.`;
   }
   if (result.status === 'BLOCKED_PERMISSION') {
     return result.errorMessage || 'You do not have permission for this action.';
@@ -113,6 +148,16 @@ export function formatJarvisReply(result: JarvisToolExecutionResult): string {
     const points = (data.series || []) as Array<{ date?: string; revenue?: number }>;
     if (!points.length) return 'No sales trend data for this window.';
     return `Trend: ${points.map((p) => `${p.date}: ${money(Number(p.revenue || 0))}`).join(' · ')}`;
+  }
+
+  if (result.toolName === 'get_inventory') {
+    const items = (data.products || data.items || []) as Array<{ name?: string; onHand?: number; sku?: string }>;
+    if (!items.length) return 'No inventory rows returned.';
+    return items.slice(0, 8).map((p) => `${p.name} (${p.sku}): ${p.onHand ?? 0} on hand`).join('\n');
+  }
+
+  if (result.toolName === 'draft_purchase_order' || result.toolName === 'draft_promotion' || result.toolName === 'draft_whatsapp_message') {
+    return `Draft ready: ${JSON.stringify(data).slice(0, 200)}`;
   }
 
   if (result.toolName === 'propose_stock_transfer' && result.status === 'EXECUTED') {

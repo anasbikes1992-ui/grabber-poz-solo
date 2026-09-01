@@ -1,4 +1,5 @@
-# Dependencies
+# Local codebase audit artifacts
+/graphify-out/
 /node_modules
 /.pnp
 .pnp.js

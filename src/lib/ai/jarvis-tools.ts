@@ -3,9 +3,10 @@
  * Authorized, Grounded Tool Calls with Multi-Tier Action Confirmation
  */
 
-import { JarvisToolDefinition, JarvisUserContext, JarvisToolExecutionResult } from './jarvis-types';
+import { JarvisToolDefinition, JarvisUserContext, JarvisToolExecutionResult, JarvisActionRisk } from './jarvis-types';
 import { JARVIS_DB_TOOLS } from './jarvis-db-tools';
 import { createApproval, findApprovalByToken } from '@/lib/approvals/approval-store';
+import { db, auditLogs, hasDatabaseUrl } from '@/db';
 import { defaultCommerceService, CommerceService } from '../commerce/commerce-service';
 import { defaultInventoryEngine, InventoryEngine } from '../commerce/inventory-engine';
 import { defaultCreditEngine, CreditEngine } from '../commerce/credit-engine';
@@ -328,6 +329,15 @@ export class JarvisToolRegistry {
 
     try {
       const data = await pending.tool.execute(pending.args, pending.context);
+      await writeJarvisExecutionAudit({
+        toolName: pending.tool.name,
+        risk: pending.tool.risk,
+        actorId: pending.context.userId,
+        actorRole: pending.context.role,
+        token,
+        payload: pending.args,
+        result: data,
+      });
       return {
         toolName: pending.tool.name,
         risk: pending.tool.risk,
@@ -346,3 +356,33 @@ export class JarvisToolRegistry {
 }
 
 export const defaultJarvisToolRegistry = new JarvisToolRegistry();
+
+async function writeJarvisExecutionAudit(input: {
+  toolName: string;
+  risk: JarvisActionRisk;
+  actorId: string;
+  actorRole: string;
+  token: string;
+  payload: unknown;
+  result: unknown;
+}) {
+  if (!hasDatabaseUrl()) return;
+  const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  try {
+    await db.insert(auditLogs).values({
+      actorId: uuidLike.test(input.actorId) ? input.actorId : null,
+      actorRole: input.actorRole,
+      action: 'JARVIS_TOOL_EXECUTE',
+      entity: 'JARVIS_APPROVAL',
+      entityId: input.token,
+      riskLevel: input.risk,
+      afterState: {
+        toolName: input.toolName,
+        payload: input.payload,
+        result: input.result,
+      },
+    });
+  } catch {
+    /* audit is best-effort */
+  }
+}

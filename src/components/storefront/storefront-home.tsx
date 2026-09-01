@@ -73,6 +73,8 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [shopper, setShopper] = useState<Shopper | null>(null);
   const [q, setQ] = useState('');
+  const [serverHits, setServerHits] = useState<Array<{ id: string; slug: string; name: string; sku: string; barcode: string | null; salePrice: number }>>([]);
+  const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
@@ -122,16 +124,50 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
     })();
   }, [refreshSession]);
 
+  useEffect(() => {
+    const needle = q.trim();
+    if (needle.length < 2) {
+      setServerHits([]);
+      return;
+    }
+    setSearching(true);
+    const timer = setTimeout(() => {
+      void fetch(`/api/storefront/search?q=${encodeURIComponent(needle)}`)
+        .then((r) => r.json())
+        .then((d) => setServerHits(d.products || []))
+        .catch(() => setServerHits([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [q]);
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return catalog;
+    if (needle.length >= 2 && serverHits.length > 0) {
+      return serverHits.map((hit) => {
+        const inCat = catalog.find((c) => c.slug === hit.slug || c.productId === hit.id);
+        if (inCat) return inCat;
+        return {
+          id: hit.id,
+          productId: hit.id,
+          slug: hit.slug,
+          name: hit.name,
+          sku: hit.sku,
+          barcode: hit.barcode,
+          unitPrice: hit.salePrice,
+          stock: 0,
+          variant: hit.sku,
+        } satisfies CatalogItem;
+      });
+    }
     return catalog.filter(
       (p) =>
         p.name.toLowerCase().includes(needle) ||
         p.sku.toLowerCase().includes(needle) ||
         (p.barcode ?? '').toLowerCase().includes(needle),
     );
-  }, [catalog, q]);
+  }, [catalog, q, serverHits]);
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce((s, l) => s + Number(l.unitPrice) * l.qty, 0);
@@ -297,6 +333,9 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
             <div>
               <h2 className="font-display text-2xl font-bold text-[var(--sf-foreground)]">Catalog</h2>
               <p className="mt-1 text-sm text-[var(--sf-secondary)]">Live stock from your Grabber inventory.</p>
+              {searching && q.trim().length >= 2 && (
+                <p className="mt-1 text-xs text-[var(--sf-secondary)]">Searching catalog…</p>
+              )}
             </div>
             <label className="block w-full max-w-sm text-sm">
               <span className="sr-only">Search products</span>
