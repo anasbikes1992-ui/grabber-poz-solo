@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { AppHeader } from '@/components/ui/app-header';
 import { JarvisDrawer } from '@/components/ai/jarvis-drawer';
+import { applyStaffTheme, readStaffTheme } from '@/lib/theme/staff-theme';
 
 function isPublicSurface(pathname: string): boolean {
   if (
@@ -45,7 +46,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.remove('dark');
       return;
     }
-    document.documentElement.classList.add('dark');
+    applyStaffTheme(readStaffTheme());
+    const onTheme = () => applyStaffTheme(readStaffTheme());
+    window.addEventListener('grabber-theme-change', onTheme);
+    return () => window.removeEventListener('grabber-theme-change', onTheme);
   }, [bare, pathname]);
 
   if (bare) {
@@ -53,7 +57,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col mesh-bg selection:bg-emerald-500 selection:text-zinc-950">
+    <div className="min-h-screen bg-background text-foreground flex flex-col mesh-bg selection:bg-emerald-500 selection:text-primary-foreground">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-xl focus:bg-emerald-500 focus:text-zinc-950 focus:font-bold"

@@ -21,6 +21,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { readLang, t, type Lang } from '@/lib/i18n/translations';
 
 interface SessionUser {
@@ -92,7 +93,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-xl text-white">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-xl text-foreground">
       <div
         className="h-0.5 w-full bg-gradient-to-r from-emerald-500 via-teal-400 via-purple-500 to-amber-400"
         aria-hidden="true"
@@ -103,7 +104,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white cursor-pointer btn-press"
+            className="md:hidden p-2 rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground cursor-pointer btn-press"
             aria-label="Toggle mobile menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -144,10 +145,10 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
                 key={link.href}
                 href={link.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                   isActive
-                    ? 'bg-zinc-800 text-white font-semibold border border-zinc-700'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
+                    ? 'bg-secondary text-foreground font-semibold border border-border'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-zinc-400'}`} />
@@ -173,24 +174,26 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
                 </button>
               )}
 
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs">
+              <ThemeToggle />
+
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border text-xs">
                 <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-[10px]">
                   {user.email[0]?.toUpperCase()}
                 </div>
                 <div className="text-left">
-                  <div className="text-white font-bold text-[11px] truncate max-w-[120px]">{user.shopName}</div>
-                  <div className="text-zinc-400 text-[9px] truncate max-w-[120px]">{user.email}</div>
+                  <div className="text-foreground font-bold text-[11px] truncate max-w-[120px]">{user.shopName}</div>
+                  <div className="text-muted-foreground text-[9px] truncate max-w-[120px]">{user.email}</div>
                 </div>
               </div>
 
-              <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-xl p-0.5 text-[10px] font-bold">
+              <div className="flex items-center bg-card border border-border rounded-xl p-0.5 text-[10px] font-bold">
                 {(['en', 'si', 'ta'] as const).map((code) => (
                   <button
                     key={code}
                     type="button"
                     onClick={() => setLanguage(code)}
                     className={`px-2 py-1 rounded-lg transition cursor-pointer ${
-                      lang === code ? 'bg-emerald-500/20 text-emerald-400' : 'text-zinc-300 hover:text-white hover:bg-zinc-800'
+                      lang === code ? 'bg-emerald-500/20 text-emerald-400' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                     }`}
                   >
                     {code === 'en' ? 'EN' : code === 'si' ? 'සිං' : 'தமி'}
@@ -202,7 +205,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
                 type="button"
                 onClick={() => void handleSignOut()}
                 title="Sign out"
-                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-red-500/10 border border-zinc-800 hover:border-red-500/30 text-zinc-300 hover:text-red-400 font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer btn-press"
+                className="px-3 py-1.5 rounded-xl bg-card hover:bg-red-500/10 border border-border hover:border-red-500/30 text-muted-foreground hover:text-red-400 font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer btn-press"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{t('signOut', lang)}</span>
@@ -221,15 +224,15 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-zinc-800 bg-zinc-950/95 p-4 space-y-2 text-xs">
+        <div className="md:hidden border-b border-border bg-background/95 p-4 space-y-2 text-xs">
           {user && (
-            <div className="p-3 mb-3 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center gap-3">
+            <div className="p-3 mb-3 rounded-xl bg-card border border-border flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs">
                 {user.email[0]?.toUpperCase()}
               </div>
               <div>
-                <div className="text-white font-bold text-xs">{user.shopName}</div>
-                <div className="text-zinc-400 text-[10px]">{user.email}</div>
+                <div className="text-foreground font-bold text-xs">{user.shopName}</div>
+                <div className="text-muted-foreground text-[10px]">{user.email}</div>
               </div>
             </div>
           )}
@@ -247,8 +250,8 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
                     link.highlight
                       ? 'bg-emerald-500 text-zinc-950'
                       : isActive
-                        ? 'bg-zinc-800 text-white border border-zinc-700'
-                        : 'bg-zinc-900 text-zinc-300 border border-zinc-800'
+                        ? 'bg-secondary text-foreground border border-border'
+                        : 'bg-card text-muted-foreground border border-border'
                   }`}
                 >
                   <Icon className="w-4 h-4" />

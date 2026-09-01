@@ -13,6 +13,7 @@ import {
   auditLogs,
 } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
+import { ensureDefaultChartOfAccounts } from '@/lib/commerce/ensure-coa';
 
 export async function POST(req: Request) {
   try {
@@ -84,6 +85,7 @@ export async function POST(req: Request) {
         throw new Error(`Refund amount must be between 0 and order total (${order.grandTotal})`);
       }
       const totalCost = items.reduce((s, l) => s + Number(l.unitCost) * l.quantity, 0);
+      await ensureDefaultChartOfAccounts(tx as unknown as typeof db);
       const resolve = async (code: string) => {
         const [a] = await tx.select().from(chartOfAccounts).where(eq(chartOfAccounts.code, code)).limit(1);
         if (!a) throw new Error(`Missing COA ${code}`);

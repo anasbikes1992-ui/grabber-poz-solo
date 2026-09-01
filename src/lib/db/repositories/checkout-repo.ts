@@ -15,6 +15,7 @@ import {
   auditLogs,
 } from '@/db/schema';
 import { resolveCheckoutStatuses, type CheckoutPaymentMethod } from '@/lib/commerce/order-lifecycle';
+import { ensureDefaultChartOfAccounts } from '@/lib/commerce/ensure-coa';
 import { dispatchAutomationEvent } from '@/lib/automation/engine';
 import { dispatchStockLowIfNeeded } from '@/lib/inventory/stock-low-alert';
 import { customers } from '@/db/schema';
@@ -276,6 +277,7 @@ export async function durableCheckout(input: CheckoutInput) {
     let journalEntryId: string | null = null;
 
     if (paymentSuccess) {
+      await ensureDefaultChartOfAccounts(tx as unknown as typeof db);
       const aRev = await resolveAccountId(tx as unknown as typeof db, '4000');
       const aVat = await resolveAccountId(tx as unknown as typeof db, '2100');
       const aCogs = await resolveAccountId(tx as unknown as typeof db, '5000');

@@ -22,18 +22,7 @@ import {
 } from '@/db/schema';
 import { hashPin } from '@/lib/auth/session';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
-
-const COA = [
-  { code: '1010', name: 'Cash on Hand', type: 'ASSET' as const },
-  { code: '1020', name: 'Bank Account', type: 'ASSET' as const },
-  { code: '1090', name: 'Sales Clearing Account', type: 'ASSET' as const },
-  { code: '1100', name: 'Accounts Receivable (Polim Potha)', type: 'ASSET' as const },
-  { code: '1200', name: 'Merchandise Inventory', type: 'ASSET' as const },
-  { code: '2000', name: 'Accounts Payable (Suppliers)', type: 'LIABILITY' as const },
-  { code: '2100', name: 'VAT Payable', type: 'LIABILITY' as const },
-  { code: '4000', name: 'Sales Revenue', type: 'REVENUE' as const },
-  { code: '5000', name: 'Cost of Goods Sold (COGS)', type: 'EXPENSE' as const },
-];
+import { REQUIRED_COA } from '@/lib/commerce/ensure-coa';
 
 export async function POST(req: Request) {
   try {
@@ -64,7 +53,7 @@ export async function POST(req: Request) {
           return existing;
         });
 
-      for (const row of COA) {
+      for (const row of REQUIRED_COA) {
         await tx.insert(chartOfAccounts).values(row).onConflictDoNothing();
       }
 

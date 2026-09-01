@@ -32,7 +32,14 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const pixels = await resolveMarketingPixels();
   return (
-    <html lang="en" className={`${plusJakartaSans.variable} ${rubik.variable} ${nunitoSans.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${plusJakartaSans.variable} ${rubik.variable} ${nunitoSans.variable} dark`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=location.pathname;var pub=p==='/'||p==='/store'||p==='/login'||p==='/adminpoz'||p.startsWith('/shop/')||p.startsWith('/categories/')||/^\\/products\\/[^/]+$/.test(p);if(pub){document.documentElement.classList.remove('dark');return;}if(localStorage.getItem('grabber_staff_theme')==='light'){document.documentElement.classList.remove('dark');}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="antialiased min-h-screen font-sans selection:bg-emerald-500 selection:text-zinc-950 [font-family:var(--font-nunito),var(--font-plus-jakarta),system-ui,sans-serif]">
         <StorefrontAnalytics pixels={pixels} />
         <AppShell>{children}</AppShell>

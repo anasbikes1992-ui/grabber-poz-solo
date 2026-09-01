@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { db, repairJobs } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 import { dispatchAutomationEvent } from '@/lib/automation/engine';
+import { formatTicketCode } from '@/lib/repairs/pricing';
 
 async function actor() {
   let session = await getSession();
@@ -16,6 +17,7 @@ async function actor() {
 
 export async function GET() {
   try {
+    await actor();
     const rows = await db.select().from(repairJobs).orderBy(desc(repairJobs.createdAt)).limit(100);
     return NextResponse.json({ success: true, jobs: rows });
   } catch (err: unknown) {
@@ -27,7 +29,11 @@ export async function POST(req: Request) {
   try {
     const session = await actor();
     const body = await req.json();
-    const jobNumber = body.jobNumber || `JOB-${Date.now().toString().slice(-6)}`;
+    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(repairJobs);
+    const jobNumber =
+      body.jobNumber && String(body.jobNumber).startsWith('REP-')
+        ? String(body.jobNumber)
+        : formatTicketCode((count || 0) + 1);
     const [job] = await db
       .insert(repairJobs)
       .values({
@@ -50,6 +56,18 @@ export async function POST(req: Request) {
         createdBy: session && !isDemoUserId(session.userId) ? session.userId : null,
       })
       .returning();
+
+    await dispatchAutomationEvent('REPAIR_CREATED', {
+      repairId: job.id,
+      ticketCode: job.jobNumber,
+      customerName: job.customerName,
+      customerPhone: job.customerPhone,
+      deviceModel: job.deviceModel,
+      serviceName: job.primaryFault || 'Repair intake',
+      mode: 'DROP_OFF',
+      issue: job.primaryFault || 'See job sheet',
+    });
+
     return NextResponse.json({ success: true, job });
   } catch (err: unknown) {
     return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
