@@ -112,3 +112,40 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    await actor();
+    const body = await req.json();
+
+    if (body.action === 'update_table') {
+      const [table] = await db
+        .update(diningTables)
+        .set({
+          name: body.name,
+          capacity: body.capacity != null ? Number(body.capacity) : undefined,
+          sortOrder: body.sortOrder != null ? Number(body.sortOrder) : undefined,
+          status: body.status,
+        })
+        .where(eq(diningTables.id, body.tableId))
+        .returning();
+      return NextResponse.json({ success: true, table });
+    }
+
+    if (body.action === 'close_kot') {
+      const [ticket] = await db
+        .update(kitchenTickets)
+        .set({ status: 'CLOSED', closedAt: new Date() })
+        .where(eq(kitchenTickets.id, body.ticketId))
+        .returning();
+      if (ticket?.tableId) {
+        await db.update(diningTables).set({ status: 'VACANT' }).where(eq(diningTables.id, ticket.tableId));
+      }
+      return NextResponse.json({ success: true, ticket });
+    }
+
+    return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+  }
+}

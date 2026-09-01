@@ -1,8 +1,19 @@
 import { readConfigJson, mergeConfigJson } from '@/lib/config/business-settings';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
+import { proposeApprovalsFromAgentResult, type AgentApprovalDraft } from './approval-bridge';
 import { executeAgent } from './handlers';
 import { listEnabledAgentIds } from './registry';
 import type { AgentId, AgentLogEntry, AgentResult, AgentTask } from './types';
+
+export type AgentRunContext = {
+  userId: string;
+  role: string;
+  proposeApprovals?: boolean;
+};
+
+export type AgentRunOutcome = AgentResult & {
+  approvals?: AgentApprovalDraft[];
+};
 
 export type { AgentId, AgentResult, AgentTask, AgentLogEntry } from './types';
 export { AGENT_REGISTRY, getAgentDefinition, listEnabledAgents } from './registry';
@@ -29,7 +40,7 @@ async function appendAgentLog(entry: Omit<AgentLogEntry, 'id' | 'createdAt'>) {
   return row;
 }
 
-export async function runAgentTaskDb(task: AgentTask): Promise<AgentResult> {
+export async function runAgentTaskDb(task: AgentTask, ctx?: AgentRunContext): Promise<AgentRunOutcome> {
   const flags = await readVerticalFlagsForAgents();
   const enabled = listEnabledAgentIds(flags);
   if (!enabled.includes(task.agent)) {
@@ -42,19 +53,26 @@ export async function runAgentTaskDb(task: AgentTask): Promise<AgentResult> {
 
   const result = await executeAgent(task.agent);
   await appendAgentLog({ agent: task.agent, summary: result.summary });
+
+  if (ctx?.proposeApprovals !== false && ctx?.userId) {
+    const approvals = await proposeApprovalsFromAgentResult(result, {
+      userId: ctx.userId,
+      role: ctx.role,
+    });
+    if (approvals.length) return { ...result, approvals };
+  }
+
   return result;
 }
 
-export async function runAllEnabledAgents(): Promise<AgentResult[]> {
+export async function runAllEnabledAgents(ctx?: AgentRunContext): Promise<AgentRunOutcome[]> {
   const flags = await readVerticalFlagsForAgents();
   const ids = listEnabledAgentIds(flags);
-  const results: AgentResult[] = [];
+  const results: AgentRunOutcome[] = [];
 
   for (const id of ids) {
     try {
-      const result = await executeAgent(id);
-      await appendAgentLog({ agent: id, summary: result.summary });
-      results.push(result);
+      results.push(await runAgentTaskDb({ agent: id, prompt: 'Daily briefing' }, ctx));
     } catch (err) {
       results.push({
         agent: id,
@@ -67,8 +85,8 @@ export async function runAllEnabledAgents(): Promise<AgentResult[]> {
   return results;
 }
 
-export async function runAgentTask(task: AgentTask): Promise<AgentResult> {
-  return runAgentTaskDb(task);
+export async function runAgentTask(task: AgentTask, ctx?: AgentRunContext): Promise<AgentRunOutcome> {
+  return runAgentTaskDb(task, ctx);
 }
 
 export async function listRecentAgentLogs(limit = 30): Promise<AgentLogEntry[]> {

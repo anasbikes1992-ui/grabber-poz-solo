@@ -109,3 +109,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    await actor();
+    const body = await req.json();
+    if (!body.id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
+    const [updated] = await db
+      .update(loyaltyMembers)
+      .set({
+        name: body.name,
+        phone: body.phone,
+        tier: body.tier,
+        points: body.points != null ? Number(body.points) : undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(loyaltyMembers.id, body.id))
+      .returning();
+    return NextResponse.json({ success: true, member: updated });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    await actor();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
+    await db.delete(loyaltyMembers).where(eq(loyaltyMembers.id, id));
+    return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+  }
+}

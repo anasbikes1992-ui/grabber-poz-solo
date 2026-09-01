@@ -59,10 +59,34 @@ export async function PATCH(req: Request) {
     if (!body.id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
     const [row] = await db
       .update(appointments)
-      .set({ status: body.status, notes: body.notes, updatedAt: new Date() })
+      .set({
+        status: body.status,
+        notes: body.notes,
+        customerName: body.customerName,
+        phone: body.phone,
+        service: body.service,
+        specialist: body.specialist,
+        fee: body.fee != null ? Number(body.fee).toFixed(2) : undefined,
+        startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
+        endsAt: body.endsAt ? new Date(body.endsAt) : undefined,
+        updatedAt: new Date(),
+      })
       .where(eq(appointments.id, body.id))
       .returning();
     return NextResponse.json({ success: true, appointment: row });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    await actor();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id') || (await req.json().catch(() => ({}))).id;
+    if (!id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
+    await db.delete(appointments).where(eq(appointments.id, String(id)));
+    return NextResponse.json({ success: true });
   } catch (err: unknown) {
     return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
   }

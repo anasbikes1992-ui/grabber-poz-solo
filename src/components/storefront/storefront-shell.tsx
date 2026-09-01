@@ -3,8 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Package, Search, ShoppingBag, Wrench } from 'lucide-react';
+import { MessageCircle, Package, Search, ShoppingBag, Wrench } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
+import type { StorefrontConfig } from '@/lib/config/storefront-config';
+import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-config';
+import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
+import { storefrontThemeStyle, whatsappHref } from '@/lib/storefront/theme-vars';
 
 type Shopper = { id: string; name: string; phone: string | null; email: string | null };
 
@@ -19,14 +23,19 @@ function navLinkClass(active: boolean) {
 
 export function StorefrontShell({
   children,
-  announcement,
+  cms = DEFAULT_STOREFRONT,
+  verticalFlags = DEFAULT_VERTICAL_FLAGS,
 }: {
   children: React.ReactNode;
-  announcement?: string;
+  cms?: StorefrontConfig;
+  verticalFlags?: VerticalFlags;
 }) {
   const pathname = usePathname();
   const [shopper, setShopper] = useState<Shopper | null>(null);
   const [bagCount, setBagCount] = useState(0);
+
+  const announcement = blocksForSlot(cms.blocks, 'TOP').find((b) => b.type === 'ANNOUNCEMENT');
+  const waLink = whatsappHref(cms.theme.whatsappNumber, 'Hi, I have a question about your store.');
 
   useEffect(() => {
     void (async () => {
@@ -52,15 +61,17 @@ export function StorefrontShell({
 
   const isProducts = pathname === '/' || pathname.startsWith('/products') || pathname.startsWith('/categories');
   const isRepairs = pathname.startsWith('/shop/repairs');
+  const showRepairs = verticalFlags.repairs;
 
   return (
     <div
       data-surface="storefront"
+      style={storefrontThemeStyle(cms.theme)}
       className="storefront min-h-screen bg-[var(--sf-background)] pb-20 text-[var(--sf-foreground)] md:pb-0"
     >
-      {announcement && (
+      {announcement?.type === 'ANNOUNCEMENT' && (
         <div className="bg-[var(--sf-primary)] text-center text-xs font-semibold text-[var(--sf-on-primary)] px-4 py-2">
-          {announcement}
+          {announcement.text}
         </div>
       )}
 
@@ -75,10 +86,23 @@ export function StorefrontShell({
               <Package className="mr-1.5 inline h-4 w-4" aria-hidden />
               Products
             </Link>
-            <Link href="/shop/repairs" className={navLinkClass(isRepairs)}>
-              <Wrench className="mr-1.5 inline h-4 w-4" aria-hidden />
-              Repairs
-            </Link>
+            {showRepairs && (
+              <Link href="/shop/repairs" className={navLinkClass(isRepairs)}>
+                <Wrench className="mr-1.5 inline h-4 w-4" aria-hidden />
+                Repairs
+              </Link>
+            )}
+            {waLink && (
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 font-medium text-[var(--sf-accent)] hover:bg-[var(--sf-muted)]"
+              >
+                <MessageCircle className="h-4 w-4" aria-hidden />
+                WhatsApp
+              </a>
+            )}
           </nav>
 
           <div className="flex items-center gap-1 sm:gap-2">
@@ -135,19 +159,30 @@ export function StorefrontShell({
         className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--sf-border)] bg-[var(--sf-background)]/95 backdrop-blur-xl md:hidden"
         aria-label="Mobile store navigation"
       >
-        <div className="mx-auto grid max-w-lg grid-cols-4 gap-1 px-2 py-2">
+        <div className={`mx-auto grid max-w-lg gap-1 px-2 py-2 ${showRepairs ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <Link href="/" className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${isProducts ? 'text-[var(--sf-accent)]' : 'text-[var(--sf-secondary)]'}`}>
             <Package className="h-5 w-5" aria-hidden />
             Products
           </Link>
-          <Link href="/shop/repairs" className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${isRepairs ? 'text-[var(--sf-accent)]' : 'text-[var(--sf-secondary)]'}`}>
-            <Wrench className="h-5 w-5" aria-hidden />
-            Repairs
-          </Link>
-          <Link href="/shop/repairs/track" className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-[var(--sf-secondary)]">
-            <Search className="h-5 w-5" aria-hidden />
-            Track
-          </Link>
+          {showRepairs && (
+            <Link href="/shop/repairs" className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${isRepairs ? 'text-[var(--sf-accent)]' : 'text-[var(--sf-secondary)]'}`}>
+              <Wrench className="h-5 w-5" aria-hidden />
+              Repairs
+            </Link>
+          )}
+          {showRepairs ? (
+            <Link href="/shop/repairs/track" className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-[var(--sf-secondary)]">
+              <Search className="h-5 w-5" aria-hidden />
+              Track
+            </Link>
+          ) : (
+            waLink && (
+              <a href={waLink} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-[var(--sf-secondary)]">
+                <MessageCircle className="h-5 w-5" aria-hidden />
+                Chat
+              </a>
+            )
+          )}
           <Link href="/#catalog" className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-[var(--sf-secondary)]">
             <ShoppingBag className="h-5 w-5" aria-hidden />
             Bag

@@ -4,7 +4,15 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { StorefrontShell } from '@/components/storefront/storefront-shell';
+import {
+  StorefrontFeaturedSection,
+  StorefrontFooterCta,
+  StorefrontMidBlocks,
+} from '@/components/storefront/storefront-blocks';
 import type { StorefrontConfig } from '@/lib/config/storefront-config';
+import { blocksForSlot } from '@/lib/config/storefront-config';
+import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
+import { whatsappHref } from '@/lib/storefront/theme-vars';
 
 type CatalogItem = {
   id: string;
@@ -56,9 +64,10 @@ const gridItem = {
 };
 
 export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
-  const hero = cms.blocks.find((b) => b.type === 'HERO');
-  const announcement = cms.blocks.find((b) => b.type === 'ANNOUNCEMENT');
+  const heroBlock = blocksForSlot(cms.blocks, 'HERO').find((b) => b.type === 'HERO');
+  const hero = heroBlock?.type === 'HERO' ? heroBlock : undefined;
   const reduceMotion = useReducedMotion();
+  const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [branchId, setBranchId] = useState<string | null>(null);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -85,11 +94,14 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   useEffect(() => {
     void (async () => {
       try {
-        const [healthRes, catRes] = await Promise.all([
+        const [healthRes, catRes, pubRes] = await Promise.all([
           fetch('/api/health'),
           fetch('/api/pos/catalog'),
+          fetch('/api/storefront/public'),
           refreshSession(),
         ]);
+        const pub = (await pubRes.json()) as { verticalFlags?: VerticalFlags };
+        if (pub.verticalFlags) setVerticalFlags({ ...DEFAULT_VERTICAL_FLAGS, ...pub.verticalFlags });
         const health = (await healthRes.json()) as { db?: string };
         if (health.db === 'not_configured') {
           throw new Error('Database not connected on server — add DATABASE_URL on Vercel');
@@ -174,9 +186,11 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
     window.location.href = '/shop/checkout';
   }
 
+  const waOrder = whatsappHref(cms.theme.whatsappNumber, 'Hi, I would like to place an order.');
+
   return (
-    <StorefrontShell announcement={announcement?.type === 'ANNOUNCEMENT' ? announcement.text : undefined}>
-      <main style={{ ['--store-primary' as string]: cms.theme.primaryColor }}>
+    <StorefrontShell cms={cms} verticalFlags={verticalFlags}>
+      <div>
         <section className="relative overflow-hidden border-b border-[var(--sf-border)]">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(161,98,7,0.08),transparent_50%)]" />
           <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:py-20">
@@ -191,13 +205,13 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                 variants={reduceMotion ? undefined : heroItem}
                 className="mt-3 font-display text-4xl font-bold tracking-tight text-[var(--sf-foreground)] sm:text-5xl"
               >
-                {hero?.type === 'HERO' ? hero.title : 'Shop Grabber'}
+                {hero?.title || 'Shop Grabber'}
               </motion.h1>
               <motion.p
                 variants={reduceMotion ? undefined : heroItem}
                 className="mt-4 max-w-xl text-lg text-[var(--sf-secondary)]"
               >
-                {hero?.type === 'HERO' ? hero.subtitle : 'Browse live inventory and place COD orders online.'}
+                {hero?.subtitle || 'Browse live inventory and place COD orders online.'}
               </motion.p>
               <motion.div
                 variants={reduceMotion ? undefined : heroItem}
@@ -207,14 +221,26 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                   href="#catalog"
                   className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[var(--sf-accent)] px-6 py-3 text-sm font-semibold text-white shadow-md transition-opacity duration-200 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
                 >
-                  Browse products
+                  {hero?.ctaLabel || 'Browse products'}
                 </a>
-                <Link
-                  href="/shop/repairs"
-                  className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-repair)] bg-[var(--sf-repair-muted)] px-6 py-3 text-sm font-semibold text-[var(--sf-repair)] transition-colors duration-200 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
-                >
-                  Device repairs
-                </Link>
+                {verticalFlags.repairs && (
+                  <Link
+                    href={hero?.secondaryCtaHref || '/shop/repairs'}
+                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-repair)] bg-[var(--sf-repair-muted)] px-6 py-3 text-sm font-semibold text-[var(--sf-repair)] transition-colors duration-200 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                  >
+                    {hero?.secondaryCtaLabel || 'Device repairs'}
+                  </Link>
+                )}
+                {waOrder && (
+                  <a
+                    href={waOrder}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-white/80 px-6 py-3 text-sm font-semibold text-[var(--sf-primary)] transition-colors duration-200 hover:bg-white"
+                  >
+                    WhatsApp order
+                  </a>
+                )}
                 {!shopper && (
                   <Link
                     href="/shop/login"
@@ -250,6 +276,21 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
             </motion.div>
           </div>
         </section>
+
+        <StorefrontMidBlocks cms={cms} />
+
+        <StorefrontFeaturedSection
+          cms={cms}
+          catalog={filtered}
+          onAdd={(item) =>
+            addToCart({
+              ...item,
+              productId: item.productId || item.id,
+              sku: item.sku || item.id,
+              barcode: item.barcode ?? null,
+            })
+          }
+        />
 
         <section id="catalog" className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -359,10 +400,12 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
           )}
         </section>
 
-      <footer className="border-t border-[var(--sf-border)] bg-white/60 py-8 text-center text-sm text-[var(--sf-secondary)]">
-        <p>© {new Date().getFullYear()} Grabber Business OS</p>
-      </footer>
-      </main>
+        <StorefrontFooterCta cms={cms} />
+
+        <footer className="border-t border-[var(--sf-border)] bg-white/60 py-8 text-center text-sm text-[var(--sf-secondary)]">
+          <p>© {new Date().getFullYear()} Grabber Business OS</p>
+        </footer>
+      </div>
     </StorefrontShell>
   );
 }

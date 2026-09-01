@@ -91,7 +91,7 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | SEC-02 | `buildJarvisContext()` from `getSession()` | CRITICAL | DONE |
 | SEC-03 | Jarvis API requires staff session in production | CRITICAL | DONE |
 | SEC-04 | RLS automated probes in certify | HIGH | DONE (`db:apply-rls`, `db:test-rls`) |
-| SEC-05 | Rate limits on Jarvis / public APIs | MEDIUM | TODO |
+| SEC-05 | Rate limits on Jarvis / public APIs | MEDIUM | DONE (`src/lib/security/rate-limit.ts`, middleware) |
 | SEC-06 | Granular permission matrix | MEDIUM | DEFERRED (R2+) |
 
 ---
@@ -135,7 +135,10 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | STR-07 | Theme engine (stone/gold) | DONE |
 | STR-08 | SEO meta + OG + JSON-LD | DONE (S5) |
 | STR-09 | `sitemap.xml` + `robots.txt` | DONE (S5) |
-| STR-10 | Wishlist + reviews | TODO |
+| STR-08 | Storefront banner slots (TOP/HERO/MID/PRE_CATALOG/FOOTER) | DONE |
+| STR-09 | CMS theme tokens → live `--sf-*` vars + WhatsApp CTA | DONE |
+| VRT-01 | Settings UI for vertical flags | DONE |
+| VRT-02 | Vertical PATCH/DELETE APIs (appointments, loyalty, HP, restaurant, quotes, repairs) | DONE |
 | STR-11 | Storefront shell + repairs nav | DONE (`StorefrontShell`, `/shop/repairs`) |
 
 ---
@@ -147,13 +150,13 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | REP-01 | Public repairs landing + wizard + track | DONE |
 | REP-02 | Staff queue status + WhatsApp on READY | DONE |
 | REP-03 | Repair agent (R6) | DONE |
-| REP-04 | Staff ticket workspace `/repairs/[id]` | TODO (Phase 2) |
+| REP-04 | Staff ticket workspace `/repairs/[id]` | DONE (parts-from-stock via `/api/repairs/[id]/parts`) |
 | WA-01 | Outbound send (live when env set) | DONE |
 | WA-02 | Inbound webhooks + signature verify | DONE |
 | WA-03 | Template registry + variables | PARTIAL |
 | AUTO-01 | Event → condition → action engine | DONE |
 | AUTO-02 | `ORDER_CREATED` → WhatsApp rule | DONE |
-| AUTO-03 | `STOCK_LOW` → owner notify | TODO |
+| AUTO-03 | `STOCK_LOW` → owner notify | DONE (checkout + repair parts; default rules) |
 | AUTO-04 | Retry + idempotency + delivery log | PARTIAL (logs exist; retry TODO) |
 
 ---
@@ -180,7 +183,7 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | AGT-01 | Agent orchestrator (12 agents, vertical flags) | DONE |
 | AGT-02 | Core + vertical agents (SALES…CREATIVE) | DONE |
 | AGT-03 | `/api/agents/brief` + run-all | DONE |
-| AGT-04 | Agent → Approval EXECUTE bridge | TODO |
+| AGT-04 | Agent → Approval EXECUTE bridge | DONE (PROPOSE drafts; EXECUTE via Approval Center) |
 | CRE-01 | Brand brain in config | DONE |
 | CRE-02 | Brief → generate → review → approve → publish | PARTIAL (approve-to-storefront) |
 | CRE-03 | Store banner + WhatsApp from creative | PARTIAL |

@@ -73,13 +73,15 @@ export async function approveCreativeCampaign(projectId: string, draft: {
   const heroSubtitle = draft.heroSubtitle || announcement;
 
   const blocks = [
-    { id: 'ann_1', type: 'ANNOUNCEMENT' as const, text: announcement },
+    { id: 'ann_1', type: 'ANNOUNCEMENT' as const, text: announcement, slot: 'TOP' as const, enabled: true },
     {
       id: 'hero_1',
       type: 'HERO' as const,
       title: heroTitle,
       subtitle: heroSubtitle,
       ctaLabel: 'Shop now',
+      slot: 'HERO' as const,
+      enabled: true,
     },
     ...current.blocks.filter((b) => b.type !== 'ANNOUNCEMENT' && b.type !== 'HERO'),
   ];

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Settings, Download, Database, ShieldCheck, CheckCircle2, FileSpreadsheet, Key, CreditCard, Truck, MessageSquare, Sparkles, Check, RefreshCw } from 'lucide-react';
+import { Settings, Download, Database, ShieldCheck, CheckCircle2, FileSpreadsheet, Key, CreditCard, Truck, MessageSquare, Sparkles, Check, RefreshCw, Layers } from 'lucide-react';
+import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 
 type BusinessProfile = {
   name: string;
@@ -14,7 +15,7 @@ type BusinessProfile = {
 };
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'GENERAL' | 'INTEGRATIONS' | 'BACKUPS'>('GENERAL');
+  const [activeTab, setActiveTab] = useState<'GENERAL' | 'VERTICALS' | 'INTEGRATIONS' | 'BACKUPS'>('GENERAL');
 
   const [exportSuccess, setExportSuccess] = useState(false);
   const [backupSuccess, setBackupSuccess] = useState(false);
@@ -41,6 +42,8 @@ export default function SettingsPage() {
 
   const [testedService, setTestedService] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
+  const [flagsSaveSuccess, setFlagsSaveSuccess] = useState(false);
 
   const loadSettings = useCallback(async () => {
     setProfileLoading(true);
@@ -62,6 +65,11 @@ export default function SettingsPage() {
         setPayhereMerchantId(data.integrations.payhereMerchantId || '');
         setWhatsappPhoneId(data.integrations.whatsappPhoneId || '');
         setPromptExpressCode(data.integrations.promptExpressClientCode || '');
+      }
+      const flagsRes = await fetch('/api/config/flags');
+      const flagsData = await flagsRes.json();
+      if (flagsData.success && flagsData.flags) {
+        setVerticalFlags({ ...DEFAULT_VERTICAL_FLAGS, ...flagsData.flags });
       }
     } finally {
       setProfileLoading(false);
@@ -92,6 +100,19 @@ export default function SettingsPage() {
     if (data.success) {
       setProfileSaveSuccess(true);
       setTimeout(() => setProfileSaveSuccess(false), 2000);
+    }
+  };
+
+  const handleSaveVerticalFlags = async () => {
+    const res = await fetch('/api/config/flags', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ flags: verticalFlags }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setFlagsSaveSuccess(true);
+      setTimeout(() => setFlagsSaveSuccess(false), 2000);
     }
   };
 
@@ -171,6 +192,18 @@ export default function SettingsPage() {
           }`}
         >
           General Profile & Tax
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('VERTICALS')}
+          className={`px-4 py-2 min-h-11 rounded-xl font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer ${
+            activeTab === 'VERTICALS'
+              ? 'bg-emerald-500 text-zinc-950 shadow-glow-em'
+              : 'text-muted-foreground hover:text-foreground hover:bg-zinc-900'
+          }`}
+        >
+          <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Vertical modules</span>
         </button>
         <button
           type="button"
@@ -316,6 +349,42 @@ export default function SettingsPage() {
             </div>
           </div>
         </form>
+      )}
+
+      {activeTab === 'VERTICALS' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl glass-card p-6 text-xs space-y-4">
+            <h3 className="font-bold text-sm text-foreground">Enabled vertical modules</h3>
+            <p className="text-muted-foreground">
+              Toggle modules for sidebar nav, agents, and storefront promos. Polim Potha is always on (core ledger).
+            </p>
+            {flagsSaveSuccess && (
+              <p className="flex items-center gap-2 font-semibold text-emerald-500">
+                <CheckCircle2 className="h-4 w-4" /> Vertical flags saved
+              </p>
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(Object.keys(DEFAULT_VERTICAL_FLAGS) as (keyof VerticalFlags)[]).map((key) => (
+                <label key={key} className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={verticalFlags[key]}
+                    onChange={(e) => setVerticalFlags((f) => ({ ...f, [key]: e.target.checked }))}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  <span className="font-semibold capitalize text-foreground">{key.replace(/([A-Z])/g, ' $1')}</span>
+                </label>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleSaveVerticalFlags()}
+              className="min-h-11 rounded-xl bg-emerald-500 px-5 py-2 font-bold text-zinc-950"
+            >
+              Save vertical flags
+            </button>
+          </div>
+        </div>
       )}
 
       {/* TAB 2: API Credentials & Integrations Vault */}

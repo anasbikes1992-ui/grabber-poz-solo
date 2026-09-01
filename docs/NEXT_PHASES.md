@@ -118,8 +118,8 @@ npm run ops:sync-env -- --env-file .env.prod.txt
 | 3 | Manual commerce smoke RT-M01–M08 | Operator |
 | 4 | Mobile Lighthouse on product + checkout | Operator |
 | 5 | Jarvis live parity vs dashboard (staff session) | Operator |
-| 6 | Deploy repairs + agents to Vercel (git push) | Engineering |
-| 7 | Agent → Approval Center EXECUTE bridge | Engineering |
+| 6 | Agent → Approval Center EXECUTE bridge | Engineering | **PROPOSE done** — EXECUTE at /approvals |
+| 7 | Staff `/repairs/[id]` workspace | Engineering | **DONE** |
 | 8 | Stock reservation API (optional R2.1) | Engineering |
 | 9 | LKR online payments | Engineering |
-| 10 | Repairs Phase 2 (`/repairs/[id]`, parts from stock) | Engineering |
+| 10 | Repairs Phase 2b (parts from stock) | Engineering |

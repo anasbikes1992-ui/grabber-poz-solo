@@ -161,7 +161,11 @@ export default function RepairsPage() {
           <tbody className="divide-y divide-zinc-800">
             {jobs.map((j) => (
               <tr key={j.id}>
-                <td className="py-2 font-mono">{j.jobNumber}</td>
+                <td className="py-2 font-mono">
+                  <Link href={`/repairs/${j.id}`} className="text-emerald-400 hover:underline">
+                    {j.jobNumber}
+                  </Link>
+                </td>
                 <td className="py-2">{j.customerName}</td>
                 <td className="py-2 text-muted-foreground">{j.deviceModel}</td>
                 <td className="py-2 text-right">

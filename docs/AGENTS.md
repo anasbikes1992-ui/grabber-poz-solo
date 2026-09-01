@@ -60,12 +60,12 @@ Logs append to `business_config.agentLogs` (last 200 entries).
 Agent READ (handlers.ts)
     → recommendations[] + metrics
     → agentLogs
-    → (next) Approval Center PROPOSE
-    → EXECUTE with confirmationToken
+    → Approval Center PROPOSE (actionable recommendations → createApproval)
+    → EXECUTE with confirmationToken (staff at /approvals)
     → audit_logs
 ```
 
-**Open:** auto-create approval drafts from high-priority recommendations (EXECUTE audit).
+Actionable patterns (PO lines, repair tickets, EMI collection, KOT serve, creative promos) auto-create **DRAFT** approvals when agents run with a staff session.
 
 ---
 

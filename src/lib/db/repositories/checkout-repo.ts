@@ -16,6 +16,7 @@ import {
 } from '@/db/schema';
 import { resolveCheckoutStatuses, type CheckoutPaymentMethod } from '@/lib/commerce/order-lifecycle';
 import { dispatchAutomationEvent } from '@/lib/automation/engine';
+import { dispatchStockLowIfNeeded } from '@/lib/inventory/stock-low-alert';
 import { customers } from '@/db/schema';
 
 export type CheckoutItem = {
@@ -95,7 +96,9 @@ export async function durableCheckout(input: CheckoutInput) {
     }
 
     // Load product costs if needed
-    const lines: Array<CheckoutItem & { unitCost: number; lineTotal: number }> = [];
+    const lines: Array<
+      CheckoutItem & { unitCost: number; lineTotal: number; sku: string; reorderLevel: number }
+    > = [];
     for (const item of input.items) {
       const [prod] = await tx.select().from(products).where(eq(products.id, item.productId)).limit(1);
       if (!prod || !prod.isActive) throw new Error(`Product not found or inactive: ${item.productId}`);
@@ -108,6 +111,8 @@ export async function durableCheckout(input: CheckoutInput) {
         unitPrice,
         quantity: item.quantity,
         lineTotal: unitPrice * item.quantity,
+        sku: prod.sku,
+        reorderLevel: prod.reorderLevel ?? 10,
       });
     }
 
@@ -128,6 +133,14 @@ export async function durableCheckout(input: CheckoutInput) {
     const lifecycleMethod = isSplit ? 'CASH' : input.paymentMethod;
     const statuses = resolveCheckoutStatuses(input.channel, lifecycleMethod, isSplit);
     const paymentSuccess = statuses.paymentStatus === 'PAID';
+
+    const stockLowCandidates: Array<{
+      productId: string;
+      productName: string;
+      sku: string;
+      onHand: number;
+      reorderLevel: number;
+    }> = [];
 
     // Concurrent-safe stock decrement: available = on_hand - reserved
     for (const line of lines) {
@@ -152,6 +165,17 @@ export async function durableCheckout(input: CheckoutInput) {
 
       if (!result.length) {
         throw new Error(`Insufficient stock for product ${line.productId}`);
+      }
+
+      const onHand = Number(result[0].onHand);
+      if (onHand <= line.reorderLevel) {
+        stockLowCandidates.push({
+          productId: line.productId,
+          productName: line.name || line.productId,
+          sku: line.sku,
+          onHand,
+          reorderLevel: line.reorderLevel,
+        });
       }
 
       await tx.insert(stockMovements).values({
@@ -333,10 +357,14 @@ export async function durableCheckout(input: CheckoutInput) {
       taxTotal,
       subtotal,
       isSplit,
+      stockLowCandidates,
     };
   });
 
   if (result.reused === false && result.order) {
+    for (const alert of result.stockLowCandidates || []) {
+      void dispatchStockLowIfNeeded(alert).catch(() => undefined);
+    }
     let customerName = 'Customer';
     let customerPhone = '';
     if (input.customerId) {

@@ -17,10 +17,24 @@ export async function POST(req: Request) {
     }
     const body = await req.json();
     const runAll = body.all === true || body.action === 'run_all';
+    const ctx = session
+      ? {
+          userId: session.userId,
+          role: session.role,
+          proposeApprovals: body.proposeApprovals !== false,
+        }
+      : process.env.NODE_ENV !== 'production'
+        ? {
+            userId: '00000000-0000-0000-0000-000000000001',
+            role: 'OWNER' as const,
+            proposeApprovals: body.proposeApprovals !== false,
+          }
+        : undefined;
 
     if (runAll) {
-      const results = await runAllEnabledAgents();
-      return NextResponse.json({ success: true, results, count: results.length });
+      const results = await runAllEnabledAgents(ctx);
+      const approvalCount = results.reduce((n, r) => n + (r.approvals?.length || 0), 0);
+      return NextResponse.json({ success: true, results, count: results.length, approvalCount });
     }
 
     const agentRaw = String(body.agent || 'SALES');
@@ -28,8 +42,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: `Unknown agent: ${agentRaw}` }, { status: 400 });
     }
 
-    const result = await runAgentTask({ agent: agentRaw, prompt: body.prompt || '' });
-    return NextResponse.json({ success: true, result });
+    const result = await runAgentTask({ agent: agentRaw, prompt: body.prompt || '' }, ctx);
+    return NextResponse.json({
+      success: true,
+      result,
+      approvalCount: result.approvals?.length || 0,
+    });
   } catch (err: unknown) {
     return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }

@@ -83,6 +83,27 @@ const DEFAULT_RULES: AutomationRule[] = [
       message: 'Repair {{ticketCode}} created — {{serviceName}} ({{mode}})',
     },
   },
+  {
+    id: 'auto_stock_low_whatsapp',
+    name: 'Low stock owner alert',
+    event: 'STOCK_LOW',
+    active: true,
+    action: {
+      type: 'WHATSAPP_TEXT',
+      to: '{{ownerPhone}}',
+      text: 'Low stock: {{productName}} ({{sku}}) — {{onHand}} on hand, reorder at {{reorderLevel}}.',
+    },
+  },
+  {
+    id: 'auto_stock_low_log',
+    name: 'Low stock audit log',
+    event: 'STOCK_LOW',
+    active: true,
+    action: {
+      type: 'LOG',
+      message: 'STOCK_LOW {{sku}} {{productName}} — {{onHand}}/{{reorderLevel}}',
+    },
+  },
 ];
 
 export async function listAutomationRules(): Promise<AutomationRule[]> {

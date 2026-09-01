@@ -74,3 +74,30 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    let session = await getSession();
+    if (!session && process.env.NODE_ENV !== 'production') {
+      session = { userId: '00000000-0000-0000-0000-000000000001', email: 'dev@localhost', name: 'Dev', role: 'OWNER' };
+    } else {
+      assertCanMutateCommerce(session);
+    }
+    const body = await req.json();
+    if (!body.id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
+    const quotes = await listCollection<{ id: string } & Record<string, unknown>>('quotations');
+    const existing = quotes.find((q) => q.id === body.id);
+    if (!existing) return NextResponse.json({ success: false, error: 'Quote not found' }, { status: 404 });
+    const payload = {
+      ...existing,
+      ...body,
+      id: body.id,
+      updatedAt: new Date().toISOString(),
+    };
+    await upsertCollectionItem('quotations', payload);
+    return NextResponse.json({ success: true, quote: payload });
+  } catch (err) {
+    const e = err as { message?: string; status?: number };
+    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
+  }
+}

@@ -18,6 +18,7 @@ type AgentResult = {
   summary: string;
   recommendations: string[];
   metrics?: Record<string, number | string>;
+  approvals?: Array<{ id: string; token: string; agent: AgentId; description: string }>;
 };
 
 const CATEGORY_META = {
@@ -66,7 +67,15 @@ export default function AgentsPage() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Agent failed');
-      setResult(data.result);
+      const next = data.result as AgentResult;
+      if (data.approvalCount > 0) {
+        setResult({
+          ...next,
+          summary: `${next.summary} · ${data.approvalCount} approval draft(s) queued.`,
+        });
+      } else {
+        setResult(next);
+      }
     } catch (e) {
       setResult({ agent, summary: (e as Error).message, recommendations: [] });
     } finally {
@@ -86,6 +95,13 @@ export default function AgentsPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Brief failed');
       setBrief(data.results || []);
+      if (data.approvalCount > 0) {
+        setResult({
+          agent: 'SALES',
+          summary: `${data.approvalCount} approval draft(s) sent to Approval Center.`,
+          recommendations: ['Review pending items at /approvals before EXECUTE.'],
+        });
+      }
     } catch (e) {
       setBrief([{ agent: 'SALES', summary: (e as Error).message, recommendations: [] }]);
     } finally {
@@ -170,6 +186,13 @@ export default function AgentsPage() {
               <li key={r}>{r}</li>
             ))}
           </ul>
+          {result.approvals && result.approvals.length > 0 && (
+            <p className="text-xs text-emerald-400">
+              <Link href="/approvals" className="underline">
+                {result.approvals.length} draft(s) in Approval Center
+              </Link>
+            </p>
+          )}
         </div>
       )}
 

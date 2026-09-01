@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { COOKIE_NAME, CUSTOMER_COOKIE_NAME } from '@/lib/auth/session-constants';
+import { checkPathRateLimit, clientIpFromHeaders } from '@/lib/security/rate-limit';
 
 /** Public marketing / storefront / auth / webhooks */
 const PUBLIC_EXACT = new Set(['/', '/store', '/shop/login', '/adminpoz', '/login']);
@@ -86,6 +87,17 @@ export function middleware(req: NextRequest) {
     /\.(png|jpg|jpeg|svg|ico|css|js|map|webp)$/.test(pathname)
   ) {
     return NextResponse.next();
+  }
+
+  if (pathname.startsWith('/api/')) {
+    const ip = clientIpFromHeaders(req.headers);
+    const limited = checkPathRateLimit(pathname, ip);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests', retryAfterSec: limited.retryAfterSec },
+        { status: 429, headers: { 'Retry-After': String(limited.retryAfterSec) } },
+      );
+    }
   }
 
   if (isPublic(pathname) && pathname !== '/shop/account') {
