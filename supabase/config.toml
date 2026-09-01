@@ -1,0 +1,5 @@
+# Supabase CLI config — linked GitHub project rbayhrskowtahepwccrq (grabber-poz-solo)
+project_id = "rbayhrskowtahepwccrq"
+
+[db]
+major_version = 15
