@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { db, branches } from '@/db';
 import { durableCheckout } from '@/lib/db/repositories/checkout-repo';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 import { getCustomerSession } from '@/lib/auth/customer-session';
+import { db, branches } from '@/db';
+import { evaluatePromotion } from '@/lib/commerce/promotion-engine';
+import { listPromotions, recordPromotionRedemption } from '@/lib/config/promotions-store';
 
 type BodyLine = {
   productId?: string;
@@ -13,6 +15,8 @@ type BodyLine = {
   name?: string;
   unitCost?: number;
 };
+
+type PaymentLine = { method?: string; amount?: number };
 
 export async function POST(req: Request) {
   try {
@@ -64,17 +68,50 @@ export async function POST(req: Request) {
       unitCost: l.unitCost != null ? Number(l.unitCost) : undefined,
     }));
 
-    const payFromArray = Array.isArray(body.payments) && body.payments[0];
+    const itemSubtotal = items.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
+    let discountTotal = Number(body.discountTotal) || 0;
+    let promoRuleId: string | undefined;
+
+    if (body.promoCode) {
+      const rules = await listPromotions();
+      const promo = evaluatePromotion(rules, body.promoCode, itemSubtotal);
+      if (!promo.valid) {
+        return NextResponse.json({ success: false, error: promo.error || 'Invalid promo code' }, { status: 400 });
+      }
+      discountTotal += promo.discountTotal;
+      promoRuleId = promo.rule?.id;
+    }
+
+    const rawPayments: PaymentLine[] = Array.isArray(body.payments) ? body.payments : [];
     let paymentMethod = String(
-      body.paymentMethod || payFromArray?.method || (isStorefront ? 'CARD' : 'CASH'),
+      body.paymentMethod || rawPayments[0]?.method || (isStorefront ? 'COD' : 'CASH'),
     ).toUpperCase();
-    if (paymentMethod === 'SPLIT') paymentMethod = 'CASH';
+
+    let payments:
+      | Array<{ method: 'CASH' | 'CARD' | 'CREDIT' | 'COD' | 'PAYHERE' | 'WEBXPAY' | 'STRIPE'; amount: number }>
+      | undefined;
+
+    if (paymentMethod === 'SPLIT' || rawPayments.length > 1) {
+      payments = rawPayments
+        .filter((p) => p.method && p.amount != null)
+        .map((p) => ({
+          method: String(p.method).toUpperCase() as 'CASH' | 'CARD',
+          amount: Number(p.amount),
+        }));
+      if (payments.length < 2) {
+        return NextResponse.json(
+          { success: false, error: 'Split payment requires cash and card amounts' },
+          { status: 400 },
+        );
+      }
+      paymentMethod = 'SPLIT';
+    }
 
     const amount =
       body.amount != null
         ? Number(body.amount)
-        : payFromArray?.amount != null
-          ? Number(payFromArray.amount)
+        : rawPayments[0]?.amount != null
+          ? Number(rawPayments[0].amount)
           : undefined;
 
     const customerId =
@@ -86,6 +123,11 @@ export async function POST(req: Request) {
 
     const actorId = session && !isDemoUserId(session.userId) ? session.userId : undefined;
 
+    const resolvedMethod =
+      paymentMethod === 'SPLIT'
+        ? 'CASH'
+        : (paymentMethod as 'CASH' | 'CARD' | 'CREDIT' | 'COD' | 'PAYHERE' | 'WEBXPAY' | 'STRIPE');
+
     const result = await durableCheckout({
       orderNumber,
       channel: channel as 'POS' | 'STOREFRONT' | 'WHATSAPP' | 'JARVIS' | 'MANUAL' | 'IMPORT' | 'API',
@@ -94,13 +136,19 @@ export async function POST(req: Request) {
       shiftId: body.shiftId,
       customerId,
       items,
-      paymentMethod: paymentMethod as 'CASH' | 'CARD' | 'CREDIT' | 'COD' | 'PAYHERE' | 'WEBXPAY' | 'STRIPE',
+      paymentMethod: resolvedMethod,
+      payments,
       amount,
       clientUuid: body.clientUuid,
       idempotencyKey: body.idempotencyKey || body.clientUuid,
       actorId,
-      discountTotal: body.discountTotal,
+      discountTotal,
+      promoRuleId,
     });
+
+    if (!result.reused && promoRuleId) {
+      await recordPromotionRedemption(promoRuleId);
+    }
 
     return NextResponse.json({
       success: true,
@@ -110,6 +158,7 @@ export async function POST(req: Request) {
       payment: 'payment' in result ? result.payment : null,
       journalEntryId: 'journalEntryId' in result ? result.journalEntryId : null,
       grandTotal: 'grandTotal' in result ? result.grandTotal : Number(result.order?.grandTotal),
+      isSplit: 'isSplit' in result ? result.isSplit : false,
     });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };

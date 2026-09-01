@@ -60,7 +60,7 @@ export async function runEnvironmentValidation() {
 
   console.log(`[P0] CORE RUNTIME CONFIGURATION`);
 
-  const dbUrl = process.env.DATABASE_URL;
+  const dbUrl = process.env.DATABASE_URL || process.env.database_url;
   if (!dbUrl) {
     p0Errors.push('DATABASE_URL is missing. The application cannot connect to PostgreSQL.');
     console.log(`  ✗ DATABASE_URL:             MISSING (CRITICAL)`);

@@ -15,6 +15,8 @@ import {
   Lock,
   Percent,
   ShieldAlert,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
@@ -27,6 +29,8 @@ import {
 
 interface CartItem {
   id: string;
+  productId: string;
+  variantId?: string;
   name: string;
   variant: string;
   unitPrice: number;
@@ -37,6 +41,8 @@ interface CartItem {
 
 type CatalogItem = {
   id: string;
+  productId: string;
+  variantId?: string;
   name: string;
   variant: string;
   unitPrice: number;
@@ -45,11 +51,19 @@ type CatalogItem = {
   stock: number;
 };
 
+type HeldSale = {
+  id: string;
+  orderNumber: string;
+  grandTotal: string | number;
+  itemCount: number;
+  createdAt: string;
+};
+
 const FALLBACK_CATALOG: CatalogItem[] = [
-  { id: 'prod_1', name: 'Linen Casual Shirt', variant: 'Size L / Blue', unitPrice: 4500.0, unitCost: 2500.0, barcode: '8901234567890', stock: 31 },
-  { id: 'prod_2', name: 'Oxford Button-Down', variant: 'Size M / White', unitPrice: 5200.0, unitCost: 2800.0, barcode: '8901234567891', stock: 18 },
-  { id: 'prod_3', name: 'Stretch Chino Trousers', variant: '32 / Khaki', unitPrice: 6500.0, unitCost: 3400.0, barcode: '8901234567892', stock: 24 },
-  { id: 'prod_4', name: 'Pique Cotton Polo', variant: 'Size XL / Navy', unitPrice: 3800.0, unitCost: 1900.0, barcode: '8901234567893', stock: 12 },
+  { id: 'prod_1', productId: 'prod_1', name: 'Linen Casual Shirt', variant: 'Size L / Blue', unitPrice: 4500.0, unitCost: 2500.0, barcode: '8901234567890', stock: 31 },
+  { id: 'prod_2', productId: 'prod_2', name: 'Oxford Button-Down', variant: 'Size M / White', unitPrice: 5200.0, unitCost: 2800.0, barcode: '8901234567891', stock: 18 },
+  { id: 'prod_3', productId: 'prod_3', name: 'Stretch Chino Trousers', variant: '32 / Khaki', unitPrice: 6500.0, unitCost: 3400.0, barcode: '8901234567892', stock: 24 },
+  { id: 'prod_4', productId: 'prod_4', name: 'Pique Cotton Polo', variant: 'Size XL / Navy', unitPrice: 3800.0, unitCost: 1900.0, barcode: '8901234567893', stock: 12 },
 ];
 
 export default function POSPage() {
@@ -72,6 +86,12 @@ export default function POSPage() {
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedTender, setSelectedTender] = useState<'CASH' | 'CARD' | 'CREDIT' | 'SPLIT'>('CASH');
+  const [splitCash, setSplitCash] = useState(0);
+  const [splitCard, setSplitCard] = useState(0);
+  const [promoCode, setPromoCode] = useState('');
+  const [heldSales, setHeldSales] = useState<HeldSale[]>([]);
+  const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
+  const [activeHoldId, setActiveHoldId] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<any>(null);
 
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -87,6 +107,8 @@ export default function POSPage() {
           setCatalog(
             data.items.map((i: any) => ({
               id: i.id,
+              productId: i.productId || i.id,
+              variantId: i.variantId,
               name: i.name,
               variant: i.variant || i.sku,
               unitPrice: Number(i.unitPrice),
@@ -121,6 +143,16 @@ export default function POSPage() {
         }
       })
       .catch(() => undefined);
+
+    const loadHolds = () => {
+      fetch('/api/pos/holds')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) setHeldSales(data.holds || []);
+        })
+        .catch(() => undefined);
+    };
+    loadHolds();
   }, []);
 
   useEffect(() => {
@@ -154,6 +186,8 @@ export default function POSPage() {
         ...prev,
         {
           id: item.id,
+          productId: item.productId,
+          variantId: item.variantId,
           name: item.name,
           variant: item.variant,
           unitPrice: item.unitPrice,
@@ -226,11 +260,82 @@ export default function POSPage() {
       } else if (pinAction?.type === 'VOID') {
         setCart([]);
         setDiscountPercent(0);
+        setActiveHoldId(null);
       }
       setIsPinModalOpen(false);
       setPinAction(null);
     } else {
       setPinError(true);
+    }
+  };
+
+  const refreshHeldSales = async () => {
+    const res = await fetch('/api/pos/holds');
+    const data = await res.json();
+    if (data.success) setHeldSales(data.holds || []);
+  };
+
+  const handleHoldSale = async () => {
+    if (!branchId || cart.length === 0) return;
+    try {
+      const res = await fetch('/api/pos/holds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchId,
+          shiftId: activeShiftId,
+          discountTotal: discountAmount,
+          items: cart.map((c) => ({
+            productId: c.productId,
+            variantId: c.variantId,
+            name: c.name,
+            quantity: c.quantity,
+            unitPrice: c.unitPrice,
+            unitCost: c.unitCost,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Hold failed');
+      setCart([]);
+      setDiscountPercent(0);
+      setPromoCode('');
+      setActiveHoldId(null);
+      setAnnouncement(`Sale held as ${data.hold?.orderNumber || 'draft'}.`);
+      await refreshHeldSales();
+    } catch (err) {
+      setAnnouncement((err as Error).message);
+    }
+  };
+
+  const handleResumeHold = async (holdId: string) => {
+    try {
+      const res = await fetch(`/api/pos/holds?id=${encodeURIComponent(holdId)}`);
+      const data = await res.json();
+      if (!data.success || !data.hold) throw new Error(data.error || 'Hold not found');
+
+      const { order, lines } = data.hold;
+      const subtotal = Number(order.subtotal || 0);
+      const discountTotal = Number(order.discountTotal || 0);
+      const restored: CartItem[] = lines.map((line: any) => ({
+        id: line.variantId || line.productId,
+        productId: line.productId,
+        variantId: line.variantId || undefined,
+        name: line.name || 'Product',
+        variant: line.variantLabel || 'Standard',
+        unitPrice: Number(line.unitPrice),
+        unitCost: Number(line.unitCost),
+        quantity: line.quantity,
+        taxRate: 18,
+      }));
+
+      setCart(restored);
+      setDiscountPercent(subtotal > 0 ? Math.round((discountTotal / subtotal) * 100) : 0);
+      setActiveHoldId(holdId);
+      setIsHoldModalOpen(false);
+      setAnnouncement(`Resumed hold ${order.orderNumber}. Complete sale to finalize.`);
+    } catch (err) {
+      setAnnouncement((err as Error).message);
     }
   };
 
@@ -269,19 +374,20 @@ export default function POSPage() {
       timestamp: new Date(),
     };
 
-    const checkoutPayload = {
+    const checkoutPayload: Record<string, unknown> = {
       channel: 'POS',
       branchId,
       fulfillmentLocationId: branchId,
       shiftId: activeShiftId || undefined,
       items: cart.map((c) => ({
-        productId: c.id,
+        productId: c.productId,
+        variantId: c.variantId,
         name: c.name,
         quantity: c.quantity,
         unitPrice: c.unitPrice,
         unitCost: c.unitCost,
       })),
-      paymentMethod: selectedTender === 'SPLIT' ? 'CASH' : selectedTender,
+      paymentMethod: selectedTender,
       amount: grandTotal,
       discountTotal: discountAmount,
       clientUuid: clientUuidRef.current,
@@ -289,8 +395,19 @@ export default function POSPage() {
       orderNumber,
     };
 
+    if (selectedTender === 'SPLIT') {
+      checkoutPayload.payments = [
+        { method: 'CASH', amount: splitCash },
+        { method: 'CARD', amount: splitCard },
+      ];
+    }
+
+    if (promoCode.trim()) {
+      checkoutPayload.promoCode = promoCode.trim();
+    }
+
     try {
-      if (!branchId || cart.some((c) => String(c.id).startsWith('prod_'))) {
+      if (!branchId || cart.some((c) => String(c.productId).startsWith('prod_'))) {
         throw new Error('Run POST /api/seed first so catalog products have real UUIDs + branchId.');
       }
       let res: Response;
@@ -363,6 +480,12 @@ export default function POSPage() {
       setIsPaymentModalOpen(false);
       setCart([]);
       setDiscountPercent(0);
+      setPromoCode('');
+      if (activeHoldId) {
+        await fetch(`/api/pos/holds?id=${encodeURIComponent(activeHoldId)}`, { method: 'DELETE' });
+        setActiveHoldId(null);
+        await refreshHeldSales();
+      }
       clientUuidRef.current =
         typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cuid_${Date.now()}`;
       setAnnouncement(`Sale completed. Total LKR ${grandTotal.toFixed(2)}. Tender ${selectedTender}.`);
@@ -469,6 +592,16 @@ export default function POSPage() {
             <p className="text-[11px] text-muted-foreground">Colombo Main Counter · Reg-01</p>
           </div>
           <div className="flex items-center gap-2">
+            {heldSales.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsHoldModalOpen(true)}
+                className="text-[10px] px-2 py-1 rounded-lg bg-blue-500/15 text-blue-400 border border-blue-500/30 font-semibold cursor-pointer min-h-[44px] flex items-center gap-1"
+              >
+                <PlayCircle className="h-3.5 w-3.5" />
+                {heldSales.length} held
+              </button>
+            )}
             {pendingOfflineCount > 0 && (
               <button
                 type="button"
@@ -479,6 +612,16 @@ export default function POSPage() {
                 {isFlushingOffline ? 'Syncing…' : `Flush ${pendingOfflineCount} offline`}
               </button>
             )}
+          {cart.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void handleHoldSale()}
+              className="text-xs text-blue-400 hover:underline flex items-center gap-1 font-medium cursor-pointer min-h-[44px]"
+            >
+              <PauseCircle className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Hold Sale</span>
+            </button>
+          )}
           {cart.length > 0 && (
             <button
               type="button"
@@ -693,7 +836,14 @@ export default function POSPage() {
               type="button"
               role="radio"
               aria-checked={selectedTender === id}
-              onClick={() => setSelectedTender(id)}
+              onClick={() => {
+                setSelectedTender(id);
+                if (id === 'SPLIT') {
+                  const half = Math.round((grandTotal / 2) * 100) / 100;
+                  setSplitCash(half);
+                  setSplitCard(Math.round((grandTotal - half) * 100) / 100);
+                }
+              }}
               className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 text-xs font-medium transition-all duration-200 cursor-pointer min-h-[44px] ${
                 selectedTender === id
                   ? 'border-emerald-400 border-2 bg-emerald-500/10 text-emerald-400'
@@ -706,6 +856,49 @@ export default function POSPage() {
           ))}
         </fieldset>
 
+        {selectedTender === 'SPLIT' && (
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <label className="text-muted-foreground block mb-1">Cash amount</label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={splitCash}
+                onChange={(e) => setSplitCash(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary border border-border"
+              />
+            </div>
+            <div>
+              <label className="text-muted-foreground block mb-1">Card amount</label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={splitCard}
+                onChange={(e) => setSplitCard(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-xl bg-secondary border border-border"
+              />
+            </div>
+            {Math.abs(splitCash + splitCard - grandTotal) > 0.01 && (
+              <p role="alert" className="col-span-2 text-[10px] text-destructive">
+                Split total must equal LKR {grandTotal.toFixed(2)}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div>
+          <label className="text-[10px] text-muted-foreground block mb-1">Promo code (optional)</label>
+          <input
+            type="text"
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+            placeholder="e.g. WELCOME500"
+            className="w-full px-3 py-2 rounded-xl bg-secondary border border-border font-mono text-xs uppercase"
+          />
+        </div>
+
         {checkoutError && (
           <p role="alert" className="text-[11px] text-destructive font-medium">
             {checkoutError}
@@ -714,11 +907,50 @@ export default function POSPage() {
         <button
           type="button"
           onClick={handleCompleteSale}
-          disabled={isCheckingOut}
+          disabled={isCheckingOut || (selectedTender === 'SPLIT' && Math.abs(splitCash + splitCard - grandTotal) > 0.01)}
           className="w-full min-h-12 py-3 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-xs shadow-glow-em hover:bg-emerald-400 transition-all duration-200 btn-press cursor-pointer disabled:opacity-50"
         >
           {isCheckingOut ? 'Processing…' : 'Complete Sale & Print Thermal Bill'}
         </button>
+      </Modal>
+
+      <Modal
+        isOpen={isHoldModalOpen}
+        onClose={() => setIsHoldModalOpen(false)}
+        title="Held Sales"
+        className="max-w-md"
+      >
+        <div className="space-y-2 text-xs">
+          {heldSales.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No held sales.</p>
+          ) : (
+            heldSales.map((h) => (
+              <div
+                key={h.id}
+                className="p-3 rounded-xl border border-border flex items-center justify-between gap-2"
+              >
+                <div>
+                  <p className="font-bold text-foreground">{h.orderNumber}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {h.itemCount} items · {new Date(h.createdAt).toLocaleString('en-LK')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-primary tabular-nums">
+                    LKR {Number(h.grandTotal).toLocaleString()}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleResumeHold(h.id)}
+                    className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold"
+                  >
+                    Resume
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </Modal>
 
       <Modal

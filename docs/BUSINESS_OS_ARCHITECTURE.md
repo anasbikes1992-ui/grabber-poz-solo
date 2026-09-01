@@ -1,6 +1,8 @@
 # GRABBER BUSINESS OS — SYSTEM ARCHITECTURE SPECIFICATION
 **Single-Business Edition: Commerce Core + Physical Operations + Jarvis Copilot + Creative Factory**
 
+> **Execution docs (2026-09-01):** [`ROADMAP.md`](./ROADMAP.md) · [`IMPLEMENTATION_MAP.md`](./IMPLEMENTATION_MAP.md) · [`RELEASE_GATE.md`](./RELEASE_GATE.md) · [`correction.md`](./correction.md)
+
 ---
 
 ## 1. High-Level Architecture Diagram

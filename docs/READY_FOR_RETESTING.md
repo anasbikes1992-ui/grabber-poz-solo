@@ -55,7 +55,8 @@ npm run typecheck
 npm test
 npm run env:validate -- --env-file .env.local
 # With DATABASE_URL:
-npm run db:push
+npm run db:bootstrap
+# optional: npm run db:bootstrap -- --rls --certify
 npm run client:certify -- --dry-run --client "Re-Test" --slug "retest"
 npm run client:certify -- --client "Re-Test" --slug "retest"
 # Optional live HTTP (app must be running):

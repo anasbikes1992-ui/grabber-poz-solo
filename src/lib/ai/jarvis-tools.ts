@@ -4,6 +4,8 @@
  */
 
 import { JarvisToolDefinition, JarvisUserContext, JarvisToolExecutionResult } from './jarvis-types';
+import { JARVIS_DB_TOOLS } from './jarvis-db-tools';
+import { createApproval } from '@/lib/approvals/approval-store';
 import { defaultCommerceService, CommerceService } from '../commerce/commerce-service';
 import { defaultInventoryEngine, InventoryEngine } from '../commerce/inventory-engine';
 import { defaultCreditEngine, CreditEngine } from '../commerce/credit-engine';
@@ -29,6 +31,9 @@ export class JarvisToolRegistry {
     this.creditEngine = creditEngine;
     this.accountingEngine = accountingEngine;
     this.registerCoreTools();
+    for (const tool of JARVIS_DB_TOOLS) {
+      this.registerTool(tool);
+    }
   }
 
   public registerTool(tool: JarvisToolDefinition) {
@@ -149,11 +154,23 @@ export class JarvisToolRegistry {
     // High Risk: Generate Confirmation Token & Prompt User
     if (tool.risk === 'HIGH_RISK_WRITE') {
       const token = `CONFIRM_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       this.pendingConfirmations.set(token, {
         tool,
         args,
         context,
         expiresAt: Date.now() + 5 * 60 * 1000, // 5 min expiry
+      });
+
+      await createApproval({
+        token,
+        toolName,
+        description: tool.description,
+        risk: tool.risk,
+        payload: args,
+        requestedBy: context.userId,
+        role: context.role,
+        expiresAt,
       });
 
       return {

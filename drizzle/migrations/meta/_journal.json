@@ -15,6 +15,13 @@
       "when": 1788203874858,
       "tag": "0001_business_os_align",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788300000000,
+      "tag": "0002_legacy_column_canonicalization",
+      "breakpoints": true
     }
   ]
 }

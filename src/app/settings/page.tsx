@@ -1,24 +1,76 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Settings, Download, Database, ShieldCheck, CheckCircle2, FileSpreadsheet, Key, CreditCard, Truck, MessageSquare, Sparkles, Check, RefreshCw } from 'lucide-react';
+
+type BusinessProfile = {
+  name: string;
+  legalName: string;
+  taxNumber: string;
+  receiptHeader: string;
+  receiptFooter: string;
+  currency: string;
+  timezone: string;
+};
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'GENERAL' | 'INTEGRATIONS' | 'BACKUPS'>('GENERAL');
 
   const [exportSuccess, setExportSuccess] = useState(false);
   const [backupSuccess, setBackupSuccess] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
+  const [profile, setProfile] = useState<BusinessProfile>({
+    name: '',
+    legalName: '',
+    taxNumber: '',
+    receiptHeader: '',
+    receiptFooter: '',
+    currency: 'LKR',
+    timezone: 'Asia/Colombo',
+  });
 
   // Integrations state
-  const [payhereMerchantId, setPayhereMerchantId] = useState('214589');
-  const [payhereSecret, setPayhereSecret] = useState('••••••••••••••••••••••••');
-  const [koombiyoKey, setKoombiyoKey] = useState('kmb_live_sec_77889900');
-  const [whatsappPhoneId, setWhatsappPhoneId] = useState('109876543210987');
-  const [whatsappToken, setWhatsappToken] = useState('EAAOx••••••••••••••••••');
-  const [geminiKey, setGeminiKey] = useState('AIzaSy••••••••••••••••••••');
+  const [payhereMerchantId, setPayhereMerchantId] = useState('');
+  const [payhereSecret, setPayhereSecret] = useState('');
+  const [koombiyoKey, setKoombiyoKey] = useState('');
+  const [promptExpressCode, setPromptExpressCode] = useState('');
+  const [whatsappPhoneId, setWhatsappPhoneId] = useState('');
+  const [whatsappToken, setWhatsappToken] = useState('');
+  const [geminiKey, setGeminiKey] = useState('');
 
   const [testedService, setTestedService] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const loadSettings = useCallback(async () => {
+    setProfileLoading(true);
+    try {
+      const res = await fetch('/api/settings/business');
+      const data = await res.json();
+      if (data.success && data.profile) {
+        setProfile({
+          name: data.profile.name || '',
+          legalName: data.profile.legalName || '',
+          taxNumber: data.profile.taxNumber || '',
+          receiptHeader: data.profile.receiptHeader || '',
+          receiptFooter: data.profile.receiptFooter || '',
+          currency: data.profile.currency || 'LKR',
+          timezone: data.profile.timezone || 'Asia/Colombo',
+        });
+      }
+      if (data.integrations) {
+        setPayhereMerchantId(data.integrations.payhereMerchantId || '');
+        setWhatsappPhoneId(data.integrations.whatsappPhoneId || '');
+        setPromptExpressCode(data.integrations.promptExpressClientCode || '');
+      }
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   const handleTestConnection = (service: string) => {
     setTestedService(service);
@@ -28,6 +80,20 @@ export default function SettingsPage() {
   };
 
   const isMasked = (v: string) => !v || v.includes('•');
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch('/api/settings/business', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setProfileSaveSuccess(true);
+      setTimeout(() => setProfileSaveSuccess(false), 2000);
+    }
+  };
 
   const handleSaveIntegrations = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +112,7 @@ export default function SettingsPage() {
           publicConfig: {
             payhereMerchantId,
             whatsappPhoneId,
+            promptExpressClientCode: promptExpressCode,
           },
         }),
       });
@@ -58,12 +125,26 @@ export default function SettingsPage() {
     }
   };
 
-  const handleExportData = () => {
-    setExportSuccess(true);
-    setTimeout(() => setExportSuccess(false), 2500);
+  const handleExportData = async () => {
+    try {
+      const res = await fetch('/api/backup/export');
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `grabber-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 2500);
+    } catch {
+      setExportSuccess(false);
+    }
   };
 
-  const handleCreateBackup = () => {
+  const handleCreateBackup = async () => {
+    await handleExportData();
     setBackupSuccess(true);
     setTimeout(() => setBackupSuccess(false), 2500);
   };
@@ -119,10 +200,13 @@ export default function SettingsPage() {
 
       {/* TAB 1: General Profile & Tax Rules */}
       {activeTab === 'GENERAL' && (
-        <div className="space-y-5">
+        <form onSubmit={handleSaveProfile} className="space-y-5">
           {/* Business Profile */}
           <div className="p-6 rounded-2xl glass-card space-y-4 text-xs">
             <h3 className="font-bold text-sm text-foreground">Business Profile</h3>
+            {profileLoading ? (
+              <p className="text-muted-foreground">Loading profile…</p>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="settings-business-name" className="text-muted-foreground block mb-1">
@@ -131,7 +215,8 @@ export default function SettingsPage() {
                 <input
                   id="settings-business-name"
                   type="text"
-                  defaultValue="Grabber Flagship Retail"
+                  value={profile.name}
+                  onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
                 />
               </div>
@@ -142,7 +227,8 @@ export default function SettingsPage() {
                 <input
                   id="settings-tax-reg"
                   type="text"
-                  defaultValue="VAT-987654321-7000"
+                  value={profile.taxNumber}
+                  onChange={(e) => setProfile((p) => ({ ...p, taxNumber: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
                 />
               </div>
@@ -153,7 +239,8 @@ export default function SettingsPage() {
                 <input
                   id="settings-receipt-header"
                   type="text"
-                  defaultValue="Welcome to Grabber Flagship Store • Colombo 03"
+                  value={profile.receiptHeader}
+                  onChange={(e) => setProfile((p) => ({ ...p, receiptHeader: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
                 />
               </div>
@@ -164,10 +251,27 @@ export default function SettingsPage() {
                 <input
                   id="settings-receipt-footer"
                   type="text"
-                  defaultValue="Thank you for shopping with us! Returns accepted within 7 days."
+                  value={profile.receiptFooter}
+                  onChange={(e) => setProfile((p) => ({ ...p, receiptFooter: e.target.value }))}
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
                 />
               </div>
+            </div>
+            )}
+            <div className="flex justify-end pt-2">
+              {profileSaveSuccess ? (
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="h-4 w-4" /> Saved
+                </span>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={profileLoading}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-bold cursor-pointer btn-press disabled:opacity-50"
+                >
+                  Save Business Profile
+                </button>
+              )}
             </div>
           </div>
 
@@ -211,7 +315,7 @@ export default function SettingsPage() {
               </table>
             </div>
           </div>
-        </div>
+        </form>
       )}
 
       {/* TAB 2: API Credentials & Integrations Vault */}
@@ -298,7 +402,8 @@ export default function SettingsPage() {
                 <input
                   id="settings-prompt-code"
                   type="text"
-                  defaultValue="PRM-GRAB-01"
+                  value={promptExpressCode}
+                  onChange={(e) => setPromptExpressCode(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono"
                 />
               </div>

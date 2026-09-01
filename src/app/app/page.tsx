@@ -1,286 +1,445 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  ShoppingCart,
-  UtensilsCrossed,
-  Wrench,
-  CreditCard,
-  Building2,
-  Calendar,
   Zap,
-  Boxes,
-  ArrowUpRight,
-  Activity,
-  Package,
-  AlertTriangle,
+  ArrowRight,
   Sparkles,
+  AlertTriangle,
+  Activity,
+  TrendingUp,
+  Package,
+  Boxes,
+  BellRing,
+  DollarSign,
+  RotateCcw,
+  Search,
+  ArrowUpRight,
+  ChevronRight,
 } from 'lucide-react';
+import {
+  ALL_MERCHANT_TOOLS,
+  CATEGORY_TABS,
+  OPERATION_MODES,
+} from '@/lib/hub/merchant-tools';
 
-const OPERATION_MODES = [
-  {
-    title: 'Retail Mode',
-    desc: 'Fast Barcode & Cashier',
-    badge: 'FAST 3S RING-UP',
-    href: '/pos',
-    icon: ShoppingCart,
-  },
-  {
-    title: 'Restaurant & KOT',
-    desc: 'Table Map & Kitchen Orders',
-    badge: 'TABLE MANAGEMENT',
-    href: '/restaurant',
-    icon: UtensilsCrossed,
-  },
-  {
-    title: 'Repair & Job Sheet',
-    desc: 'Job Cards & Intake Slips',
-    badge: 'JOB SHEET GENERATOR',
-    href: '/repairs',
-    icon: Wrench,
-  },
-  {
-    title: 'Hire Purchase',
-    desc: 'Installment Contracts & NIC',
-    badge: 'MICRO-CREDIT',
-    href: '/hire-purchase',
-    icon: CreditCard,
-  },
-  {
-    title: 'B2B Quotations',
-    desc: 'Wholesale & Proforma Bills',
-    badge: 'PROFORMA SUITE',
-    href: '/wholesale',
-    icon: Building2,
-  },
-  {
-    title: 'Appointments',
-    desc: 'Client Slots & Specialists',
-    badge: 'BOOKING HUB',
-    href: '/appointments',
-    icon: Calendar,
-  },
-];
+type Analytics = {
+  totalSkus: number;
+  lowStockCount: number;
+  warehouseCapacity: number;
+  todayRevenue: number;
+  turnoverRate: number;
+  topProducts: Array<{ name: string; soldQty: number; revenue: number }>;
+  lowStockItems: Array<{ sku: string; name: string; stock: number; reorder: number }>;
+};
 
-export default function DashboardPage() {
+export default function MerchantHubPage() {
+  const [shopName, setShopName] = useState('Merchant Partner');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [analytics, setAnalytics] = useState<Analytics>({
+    totalSkus: 0,
+    lowStockCount: 0,
+    warehouseCapacity: 45,
+    todayRevenue: 0,
+    turnoverRate: 18,
+    topProducts: [],
+    lowStockItems: [],
+  });
+
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.authenticated && data.shopName) setShopName(data.shopName);
+      })
+      .catch(() => {});
+
+    fetch('/api/dashboard/stats')
+      .then((r) => r.json())
+      .then((data) => {
+        const stats = data.stats || data.metrics;
+        if (data.success && stats) {
+          setAnalytics({
+            totalSkus: stats.totalSkus ?? 0,
+            lowStockCount: stats.lowStockCount ?? 0,
+            warehouseCapacity: stats.warehouseCapacity ?? 45,
+            todayRevenue: stats.todayRevenue ?? stats.todaySalesLKR ?? 0,
+            turnoverRate: stats.turnoverRate ?? 18,
+            topProducts: stats.topProducts || [],
+            lowStockItems: stats.lowStockItems || [],
+          });
+          if (data.orgName) setShopName(data.orgName);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const filteredTools = useMemo(() => {
+    return ALL_MERCHANT_TOOLS.filter((tool) => {
+      const matchesCategory = selectedCategory === 'all' || tool.category === selectedCategory;
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        !q || tool.title.toLowerCase().includes(q) || tool.description.toLowerCase().includes(q);
+      return matchesCategory && matchesSearch;
+    });
+  }, [selectedCategory, searchQuery]);
+
+  const getCategoryCount = (category: string) =>
+    category === 'all'
+      ? ALL_MERCHANT_TOOLS.length
+      : ALL_MERCHANT_TOOLS.filter((t) => t.category === category).length;
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* 1. Hero Command Center Banner */}
-      <div className="relative rounded-2xl glass-card glow-border-emerald p-6 sm:p-8 overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-3 max-w-2xl z-10">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold tracking-wider flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-              OWNER COMMAND CENTER
-            </span>
-            <span className="px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-[11px] font-bold tracking-wider flex items-center gap-1.5">
-              <Sparkles className="h-3 w-3 text-emerald-400" />
-              AI OMNICHANNEL ENGINE
-            </span>
+    <div className="space-y-8">
+      <div className="relative overflow-hidden rounded-3xl border border-zinc-800/80 bg-gradient-to-br from-zinc-900/90 via-zinc-900/40 to-zinc-950 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 -mb-12 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Owner Command Center
+              </span>
+              <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-purple-400" />
+                AI Omnichannel Engine
+              </span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              Welcome back,{' '}
+              <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+                {shopName}
+              </span>
+            </h1>
+            <p className="text-zinc-400 text-xs sm:text-sm font-medium">
+              Unified retail sales terminal, inventory warehouse radar, WhatsApp automation & multi-channel commerce.
+            </p>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-            Welcome back, <span className="text-emerald-400">Shopping Station</span>
-          </h1>
-
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-medium">
-            Unified retail sales terminal, inventory warehouse radar, WhatsApp automation & multi-channel commerce.
-          </p>
-        </div>
-
-        <div className="z-10 shrink-0">
           <Link
             href="/pos"
-            className="px-6 py-3.5 min-h-12 rounded-xl bg-emerald-500 text-zinc-950 font-extrabold text-xs sm:text-sm flex items-center gap-2.5 shadow-glow-em hover:bg-emerald-400 transition-all duration-200 cursor-pointer btn-press"
+            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-zinc-950 font-black text-sm transition-all shadow-lg shadow-emerald-500/25 flex items-center gap-2 active:scale-95 group cursor-pointer btn-press shrink-0"
           >
-            <Zap className="h-4 w-4" />
-            <span>Launch Counter POS &rarr;</span>
+            <Zap className="w-5 h-5 fill-current group-hover:rotate-12 transition-transform" />
+            <span>Launch Counter POS</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
       </div>
 
-      {/* 2. Operation Mode Launcher */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <div className="h-5 w-5 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-            <Zap className="h-3 w-3" />
-          </div>
-          <h2 className="text-sm font-bold text-foreground tracking-wide">Operation Mode Launcher</h2>
-          <span className="text-xs text-muted-foreground">&bull; Select active business workflow</span>
+          <Boxes className="w-5 h-5 text-emerald-400" />
+          <h2 className="text-lg font-extrabold text-white">Operation Mode Launcher</h2>
+          <span className="text-xs text-zinc-500 font-medium">Select active business workflow</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {OPERATION_MODES.map((mode) => {
             const Icon = mode.icon;
             return (
               <Link
-                key={mode.title}
+                key={mode.id}
                 href={mode.href}
-                className="p-4 rounded-2xl glass-card glass-card-hover flex flex-col justify-between group aspect-[4/3] cursor-pointer transition-all duration-200"
+                className={`group p-4 rounded-2xl border ${mode.border} bg-gradient-to-b ${mode.bgGradient} hover:bg-zinc-900/80 transition-all duration-300 flex flex-col justify-between space-y-3 shadow-lg hover:shadow-2xl hover:-translate-y-1 cursor-pointer`}
               >
-                <div>
-                  <div className="flex justify-between items-start">
-                    <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <span className="text-[10px] text-muted-foreground group-hover:text-emerald-400 flex items-center gap-0.5 font-medium transition-colors duration-200">
-                      Launch <ArrowUpRight className="h-3 w-3" />
-                    </span>
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Icon className={`w-5 h-5 ${mode.textGlow}`} />
                   </div>
-
-                  <h3 className="font-bold text-xs text-foreground mt-3 leading-snug group-hover:text-emerald-400 transition-colors duration-200">
-                    {mode.title}
-                  </h3>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{mode.desc}</p>
+                  <span className="text-[10px] font-bold text-zinc-400 group-hover:text-white transition">Launch ↗</span>
                 </div>
-
-                <div className="pt-2">
-                  <span className="text-[8px] font-extrabold px-2 py-0.5 rounded-md border border-zinc-800 bg-zinc-900/80 text-zinc-400 block text-center uppercase tracking-wider">
-                    {mode.badge}
-                  </span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-white group-hover:text-emerald-300 transition">{mode.title}</h3>
+                  <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1">{mode.subtitle}</p>
                 </div>
+                <span className="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-950/60 text-zinc-300 w-fit">
+                  {mode.badge}
+                </span>
               </Link>
             );
           })}
         </div>
       </div>
 
-      {/* 3. Operations & Stock Radar */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-emerald-400" />
-            <h2 className="text-sm font-bold text-foreground tracking-wide">Operations & Stock Radar</h2>
-            <span className="text-xs text-muted-foreground">&bull; Real-time inventory intelligence</span>
+            <Activity className="w-5 h-5 text-cyan-400" />
+            <h2 className="text-lg font-extrabold text-white">Operations & Stock Radar</h2>
+            <span className="text-xs text-zinc-500 font-medium">Real-time inventory intelligence</span>
           </div>
-
-          <Link
-            href="/accounts"
-            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors duration-200 cursor-pointer"
-          >
-            Full Analytics Report &rarr;
+          <Link href="/reports" className="text-xs font-bold text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer">
+            Full Analytics Report <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 rounded-2xl glass-card space-y-2">
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Total Inventory Items</span>
-              <Boxes className="h-4 w-4 text-emerald-400" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-5 rounded-2xl glass-card border border-zinc-800 space-y-2 hover:border-emerald-500/40 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-zinc-400">Total Inventory Items</span>
+              <Package className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-foreground tabular-nums">1,613</span>
+              <span className="text-3xl font-black text-white tabular-nums">{analytics.totalSkus.toLocaleString()}</span>
               <span className="text-xs font-bold text-emerald-400">Live SKUs</span>
             </div>
-            <p className="text-[10px] text-muted-foreground">Active catalog items across all branches</p>
           </div>
 
-          <div className="p-4 rounded-2xl glass-card space-y-2">
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Low Stock Warnings</span>
-              <AlertTriangle className="h-4 w-4 text-amber-400" />
+          <div className="p-5 rounded-2xl glass-card border border-zinc-800 space-y-2 hover:border-amber-500/40 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-zinc-400">Low Stock Warnings</span>
+              <BellRing className="w-4 h-4 text-amber-400" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-foreground tabular-nums">0</span>
-              <span className="text-xs font-bold text-emerald-400">Stock Healthy</span>
-            </div>
-            <p className="text-[10px] text-muted-foreground">Items below minimum reorder threshold</p>
-          </div>
-
-          <div className="p-4 rounded-2xl glass-card space-y-2">
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Warehouse Utilization</span>
-              <Package className="h-4 w-4 text-emerald-400" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-emerald-400 tabular-nums">45%</span>
-              <span className="text-xs font-bold text-zinc-300">Optimal Space</span>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-zinc-800 overflow-hidden mt-1">
-              <div className="h-full bg-emerald-500 w-[45%] rounded-full" />
+              <span className="text-3xl font-black text-amber-400 tabular-nums">{analytics.lowStockCount}</span>
+              <span className="text-xs font-bold text-amber-400/80">
+                {analytics.lowStockCount > 0 ? 'Critical Reorder' : 'Stock Healthy'}
+              </span>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl glass-card space-y-2">
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Today Sales Volume</span>
-              <CreditCard className="h-4 w-4 text-emerald-400" />
+          <div className="p-5 rounded-2xl glass-card border border-zinc-800 space-y-2 hover:border-blue-500/40 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-zinc-400">Warehouse Utilization</span>
+              <Boxes className="w-4 h-4 text-blue-400" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold text-foreground tabular-nums">LKR 47,790</span>
+              <span className="text-3xl font-black text-blue-400 tabular-nums">{analytics.warehouseCapacity}%</span>
             </div>
-            <p className="text-[10px] text-muted-foreground">Omnichannel: POS + Web Store + WhatsApp</p>
+            <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-blue-500 h-full rounded-full" style={{ width: `${analytics.warehouseCapacity}%` }} />
+            </div>
+          </div>
+
+          <div className="p-5 rounded-2xl glass-card border border-zinc-800 space-y-2 hover:border-purple-500/40 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-zinc-400">Today Sales Volume</span>
+              <DollarSign className="w-4 h-4 text-purple-400" />
+            </div>
+            <span className="text-2xl sm:text-3xl font-black text-emerald-400 tabular-nums">
+              LKR {analytics.todayRevenue.toLocaleString()}
+            </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div className="lg:col-span-8 p-5 rounded-2xl glass-card space-y-4">
-            <div className="flex justify-between items-center text-xs">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 p-6 rounded-3xl glass-card border border-zinc-800 space-y-4">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-foreground">Stock Velocity & Demand Trend</h3>
-                <p className="text-[10px] text-muted-foreground">Moving average stock consumption rate</p>
+                <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  Stock Velocity & Demand Trend
+                </h3>
               </div>
-              <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
-                1,613 SKUs Monitored
+              <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-extrabold">
+                {analytics.todayRevenue > 0
+                  ? `LKR ${analytics.todayRevenue.toLocaleString()} Today`
+                  : `${analytics.totalSkus} SKUs Monitored`}
               </span>
             </div>
-
-            <div className="h-36 w-full relative flex items-end justify-between pt-6 px-2">
-              <svg className="w-full h-full absolute inset-0 overflow-visible" preserveAspectRatio="none" viewBox="0 0 500 100">
+            <div className="h-44 w-full relative pt-4">
+              <svg className="w-full h-full overflow-visible" viewBox="0 0 500 150" preserveAspectRatio="none">
                 <defs>
-                  <linearGradient id="gradSpline" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                  <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="lineStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#10b981" />
+                    <stop offset="50%" stopColor="#06b6d4" />
+                    <stop offset="100%" stopColor="#8b5cf6" />
                   </linearGradient>
                 </defs>
+                <path d="M 0,110 Q 70,30 140,80 T 280,40 T 420,70 T 500,25 L 500,150 L 0,150 Z" fill="url(#waveGradient)" />
                 <path
-                  d="M 0,80 Q 80,95 150,55 T 300,75 T 450,20 L 500,25 L 500,100 L 0,100 Z"
-                  fill="url(#gradSpline)"
-                />
-                <path
-                  d="M 0,80 Q 80,95 150,55 T 300,75 T 450,20 L 500,25"
+                  d="M 0,110 Q 70,30 140,80 T 280,40 T 420,70 T 500,25"
                   fill="none"
-                  stroke="#10B981"
-                  strokeWidth="3"
+                  stroke="url(#lineStroke)"
+                  strokeWidth="3.5"
                   strokeLinecap="round"
                 />
-                <circle cx="150" cy="55" r="4" fill="#10B981" />
-                <circle cx="300" cy="75" r="4" fill="#10B981" />
-                <circle cx="450" cy="20" r="4" fill="#10B981" />
               </svg>
             </div>
-
-            <div className="flex justify-between text-[10px] font-mono text-zinc-500 pt-2 border-t border-zinc-800">
-              <span>08:00</span>
-              <span>10:00</span>
-              <span>12:00</span>
-              <span>14:00</span>
-              <span>16:00</span>
-              <span>18:00</span>
-              <span>20:00</span>
-            </div>
           </div>
 
-          <div className="lg:col-span-4 p-5 rounded-2xl glass-card flex flex-col justify-between text-xs">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-foreground">Inventory Turnover Velocity</h3>
+          <div className="p-6 rounded-3xl glass-card border border-zinc-800 flex flex-col justify-between">
+            <div>
+              <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                <RotateCcw className="w-4 h-4 text-purple-400" />
+                Inventory Turnover Velocity
+              </h3>
             </div>
-            <p className="text-[10px] text-muted-foreground">Annualized stock circulation health</p>
+            <div className="flex flex-col items-center py-4">
+              <span className="text-3xl font-black text-white tabular-nums">{analytics.turnoverRate}%</span>
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Fast Moving</span>
+            </div>
+          </div>
+        </div>
 
-            <div className="my-4 flex flex-col items-center justify-center relative">
-              <div className="h-28 w-28 rounded-full border-8 border-zinc-800 border-t-emerald-400 border-r-emerald-500 flex flex-col items-center justify-center transform -rotate-45">
-                <span className="text-xl font-extrabold text-foreground transform rotate-45 tabular-nums">18%</span>
-                <span className="text-[9px] font-bold text-emerald-400 transform rotate-45 uppercase tracking-wider">Fast Moving</span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="p-5 rounded-3xl glass-card border border-zinc-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
+                <h3 className="text-sm font-extrabold text-white">Critical Reorder Radar</h3>
               </div>
+              <Link href="/products" className="text-xs text-zinc-400 hover:text-white cursor-pointer">
+                Manage Catalog →
+              </Link>
             </div>
-
-            <div className="flex justify-between text-[9px] text-muted-foreground pt-2 border-t border-zinc-800">
-              <span>Slow (0%)</span>
-              <span className="text-emerald-400 font-bold">Target (65%)</span>
-              <span>Elite (100%)</span>
-            </div>
+            {analytics.lowStockItems.length === 0 ? (
+              <p className="text-xs text-zinc-500 p-4 text-center glass-card rounded-xl border border-zinc-800/80">
+                All inventory items are currently above minimum stock thresholds.
+              </p>
+            ) : (
+              analytics.lowStockItems.map((item) => (
+                <div
+                  key={item.sku}
+                  className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="min-w-0">
+                    <div className="font-bold text-white truncate">{item.name}</div>
+                    <div className="text-[10px] text-zinc-500 font-mono mt-0.5">SKU: {item.sku}</div>
+                  </div>
+                  <Link
+                    href="/purchasing"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-[10px] transition cursor-pointer"
+                  >
+                    + PO
+                  </Link>
+                </div>
+              ))
+            )}
           </div>
+
+          <div className="p-5 rounded-3xl glass-card border border-zinc-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-400" />
+                <h3 className="text-sm font-extrabold text-white">Top Moving Hero Products</h3>
+              </div>
+              <Link href="/reports" className="text-xs text-zinc-400 hover:text-white cursor-pointer">
+                View Ranking →
+              </Link>
+            </div>
+            {analytics.topProducts.length === 0 ? (
+              <p className="text-xs text-zinc-500 p-4 text-center glass-card rounded-xl border border-zinc-800/80">
+                No sales recorded today yet. Completed orders will appear in rank order.
+              </p>
+            ) : (
+              analytics.topProducts.map((p, idx) => (
+                <div
+                  key={p.name}
+                  className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-400 font-black text-[11px] flex items-center justify-center shrink-0">
+                      #{idx + 1}
+                    </span>
+                    <div className="font-bold text-white truncate">{p.name}</div>
+                  </div>
+                  <div className="text-right shrink-0 font-extrabold text-emerald-400">
+                    LKR {(p.revenue ?? 0).toLocaleString()}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6 pt-4 border-t border-zinc-800/80">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-white">Commercial Modules & Tools</h2>
+            <p className="text-xs sm:text-sm text-zinc-400">
+              Access all specialized apps for inventory, point of sale, marketing, debt ledgers & reports.
+            </p>
+          </div>
+          <div className="relative w-full md:w-72">
+            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="search"
+              placeholder="Search tools, modules, reports…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          {CATEGORY_TABS.map((cat) => {
+            const count = getCategoryCount(cat.id);
+            const isActive = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 ${
+                  isActive
+                    ? 'bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20 font-black'
+                    : 'bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+                    isActive ? 'bg-zinc-950 text-emerald-400' : 'bg-zinc-800 text-zinc-500'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTools.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <Link
+                key={tool.id}
+                href={tool.href}
+                className="group p-5 rounded-2xl glass-card border border-zinc-800 hover:border-zinc-700 bg-zinc-900/30 hover:bg-zinc-900/60 transition-all duration-300 flex flex-col justify-between space-y-4 hover:shadow-xl hover:-translate-y-0.5 cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                      <Icon className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-extrabold text-white group-hover:text-emerald-400 transition">
+                        {tool.title}
+                      </h3>
+                      {tool.badge && (
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider mt-1 ${
+                            tool.badgeType === 'success'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : tool.badgeType === 'purple'
+                                ? 'bg-purple-500/10 text-purple-300 border border-purple-500/20'
+                                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                          }`}
+                        >
+                          {tool.badge}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <ArrowUpRight className="w-4 h-4 text-zinc-600 group-hover:text-emerald-400 transition-colors" />
+                </div>
+                <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">{tool.description}</p>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>

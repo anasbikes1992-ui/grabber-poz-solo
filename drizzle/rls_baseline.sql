@@ -17,9 +17,11 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 -- Deny all for anon by default (no policies for anon = no access when RLS on)
 -- Authenticated staff: read-only example policies (tighten per role later)
 
+DROP POLICY IF EXISTS staff_read_orders ON public.orders;
 CREATE POLICY staff_read_orders ON public.orders
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS staff_read_products ON public.products;
 CREATE POLICY staff_read_products ON public.products
   FOR SELECT TO authenticated USING (true);
 

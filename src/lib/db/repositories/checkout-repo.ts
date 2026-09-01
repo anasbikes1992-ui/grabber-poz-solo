@@ -14,6 +14,9 @@ import {
   stockMovements,
   auditLogs,
 } from '@/db/schema';
+import { resolveCheckoutStatuses, type CheckoutPaymentMethod } from '@/lib/commerce/order-lifecycle';
+import { dispatchAutomationEvent } from '@/lib/automation/engine';
+import { customers } from '@/db/schema';
 
 export type CheckoutItem = {
   productId: string;
@@ -24,6 +27,11 @@ export type CheckoutItem = {
   unitCost?: number;
 };
 
+export type CheckoutPaymentLine = {
+  method: CheckoutPaymentMethod;
+  amount: number;
+};
+
 export type CheckoutInput = {
   orderNumber?: string;
   channel?: 'POS' | 'STOREFRONT' | 'WHATSAPP' | 'JARVIS' | 'MANUAL' | 'IMPORT' | 'API';
@@ -32,13 +40,29 @@ export type CheckoutInput = {
   shiftId?: string;
   customerId?: string;
   items: CheckoutItem[];
-  paymentMethod: 'CASH' | 'CARD' | 'CREDIT' | 'COD' | 'PAYHERE' | 'WEBXPAY' | 'STRIPE';
+  paymentMethod: CheckoutPaymentMethod;
+  /** Split or multi-tender checkout — when set, overrides single paymentMethod */
+  payments?: CheckoutPaymentLine[];
   amount?: number;
   clientUuid?: string;
   idempotencyKey?: string;
   actorId?: string;
   discountTotal?: number;
+  promoRuleId?: string;
 };
+
+function normalizePayMethod(method: CheckoutPaymentMethod) {
+  if (method === 'CREDIT') return 'CREDIT' as const;
+  if (method === 'CARD' || method === 'PAYHERE' || method === 'WEBXPAY' || method === 'STRIPE') return 'CARD' as const;
+  if (method === 'COD') return 'COD' as const;
+  return 'CASH' as const;
+}
+
+function accountCodeForMethod(method: ReturnType<typeof normalizePayMethod>) {
+  if (method === 'CREDIT') return '1100';
+  if (method === 'CARD') return '1020';
+  return '1010';
+}
 
 async function resolveAccountId(tx: typeof db, code: string) {
   const [row] = await tx.select({ id: chartOfAccounts.id }).from(chartOfAccounts).where(eq(chartOfAccounts.code, code)).limit(1);
@@ -50,7 +74,7 @@ export async function durableCheckout(input: CheckoutInput) {
   if (!input.items?.length) throw new Error('Cart is empty');
   if (!input.branchId) throw new Error('branchId is required');
 
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // Idempotency: existing payment key or client uuid
     if (input.idempotencyKey) {
       const [existingPay] = await tx
@@ -95,6 +119,16 @@ export async function durableCheckout(input: CheckoutInput) {
     const totalCost = lines.reduce((s, l) => s + l.unitCost * l.quantity, 0);
     const orderNumber = input.orderNumber || `POS-${Date.now().toString().slice(-8)}`;
 
+    const paymentLines: CheckoutPaymentLine[] =
+      input.payments?.length && input.payments.length > 0
+        ? input.payments
+        : [{ method: input.paymentMethod, amount: input.amount ?? grandTotal }];
+
+    const isSplit = paymentLines.length > 1;
+    const lifecycleMethod = isSplit ? 'CASH' : input.paymentMethod;
+    const statuses = resolveCheckoutStatuses(input.channel, lifecycleMethod, isSplit);
+    const paymentSuccess = statuses.paymentStatus === 'PAID';
+
     // Concurrent-safe stock decrement: available = on_hand - reserved
     for (const line of lines) {
       const result = await tx
@@ -131,7 +165,7 @@ export async function durableCheckout(input: CheckoutInput) {
         referenceType: 'ORDER',
         referenceId: orderNumber,
         actorId: input.actorId || null,
-        notes: 'POS checkout',
+        notes: input.channel === 'STOREFRONT' ? 'Storefront checkout' : 'POS checkout',
       });
     }
 
@@ -145,9 +179,9 @@ export async function durableCheckout(input: CheckoutInput) {
         registerId: input.registerId || null,
         shiftId: input.shiftId || null,
         customerId: input.customerId || null,
-        orderStatus: 'DELIVERED',
-        paymentStatus: 'PAID',
-        fulfillmentStatus: 'DELIVERED',
+        orderStatus: statuses.orderStatus,
+        paymentStatus: statuses.paymentStatus,
+        fulfillmentStatus: statuses.fulfillmentStatus,
         subtotal: String(subtotal.toFixed(2)),
         discountTotal: String(discountTotal.toFixed(2)),
         taxTotal: String(taxTotal.toFixed(2)),
@@ -171,28 +205,27 @@ export async function durableCheckout(input: CheckoutInput) {
       });
     }
 
-    const payMethod =
-      input.paymentMethod === 'CREDIT'
-        ? 'CREDIT'
-        : input.paymentMethod === 'CARD'
-          ? 'CARD'
-          : input.paymentMethod === 'PAYHERE'
-            ? 'PAYHERE'
-            : 'CASH';
+    const insertedPayments = [];
+    for (let i = 0; i < paymentLines.length; i++) {
+      const line = paymentLines[i];
+      const payMethod = normalizePayMethod(line.method);
+      const [payment] = await tx
+        .insert(payments)
+        .values({
+          orderId: order.id,
+          method: payMethod,
+          amount: String(line.amount.toFixed(2)),
+          currency: 'LKR',
+          status: paymentSuccess ? 'SUCCESS' : 'PENDING',
+          idempotencyKey: i === 0 ? input.idempotencyKey || null : null,
+        })
+        .returning();
+      insertedPayments.push(payment);
+    }
+    const primaryPayMethod = normalizePayMethod(paymentLines[0].method);
+    const payment = insertedPayments[0];
 
-    const [payment] = await tx
-      .insert(payments)
-      .values({
-        orderId: order.id,
-        method: payMethod,
-        amount: String((input.amount ?? grandTotal).toFixed(2)),
-        currency: 'LKR',
-        status: 'SUCCESS',
-        idempotencyKey: input.idempotencyKey || null,
-      })
-      .returning();
-
-    if (payMethod === 'CREDIT' && input.customerId) {
+    if (primaryPayMethod === 'CREDIT' && input.customerId && paymentSuccess) {
       const [acct] = await tx
         .select()
         .from(polimPothaAccounts)
@@ -216,34 +249,62 @@ export async function durableCheckout(input: CheckoutInput) {
       });
     }
 
-    // Double-entry: Dr Cash/AR, Cr Revenue+VAT; Dr COGS, Cr Inventory
-    const cashOrAr = payMethod === 'CREDIT' ? '1100' : payMethod === 'CARD' ? '1020' : '1010';
-    const aCash = await resolveAccountId(tx as unknown as typeof db, cashOrAr);
-    const aRev = await resolveAccountId(tx as unknown as typeof db, '4000');
-    const aVat = await resolveAccountId(tx as unknown as typeof db, '2100');
-    const aCogs = await resolveAccountId(tx as unknown as typeof db, '5000');
-    const aInv = await resolveAccountId(tx as unknown as typeof db, '1200');
+    let journalEntryId: string | null = null;
 
-    const [je] = await tx
-      .insert(journalEntries)
-      .values({
-        entryNumber: `JRN-${orderNumber}`,
-        entryDate: new Date(),
-        referenceType: 'ORDER',
-        referenceId: order.id,
-        description: `POS sale ${orderNumber}`,
-        createdBy: input.actorId || null,
-      })
-      .returning();
+    if (paymentSuccess) {
+      const aRev = await resolveAccountId(tx as unknown as typeof db, '4000');
+      const aVat = await resolveAccountId(tx as unknown as typeof db, '2100');
+      const aCogs = await resolveAccountId(tx as unknown as typeof db, '5000');
+      const aInv = await resolveAccountId(tx as unknown as typeof db, '1200');
 
-    const netSales = taxable;
-    await tx.insert(journalLines).values([
-      { journalEntryId: je.id, accountId: aCash, debit: String(grandTotal.toFixed(2)), credit: '0.00', memo: 'Tender received' },
-      { journalEntryId: je.id, accountId: aRev, debit: '0.00', credit: String(netSales.toFixed(2)), memo: 'Sales revenue' },
-      { journalEntryId: je.id, accountId: aVat, debit: '0.00', credit: String(taxTotal.toFixed(2)), memo: 'VAT 18%' },
-      { journalEntryId: je.id, accountId: aCogs, debit: String(totalCost.toFixed(2)), credit: '0.00', memo: 'COGS' },
-      { journalEntryId: je.id, accountId: aInv, debit: '0.00', credit: String(totalCost.toFixed(2)), memo: 'Inventory relieved' },
-    ]);
+      const [je] = await tx
+        .insert(journalEntries)
+        .values({
+          entryNumber: `JRN-${orderNumber}`,
+          entryDate: new Date(),
+          referenceType: 'ORDER',
+          referenceId: order.id,
+          description: `${input.channel || 'POS'} sale ${orderNumber}`,
+          createdBy: input.actorId || null,
+        })
+        .returning();
+
+      journalEntryId = je.id;
+      const netSales = taxable;
+      const debitLines: Array<{ journalEntryId: string; accountId: string; debit: string; credit: string; memo: string }> = [];
+
+      if (isSplit) {
+        for (const line of paymentLines) {
+          const code = accountCodeForMethod(normalizePayMethod(line.method));
+          const accountId = await resolveAccountId(tx as unknown as typeof db, code);
+          debitLines.push({
+            journalEntryId: je.id,
+            accountId,
+            debit: String(line.amount.toFixed(2)),
+            credit: '0.00',
+            memo: `${line.method} tender`,
+          });
+        }
+      } else {
+        const code = accountCodeForMethod(primaryPayMethod);
+        const aCash = await resolveAccountId(tx as unknown as typeof db, code);
+        debitLines.push({
+          journalEntryId: je.id,
+          accountId: aCash,
+          debit: String(grandTotal.toFixed(2)),
+          credit: '0.00',
+          memo: 'Tender received',
+        });
+      }
+
+      await tx.insert(journalLines).values([
+        ...debitLines,
+        { journalEntryId: je.id, accountId: aRev, debit: '0.00', credit: String(netSales.toFixed(2)), memo: 'Sales revenue' },
+        { journalEntryId: je.id, accountId: aVat, debit: '0.00', credit: String(taxTotal.toFixed(2)), memo: 'VAT 18%' },
+        { journalEntryId: je.id, accountId: aCogs, debit: String(totalCost.toFixed(2)), credit: '0.00', memo: 'COGS' },
+        { journalEntryId: je.id, accountId: aInv, debit: '0.00', credit: String(totalCost.toFixed(2)), memo: 'Inventory relieved' },
+      ]);
+    }
 
     if (input.actorId) {
       await tx.insert(auditLogs).values({
@@ -252,12 +313,48 @@ export async function durableCheckout(input: CheckoutInput) {
         entity: 'orders',
         entityId: order.id,
         riskLevel: 'LOW_RISK_WRITE',
-        afterState: { orderNumber, grandTotal, paymentMethod: payMethod },
+        afterState: {
+          orderNumber,
+          grandTotal,
+          paymentMethod: isSplit ? 'SPLIT' : primaryPayMethod,
+          orderStatus: statuses.orderStatus,
+        },
       });
     }
 
-    return { reused: false as const, order, payment, journalEntryId: je.id, lines, grandTotal, taxTotal, subtotal };
+    return {
+      reused: false as const,
+      order,
+      payment,
+      payments: insertedPayments,
+      journalEntryId,
+      lines,
+      grandTotal,
+      taxTotal,
+      subtotal,
+      isSplit,
+    };
   });
+
+  if (result.reused === false && result.order) {
+    let customerName = 'Customer';
+    let customerPhone = '';
+    if (input.customerId) {
+      const [cust] = await db.select().from(customers).where(eq(customers.id, input.customerId)).limit(1);
+      customerName = cust?.name || customerName;
+      customerPhone = (cust?.phone || '').replace(/\D/g, '');
+    }
+    void dispatchAutomationEvent('ORDER_CREATED', {
+      orderId: result.order.id,
+      orderNumber: result.order.orderNumber,
+      channel: input.channel || 'POS',
+      grandTotal: result.grandTotal,
+      customerName,
+      customerPhone,
+    }).catch(() => undefined);
+  }
+
+  return result;
 }
 
 export async function durablePolimRepay(params: {

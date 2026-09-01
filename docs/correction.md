@@ -1,150 +1,248 @@
-# GRABBER Business OS — Correction Tracker
+# Grabber Business OS — Final Correction Tracker
 
-Master fix list from full code review (security, database, quality, a11y, completeness).  
-**Status legend:** `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
+Master fix list + sprint execution tracker for MyPoz Solo evolution.  
+**Status:** `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
-Last updated: 2026-09-01 (**READY_FOR_RETESTING** opened)
+Last updated: 2026-09-01  
+**Active sprint:** S11+ (post-cleanup — wire + polish)  
+**Fresh deploy:** [`FRESH_START.md`](./FRESH_START.md)
 
----
-
-## Gate status
-
-| Gate | Status | Doc |
-|------|--------|-----|
-| Waves 0–5 + dual auth | DONE | this file |
-| Process docs refreshed | DONE | playbook, cert levels, acceptance, test plan |
-| **Ready for Re-Testing** | **OPEN** | [`docs/READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md) |
+Roadmap: [`ROADMAP.md`](./ROADMAP.md) · Gate: [`RELEASE_GATE.md`](./RELEASE_GATE.md) · Code map: [`IMPLEMENTATION_MAP.md`](./IMPLEMENTATION_MAP.md)
 
 ---
 
-## Verdict
+## Executive verdict
 
-Durable Postgres commerce is wired end-to-end for core retail ops **and W5-06 verticals** (repairs, restaurant/KOT, hire-purchase, appointments, loyalty) behind feature flags. **`/` = public storefront**; **`/app` + staff PIN login** = backend; **`/shop/login`** = shopper accounts. Host RLS apply + live `db:push` E2E remain operator steps. **Re-test before handover** using the Ready for Re-Testing checklist.
+> **Strong commerce/operations engine with unfinished experience + intelligence layers.**
+
+Do **not** rebuild POS. Prioritize: **migration reproducibility → storefront → WhatsApp automation → grounded Jarvis → agents/creative.**
+
+| Layer | Status |
+|-------|--------|
+| Waves 0–5 (durable core) | DONE |
+| Dual surface (storefront `/` + staff `/app`) | DONE |
+| Sprint S1 (migrations + Jarvis session + docs) | DONE |
+| Sprint S2 (RLS + settings persistence) | DONE |
+| Release R1 gate | CONDITIONALLY READY |
+| Full Business OS (doc §106 E2E) | BLOCKED |
+
+---
+
+## Phase 0 — Freeze baseline
+
+| ID | Item | Class | Status |
+|----|------|-------|--------|
+| P0-01 | Git + production behaviour checkpoint documented | KEEP | DONE |
+| P0-02 | Feature classification map | KEEP | DONE → [`IMPLEMENTATION_MAP.md`](./IMPLEMENTATION_MAP.md) |
+| P0-03 | Seven-release roadmap | KEEP | DONE → [`ROADMAP.md`](./ROADMAP.md) |
+| P0-04 | Release gate doc | KEEP | DONE → [`RELEASE_GATE.md`](./RELEASE_GATE.md) |
+| P0-05 | Stop using `db:push` as production SSOT | FIX | IN_PROGRESS |
+
+---
+
+## Phase 1 — Database first (Release 1)
+
+| ID | Severity | Item | Status |
+|----|----------|------|--------|
+| DB-01 | CRITICAL | `0002_legacy_column_canonicalization.sql` | DONE |
+| DB-02 | CRITICAL | `npm run db:bootstrap` (0000→0002 + align) | DONE |
+| DB-03 | CRITICAL | Resolve `shifts.cashier_id` without interactive push | DONE (in 0002) |
+| DB-04 | HIGH | Legacy column sync triggers (PO, PO lines, tax_rates) | DONE (bridge) |
+| DB-05 | HIGH | `scripts/align-missing-columns.mjs` | DONE |
+| DB-06 | HIGH | Drop legacy columns + triggers after backfill | TODO (S2) |
+| DB-07 | CRITICAL | Fresh DB: migrate → seed → certify path documented | DONE |
+| DB-08 | HIGH | RLS baseline apply + automated tests | DONE (`db:apply-rls`, `db:test-rls`) |
+
+**Target flow:**
+
+```text
+Drizzle schema → numbered migrations → db:bootstrap → seed → certify → production
+```
+
+---
+
+## Phase 2 — Resellable Solo (Release 1)
 
 | ID | Item | Status |
 |----|------|--------|
-| DUAL-01 | Landing `/` = live catalog storefront (not staff hub) | DONE |
-| DUAL-02 | Shopper cookie `grabber_customer_session` + `/api/auth/shopper` | DONE |
-| DUAL-03 | Staff hub moved to `/app`; `/login` defaults `next=/app` | DONE |
-| DUAL-04 | Seed shopper password on demo customer (PIN/password `1234`) | DONE |
+| RSL-01 | One codebase, per-customer DB/env/branding | DONE |
+| RSL-02 | `scripts/sync-vercel-env.mjs` | DONE |
+| RSL-03 | `scripts/provision-client.mjs` runbook | DONE |
+| RSL-04 | Onboarding wizard (no code edits per customer) | TODO (S3+) |
+| RSL-05 | Business + brand + payment + WhatsApp setup checklist | PARTIAL |
+| SET-01 | Business profile API (`/api/settings/business`) | DONE |
+| SET-02 | Marketing pixels API (`/api/settings/marketing`) | DONE |
+| SET-03 | Settings UI loads/saves from DB | DONE |
+| SET-04 | Backup export wired to `/api/backup/export` | DONE |
 
 ---
 
-## Wave 0 — Honesty & gate integrity
+## Phase 3 — Security + real session (Release 1)
 
 | ID | Severity | Item | Status |
 |----|----------|------|--------|
-| W0-01 | CRITICAL | Align `scripts/certify-client.mjs` to `src/db/schema.ts` | DONE |
-| W0-02 | CRITICAL | Stop claiming RBAC/CDN/API cert when not implemented | DONE |
-| W0-03 | HIGH | Fail User Accounts check when `count === 0`; require OWNER | DONE |
-| W0-04 | HIGH | Dynamic `commitSha` / sanitize `--slug` | DONE |
-| W0-05 | HIGH | `validate-env.mjs`: AUTH_SECRET = P0 in production | DONE |
-| W0-06 | MEDIUM | Harden `copy-skills.mjs` | DONE |
-| W0-07 | MEDIUM | `.gitignore` reports + env client files | DONE |
-| W0-08 | CRITICAL | Revoke `GRANT ALL … TO anon` in `supabase_setup.sql` | DONE |
-| W0-09 | HIGH | Document schema drift — SSOT = Drizzle | DONE |
-| W0-10 | HIGH | A11y foundation | DONE |
+| SEC-01 | Jarvis hardcoded `user_owner_01` removed | CRITICAL | DONE |
+| SEC-02 | `buildJarvisContext()` from `getSession()` | CRITICAL | DONE |
+| SEC-03 | Jarvis API requires staff session in production | CRITICAL | DONE |
+| SEC-04 | RLS automated probes in certify | HIGH | DONE (`db:apply-rls`, `db:test-rls`) |
+| SEC-05 | Rate limits on Jarvis / public APIs | MEDIUM | TODO |
+| SEC-06 | Granular permission matrix | MEDIUM | DEFERRED (R2+) |
 
 ---
 
-## Wave 1 — Durable core (P0 product)
-
-| ID | Severity | Item | Status |
-|----|----------|------|--------|
-| W1-01 | CRITICAL | Repository layer: checkout + repay + GRN + transfer → Drizzle txns | DONE |
-| W1-02 | CRITICAL | Wire POS / products / inventory / purchasing / polim / returns / shifts / customers / suppliers → APIs | DONE |
-| W1-03 | CRITICAL | Concurrent stock: `UPDATE … WHERE on_hand - reserved >= qty` | DONE |
-| W1-04 | CRITICAL | Idempotent checkout (`idempotency_key` / `client_uuid`) | DONE |
-| W1-05 | CRITICAL | Real `/api/seed` writing Postgres (+ demo APPROVED PO for GRN) | DONE |
-| W1-06 | CRITICAL | Real `/api/storage/upload` (fail loud — no fabricated CDN) | DONE |
-| W1-07 | HIGH | Persist shifts + bind sales to `shift_id` | DONE |
-| W1-08 | HIGH | Return flow → `order_returns` + stock + inverse GL | DONE |
-| W1-09 | HIGH | GRN path → PO + supplier entries + WAVG cost | DONE |
-| W1-10 | HIGH | Deprecate `supabase_setup.sql` as SSOT — prefer `db:push` | DONE |
-| W1-11 | HIGH | FK indexes on order_items / payments / orders / journal_lines / supplier_entries | DONE |
-
----
-
-## Wave 2 — Auth, RLS, security (P0)
-
-| ID | Severity | Item | Status |
-|----|----------|------|--------|
-| W2-01 | CRITICAL | Hashed PIN, signed session cookies | DONE |
-| W2-02 | CRITICAL | `middleware.ts` route protection (prod cookie gate) | DONE |
-| W2-03 | CRITICAL | Role checks on mutating commerce APIs | DONE |
-| W2-04 | CRITICAL | First-login forced credential rotation (`TEMP$` / PATCH login) | DONE |
-| W2-05 | CRITICAL | RLS baseline SQL (`drizzle/rls_baseline.sql`) — **apply manually on host** | DONE |
-| W2-06 | HIGH | `audit_logs` on checkout path | DONE |
-| W2-07 | HIGH | PayHere webhook signature + `webhook_events` dedupe | DONE |
-| W2-08 | MEDIUM | Settings secrets via `encryption.ts` + `/api/settings/secrets` | DONE |
-
----
-
-## Wave 3 — Counter hardware & ops (P0/P1)
-
-| ID | Severity | Item | Status |
-|----|----------|------|--------|
-| W3-01 | HIGH | ESC/POS receipt + Z-report buffer on POS / Z-close | DONE |
-| W3-02 | MEDIUM | Barcode scanner listener on POS | DONE |
-| W3-03 | HIGH | Durable backup/export from Postgres | DONE |
-| W3-04 | HIGH | Honest `provision-client.mjs` (env + runbook artifacts) | DONE |
-| W3-05 | MEDIUM | Optional HTTP cert via `CERTIFY_HTTP_BASE_URL` + `/api/health` | DONE |
-| W3-06 | MEDIUM | Offline queue IndexedDB + flush on POS | DONE |
-
----
-
-## Wave 4 — Accessibility (WCAG 2.2 AA)
-
-| ID | Severity | Item | Status |
-|----|----------|------|--------|
-| A11Y-01 | P0 | Shared `<Modal>` focus trap / Escape / aria-modal | DONE |
-| A11Y-02 | P0 | Destructive contrast + focus-visible + reduced motion | DONE |
-| A11Y-03 | P0 | Skip link + main landmark + titles | DONE |
-| A11Y-04 | P0 | POS labels / live region / named qty | DONE |
-| A11Y-05 | P0 | Mobile nav escape hatch | DONE |
-| A11Y-06 | P1 | Primary nav + aria-current | DONE |
-| A11Y-07 | P1 | Migrate key modals to `<Modal>` | DONE |
-| A11Y-08 | P1 | htmlFor/id on login, shifts, products, settings | DONE |
-| A11Y-09 | P1 | Tender / role toggles → radio semantics | DONE |
-| A11Y-10 | P2 | a11y smoke tests (`tests/a11y-smoke.test.ts`) | DONE |
-
----
-
-## Wave 5 — Integrations & verticals (P1/P2)
+## Phase 4 — MyPoz core services (preserve)
 
 | ID | Item | Status |
 |----|------|--------|
-| W5-01 | WhatsApp send API (live if env set; honest stub in dev) | DONE |
-| W5-02 | Koombiyo create API (same honesty pattern) | DONE |
-| W5-03 | Reports: sales by channel, stock valuation, AR aging | DONE |
-| W5-04 | Trial balance + VAT worksheet + period-close check | DONE |
-| W5-05 | Feature flags via `business_config` (`/api/config/flags`) | DONE |
-| W5-06 | Repairs / restaurant / HP / appointments / loyalty (schema + APIs + flag-gated UI) | DONE |
+| CORE-01 | `checkout-repo.ts` atomic sales | DONE — KEEP |
+| CORE-02 | Commerce engines (pricing/tax/inventory/credit/GL) | DONE — KEEP |
+| CORE-03 | No duplicate pricing/checkout for Jarvis/WhatsApp | IN_PROGRESS |
+| CORE-04 | API-first: UI + Jarvis share same repos | IN_PROGRESS |
 
 ---
 
-## Wave D — Design system (MyPoz parity)
+## Phase 5–6 — Commerce complete (Release 2)
 
 | ID | Item | Status |
 |----|------|--------|
-| WD-01 | Persist MASTER.md tokens | DONE |
-| WD-02 | POS page override | DONE |
-| WD-03 | Plus Jakarta + zinc-950 / emerald / glass / mesh | DONE |
-| WD-04 | BrandLogo + header hairline | DONE |
-| WD-05 | Shell + POS restyle | DONE |
-| WD-06 | Roll design to dashboard / shifts / products / inventory / polim / purchasing / returns / settings / customers | DONE |
+| COM-01 | POS hold / resume | DONE (S4) |
+| COM-02 | Split payment (not collapsed to CASH) | DONE (S3) |
+| COM-03 | Product variants UI + stock by variant | DONE (S4) |
+| COM-04 | Multi-barcode, member price, SEO product fields | TODO (S5) |
+| COM-05 | Inventory reservations + incoming | TODO |
+| COM-06 | Unified order state machine (POS + store + admin) | DONE (S3) |
+| COM-07 | Promotion rules engine (server-side) | DONE (S3) |
+| COM-08 | Import validate → preview → commit | DONE (S4) |
+
+---
+
+## Phase 7–11 — Storefront flagship (Release 3)
+
+| ID | Item | Status |
+|----|------|--------|
+| STR-01 | SSR `/products/[slug]` | DONE (S5) |
+| STR-02 | Category / brand / collection routes | TODO (S6) |
+| STR-03 | Server-side search + filters | TODO (S6) |
+| STR-04 | Cart + checkout pages (not inline on `/`) | TODO (S6) |
+| STR-05 | Guest checkout + COD | PARTIAL |
+| STR-06 | Homepage block CMS (persisted) | TODO (S6) |
+| STR-07 | Theme engine | TODO (S6) |
+| STR-08 | SEO meta + OG + JSON-LD | DONE (S5) |
+| STR-09 | `sitemap.xml` + `robots.txt` | DONE (S5) |
+| STR-10 | Wishlist + reviews | TODO |
+| STR-11 | `/` refactor from client-only SPA | PARTIAL (PDP links; home still client) |
+
+---
+
+## Phase 12–13 — WhatsApp + automation (Release 4)
+
+| ID | Item | Status |
+|----|------|--------|
+| WA-01 | Outbound send (live when env set) | DONE |
+| WA-02 | Inbound webhooks | TODO (S8) |
+| WA-03 | Template registry + variables | TODO (S8) |
+| AUTO-01 | Event → condition → action engine | TODO (S7) |
+| AUTO-02 | `ORDER_CREATED` → WhatsApp rule | TODO (S7) |
+| AUTO-03 | `STOCK_LOW` → owner notify | TODO (S7) |
+| AUTO-04 | Retry + idempotency + delivery log | TODO |
+
+---
+
+## Phase 14–17 — Jarvis (Release 5)
+
+| ID | Item | Status |
+|----|------|--------|
+| JAR-01 | DB tools: sales, inventory, orders, customers | IN_PROGRESS (11 tools) |
+| JAR-02 | `get_dashboard_summary` | DONE |
+| JAR-03 | Draft tools (promotion, PO, message) | PARTIAL |
+| JAR-04 | EXECUTE → approval required | PARTIAL (token flow exists) |
+| JAR-05 | Approval Center UI | TODO (S9) |
+| JAR-06 | Daily business brief | TODO (S10) |
+| JAR-07 | LLM orchestrator (intent → tool) | TODO |
+| JAR-08 | AI provider abstraction | DEFERRED |
+
+---
+
+## Phase 18–22 — Agents + Creative (Release 6)
+
+| ID | Item | Status |
+|----|------|--------|
+| AGT-01 | Agent orchestrator | TODO |
+| AGT-02 | Sales / Inventory / Marketing agents | TODO |
+| CRE-01 | Brand brain in config | TODO |
+| CRE-02 | Brief → generate → review → approve → publish | TODO |
+| CRE-03 | Store banner + WhatsApp from creative | TODO |
+| INT-01 | Jarvis → agents → creative → approval pipeline | TODO |
+
+---
+
+## Phase 23–30 — Advanced (Release 7)
+
+| ID | Item | Status |
+|----|------|--------|
+| VERT-01 | Restaurant / repair / HP / appointments depth | PARTIAL |
+| CRM-01 | Segmentation UI + Jarvis targeting | TODO |
+| LOY-01 | Points / tiers / rewards | PARTIAL |
+| PROM-01 | Full IF/THEN promotion engine | TODO |
+| ANA-01 | Deterministic KPI layer | PARTIAL (dashboard stats) |
+| TST-01 | E2E doc §106 workflow | TODO → `E2E-01` |
+| TST-02 | Migration fresh + upgrade tests | TODO |
+| TST-03 | HTTP cert extension | OPTIONAL |
+
+---
+
+## E2E master test
+
+| ID | Item | Status |
+|----|------|--------|
+| E2E-01 | Full doc §106 workflow from fresh DB | BLOCKED |
+
+---
+
+## Completed waves (historical — do not regress)
+
+### Wave 0 — Honesty & gate integrity — DONE
+
+W0-01 … W0-10 — see git history.
+
+### Wave 1 — Durable core — DONE
+
+W1-01 … W1-11 — **Note:** W1-10 updated: prefer `db:bootstrap` over `db:push`.
+
+### Wave 2 — Auth, RLS, security — DONE (RLS apply manual)
+
+W2-01 … W2-08
+
+### Wave 3 — Counter hardware & ops — DONE
+
+W3-01 … W3-06
+
+### Wave 4 — Accessibility — DONE
+
+A11Y-01 … A11Y-10
+
+### Wave 5 — Integrations & verticals — DONE
+
+W5-01 … W5-06
+
+### Wave D — Design system — DONE
+
+WD-01 … WD-06
+
+### Dual surface — DONE
+
+DUAL-01 … DUAL-04
 
 ---
 
 ## Schema SSOT rules
 
 1. **Canonical schema:** `src/db/schema.ts` (49 tables).
-2. **Do not invent tables** in cert scripts beyond schema.ts.
-3. **COA codes:** `1010`, `1020`, `1090`, `1100`, `1200`, `2000`, `2100`, `4000`, `5000`.
-4. **Polim types:** `INVOICE` \| `REPAYMENT` \| `ADJUSTMENT` \| `WRITE_OFF`.
-5. **Order status:** no `COMPLETED` — use `DELIVERED` / `CONFIRMED` for POS cash.
-6. **Balances:** `polim_potha_accounts.current_balance`.
-7. **Verticals:** gated by `business_config.config_json.verticalFlags` + `/api/config/flags`.
+2. **Migrations:** `drizzle/migrations/0000` → `0002` via `npm run db:bootstrap`.
+3. **Do not** rely on interactive `db:push` for production.
+4. **Legacy bridges:** triggers in `0002` are temporary until DB-06.
+5. **COA codes:** `1010`, `1020`, `1090`, `1100`, `1200`, `2000`, `2100`, `4000`, `5000`.
+6. **Verticals:** `business_config.config_json.verticalFlags`.
 
 ---
 
@@ -154,27 +252,72 @@ Durable Postgres commerce is wired end-to-end for core retail ops **and W5-06 ve
 |--------|--------|
 | Schema & COA | YES |
 | Owner user present | YES |
-| POS cash + stock + GL (SQL synthetic) | YES |
-| Polim invoice/repay (SQL) | YES |
-| Return + GL reverse (SQL) | YES |
-| Purchasing stock intake | YES (SQL + app GRN API) |
+| POS cash + stock + GL (SQL) | YES |
+| Polim / returns / purchasing | YES |
 | Webhook idempotency | YES |
-| HTTP API path | OPTIONAL — `CERTIFY_HTTP_BASE_URL` |
-| Security & RBAC / RLS automated probes | NO — baseline SQL exists, not auto-applied |
-| Storage & CDN | NO — upload is local/Supabase without fake CDN claim |
+| Jarvis DB-grounded tools | PARTIAL (S1) |
+| HTTP API cert | OPTIONAL (`client:certify:http`) |
+| RLS automated | PARTIAL (`db:apply-rls`, `db:test-rls`) |
+| Storage CDN | NO (honest) |
+| Storefront SEO | YES (S5 SSR + sitemap) |
+| Automation engine | PARTIAL (config_json rules + logs, S7) |
 
 ---
 
-## Operator quick path (durable E2E)
+## Operator quick path
 
-1. Set `DATABASE_URL`, `AUTH_SECRET` (and `MASTER_ENCRYPTION_KEY` in prod).
-2. `npm run db:push` (49 tables incl. verticals)
-3. `POST /api/seed` (OWNER PIN `1234`, COA, products, PO, credit shopper Sarath phone `+94771234567` / password `1234`, vertical flags).
-4. Shoppers: `/` storefront → `/shop/login`. Staff: `/login` → `/app` / `/pos`.
-5. Staff: open shift `POST /api/shifts` → POS checkout.
-6. Verticals: `/repairs`, `/restaurant`, `/hire-purchase`, `/appointments`, `/loyalty` (toggle via `PUT /api/config/flags`).
-7. Optional: apply `drizzle/rls_baseline.sql` on Supabase.
-8. Optional cert HTTP: run app, then `CERTIFY_HTTP_BASE_URL=http://localhost:3000 npm run client:certify`.
+```bash
+# 1. Environment
+cp .env.example .env.local   # fill DATABASE_URL, AUTH_SECRET
+
+# 2. Database (migration-driven)
+npm run db:bootstrap
+# optional: npm run db:bootstrap -- --rls --certify
+
+# 3. Seed (dev)
+curl -X POST http://localhost:3000/api/seed \
+  -H "Content-Type: application/json" \
+  -d '{"storeName":"Shopping Station","slug":"shopping-station","ownerPin":"1234"}'
+
+# 4. Verify
+npm run typecheck && npm test && npm run client:certify
+
+# 5. Deploy
+npm run ops:sync-env   # production secrets
+npx vercel --prod --yes
+```
+
+Staff: `/login` → `/app` · Shopper: `/` · Jarvis tools: `POST /api/jarvis/chat` with staff cookie.
+
+---
+
+## Sprint log
+
+| Sprint | Focus | Status |
+|--------|-------|--------|
+| **S1** | Migrations, bootstrap, Jarvis session + DB tools, docs | DONE |
+| **S2** | RLS scripts/tests, settings + marketing persistence | DONE |
+| **S3** | Order unification, promotions, split pay | DONE |
+| **S4** | POS polish, variants, import | DONE |
+| **S5** | SSR storefront + SEO | DONE |
+| **S6** | CMS blocks, themes, `/shop/checkout`, categories SSR | DONE |
+| **S7** | Automation engine (ORDER_CREATED rules + logs) | DONE |
+| **S8** | WhatsApp webhook + templates API | DONE |
+| **S9** | Approval Center + Jarvis EXECUTE queue | DONE |
+| **S10** | Daily brief API + HTTP cert script | DONE |
+| S11+ | Wire Jarvis/Creative/WhatsApp UI + R6 workflow | DONE |
+| R7 vertical depth | Restaurant/repair/loyalty polish | DEFERRED |
+
+---
+
+## Next steps (recommended order)
+
+1. **Fresh cloud** — follow [`FRESH_START.md`](./FRESH_START.md): new Supabase + Vercel, `db:bootstrap`, seed, deploy
+2. **Live WhatsApp credentials** on Vercel (`WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`)
+3. **Media pipeline** — `FAL_KEY` / `REPLICATE_API_TOKEN` for real video render
+4. **DB-06** — drop legacy column bridges after verification
+5. **Lighthouse budgets** — product + checkout mobile perf
+6. **R7** — vertical depth + CRM campaigns (deferred)
 
 ---
 
@@ -182,9 +325,11 @@ Durable Postgres commerce is wired end-to-end for core retail ops **and W5-06 ve
 
 | Date | Change |
 |------|--------|
-| 2026-08-31 | Created tracker; Wave 0 honesty + a11y foundation |
-| 2026-08-31 | Design system MyPoz parity (WD-01…05) |
-| 2026-08-31 | Waves 1–5 durable APIs, auth, offline queue, integrations stubs, design rollout; tracker statuses updated |
-| 2026-08-31 | Closed remaining mock UIs: products/customers/suppliers/PO CRUD APIs; inventory + polim list; honest creative stub; seed credit customer |
-| 2026-08-31 | Dual surface: `/` storefront + shopper auth; staff hub `/app`; checkout accepts STOREFRONT |
-| 2026-09-01 | Process docs completed; gate **READY_FOR_RETESTING** opened |
+| 2026-08-31 | Waves 0–5, dual surface, design parity |
+| 2026-09-01 | Ready for re-testing gate opened |
+| 2026-09-01 | **S2:** RLS apply/test scripts, business + marketing settings APIs, settings UI persistence |
+| 2026-09-01 | **S3:** Channel-aware checkout statuses, split payments, promotion engine + APIs, orders PATCH transitions |
+| 2026-09-01 | **S4:** POS hold/resume (DRAFT orders), variant CRUD + catalog, CSV import validate/commit |
+| 2026-09-01 | **S5:** SSR `/products/[slug]`, Product JSON-LD, sitemap.xml, robots.txt, storefront PDP links |
+| 2026-09-01 | **S6–S10:** CMS, automation, WhatsApp webhook, Approval Center, Jarvis brief, HTTP cert |
+| 2026-09-01 | **Cleanup:** removed orphan layout/libs; mock pages redirected; `/store/builder` staff-only; `FRESH_START.md` |

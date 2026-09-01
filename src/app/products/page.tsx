@@ -5,6 +5,17 @@ import Link from 'next/link';
 import { Plus, Search, Edit2, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 
+interface ProductVariant {
+  id: string;
+  name: string;
+  sku: string;
+  barcode: string;
+  price: number;
+  cost: number;
+  stock: number;
+  active?: boolean;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -16,6 +27,8 @@ interface Product {
   stock: number;
   tax: string;
   isActive?: boolean;
+  variants?: ProductVariant[];
+  variantCount?: number;
 }
 
 export default function ProductsCRUDPage() {
@@ -34,6 +47,11 @@ export default function ProductsCRUDPage() {
   const [category, setCategory] = useState('Apparel');
   const [price, setPrice] = useState(4500);
   const [cost, setCost] = useState(2500);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [variantProductId, setVariantProductId] = useState<string | null>(null);
+  const [variantName, setVariantName] = useState('');
+  const [variantSku, setVariantSku] = useState('');
+  const [variantStock, setVariantStock] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -113,6 +131,37 @@ export default function ProductsCRUDPage() {
     }
   };
 
+  const handleAddVariant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!variantProductId) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/products/variants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: variantProductId,
+          name: variantName,
+          sku: variantSku,
+          salePrice: price,
+          costPrice: cost,
+          stock: variantStock,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Variant save failed');
+      setVariantProductId(null);
+      setVariantName('');
+      setVariantSku('');
+      setVariantStock(0);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const filtered = products.filter(
     (p) =>
       p.isActive !== false &&
@@ -181,26 +230,66 @@ export default function ProductsCRUDPage() {
               <th className="pb-2.5 font-medium text-right">Sale</th>
               <th className="pb-2.5 font-medium text-right">Cost</th>
               <th className="pb-2.5 font-medium text-right">Stock</th>
+              <th className="pb-2.5 font-medium">Variants</th>
               <th className="pb-2.5 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {filtered.map((p) => (
-              <tr key={p.id} className="hover:bg-zinc-900/60">
-                <td className="py-3 font-semibold text-foreground">{p.name}</td>
-                <td className="py-3 font-mono text-muted-foreground">{p.sku}</td>
-                <td className="py-3 text-right font-mono">{p.price.toFixed(2)}</td>
-                <td className="py-3 text-right font-mono">{p.cost.toFixed(2)}</td>
-                <td className="py-3 text-right font-mono">{p.stock}</td>
-                <td className="py-3 text-right space-x-2">
-                  <button type="button" onClick={() => openEditModal(p)} className="inline-flex p-1.5 rounded-lg hover:bg-zinc-800" aria-label={`Edit ${p.name}`}>
-                    <Edit2 className="h-3.5 w-3.5" />
-                  </button>
-                  <button type="button" onClick={() => handleDeleteProduct(p.id)} className="inline-flex p-1.5 rounded-lg hover:bg-zinc-800 text-destructive" aria-label={`Delete ${p.name}`}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </td>
-              </tr>
+              <React.Fragment key={p.id}>
+                <tr className="hover:bg-zinc-900/60">
+                  <td className="py-3 font-semibold text-foreground">{p.name}</td>
+                  <td className="py-3 font-mono text-muted-foreground">{p.sku}</td>
+                  <td className="py-3 text-right font-mono">{p.price.toFixed(2)}</td>
+                  <td className="py-3 text-right font-mono">{p.cost.toFixed(2)}</td>
+                  <td className="py-3 text-right font-mono">{p.stock}</td>
+                  <td className="py-3">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                      className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"
+                    >
+                      {(p.variantCount || p.variants?.length || 0)} variants
+                    </button>
+                  </td>
+                  <td className="py-3 text-right space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVariantProductId(p.id);
+                        setVariantName('');
+                        setVariantSku(`${p.sku}-VAR`);
+                        setVariantStock(0);
+                        setPrice(p.price);
+                        setCost(p.cost);
+                      }}
+                      className="text-[10px] px-2 py-1 rounded bg-emerald-500/15 text-emerald-400 font-bold"
+                    >
+                      + Variant
+                    </button>
+                    <button type="button" onClick={() => openEditModal(p)} className="inline-flex p-1.5 rounded-lg hover:bg-zinc-800" aria-label={`Edit ${p.name}`}>
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" onClick={() => handleDeleteProduct(p.id)} className="inline-flex p-1.5 rounded-lg hover:bg-zinc-800 text-destructive" aria-label={`Delete ${p.name}`}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                </tr>
+                {expandedId === p.id && (p.variants?.length || 0) > 0 && (
+                  <tr>
+                    <td colSpan={7} className="pb-3 px-2">
+                      <div className="rounded-xl bg-zinc-900/80 border border-zinc-800 p-3 space-y-1">
+                        {p.variants?.map((v) => (
+                          <div key={v.id} className="flex justify-between text-[11px] text-muted-foreground">
+                            <span>{v.name} · {v.sku}</span>
+                            <span>LKR {v.price.toFixed(2)} · stock {v.stock}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
@@ -243,6 +332,34 @@ export default function ProductsCRUDPage() {
               {busy ? 'Saving…' : 'Save product'}
             </button>
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!variantProductId}
+        onClose={() => !busy && setVariantProductId(null)}
+        title="Add product variant"
+        as="form"
+        onSubmit={handleAddVariant}
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold block mb-1">Variant label</label>
+            <input required value={variantName} onChange={(e) => setVariantName(e.target.value)} placeholder="Size L / Blue" className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold block mb-1">Variant SKU</label>
+              <input required value={variantSku} onChange={(e) => setVariantSku(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm font-mono" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold block mb-1">Initial stock</label>
+              <input type="number" value={variantStock} onChange={(e) => setVariantStock(Number(e.target.value))} className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm font-mono" />
+            </div>
+          </div>
+          <button type="submit" disabled={busy} className="w-full min-h-11 rounded-xl bg-emerald-500 text-zinc-950 text-xs font-bold disabled:opacity-50">
+            {busy ? 'Saving…' : 'Save variant'}
+          </button>
         </div>
       </Modal>
     </div>

@@ -11,7 +11,7 @@ loadEnv({ path: '.env.local' });
 loadEnv({ path: '.env' });
 
 const file = process.argv[2] || 'drizzle/migrations/0001_business_os_align.sql';
-const url = process.env.DATABASE_URL;
+const url = process.env.DATABASE_URL || process.env.database_url;
 if (!url) {
   console.error('DATABASE_URL missing');
   process.exit(1);

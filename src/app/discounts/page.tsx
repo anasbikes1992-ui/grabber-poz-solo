@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Tag, Plus, Search, CheckCircle2, X, Percent, Calendar } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Tag, Plus, CheckCircle2, X } from 'lucide-react';
 
 interface DiscountRule {
   id: string;
@@ -16,11 +16,28 @@ interface DiscountRule {
 }
 
 export default function DiscountsPage() {
-  const [discounts, setDiscounts] = useState<DiscountRule[]>([
-    { id: 'd1', code: 'SUMMER10', type: 'PERCENT', value: 10, minSpend: 5000, usageCount: 42, maxUsage: 100, validUntil: '2026-09-30', active: true },
-    { id: 'd2', code: 'WELCOME500', type: 'FIXED', value: 500, minSpend: 4000, usageCount: 18, maxUsage: 50, validUntil: '2026-12-31', active: true },
-    { id: 'd3', code: 'VIP20', type: 'PERCENT', value: 20, minSpend: 15000, usageCount: 7, validUntil: '2026-12-31', active: true },
-  ]);
+  const [discounts, setDiscounts] = useState<DiscountRule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch('/api/promotions');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to load promotions');
+      setDiscounts(data.promotions || []);
+    } catch (err) {
+      setLoadError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [code, setCode] = useState('');
@@ -30,10 +47,10 @@ export default function DiscountsPage() {
   const [validUntil, setValidUntil] = useState('2026-10-31');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const newD: DiscountRule = {
-      id: `d_${Date.now()}`,
+      id: `promo_${Date.now()}`,
       code: code.toUpperCase().trim(),
       type,
       value: Number(value),
@@ -43,12 +60,24 @@ export default function DiscountsPage() {
       active: true,
     };
 
-    setDiscounts((prev) => [...prev, newD]);
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setIsModalOpen(false);
-      setSaveSuccess(false);
-    }, 800);
+    try {
+      const next = [...discounts, newD];
+      const res = await fetch('/api/promotions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promotions: next }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Save failed');
+      setDiscounts(data.promotions || next);
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setSaveSuccess(false);
+      }, 800);
+    } catch (err) {
+      setLoadError((err as Error).message);
+    }
   };
 
   return (
@@ -83,6 +112,12 @@ export default function DiscountsPage() {
 
       {/* Coupons Table */}
       <div className="p-5 rounded-2xl bg-card border border-border/80 shadow-sm space-y-4">
+        {loadError && (
+          <p className="text-xs text-destructive">{loadError}</p>
+        )}
+        {loading ? (
+          <p className="text-xs text-muted-foreground">Loading promotions…</p>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -122,6 +157,7 @@ export default function DiscountsPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Modal */}

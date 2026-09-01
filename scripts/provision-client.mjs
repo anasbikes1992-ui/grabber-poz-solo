@@ -49,8 +49,8 @@ fs.writeFileSync(path.join(outDir, `.env.${clientSlug}.production`), envContent)
 const runbook = `# Provision runbook — ${clientName}
 
 1. Create Supabase project in \`ap-southeast-1\`
-2. Apply schema: \`npm run db:push\` with DATABASE_URL, **or** run SQL matching \`src/db/schema.ts\`
-3. Optional RLS: run \`drizzle/rls_baseline.sql\`
+2. Apply schema: \`npm run db:bootstrap\` (migrations 0000–0002 + column align)
+3. Optional RLS: \`npm run db:bootstrap -- --rls\` then \`npm run db:test-rls\`
 4. Copy env from \`.env.${clientSlug}.production\` into Vercel
 5. \`npm run env:validate -- --env-file .env.${clientSlug}.production --production\`
 6. \`npm run db\` seed: \`curl -X POST "$NEXT_PUBLIC_APP_URL/api/seed" -H "Content-Type: application/json" -d '{"storeName":"${clientName}","slug":"${clientSlug}"}'\`
@@ -58,9 +58,7 @@ const runbook = `# Provision runbook — ${clientName}
 8. Owner first login → rotate TEMP PIN if seeded with TEMP$
 9. Bind domain ${clientDomain} in Vercel + DNS
 
-## Honesty
-Provisioning does **not** auto-create cloud projects without SUPABASE_ACCESS_TOKEN / Vercel tokens.
-This script generates the packet + secrets only.
+See full guide: docs/FRESH_START.md
 `;
 
 fs.writeFileSync(path.join(outDir, 'RUNBOOK.md'), runbook);

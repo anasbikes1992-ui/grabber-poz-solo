@@ -6,22 +6,38 @@ import { COOKIE_NAME, CUSTOMER_COOKIE_NAME } from '@/lib/auth/session-constants'
 const PUBLIC_EXACT = new Set(['/', '/store', '/shop/login', '/login']);
 const PUBLIC_PREFIXES = [
   '/shop/',
-  '/store/',
+  '/categories/',
   '/api/auth/',
   '/api/webhooks',
   '/api/health',
   '/api/seed',
   '/api/pos/catalog',
   '/api/pos/checkout', // storefront checkout (validates customerId server-side)
+  '/api/storefront/public',
   '/api/config/flags',
 ];
+
+/** Crawlable storefront product detail pages (not staff /products admin) */
+function isStorefrontProduct(pathname: string) {
+  return /^\/products\/[^/]+$/.test(pathname);
+}
 
 /** Staff back-office surfaces (require staff cookie in production) */
 const STAFF_PREFIXES = [
   '/app',
+  '/dashboard',
   '/pos',
   '/shifts',
-  '/products',
+  '/whatsapp',
+  '/creative',
+  '/collections',
+  '/quotations',
+  '/damages',
+  '/orders',
+  '/reports',
+  '/marketing',
+  '/warranties',
+  '/ai',
   '/inventory',
   '/purchasing',
   '/suppliers',
@@ -39,18 +55,19 @@ const STAFF_PREFIXES = [
   '/delivery',
   '/discounts',
   '/barcodes',
-  '/wholesale',
-  '/whatsapp',
-  '/creative',
-  '/collections',
+  '/approvals',
+  '/settings/automation',
+  '/store/builder',
 ];
 
 function isPublic(pathname: string) {
   if (PUBLIC_EXACT.has(pathname)) return true;
+  if (isStorefrontProduct(pathname)) return true;
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 
 function isStaffSurface(pathname: string) {
+  if (pathname === '/products' || pathname.startsWith('/products/import')) return true;
   return STAFF_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 

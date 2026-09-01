@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
-import { db, products, stockBalances, taxProfiles, branches, categories } from '@/db';
+import { and, eq, inArray } from 'drizzle-orm';
+import { db, products, stockBalances, taxProfiles, branches, categories, productVariants } from '@/db';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 
 function slugify(name: string) {
@@ -16,29 +16,62 @@ export async function GET() {
   try {
     const [branch] = await db.select().from(branches).limit(1);
     const rows = await db.select().from(products).limit(500);
+    const productIds = rows.map((p) => p.id);
+    const variantRows =
+      productIds.length > 0
+        ? await db
+            .select()
+            .from(productVariants)
+            .where(and(inArray(productVariants.productId, productIds), eq(productVariants.active, true)))
+        : [];
+    const variantsByProduct = new Map<string, typeof variantRows>();
+    for (const v of variantRows) {
+      const list = variantsByProduct.get(v.productId) || [];
+      list.push(v);
+      variantsByProduct.set(v.productId, list);
+    }
+
     const stocks = branch
       ? await db.select().from(stockBalances).where(eq(stockBalances.locationId, branch.id))
       : [];
-    const stockMap = new Map(stocks.map((s) => [s.productId, s.onHand]));
+    const stockKey = (productId: string, variantId?: string | null) =>
+      `${productId}:${variantId || 'base'}`;
+    const stockMap = new Map(
+      stocks.map((s) => [stockKey(s.productId, s.variantId), Number(s.onHand ?? 0)]),
+    );
     const cats = await db.select().from(categories).limit(200);
     const catMap = new Map(cats.map((c) => [c.id, c.name]));
 
     return NextResponse.json({
       success: true,
       branchId: branch?.id || null,
-      products: rows.map((p) => ({
-        id: p.id,
-        name: p.name,
-        sku: p.sku,
-        barcode: p.barcode || p.sku,
-        category: (p.categoryId && catMap.get(p.categoryId)) || 'Uncategorized',
-        categoryId: p.categoryId,
-        price: Number(p.salePrice),
-        cost: Number(p.costPrice),
-        stock: stockMap.get(p.id) ?? 0,
-        tax: 'STANDARD_VAT (18%)',
-        isActive: p.isActive,
-      })),
+      products: rows.map((p) => {
+        const variants = (variantsByProduct.get(p.id) || []).map((v) => ({
+          id: v.id,
+          name: v.name,
+          sku: v.sku,
+          barcode: v.barcode || v.sku,
+          price: Number(v.salePrice ?? p.salePrice),
+          cost: Number(v.costPrice ?? p.costPrice),
+          stock: stockMap.get(stockKey(p.id, v.id)) ?? 0,
+          active: v.active,
+        }));
+        return {
+          id: p.id,
+          name: p.name,
+          sku: p.sku,
+          barcode: p.barcode || p.sku,
+          category: (p.categoryId && catMap.get(p.categoryId)) || 'Uncategorized',
+          categoryId: p.categoryId,
+          price: Number(p.salePrice),
+          cost: Number(p.costPrice),
+          stock: stockMap.get(stockKey(p.id, null)) ?? 0,
+          tax: 'STANDARD_VAT (18%)',
+          isActive: p.isActive,
+          variants,
+          variantCount: variants.length,
+        };
+      }),
     });
   } catch (err: unknown) {
     return NextResponse.json({ success: false, error: (err as Error).message, products: [] }, { status: 500 });

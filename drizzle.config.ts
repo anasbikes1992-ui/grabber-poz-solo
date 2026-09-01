@@ -9,7 +9,7 @@ export default defineConfig({
   out: './drizzle/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/grabber_business_os',
+    url: process.env.DATABASE_URL || process.env.database_url || 'postgresql://postgres:postgres@localhost:5432/grabber_business_os',
   },
   verbose: true,
   strict: false,
