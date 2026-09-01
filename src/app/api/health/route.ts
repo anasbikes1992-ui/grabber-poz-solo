@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { hasDatabaseUrl } from '@/lib/db/connection';
+import { hasDatabaseUrl, databaseEnvDiagnostics } from '@/lib/db/connection';
 
 /** Lightweight health probe for cert / load balancers */
 export async function GET() {
@@ -13,7 +13,12 @@ export async function GET() {
   };
 
   if (!hasDatabaseUrl()) {
-    return NextResponse.json({ ...base, db: 'not_configured' });
+    return NextResponse.json({
+      ...base,
+      db: 'not_configured',
+      env: databaseEnvDiagnostics(),
+      hint: 'Add DATABASE_URL (pooler, port 6543) to Vercel Production env and redeploy.',
+    });
   }
 
   try {

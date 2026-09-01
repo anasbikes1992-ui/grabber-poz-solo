@@ -3,15 +3,23 @@
  * Vercel Supabase sets POSTGRES_URL; this app historically used DATABASE_URL.
  * Keep in sync with scripts/lib/resolve-db-url.mjs
  */
+function pickEnv(...keys: string[]): string | null {
+  for (const key of keys) {
+    const raw = process.env[key];
+    if (typeof raw === 'string' && raw.trim()) return raw.trim();
+  }
+  return null;
+}
+
 export function resolveDatabaseUrl(): string | null {
-  const url =
-    process.env.DATABASE_URL ||
-    process.env.database_url ||
-    process.env.POSTGRES_URL ||
-    process.env.POSTGRES_PRISMA_URL ||
-    process.env.POSTGRES_URL_NON_POOLING ||
-    process.env.SUPABASE_DB_URL ||
-    null;
+  const url = pickEnv(
+    'DATABASE_URL',
+    'database_url',
+    'POSTGRES_URL',
+    'POSTGRES_PRISMA_URL',
+    'POSTGRES_URL_NON_POOLING',
+    'SUPABASE_DB_URL',
+  );
 
   if (url) return url;
 
@@ -21,6 +29,17 @@ export function resolveDatabaseUrl(): string | null {
   }
 
   return null;
+}
+
+/** Safe diagnostics for /api/health — never exposes secret values. */
+export function databaseEnvDiagnostics() {
+  return {
+    vercel: Boolean(process.env.VERCEL),
+    nodeEnv: process.env.NODE_ENV || 'development',
+    DATABASE_URL: Boolean(pickEnv('DATABASE_URL')),
+    POSTGRES_URL: Boolean(pickEnv('POSTGRES_URL')),
+    POSTGRES_URL_NON_POOLING: Boolean(pickEnv('POSTGRES_URL_NON_POOLING')),
+  };
 }
 
 export function hasDatabaseUrl(): boolean {
