@@ -10,7 +10,7 @@ dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
 
 const PROJECT = process.env.VERCEL_PROJECT || 'grabber-poz-solo';
-const TARGETS = ['production'];
+const TARGETS = ['production', 'preview'];
 
 function normalizeDatabaseUrl(raw) {
   if (!raw) return null;
@@ -53,7 +53,11 @@ if (!supabaseUrl && rawDb) {
 }
 
 const OPTIONAL_VARS = [
+  ['CERTIFY_HTTP_BASE_URL', process.env.CERTIFY_HTTP_BASE_URL],
+  ['WHATSAPP_TOKEN', process.env.WHATSAPP_TOKEN],
+  ['WHATSAPP_PHONE_ID', process.env.WHATSAPP_PHONE_ID],
   ['WHATSAPP_VERIFY_TOKEN', process.env.WHATSAPP_VERIFY_TOKEN],
+  ['KOOMBIYO_API_KEY', process.env.KOOMBIYO_API_KEY],
   ['PAYMENTS_LKR_PROVIDER', process.env.PAYMENTS_LKR_PROVIDER],
   ['WEBXPAY_ENV', process.env.WEBXPAY_ENV],
   ['WEBXPAY_PUBLIC_KEY', process.env.WEBXPAY_PUBLIC_KEY],

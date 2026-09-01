@@ -34,7 +34,7 @@ This document is the **process entry** for re-testing after the correction waves
 |---------|-----|------|
 | Public storefront | `/` | None to browse; shopper cookie to checkout |
 | Shopper account | `/shop/login`, `/shop/account` | `grabber_customer_session` |
-| Staff login | `/login?next=/app` | PIN → `grabber_session` |
+| Staff login | `/adminpoz?next=/app` | PIN → `grabber_session` |
 | Staff hub | `/app` | Staff session |
 | Counter POS | `/pos` | Staff session |
 | Verticals | `/repairs`, `/restaurant`, `/hire-purchase`, `/appointments`, `/loyalty` | Staff + feature flags |
@@ -77,7 +77,7 @@ npm run client:certify -- --client "Re-Test" --slug "retest"
 |----|--------|---------------|--------|
 | RT-M01 | `/` shows live catalog (or clear empty-state after seed) | Not staff dashboard | ☐ |
 | RT-M02 | Shopper register/login → bag → checkout `STOREFRONT` | Order number returned; stock drops | ☐ |
-| RT-M03 | Staff `/login` → lands `/app` | Hub, not storefront | ☐ |
+| RT-M03 | Staff `/adminpoz` → lands `/app` | Hub, not storefront | ☐ |
 | RT-M04 | Open shift → POS cash sale | Order + receipt path; stock/GL | ☐ |
 | RT-M05 | GRN against seeded APPROVED PO | Stock up; supplier AP | ☐ |
 | RT-M06 | Return against POS order | Stock restore; journal reverse | ☐ |

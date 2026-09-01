@@ -89,9 +89,16 @@ Schema supports `STRIPE` tender type on POS; online Stripe checkout is not imple
 
 ## Other optional integrations
 
-- `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_VERIFY_TOKEN`
-- `KOOMBIYO_API_KEY`
-- `FAL_KEY` (creative engine)
+| Variable | Wired? | Notes |
+|----------|--------|-------|
+| `WHATSAPP_VERIFY_TOKEN` | ✅ webhook | Meta webhook challenge at `/api/integrations/whatsapp` |
+| `WHATSAPP_TOKEN` | ⚙️ | Outbound API |
+| `WHATSAPP_PHONE_ID` | ⚙️ | WhatsApp Business phone |
+| `KOOMBIYO_API_KEY` | ⚙️ | Courier integration |
+| `CERTIFY_HTTP_BASE_URL` | ⚙️ | Release certification scripts |
+| `FAL_KEY` | ⚙️ | Creative engine |
+
+`npm run ops:sync-env` pushes all set values from `.env.local` to **production + preview**.
 
 ---
 

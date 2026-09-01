@@ -9,6 +9,7 @@ import { listPromotions, recordPromotionRedemption } from '@/lib/config/promotio
 type BodyLine = {
   productId?: string;
   id?: string;
+  variantId?: string;
   qty?: number;
   quantity?: number;
   unitPrice?: number;
@@ -17,6 +18,13 @@ type BodyLine = {
 };
 
 type PaymentLine = { method?: string; amount?: number };
+
+/** Match durableCheckout tax math (18% VAT on discounted subtotal). */
+function computeGrandTotal(subtotal: number, discountTotal: number) {
+  const taxable = Math.max(0, subtotal - discountTotal);
+  const taxTotal = Math.round(taxable * 0.18 * 100) / 100;
+  return taxable + taxTotal;
+}
 
 export async function POST(req: Request) {
   try {
@@ -62,6 +70,7 @@ export async function POST(req: Request) {
 
     const items = rawLines.map((l) => ({
       productId: String(l.productId || l.id),
+      variantId: l.variantId ? String(l.variantId) : undefined,
       name: l.name,
       quantity: Number(l.quantity ?? l.qty ?? 0),
       unitPrice: Number(l.unitPrice ?? 0),
@@ -101,6 +110,17 @@ export async function POST(req: Request) {
       if (payments.length < 2) {
         return NextResponse.json(
           { success: false, error: 'Split payment requires cash and card amounts' },
+          { status: 400 },
+        );
+      }
+      const expectedTotal = computeGrandTotal(itemSubtotal, discountTotal);
+      const paySum = payments.reduce((s, p) => s + p.amount, 0);
+      if (Math.abs(paySum - expectedTotal) > 0.01) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Split payment total (${paySum.toFixed(2)}) must equal order total (${expectedTotal.toFixed(2)})`,
+          },
           { status: 400 },
         );
       }

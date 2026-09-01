@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { COOKIE_NAME, CUSTOMER_COOKIE_NAME } from '@/lib/auth/session-constants';
 
 /** Public marketing / storefront / auth / webhooks */
-const PUBLIC_EXACT = new Set(['/', '/store', '/shop/login', '/login']);
+const PUBLIC_EXACT = new Set(['/', '/store', '/shop/login', '/adminpoz', '/login']);
 const PUBLIC_PREFIXES = [
   '/shop/',
   '/categories/',
@@ -120,7 +120,7 @@ export function middleware(req: NextRequest) {
     if (optional) return NextResponse.next();
     if (!req.cookies.get(COOKIE_NAME)?.value) {
       const url = req.nextUrl.clone();
-      url.pathname = '/login';
+      url.pathname = '/adminpoz';
       url.searchParams.set('next', pathname);
       return NextResponse.redirect(url);
     }

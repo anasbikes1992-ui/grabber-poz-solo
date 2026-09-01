@@ -1,76 +1,104 @@
-# GRABBER BUSINESS OS (SOLO EDITION) — MASTER CEO & CTO EXECUTIVE AUDIT REPORT
+# Grabber Poz Solo — CEO & CTO Executive Audit Report
 
-**Executive Summary & Commercial Readiness Assessment**
-*System Scope: Single-Business POS, Multi-Location Inventory, Web Storefront, Double-Entry Accounting, WhatsApp Commerce & AI Creative Studio.*
-
----
-
-## 1. Executive Summary & Verdict
-
-| Audit Domain | Pre-Audit Risk | Post-Implementation Status | Commercial Readiness |
-| :--- | :---: | :--- | :---: |
-| **1. Fleet Orchestration** | ⚠️ High | Automated matrix GitHub Actions CI/CD pipeline (`.github/workflows/fleet-deploy.yml`) for multi-client DB migrations. | ✅ **READY (9.5/10)** |
-| **2. Offline-First POS Engine** | ⚠️ Medium | Deterministic Vector Timestamp sync with non-blocking stock under-run resolution (`src/lib/pos/offline-sync.ts`). | ✅ **READY (9.8/10)** |
-| **3. Security & Secret Vault** | ⚠️ High | AES-256-GCM field encryption (`src/lib/security/encryption.ts`) + POS Manager PIN rate-limiting. | ✅ **READY (9.7/10)** |
-| **4. Multi-Branch Parity** | ⚠️ Low | Real-time dual-ledger sync ($\sum \text{Stock In} = \sum \text{Stock Out} + \sum \text{On Hand}$) & $\sum \text{Dr} = \sum \text{Cr}$. | ✅ **READY (10/10)** |
-| **5. Turnkey Provisioning** | ⚠️ Medium | 3-minute automated deployment script (`scripts/provision-client.mjs`) with pre-configured Supabase & Vercel. | ✅ **READY (9.9/10)** |
+**Assessment date:** 2026-09-01  
+**Production:** `https://grabber-poz-solo.vercel.app`  
+**Evidence:** [`RELEASE_GATE.md`](./RELEASE_GATE.md) · [`NEXT_PHASES.md`](./NEXT_PHASES.md) · Bugbot review 2026-09-01
 
 ---
 
-## 2. Deep Technical Breakdown across 5 Dimensions
+## 1. Executive summary
 
-### Dimension 1: Fleet Orchestration & Schema Migration Strategy
-* **Operational Problem:** How to deploy schema migrations and engine updates to 50+ isolated client databases without downtime or manual SQL scripts.
-* **Architecture Solution:** 
-  - Centralized GitHub repository (`anasbikes1992-ui/grabber-business-os`).
-  - GitHub Actions Fleet Workflow (`.github/workflows/fleet-deploy.yml`) executing an automated matrix across client database secrets.
-  - Idempotent Drizzle schema migration script applying safe, additive changes with zero destructive drops.
+Grabber Poz Solo is a **single-business retail OS**: POS, live web storefront (COD), inventory, purchasing, AR (Polim Potha), double-entry GL, and optional vertical modules (restaurant, repairs, hire purchase, appointments, loyalty).
 
----
+| Surface | Verdict | Notes |
+|---------|---------|-------|
+| POS + daily ops | **Pilot ready** | After seed + `/adminpoz` login |
+| Storefront (COD) | **Pilot ready** | Catalog live; online LKR pay not wired |
+| Resellable Solo deploy | **Partial** | Provision scripts + Vercel sync; RLS not on prod yet |
+| WhatsApp commerce | **Not ready** | APIs stubbed; needs Meta credentials |
+| AI / agents / creative | **Not ready** | Jarvis READ tools; EXECUTE/agents thin |
+| Full Business OS E2E | **Blocked** | Doc §106 — see `RELEASE_GATE.md` |
 
-### Dimension 2: Offline-First POS Conflict Resolution
-* **Operational Problem:** Two POS cashiers sell the last unit of an SKU while offline simultaneously.
-* **Resolution Engine (`src/lib/pos/offline-sync.ts`):**
-  1. **Physical Reality Primacy:** Because the physical goods have already been handed to the customer with a printed receipt, **the sale cannot be rejected on sync**.
-  2. **Atomic Ingestion:** The server accepts both sales, creates the customer orders, and posts the full financial revenue + cash entries.
-  3. **Stock Under-run Flagging:** The physical stock balance is recorded as negative (e.g. `-1`), an immutable `UNDER_RUN_EXCEPTION` movement is logged, and an automated Urgent Stock Reorder / Inter-Branch Transfer alert is dispatched to the Branch Manager.
+**Honest commercial pitch today:** sell **POS + inventory + COD storefront**, not full AI/WhatsApp OS until Phase 3–4 complete.
 
 ---
 
-### Dimension 3: Security, Secret Management & Vault Hardening
-* **Field-Level Encryption (`src/lib/security/encryption.ts`):**
-  - All third-party secrets (PayHere Merchant Secret, Koombiyo API Key, WhatsApp Meta Token, Gemini API Key) are encrypted at rest using **AES-256-GCM** with a 12-byte IV and 16-byte authentication tag before persisting to Supabase PostgreSQL.
-* **POS Manager PIN Hardening:**
-  - Manager PIN (`1234`) is enforced on manual discounts > 15%, cart voids, and Polim Potha credit limit breaches.
-  - Brute-force lockout: 3 failed PIN attempts trigger a 5-minute lockout and record an audit log event.
+## 2. What the system does
+
+```text
+Shoppers (/)          Staff (/adminpoz → /app, /pos)
+       │                        │
+       └──────────┬─────────────┘
+                  ▼
+        commerce-service + checkout-repo (single SSOT)
+                  ▼
+     pricing · tax · inventory · credit · GL
+                  ▼
+           Drizzle → Postgres (Supabase)
+```
+
+- **Storefront:** live catalog, bag, shopper accounts, COD checkout  
+- **POS:** barcode scan, split pay, shifts, receipts  
+- **Back office:** products, GRN, transfers, customers, Polim Potha, reports  
+- **Staff auth:** PIN session at `/adminpoz` (not linked from public store)  
+- **Integrations (partial):** PayHere webhook, WhatsApp send stub, automation rules in DB  
 
 ---
 
-### Dimension 4: Multi-Branch Inventory Integrity & Ledger Consistency
-* **Stock Movement Parity:**
-  - Every physical stock movement (GRN receiving, inter-branch transfer, customer sale, damage write-off) strictly writes an immutable entry in `stock_movements`.
-* **Financial Parity:**
-  - `GRN Receive` &rarr; Debit `1200 Merchandise Inventory`, Credit `2000 Accounts Payable`.
-  - `POS / Web Sale` &rarr; Debit `1010 Cash` / `1100 AR`, Credit `4000 Sales Revenue` + `2100 VAT Payable`.
-  - `COGS Recognition` &rarr; Debit `5000 COGS`, Credit `1200 Merchandise Inventory`.
-  - Invariant guarantee: $\sum \text{Dr} - \sum \text{Cr} = 0.00$.
+## 3. Technical readiness (CTO)
+
+| Domain | Status | Score | Blocker |
+|--------|--------|-------|---------|
+| Database / migrations | 🟢 | 8/10 | RLS not applied on prod; legacy triggers remain |
+| Auth & sessions | 🟢 | 9/10 | Rotate `TEMP$` owner PIN |
+| POS checkout | 🟢 | 8/10 | Variant + split-pay fixes applied 2026-09-01 |
+| Storefront | 🟢 | 8/10 | Theme deployed; Lighthouse open |
+| Security (encryption) | 🟢 | 9/10 | AES-256-GCM for stored secrets |
+| Offline POS sync | 🟡 | 7/10 | Under-run flagging; needs field validation |
+| WhatsApp / automation | 🟡 | 5/10 | Webhook + rules exist; live creds needed |
+| Jarvis / agents | 🟡 | 4/10 | READ tools; EXECUTE audit partial |
+| Testing | 🟡 | 6/10 | 44 unit tests; no full E2E |
+| Fleet multi-client | 🟡 | 7/10 | `provision-client.mjs`; matrix CI exists |
+
+**Release gate:** R1–R5 **conditionally ready** · R6–R7 **blocked** (`RELEASE_GATE.md`).
 
 ---
 
-### Dimension 5: Turnkey Commercial Packaging (< 3-Minute Provisioning)
-* **Automated Script:** `node scripts/provision-client.mjs --client "Urban Trendz" --slug "urban-trendz" --domain "urbantrendz.lk"`
-* **Provisioning Flow:**
-  1. Verifies `drizzle/supabase_setup.sql` (41 tables + storage buckets).
-  2. Links Vercel domain alias and production environment variables.
-  3. Generates client handover credential packet (Owner login, POS terminal PIN, store URLs).
+## 4. Fixes applied (2026-09-01)
+
+| Issue | Fix |
+|-------|-----|
+| `0002` migration fails on fresh DB | Legacy backfills wrapped in `information_schema` guards |
+| Checkout drops `variantId` | Forwarded to `durableCheckout` |
+| Split pay no total check | Reject when payment sum ≠ computed grand total |
+| `certify-http.mjs` TS syntax | Valid JS error handling |
+| Staff login on storefront | Moved to `/adminpoz`; not indexed |
 
 ---
 
-## 3. Unit Economics & Pricing Calculator
+## 5. Next priorities
 
-| Metric | Cost per Client (Monthly) | Revenue per Client (Starter) | Revenue per Client (Growth) | Gross Margin |
-| :--- | :--- | :--- | :--- | :---: |
-| **Supabase DB & Storage** | $0.00 (Free tier) or $25.00/mo | LKR 5,000/mo ($16.50) | LKR 10,000/mo ($33.00) | **~75% – 90%** |
-| **Vercel Edge Hosting** | $0.00 (Hobby/Pro pooled) | (Included) | (Included) | **~95%** |
-| **WhatsApp Meta API** | $0.00 (First 1,000 msgs free) | (Usage billed) | (Usage billed) | **100%** |
-| **Upfront License Fee** | N/A | **LKR 125,000.00** | **LKR 250,000.00** | **100%** |
+| Phase | Focus |
+|-------|-------|
+| **3** | Marketing pixels, WhatsApp `ORDER_CREATED`, optional LKR checkout |
+| **4** | RLS apply, `client:certify` on live URL, owner PIN rotation |
+| **R6–R7** | Agent/creative approval pipeline; vertical depth |
+
+---
+
+## 6. Unit economics (unchanged model)
+
+| Metric | Cost / client / mo | Revenue (Starter) | Gross margin |
+|--------|-------------------|-------------------|--------------|
+| Supabase | $0–25 | LKR 5,000/mo | ~75–90% |
+| Vercel | pooled | included | ~95% |
+| Upfront license | — | LKR 125,000 | 100% |
+
+---
+
+## Related docs
+
+- [`NEXT_PHASES.md`](./NEXT_PHASES.md) — deployment rollout  
+- [`ROADMAP.md`](./ROADMAP.md) — product releases  
+- [`RELEASE_GATE.md`](./RELEASE_GATE.md) — ship/no-ship checklist  
+- [`FRESH_START.md`](./FRESH_START.md) — Supabase + Vercel deploy  

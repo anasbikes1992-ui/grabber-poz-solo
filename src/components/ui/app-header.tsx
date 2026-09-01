@@ -67,7 +67,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
     setUser(null);
     setMobileMenuOpen(false);
-    router.push('/login');
+    router.push('/adminpoz');
     router.refresh();
   };
 
@@ -208,7 +208,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
             </div>
           ) : (
             <Link
-              href="/login"
+              href="/adminpoz"
               className="px-3.5 py-1.5 rounded-xl bg-emerald-500 text-zinc-950 font-extrabold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer btn-press"
             >
               <LogIn className="w-3.5 h-3.5" />

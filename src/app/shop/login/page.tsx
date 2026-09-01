@@ -52,7 +52,7 @@ function ShopLoginForm() {
           {mode === 'login' ? 'Customer sign in' : 'Create shopper account'}
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          Shop online at the storefront. Staff use a separate backend login.
+          Shop online at the storefront.
         </p>
 
         <div className="mt-4 flex gap-2 text-sm">
@@ -130,10 +130,6 @@ function ShopLoginForm() {
         <p className="mt-6 text-center text-sm text-slate-500">
           <Link href="/" className="text-emerald-800 hover:underline">
             Back to store
-          </Link>
-          {' · '}
-          <Link href="/login?next=/app" className="text-slate-600 hover:underline">
-            Staff login
           </Link>
         </p>
       </div>

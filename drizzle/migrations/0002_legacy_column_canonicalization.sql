@@ -14,7 +14,15 @@ ALTER TABLE tax_rates ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT no
 --> statement-breakpoint
 ALTER TABLE tax_rates ADD COLUMN IF NOT EXISTS rate_percentage numeric(7,4);
 --> statement-breakpoint
-UPDATE tax_rates SET rate_percentage = rate WHERE rate_percentage IS NULL AND rate IS NOT NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'tax_rates' AND column_name = 'rate'
+  ) THEN
+    UPDATE tax_rates SET rate_percentage = rate WHERE rate_percentage IS NULL AND rate IS NOT NULL;
+  END IF;
+END $$;
 --> statement-breakpoint
 UPDATE tax_rates SET rate_percentage = 0 WHERE rate_percentage IS NULL;
 --> statement-breakpoint
@@ -28,9 +36,23 @@ ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS total_amount numeric(12,2) 
 --> statement-breakpoint
 ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS approved_by uuid;
 --> statement-breakpoint
-UPDATE purchase_orders SET warehouse_id = destination_warehouse_id WHERE warehouse_id IS NULL AND destination_warehouse_id IS NOT NULL;
---> statement-breakpoint
-UPDATE purchase_orders SET total_amount = total_cost WHERE (total_amount IS NULL OR total_amount = 0) AND total_cost IS NOT NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'purchase_orders' AND column_name = 'destination_warehouse_id'
+  ) THEN
+    UPDATE purchase_orders SET warehouse_id = destination_warehouse_id
+    WHERE warehouse_id IS NULL AND destination_warehouse_id IS NOT NULL;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'purchase_orders' AND column_name = 'total_cost'
+  ) THEN
+    UPDATE purchase_orders SET total_amount = total_cost
+    WHERE (total_amount IS NULL OR total_amount = 0) AND total_cost IS NOT NULL;
+  END IF;
+END $$;
 --> statement-breakpoint
 ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS po_id uuid;
 --> statement-breakpoint
@@ -40,19 +62,51 @@ ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS received_qty integer D
 --> statement-breakpoint
 ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS total_cost numeric(12,2);
 --> statement-breakpoint
-UPDATE purchase_order_lines SET po_id = purchase_order_id WHERE po_id IS NULL AND purchase_order_id IS NOT NULL;
---> statement-breakpoint
-UPDATE purchase_order_lines SET ordered_qty = ordered_quantity WHERE ordered_qty IS NULL AND ordered_quantity IS NOT NULL;
---> statement-breakpoint
-UPDATE purchase_order_lines SET received_qty = received_quantity WHERE received_qty IS NULL AND received_quantity IS NOT NULL;
---> statement-breakpoint
-UPDATE purchase_order_lines SET total_cost = line_cost WHERE total_cost IS NULL AND line_cost IS NOT NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'purchase_order_lines' AND column_name = 'purchase_order_id'
+  ) THEN
+    UPDATE purchase_order_lines SET po_id = purchase_order_id
+    WHERE po_id IS NULL AND purchase_order_id IS NOT NULL;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'purchase_order_lines' AND column_name = 'ordered_quantity'
+  ) THEN
+    UPDATE purchase_order_lines SET ordered_qty = ordered_quantity
+    WHERE ordered_qty IS NULL AND ordered_quantity IS NOT NULL;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'purchase_order_lines' AND column_name = 'received_quantity'
+  ) THEN
+    UPDATE purchase_order_lines SET received_qty = received_quantity
+    WHERE received_qty IS NULL AND received_quantity IS NOT NULL;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'purchase_order_lines' AND column_name = 'line_cost'
+  ) THEN
+    UPDATE purchase_order_lines SET total_cost = line_cost
+    WHERE total_cost IS NULL AND line_cost IS NOT NULL;
+  END IF;
+END $$;
 --> statement-breakpoint
 ALTER TABLE users ADD COLUMN IF NOT EXISTS hashed_pin text;
 --> statement-breakpoint
 ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 --> statement-breakpoint
-UPDATE users SET hashed_pin = pin_hash WHERE hashed_pin IS NULL AND pin_hash IS NOT NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'pin_hash'
+  ) THEN
+    UPDATE users SET hashed_pin = pin_hash WHERE hashed_pin IS NULL AND pin_hash IS NOT NULL;
+  END IF;
+END $$;
 --> statement-breakpoint
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS hashed_password text;
 --> statement-breakpoint
@@ -72,19 +126,45 @@ ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS reference_type text;
 --> statement-breakpoint
 ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS reference_id text;
 --> statement-breakpoint
-UPDATE journal_entries SET description = COALESCE(description, memo, 'Journal') WHERE description IS NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'journal_entries' AND column_name = 'memo'
+  ) THEN
+    UPDATE journal_entries SET description = COALESCE(description, memo, 'Journal') WHERE description IS NULL;
+  ELSE
+    UPDATE journal_entries SET description = COALESCE(description, 'Journal') WHERE description IS NULL;
+  END IF;
+END $$;
 --> statement-breakpoint
 ALTER TABLE journal_lines ADD COLUMN IF NOT EXISTS account_id uuid;
 --> statement-breakpoint
-UPDATE journal_lines jl SET account_id = coa.id
-  FROM chart_of_accounts coa
-  WHERE jl.account_id IS NULL AND jl.account_code IS NOT NULL AND coa.code = jl.account_code;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'journal_lines' AND column_name = 'account_code'
+  ) THEN
+    UPDATE journal_lines jl SET account_id = coa.id
+      FROM chart_of_accounts coa
+      WHERE jl.account_id IS NULL AND jl.account_code IS NOT NULL AND coa.code = jl.account_code;
+  END IF;
+END $$;
 --> statement-breakpoint
 ALTER TABLE supplier_accounts ADD COLUMN IF NOT EXISTS credit_terms_days integer DEFAULT 30 NOT NULL;
 --> statement-breakpoint
 ALTER TABLE webhook_events ADD COLUMN IF NOT EXISTS status text DEFAULT 'PROCESSED';
 --> statement-breakpoint
-UPDATE webhook_events SET status = CASE WHEN processed THEN 'PROCESSED' ELSE 'PENDING' END WHERE status IS NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'webhook_events' AND column_name = 'processed'
+  ) THEN
+    UPDATE webhook_events SET status = CASE WHEN processed THEN 'PROCESSED' ELSE 'PENDING' END WHERE status IS NULL;
+  END IF;
+END $$;
 --> statement-breakpoint
 ALTER TABLE products ADD COLUMN IF NOT EXISTS slug text;
 --> statement-breakpoint
@@ -100,11 +180,27 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url text;
 --> statement-breakpoint
 ALTER TABLE products ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true NOT NULL;
 --> statement-breakpoint
-UPDATE products SET
-  sale_price = COALESCE(NULLIF(sale_price, 0), base_price, 0),
-  cost_price = COALESCE(NULLIF(cost_price, 0), base_cost, 0),
-  is_active = COALESCE(is_active, active, true)
-WHERE true;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'base_price'
+  ) THEN
+    UPDATE products SET sale_price = COALESCE(NULLIF(sale_price, 0), base_price, 0) WHERE true;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'base_cost'
+  ) THEN
+    UPDATE products SET cost_price = COALESCE(NULLIF(cost_price, 0), base_cost, 0) WHERE true;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'active'
+  ) THEN
+    UPDATE products SET is_active = COALESCE(is_active, active, true) WHERE true;
+  END IF;
+END $$;
 --> statement-breakpoint
 UPDATE products SET slug = lower(regexp_replace(coalesce(sku, id::text), '[^a-zA-Z0-9]+', '-', 'g'))
 WHERE slug IS NULL OR slug = '';

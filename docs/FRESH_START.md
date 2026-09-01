@@ -11,8 +11,9 @@ Deploy **Grabber Poz Solo** on a new Supabase database and Vercel project. Use n
 
 | URL | Purpose |
 |-----|---------|
-| `/` | Storefront |
-| `/login` → `/app` | Staff hub |
+| `/` | Storefront (shoppers) |
+| **`/adminpoz`** → `/app` | Staff hub (bookmark — not linked from storefront) |
+| `/login` | Redirects to `/adminpoz` |
 | `/pos` | Point of sale |
 | `/shop/checkout` | Shopper checkout |
 

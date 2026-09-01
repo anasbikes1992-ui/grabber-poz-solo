@@ -9,6 +9,9 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 ## Current position (baseline)
 
+**Live:** `grabber-poz-solo.vercel.app` · Supabase connected · storefront catalog live  
+**Staff login:** `/adminpoz` only (not on public storefront)
+
 | Area | Completion | Status |
 |------|------------|--------|
 | Core architecture | Strong | 🟢 |
@@ -16,9 +19,9 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 | Inventory / Purchasing | Strong | 🟢 |
 | Customers / Polim Potha | Good | 🟢 |
 | Orders | Mostly there | 🟡 |
-| Resellable Solo deploy | ~80% | 🟢 |
-| Migrations | Fragile → fixing | 🟡 |
-| Storefront | ~70% | 🟡 |
+| Resellable Solo deploy | ~90% | 🟢 |
+| Migrations | Numbered + bootstrap | 🟢 |
+| Storefront | ~85% | 🟢 |
 | SEO / CMS / Themes | ~65% | 🟡 |
 | WhatsApp / Automation | ~55% | 🟡 |
 | Jarvis | ~45% | 🟡 |
@@ -71,14 +74,14 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| P7 | SSR routes (`/products/[slug]`, categories, search) | TODO |
-| P8 | Block CMS (homepage sections in `config_json`) | TODO |
-| P9 | SEO (meta, OG, structured data, sitemap, robots) | TODO |
-| P10 | Theme engine (tokens, presets) | TODO |
-| P7 | Cart + checkout + COD (server price authority) | PARTIAL |
-| P7 | Customer accounts, wishlist, reviews | TODO |
+| P7 | SSR routes (`/products/[slug]`, categories, search) | DONE (S5) |
+| P8 | Block CMS (homepage sections in `config_json`) | DONE (S6) |
+| P9 | SEO (meta, OG, structured data, sitemap, robots) | DONE (S5) |
+| P10 | Theme engine (tokens, presets) | DONE (S6) |
+| P7 | Cart + checkout + COD (server price authority) | DONE |
+| P7 | Customer accounts, wishlist, reviews | PARTIAL (accounts + COD; wishlist/reviews TODO) |
 
-**Exit gate:** Crawlable product pages, mobile checkout, COD order visible in admin.
+**Exit gate:** Crawlable product pages, mobile checkout, COD order visible in admin — **met**; Lighthouse budgets open.
 
 ---
 

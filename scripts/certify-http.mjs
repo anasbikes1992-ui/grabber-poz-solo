@@ -31,7 +31,8 @@ async function run() {
       console.log(`${ok ? 'PASS' : 'FAIL'}  ${c.name.padEnd(18)} ${res.status} ${url}`);
       if (!ok) failed += 1;
     } catch (err) {
-      console.log(`FAIL  ${c.name.padEnd(18)} ERR  ${url} — ${(err as Error).message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`FAIL  ${c.name.padEnd(18)} ERR  ${url} — ${message}`);
       failed += 1;
     }
   }

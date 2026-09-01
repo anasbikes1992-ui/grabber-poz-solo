@@ -186,7 +186,7 @@ export default function LoginClient() {
 
         <p className="text-[10px] text-muted-foreground text-center flex items-center justify-center gap-1">
           <ShieldCheck className="h-3 w-3 text-emerald-400" aria-hidden="true" />
-          Staff / admin HttpOnly cookie · opens backend at /app
+          Bookmark this page (/adminpoz) · HttpOnly cookie opens backend at /app
         </p>
         <p className="text-[10px] text-muted-foreground text-center">
           Shopping online?{' '}

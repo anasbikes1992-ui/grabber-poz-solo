@@ -1,10 +1,15 @@
-import { Suspense } from 'react';
-import LoginClient from './login-client';
+import { redirect } from 'next/navigation';
 
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div className="p-10 text-center text-sm text-muted-foreground">Loading gate…</div>}>
-      <LoginClient />
-    </Suspense>
-  );
+/** Legacy staff login URL → canonical /adminpoz */
+export default async function LoginRedirectPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; rotate?: string }>;
+}) {
+  const sp = await searchParams;
+  const q = new URLSearchParams();
+  if (sp.next) q.set('next', sp.next);
+  if (sp.rotate) q.set('rotate', sp.rotate);
+  const qs = q.toString();
+  redirect(qs ? `/adminpoz?${qs}` : '/adminpoz');
 }

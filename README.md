@@ -2,7 +2,7 @@
 
 Single-business retail OS: POS, storefront, inventory, finance, and automation.
 
-**Deploy:** [`docs/FRESH_START.md`](docs/FRESH_START.md) · **Vercel env:** [`docs/VERCEL_ENV.md`](docs/VERCEL_ENV.md)
+**Deploy:** [`docs/FRESH_START.md`](docs/FRESH_START.md) · **Vercel env:** [`docs/VERCEL_ENV.md`](docs/VERCEL_ENV.md) · **Phases:** [`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)
 
 | | |
 |--|--|
@@ -44,6 +44,7 @@ npm run ops:sync-env   # push .env.local → Vercel (set VERCEL_PROJECT)
 
 | Doc | Purpose |
 |-----|---------|
+| [`NEXT_PHASES.md`](docs/NEXT_PHASES.md) | Post-deploy rollout phases |
 | [`FRESH_START.md`](docs/FRESH_START.md) | New Supabase + Vercel deploy |
 | [`VERCEL_ENV.md`](docs/VERCEL_ENV.md) | Environment variable checklist |
 | [`ROADMAP.md`](docs/ROADMAP.md) | Planned features |

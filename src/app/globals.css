@@ -84,6 +84,19 @@
   }
 }
 
+  [data-surface='storefront'],
+  .storefront {
+    --sf-bg: #fafaf9;
+    --sf-fg: #0c0a09;
+    --sf-primary: #1c1917;
+    --sf-on-primary: #ffffff;
+    --sf-secondary: #44403c;
+    --sf-accent: #a16207;
+    --sf-muted: #e8ecf0;
+    --sf-border: #d6d3d1;
+    --sf-ring: #1c1917;
+  }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -144,6 +157,24 @@
   .btn-press:active:not(:disabled) {
     transform: scale(0.97);
   }
+}
+
+/* Storefront design tokens — stone/gold luxury palette (see design-system/grabber-poz-solo/MASTER.md) */
+.storefront,
+[data-surface="storefront"] {
+  --sf-primary: #1c1917;
+  --sf-on-primary: #ffffff;
+  --sf-secondary: #44403c;
+  --sf-accent: #a16207;
+  --sf-background: #fafaf9;
+  --sf-foreground: #0c0a09;
+  --sf-muted: #e8ecf0;
+  --sf-border: #d6d3d1;
+  --sf-destructive: #dc2626;
+  --sf-ring: #1c1917;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
 ::-webkit-scrollbar {

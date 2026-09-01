@@ -4,8 +4,8 @@ Master fix list + sprint execution tracker for MyPoz Solo evolution.
 **Status:** `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 Last updated: 2026-09-01  
-**Active sprint:** S11+ (post-cleanup — wire + polish)  
-**Fresh deploy:** [`FRESH_START.md`](./FRESH_START.md)
+**Active sprint:** S11+ (deploy live + storefront polish)  
+**Fresh deploy:** [`FRESH_START.md`](./FRESH_START.md) · **Next steps:** [`NEXT_PHASES.md`](./NEXT_PHASES.md)
 
 Roadmap: [`ROADMAP.md`](./ROADMAP.md) · Gate: [`RELEASE_GATE.md`](./RELEASE_GATE.md) · Code map: [`IMPLEMENTATION_MAP.md`](./IMPLEMENTATION_MAP.md)
 
@@ -13,14 +13,18 @@ Roadmap: [`ROADMAP.md`](./ROADMAP.md) · Gate: [`RELEASE_GATE.md`](./RELEASE_GAT
 
 ## Executive verdict
 
-> **Strong commerce/operations engine with unfinished experience + intelligence layers.**
+> **poz-solo live on Vercel; storefront ~85%; admin at `/adminpoz` not linked from storefront.**
 
-Do **not** rebuild POS. Prioritize: **migration reproducibility → storefront → WhatsApp automation → grounded Jarvis → agents/creative.**
+Strong commerce/operations engine with unfinished experience + intelligence layers.
+
+Do **not** rebuild POS. Prioritize: **migration reproducibility → storefront polish → WhatsApp automation → grounded Jarvis → agents/creative.**
 
 | Layer | Status |
 |-------|--------|
 | Waves 0–5 (durable core) | DONE |
-| Dual surface (storefront `/` + staff `/app`) | DONE |
+| Dual surface (storefront `/` + staff `/app` via `/adminpoz`) | DONE |
+| Vercel + Supabase production deploy | DONE |
+| Storefront UX (stone/gold theme, motion) | ~85% |
 | Sprint S1 (migrations + Jarvis session + docs) | DONE |
 | Sprint S2 (RLS + settings persistence) | DONE |
 | Release R1 gate | CONDITIONALLY READY |
@@ -36,7 +40,7 @@ Do **not** rebuild POS. Prioritize: **migration reproducibility → storefront �
 | P0-02 | Feature classification map | KEEP | DONE → [`IMPLEMENTATION_MAP.md`](./IMPLEMENTATION_MAP.md) |
 | P0-03 | Seven-release roadmap | KEEP | DONE → [`ROADMAP.md`](./ROADMAP.md) |
 | P0-04 | Release gate doc | KEEP | DONE → [`RELEASE_GATE.md`](./RELEASE_GATE.md) |
-| P0-05 | Stop using `db:push` as production SSOT | FIX | IN_PROGRESS |
+| P0-05 | Stop using `db:push` as production SSOT | FIX | DONE (`db:bootstrap` + guarded `0002`) |
 
 ---
 
@@ -287,7 +291,7 @@ npm run ops:sync-env   # production secrets
 npx vercel --prod --yes
 ```
 
-Staff: `/login` → `/app` · Shopper: `/` · Jarvis tools: `POST /api/jarvis/chat` with staff cookie.
+Staff: `/adminpoz` → `/app` · Shopper: `/` · Jarvis tools: `POST /api/jarvis/chat` with staff cookie.
 
 ---
 

@@ -6,7 +6,13 @@ import { AppHeader } from '@/components/ui/app-header';
 import { JarvisDrawer } from '@/components/ai/jarvis-drawer';
 
 function isPublicSurface(pathname: string): boolean {
-  if (pathname === '/' || pathname === '/store' || pathname === '/login' || pathname === '/shop/login') {
+  if (
+    pathname === '/' ||
+    pathname === '/store' ||
+    pathname === '/login' ||
+    pathname === '/adminpoz' ||
+    pathname === '/shop/login'
+  ) {
     return true;
   }
   if (/^\/products\/[^/]+$/.test(pathname)) return true;
