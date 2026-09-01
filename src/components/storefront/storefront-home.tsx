@@ -49,9 +49,23 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   useEffect(() => {
     void (async () => {
       try {
-        const [catRes] = await Promise.all([fetch('/api/pos/catalog'), refreshSession()]);
-        if (!catRes.ok) throw new Error('Catalog unavailable');
+        const [healthRes, catRes] = await Promise.all([
+          fetch('/api/health'),
+          fetch('/api/pos/catalog'),
+          refreshSession(),
+        ]);
+        const health = (await healthRes.json()) as { db?: string };
+        if (health.db === 'not_configured') {
+          throw new Error('Database not connected on server — add DATABASE_URL on Vercel');
+        }
+        if (!catRes.ok) {
+          const errBody = (await catRes.json().catch(() => ({}))) as { error?: string };
+          throw new Error(errBody.error || 'Catalog unavailable');
+        }
         const data = (await catRes.json()) as { items?: CatalogItem[]; branchId?: string };
+        if (!data.items?.length) {
+          setLoadErr('Store is connected but empty — run POST /api/seed once.');
+        }
         setCatalog(data.items ?? []);
         setBranchId(data.branchId ?? null);
       } catch (e) {
@@ -244,7 +258,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
 
           {loadErr && (
             <p className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              {loadErr}. Run seed / check DATABASE_URL for live products.
+              {loadErr}. Check <a href="/api/health" className="underline">/api/health</a> or seed demo data.
             </p>
           )}
 

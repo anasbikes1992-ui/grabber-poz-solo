@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { db, products, stockBalances, branches, productVariants } from '@/db';
+import { hasDatabaseUrl } from '@/lib/db/connection';
 
 export async function GET(req: Request) {
+  if (!hasDatabaseUrl()) {
+    return NextResponse.json(
+      { success: false, error: 'DATABASE_URL or POSTGRES_URL not configured', items: [] },
+      { status: 503 },
+    );
+  }
   try {
     const { searchParams } = new URL(req.url);
     let branchId = searchParams.get('branchId');

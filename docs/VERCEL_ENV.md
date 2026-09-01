@@ -10,20 +10,33 @@ Checklist for **Grabber Poz Solo**. Deploy flow: [`FRESH_START.md`](./FRESH_STAR
 |----------|--------|
 | `AUTH_SECRET` | Session signing |
 | `MASTER_ENCRYPTION_KEY` | Encrypts secrets saved in Settings |
-| `NEXT_PUBLIC_APP_URL` | Canonical app URL |
+| **`DATABASE_URL`** | **Pooler URL (port 6543)** — app will not load catalog without this |
+| `NEXT_PUBLIC_APP_URL` | e.g. `https://grabber-poz-solo.vercel.app` |
 | `NEXT_PUBLIC_STORE_NAME` | Store display name |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only — dashboard → API |
 
-## Auto (Supabase ↔ Vercel integration)
+> **If `/api/health` shows `"db": "not_configured"`** — you are missing `DATABASE_URL` (or Supabase integration `POSTGRES_URL`). The storefront catalog will fail until this is set and you redeploy.
+
+### How to get `DATABASE_URL`
+
+Supabase → [Database Settings](https://supabase.com/dashboard/project/rbayhrskowtahepwccrq/settings/database) → **Connection string** → **URI** → **Transaction pooler**:
+
+```text
+postgresql://postgres.rbayhrskowtahepwccrq:[YOUR_DB_PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+```
+
+Use the password from **Database → Reset database password** (must match what you paste in the URI).
+
+## Auto (Supabase ↔ Vercel integration only)
+
+If you connect Supabase in Vercel **Integrations**, these may appear instead of manual `DATABASE_URL`:
 
 | Variable | Notes |
 |----------|--------|
-| `POSTGRES_URL` | Runtime DB — app reads this |
-| `POSTGRES_URL_NON_POOLING` | Direct connection (migrations) |
-
-Optional duplicate: `DATABASE_URL` = same pooler URL as `POSTGRES_URL`.
+| `POSTGRES_URL` | Same as pooler `DATABASE_URL` |
+| `POSTGRES_URL_NON_POOLING` | Direct :5432 — migrations only, not required on Vercel |
 
 ---
 
