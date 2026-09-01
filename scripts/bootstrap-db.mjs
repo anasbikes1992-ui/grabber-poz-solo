@@ -10,21 +10,37 @@
  */
 import { spawnSync } from 'child_process';
 import { config as loadEnv } from 'dotenv';
+import { hasDatabaseUrl, resolveDirectDatabaseUrl } from './lib/resolve-db-url.mjs';
 
+const envFileIdx = process.argv.indexOf('--env-file');
+if (envFileIdx !== -1 && process.argv[envFileIdx + 1]) {
+  loadEnv({ path: process.argv[envFileIdx + 1], override: true });
+}
 loadEnv({ path: '.env.local' });
 loadEnv({ path: '.env' });
 
-const args = new Set(process.argv.slice(2));
-const url = process.env.DATABASE_URL || process.env.database_url;
+const args = new Set(process.argv.slice(2).filter((a) => !a.startsWith('--env-file')));
 
-if (!url) {
-  console.error('DATABASE_URL missing — set in .env.local');
+if (!hasDatabaseUrl()) {
+  console.error('Database URL missing — set DATABASE_URL or POSTGRES_URL in .env.local');
   process.exit(1);
 }
 
+const directUrl = resolveDirectDatabaseUrl();
+if (!directUrl) {
+  console.error('Could not resolve a Postgres URL for migrations.');
+  process.exit(1);
+}
+process.env.DATABASE_URL = directUrl;
+console.log(`Using direct connection: ${new URL(directUrl.replace(/^postgresql:\/\//, 'https://')).hostname}`);
+
 function run(label, cmd, cmdArgs = []) {
   console.log(`\n▶ ${label}`);
-  const r = spawnSync(cmd, cmdArgs, { stdio: 'inherit', shell: process.platform === 'win32' });
+  const r = spawnSync(cmd, cmdArgs, {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    env: process.env,
+  });
   if (r.status !== 0) {
     console.error(`✗ Failed: ${label}`);
     process.exit(r.status ?? 1);

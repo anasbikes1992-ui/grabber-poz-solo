@@ -1,26 +1,44 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
+import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { hasDatabaseUrl, isSupabaseConnection, resolveDatabaseUrl } from '@/lib/db/connection';
 
-function resolveDatabaseUrl(): string {
-  return (
-    process.env.DATABASE_URL ||
-    process.env.database_url ||
-    'postgresql://postgres:postgres@localhost:5432/grabber_business_os'
-  );
+type Db = PostgresJsDatabase<typeof schema>;
+
+let client: ReturnType<typeof postgres> | undefined;
+let drizzleDb: Db | undefined;
+
+function getDbInternal(): Db {
+  if (drizzleDb) return drizzleDb;
+
+  const connectionString = resolveDatabaseUrl();
+  if (!connectionString) {
+    throw new Error(
+      'Database URL missing. Set DATABASE_URL or connect the Supabase integration (POSTGRES_URL) on Vercel.',
+    );
+  }
+
+  const isSupabase = isSupabaseConnection(connectionString);
+  client = postgres(connectionString, {
+    max: isSupabase ? 1 : 20,
+    idle_timeout: 30,
+    connect_timeout: 10,
+    prepare: false,
+    ssl: isSupabase ? 'require' : undefined,
+  });
+
+  drizzleDb = drizzle(client, { schema });
+  return drizzleDb;
 }
 
-const connectionString = resolveDatabaseUrl();
-const isSupabase = connectionString.includes('supabase.co');
-
-export const client = postgres(connectionString, {
-  max: isSupabase ? 1 : 20,
-  idle_timeout: 30,
-  connect_timeout: 10,
-  prepare: false,
-  ssl: isSupabase ? 'require' : undefined,
+/** Lazy Drizzle client — avoids localhost fallback during Vercel build. */
+export const db = new Proxy({} as Db, {
+  get(_target, prop, receiver) {
+    const instance = getDbInternal();
+    const value = Reflect.get(instance as object, prop, receiver);
+    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(instance) : value;
+  },
 });
 
-export const db = drizzle(client, { schema });
-
+export { hasDatabaseUrl, resolveDatabaseUrl } from '@/lib/db/connection';
 export * from './schema';

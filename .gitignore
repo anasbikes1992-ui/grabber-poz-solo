@@ -26,6 +26,16 @@
 /reports/CLIENT_CERTIFICATION_*
 /reports/rejected_rows_*
 /reports/provision_*
+/reports/.bootstrap-*
+/reports/.chunk-*
+/reports/.mcp-*
+/reports/.payload-*
+/scripts/_tmp_*
+/scripts/_chunk_*
+/scripts/_rem_*
+/scripts/_apply_*
+/scripts/.migration-payloads.json
+.tmp_*.sql
 /public/uploads
 
 

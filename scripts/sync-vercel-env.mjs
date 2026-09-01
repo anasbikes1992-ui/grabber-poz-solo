@@ -9,7 +9,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
 
-const PROJECT = process.env.VERCEL_PROJECT || 'grabber-business-os';
+const PROJECT = process.env.VERCEL_PROJECT || 'grabber-poz-solo';
 const TARGETS = ['production'];
 
 function normalizeDatabaseUrl(raw) {
@@ -31,7 +31,12 @@ function normalizeDatabaseUrl(raw) {
   }
 }
 
-const rawDb = process.env.DATABASE_URL || process.env.database_url;
+const rawDb =
+  process.env.DATABASE_URL ||
+  process.env.database_url ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL_NON_POOLING;
 const dbUrl = normalizeDatabaseUrl(rawDb);
 
 let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -52,7 +57,7 @@ const VARS = [
   ['NEXT_PUBLIC_APP_URL', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'],
   ['AUTH_SECRET', process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET],
   ['MASTER_ENCRYPTION_KEY', process.env.MASTER_ENCRYPTION_KEY],
-  ['NEXT_PUBLIC_STORE_NAME', process.env.NEXT_PUBLIC_STORE_NAME || 'Grabber Business OS'],
+  ['NEXT_PUBLIC_STORE_NAME', process.env.NEXT_PUBLIC_STORE_NAME || 'Grabber Poz Solo'],
   ['NEXT_PUBLIC_SUPABASE_URL', supabaseUrl],
   ['NEXT_PUBLIC_SUPABASE_ANON_KEY', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY],
   ['SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY],
@@ -86,4 +91,4 @@ for (const env of TARGETS) {
   }
 }
 
-console.log('\nNext: npx vercel --prod --project grabber-business-os');
+console.log('\nNext: npx vercel --prod --project grabber-poz-solo');

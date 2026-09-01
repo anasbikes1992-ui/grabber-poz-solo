@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
+import { hasDatabaseUrl } from '@/lib/db/connection';
 
 /** Lightweight health probe for cert / load balancers */
 export async function GET() {
   const base = {
     success: true,
     ok: true,
-    service: 'grabber-business-os',
+    service: 'grabber-poz-solo',
     ts: new Date().toISOString(),
   };
 
-  if (!process.env.DATABASE_URL && !process.env.database_url) {
+  if (!hasDatabaseUrl()) {
     return NextResponse.json({ ...base, db: 'not_configured' });
   }
 

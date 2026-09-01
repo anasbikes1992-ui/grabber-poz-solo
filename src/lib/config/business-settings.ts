@@ -2,7 +2,7 @@
  * Read/write business_config.config_json sections without duplicating merge logic.
  */
 import { eq } from 'drizzle-orm';
-import { db, businessConfig, businessProfile } from '@/db';
+import { db, businessConfig, businessProfile, hasDatabaseUrl } from '@/db';
 
 export type MarketingConfig = {
   metaPixelId?: string;
@@ -33,8 +33,13 @@ async function ensureConfigRow() {
 }
 
 export async function readConfigJson(): Promise<Record<string, unknown>> {
-  const row = await ensureConfigRow();
-  return (row.configJson || {}) as Record<string, unknown>;
+  if (!hasDatabaseUrl()) return {};
+  try {
+    const row = await ensureConfigRow();
+    return (row.configJson || {}) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
 }
 
 export async function mergeConfigJson(patch: Record<string, unknown>) {

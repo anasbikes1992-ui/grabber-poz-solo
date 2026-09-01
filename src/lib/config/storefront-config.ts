@@ -37,12 +37,16 @@ export const DEFAULT_STOREFRONT: StorefrontConfig = {
 };
 
 export async function readStorefrontConfig(): Promise<StorefrontConfig> {
-  const cfg = await readConfigJson();
-  const raw = (cfg.storefront || {}) as Partial<StorefrontConfig>;
-  return {
-    theme: { ...DEFAULT_STOREFRONT.theme, ...(raw.theme || {}) },
-    blocks: raw.blocks?.length ? raw.blocks : DEFAULT_STOREFRONT.blocks,
-  };
+  try {
+    const cfg = await readConfigJson();
+    const raw = (cfg.storefront || {}) as Partial<StorefrontConfig>;
+    return {
+      theme: { ...DEFAULT_STOREFRONT.theme, ...(raw.theme || {}) },
+      blocks: raw.blocks?.length ? raw.blocks : DEFAULT_STOREFRONT.blocks,
+    };
+  } catch {
+    return DEFAULT_STOREFRONT;
+  }
 }
 
 export async function writeStorefrontConfig(input: Partial<StorefrontConfig>) {

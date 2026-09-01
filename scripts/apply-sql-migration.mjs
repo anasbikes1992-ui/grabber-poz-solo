@@ -6,14 +6,15 @@ import fs from 'fs';
 import path from 'path';
 import postgres from 'postgres';
 import { config as loadEnv } from 'dotenv';
+import { postgresClientOptions, resolveDirectDatabaseUrl } from './lib/resolve-db-url.mjs';
 
 loadEnv({ path: '.env.local' });
 loadEnv({ path: '.env' });
 
 const file = process.argv[2] || 'drizzle/migrations/0001_business_os_align.sql';
-const url = process.env.DATABASE_URL || process.env.database_url;
+const url = resolveDirectDatabaseUrl();
 if (!url) {
-  console.error('DATABASE_URL missing');
+  console.error('Database URL missing — set DATABASE_URL or POSTGRES_URL in .env.local');
   process.exit(1);
 }
 
@@ -23,7 +24,7 @@ const statements = sqlText
   .map((s) => s.trim())
   .filter(Boolean);
 
-const db = postgres(url, { max: 1, prepare: false, ssl: 'require' });
+const db = postgres(url, postgresClientOptions(url));
 
 let ok = 0;
 let skip = 0;

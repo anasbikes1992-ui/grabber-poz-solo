@@ -6,12 +6,14 @@ import { config as loadEnv } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 
+import { postgresClientOptions, resolveDirectDatabaseUrl } from './lib/resolve-db-url.mjs';
+
 loadEnv({ path: '.env.local' });
 loadEnv({ path: '.env' });
 
-const url = process.env.DATABASE_URL || process.env.database_url;
+const url = resolveDirectDatabaseUrl();
 if (!url) {
-  console.error('DATABASE_URL missing');
+  console.error('Database URL missing — set DATABASE_URL or POSTGRES_URL');
   process.exit(1);
 }
 
@@ -80,7 +82,7 @@ const EXPECTED = {
   },
 };
 
-const db = postgres(url, { max: 1, prepare: false, ssl: 'require' });
+const db = postgres(url, postgresClientOptions(url));
 
 let added = 0;
 let skipped = 0;

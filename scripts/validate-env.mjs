@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { hasDatabaseUrl, resolveDatabaseUrl } from './lib/resolve-db-url.mjs';
 
 const args = process.argv.slice(2);
 const envFileIdx = args.indexOf('--env-file');
@@ -60,9 +61,21 @@ export async function runEnvironmentValidation() {
 
   console.log(`[P0] CORE RUNTIME CONFIGURATION`);
 
-  const dbUrl = process.env.DATABASE_URL || process.env.database_url;
-  if (!dbUrl) {
-    p0Errors.push('DATABASE_URL is missing. The application cannot connect to PostgreSQL.');
+  const dbUrl = resolveDatabaseUrl();
+  const dbSource = process.env.DATABASE_URL
+    ? 'DATABASE_URL'
+    : process.env.POSTGRES_URL
+      ? 'POSTGRES_URL'
+      : process.env.POSTGRES_PRISMA_URL
+        ? 'POSTGRES_PRISMA_URL'
+        : process.env.POSTGRES_URL_NON_POOLING
+          ? 'POSTGRES_URL_NON_POOLING'
+          : null;
+
+  if (!hasDatabaseUrl()) {
+    p0Errors.push(
+      'Database URL is missing. Set DATABASE_URL or connect Supabase on Vercel (POSTGRES_URL).',
+    );
     console.log(`  ✗ DATABASE_URL:             MISSING (CRITICAL)`);
   } else {
     try {
@@ -71,18 +84,18 @@ export async function runEnvironmentValidation() {
         dbUrl.includes('pooler.supabase.com') ||
         dbUrl.includes('6543') ||
         dbUrl.includes('pgbouncer=true');
-      console.log(`  ✓ DATABASE_URL:             CONFIGURED (${parsedUrl.hostname})`);
+      console.log(`  ✓ DATABASE:                 CONFIGURED via ${dbSource} (${parsedUrl.hostname})`);
       if (isPooler) {
         console.log(`    ↳ Connection Mode:        Transaction Pooler Detected`);
       } else {
         p1Warnings.push(
-          'DATABASE_URL appears to connect directly to PostgreSQL. For serverless, Supabase Transaction Pooler (port 6543) is recommended.'
+          'Database URL uses direct Postgres. For Vercel/serverless, use Supabase pooler (port 6543).',
         );
-        console.log(`    ↳ Connection Mode:        Direct Connection (Pooler recommended for serverless)`);
+        console.log(`    ↳ Connection Mode:        Direct Connection (pooler recommended on Vercel)`);
       }
     } catch {
-      p0Errors.push('DATABASE_URL format is invalid. Must be a valid postgresql:// URI.');
-      console.log(`  ✗ DATABASE_URL:             INVALID FORMAT`);
+      p0Errors.push('Database URL format is invalid. Must be a valid postgresql:// URI.');
+      console.log(`  ✗ DATABASE:                 INVALID FORMAT`);
     }
   }
 

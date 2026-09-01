@@ -1,50 +1,52 @@
-# Grabber Business OS (Solo Edition)
+# Grabber Poz Solo
 
-> The all-in-one Single-Business Operating System for retail, fashion, supermarkets, restaurants, and wholesalers.
+Single-business retail OS: POS, storefront, inventory, finance, and automation.
 
-[![Production Deployment](https://img.shields.io/badge/Vercel-Live_Production-black?logo=vercel)](https://grabber-business-os.vercel.app)
-[![Tests](https://img.shields.io/badge/Vitest-13%2F13_Passing-brightgreen)](https://github.com/anasbikes1992-ui/grabber-business-os)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict_0_Errors-blue)](https://github.com/anasbikes1992-ui/grabber-business-os)
+**Deploy:** [`docs/FRESH_START.md`](docs/FRESH_START.md) · **Vercel env:** [`docs/VERCEL_ENV.md`](docs/VERCEL_ENV.md)
 
----
-
-## 🚀 Key Modules & Production Surfaces
-
-* **Counter POS:** High-speed barcode scanning, split payments (Cash, Card, Credit, Online, COD), shift float tracking, and thermal receipt printing.
-* **Register Shifts & Z-Report:** Server-enforced shift opening/closing, petty cash expense recording, drawer variance audit, and daily settlement slips.
-* **Polim Potha (Customer Credit AR):** 0–30, 31–60, 61–90, 90+ day aging buckets, credit limits, and cash repayment journal postings.
-* **Web Storefront & Visual Builder:** Live public catalog, Schema.org JSON-LD SEO tags, shopping bag drawer, theme customizer, and 1-click WhatsApp checkout.
-* **Physical Stock & Dual Ledgers:** Multi-location on-hand/reserved/available balances, immutable movement ledger, and inter-branch transfers.
-* **Purchasing & Supplier AP:** Purchase order lifecycle, landed cost calculation, and Goods Receipt Note (GRN) receiving.
-* **General Ledger & Financials:** Chart of Accounts hierarchy, Profit & Loss Income Statement, and double-entry balance validation ($\sum \text{Dr} = \sum \text{Cr}$).
-* **Customer Loyalty & Coupons:** Tiered rewards (Silver, Gold, Platinum) with 1 pt = LKR 1 redemption, plus percentage and fixed promo codes.
-* **Logistics & Delivery Board:** Courier tracking (Koombiyo, Prompt Express, Domex), dispatch board, and Cash on Delivery (COD) reconciliation.
-* **Creative Studio:** AI video campaign generator (Wan 2.1 / LTX / FFmpeg), script director, and central brand Media Library.
-* **Super Admin Login:** Role-based access control (`OWNER`, `MANAGER`, `CASHIER`, `WAREHOUSE`, `ACCOUNTANT`, `MARKETING`) with staff security PINs.
+| | |
+|--|--|
+| GitHub | [anasbikes1992-ui/grabber-poz-solo](https://github.com/anasbikes1992-ui/grabber-poz-solo) |
+| Supabase | Project ref in your provision vault / Vercel integration |
+| Vercel | `grabber-poz-solo` |
 
 ---
 
-## 🛠️ Quick Start
+## Modules
 
-```bash
-# 1. Install dependencies
+- **POS** — barcode scan, split pay, shifts, thermal receipts
+- **Storefront** — SSR catalog, checkout, CMS blocks, SEO
+- **Inventory** — multi-location stock, transfers, GRN
+- **Finance** — Polim Potha (AR), reports, ledger
+- **Ops** — approvals, automation rules, Jarvis brief, agents
+
+---
+
+## Quick start (local)
+
+```powershell
 npm install
-
-# 2. Start local development server
+copy .env.example .env.local
+# Fill DATABASE_URL + AUTH_SECRET — see docs/FRESH_START.md
+npm run db:bootstrap
 npm run dev
+```
 
-# 3. Run test suite
-npm test
-
-# 4. Generate SQL migrations
-npm run db:generate
+```powershell
+npm run check          # typecheck + tests + build
+npm run env:validate   # pre-flight env check
+npm run ops:sync-env   # push .env.local → Vercel (set VERCEL_PROJECT)
 ```
 
 ---
 
-## 📜 Documentation
+## Documentation
 
-* [Client Onboarding & Credentials Checklist](docs/CLIENT_ONBOARDING_CREDENTIALS.md)
-* [Go-To-Market & Marketing Plan](docs/GTM_MARKETING_PLAN.md)
-* [Technical Deployment & Handover Guide](docs/TECHNICAL_HANDOVER_GUIDE.md)
-* [Supabase Clean SQL Setup Script](drizzle/supabase_setup.sql)
+| Doc | Purpose |
+|-----|---------|
+| [`FRESH_START.md`](docs/FRESH_START.md) | New Supabase + Vercel deploy |
+| [`VERCEL_ENV.md`](docs/VERCEL_ENV.md) | Environment variable checklist |
+| [`ROADMAP.md`](docs/ROADMAP.md) | Planned features |
+| [`RELEASE_GATE.md`](docs/RELEASE_GATE.md) | Release criteria |
+
+Legacy audit / GTM docs remain under `docs/` for reference; use **FRESH_START** and **VERCEL_ENV** for current deploys.
