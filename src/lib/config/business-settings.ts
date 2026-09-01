@@ -7,6 +7,7 @@ import { db, businessConfig, businessProfile, hasDatabaseUrl } from '@/db';
 export type MarketingConfig = {
   metaPixelId?: string;
   ga4Id?: string;
+  gtmId?: string;
   tiktokPixelId?: string;
 };
 

@@ -11,6 +11,7 @@ export default function MarketingPage() {
   const [saving, setSaving] = useState(false);
   const [metaPixelId, setMetaPixelId] = useState('');
   const [ga4Id, setGa4Id] = useState('');
+  const [gtmId, setGtmId] = useState('');
   const [tiktokPixelId, setTiktokPixelId] = useState('');
 
   const load = useCallback(async () => {
@@ -22,6 +23,7 @@ export default function MarketingPage() {
       if (!data.success) throw new Error(data.error || 'Load failed');
       setMetaPixelId(data.marketing?.metaPixelId || '');
       setGa4Id(data.marketing?.ga4Id || '');
+      setGtmId(data.marketing?.gtmId || '');
       setTiktokPixelId(data.marketing?.tiktokPixelId || '');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load marketing config');
@@ -42,7 +44,7 @@ export default function MarketingPage() {
       const res = await fetch('/api/settings/marketing', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metaPixelId, ga4Id, tiktokPixelId }),
+        body: JSON.stringify({ metaPixelId, ga4Id, gtmId, tiktokPixelId }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Save failed');
@@ -64,7 +66,9 @@ export default function MarketingPage() {
         <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
           <Share2 className="w-6 h-6 text-amber-400" /> Marketing & Feed Sync
         </h1>
-        <p className="text-xs text-zinc-400 mt-1">Meta, GA4, TikTok pixels & catalog feed exports</p>
+        <p className="text-xs text-zinc-400 mt-1">
+          Meta, GA4, GTM, TikTok pixels — saved to business config (overrides env fallbacks).
+        </p>
       </div>
 
       <form onSubmit={handleSave} className="p-6 rounded-2xl glass-card border border-zinc-800 space-y-4">
@@ -86,8 +90,21 @@ export default function MarketingPage() {
                 value={ga4Id}
                 onChange={(e) => setGa4Id(e.target.value)}
                 className="mt-1 w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm"
+                placeholder="G-XXXXXXXXXX"
               />
             </label>
+            <label className="block text-xs font-bold text-zinc-400">
+              Google Tag Manager ID
+              <input
+                value={gtmId}
+                onChange={(e) => setGtmId(e.target.value)}
+                className="mt-1 w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm"
+                placeholder="GTM-XXXXXXX"
+              />
+            </label>
+            <p className="text-[11px] text-zinc-500">
+              If GTM is set, load GA4 inside GTM instead of using both GA4 and GTM fields.
+            </p>
             <label className="block text-xs font-bold text-zinc-400">
               TikTok Pixel ID
               <input

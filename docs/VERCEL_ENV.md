@@ -1,77 +1,99 @@
 # Vercel Environment Variables
 
-Single checklist for **Grabber Poz Solo** (`grabber-poz-solo` on Vercel + Supabase project `rbayhrskowtahepwccrq`).
-
-Full deploy flow: [`FRESH_START.md`](./FRESH_START.md)
+Checklist for **Grabber Poz Solo**. Deploy flow: [`FRESH_START.md`](./FRESH_START.md)
 
 ---
 
-## Auto-injected (Supabase ↔ Vercel integration)
+## Required (manual)
 
-If you connected Supabase in Vercel, these are set automatically:
+| Variable | Notes |
+|----------|--------|
+| `AUTH_SECRET` | Session signing |
+| `MASTER_ENCRYPTION_KEY` | Encrypts secrets saved in Settings |
+| `NEXT_PUBLIC_APP_URL` | Canonical app URL |
+| `NEXT_PUBLIC_STORE_NAME` | Store display name |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only — dashboard → API |
 
-| Variable | Purpose |
-|----------|---------|
-| `POSTGRES_URL` | App runtime (pooler) — **app reads this** |
-| `POSTGRES_PRISMA_URL` | Prisma-style pooler URL |
+## Auto (Supabase ↔ Vercel integration)
+
+| Variable | Notes |
+|----------|--------|
+| `POSTGRES_URL` | Runtime DB — app reads this |
 | `POSTGRES_URL_NON_POOLING` | Direct connection (migrations) |
 
-You do **not** need to duplicate `POSTGRES_URL` as `DATABASE_URL` for builds to succeed.  
-Optional: set `DATABASE_URL` to the same pooler URL for clarity in scripts.
+Optional duplicate: `DATABASE_URL` = same pooler URL as `POSTGRES_URL`.
 
 ---
 
-## Required — set manually
+## Marketing pixels — optional
 
-| Variable | Example / source |
-|----------|------------------|
-| `AUTH_SECRET` | `openssl rand -hex 48` |
-| `MASTER_ENCRYPTION_KEY` | `openssl rand -hex 32` |
-| `NEXT_PUBLIC_APP_URL` | `https://grabber-poz-solo-cqpd085c3-anas-projects-7ceb7b61.vercel.app` |
-| `NEXT_PUBLIC_STORE_NAME` | `Grabber Poz Solo` |
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://rbayhrskowtahepwccrq.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → API → anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → API → service_role (server only) |
+**Two ways to configure** (DB wins when set):
 
----
+1. **Vercel env** — good for first deploy before seed
+2. **Staff UI** [`/marketing`](/marketing) — saved to `business_config` (recommended long-term)
 
-## Recommended
+| Variable | Wired? | Notes |
+|----------|--------|-------|
+| `NEXT_PUBLIC_META_PIXEL_ID` | ✅ | Injected on storefront |
+| `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID` | ✅ | GA4 `gtag` (skipped if GTM set) |
+| `NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID` | ✅ | GTM container |
+| `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | ✅ | TikTok pixel |
+| `META_CONVERSIONS_API_TOKEN` | ❌ not yet | Server-side CAPI — reserved, no route yet |
 
-| Variable | Purpose |
-|----------|---------|
-| `WHATSAPP_VERIFY_TOKEN` | Random string for webhook verification |
-| `DATABASE_URL` | Same pooler URL as `POSTGRES_URL` (optional if integration connected) |
+**Skip on Vercel if** you configure pixels only via `/marketing` after login.
 
 ---
 
-## Optional integrations
+## LKR payments — optional
 
-Only add when enabling the feature:
+**Current storefront checkout:** COD only (`/shop/checkout`).  
+**Do not add payment keys until** you enable online LKR checkout.
 
-- `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`
-- `PAYHERE_MERCHANT_ID`, `PAYHERE_SECRET`
+| Variable | Wired? | Notes |
+|----------|--------|-------|
+| `PAYMENTS_LKR_PROVIDER` | ⚙️ config | `WEBXPAY` or `PAYHERE` |
+| `WEBXPAY_ENV` | ⚙️ | `staging` or `live` |
+| `WEBXPAY_PUBLIC_KEY` / `WEBXPAY_SECRET_KEY` | ⚙️ | WebXPay gateway |
+| `PAYHERE_MERCHANT_ID` / `PAYHERE_SECRET` | ✅ webhook | `/api/webhooks/payhere` verifies signatures |
+| `PAYHERE_MODE` | ⚙️ | `sandbox` or `live` |
+
+PayHere secrets can also be saved encrypted via **Settings → Integrations** (DB). Env is used for webhooks when set.
+
+---
+
+## Global payments — optional (future)
+
+| Variable | Wired? |
+|----------|--------|
+| `STRIPE_SECRET_KEY` | ❌ checkout not wired |
+| `STRIPE_WEBHOOK_SECRET` | ❌ no Stripe webhook route |
+
+Schema supports `STRIPE` tender type on POS; online Stripe checkout is not implemented.
+
+---
+
+## Other optional integrations
+
+- `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_VERIFY_TOKEN`
+- `KOOMBIYO_API_KEY`
 - `FAL_KEY` (creative engine)
 
 ---
 
-## Sync from local vault
-
-After filling `reports/provision_grabber-poz-solo/.env.grabber-poz-solo.production` → `.env.local`:
+## Sync & verify
 
 ```powershell
 $env:VERCEL_PROJECT="grabber-poz-solo"
 npm run ops:sync-env
 ```
 
-Then redeploy production.
+After deploy:
 
----
-
-## Verify after deploy
-
-1. `GET /api/health` → `{ "ok": true, "db": "connected" }`
-2. `npm run client:certify:http` with `CERTIFY_HTTP_BASE_URL` set to your Vercel URL
-3. Seed once: `POST /api/seed` (dev) or owner-authenticated seed in production
+1. `GET /api/health` → `"db": "connected"`
+2. View storefront source — pixel scripts present when IDs configured
+3. `POST /api/seed` once if DB is empty
 
 ---
 
@@ -79,7 +101,6 @@ Then redeploy production.
 
 | Symptom | Fix |
 |---------|-----|
-| Build: `ECONNREFUSED 127.0.0.1:5432` | Connect Supabase integration or set `POSTGRES_URL` / `DATABASE_URL` |
-| Runtime: `relation does not exist` | Run `npm run db:bootstrap` against the Supabase project |
-| `db: not_configured` on health | Missing DB env on Vercel |
-| Pooler errors on DDL | Bootstrap uses direct URL locally — see `FRESH_START.md` Phase 2 |
+| Pixels missing | Set env vars **or** save IDs at `/marketing` |
+| PayHere webhook 400 | `PAYHERE_SECRET` must match PayHere dashboard |
+| Payment env unused | Expected — online checkout not live yet |

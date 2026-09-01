@@ -52,6 +52,24 @@ if (!supabaseUrl && rawDb) {
   }
 }
 
+const OPTIONAL_VARS = [
+  ['WHATSAPP_VERIFY_TOKEN', process.env.WHATSAPP_VERIFY_TOKEN],
+  ['PAYMENTS_LKR_PROVIDER', process.env.PAYMENTS_LKR_PROVIDER],
+  ['WEBXPAY_ENV', process.env.WEBXPAY_ENV],
+  ['WEBXPAY_PUBLIC_KEY', process.env.WEBXPAY_PUBLIC_KEY],
+  ['WEBXPAY_SECRET_KEY', process.env.WEBXPAY_SECRET_KEY],
+  ['PAYHERE_MERCHANT_ID', process.env.PAYHERE_MERCHANT_ID],
+  ['PAYHERE_SECRET', process.env.PAYHERE_SECRET],
+  ['PAYHERE_MODE', process.env.PAYHERE_MODE],
+  ['STRIPE_SECRET_KEY', process.env.STRIPE_SECRET_KEY],
+  ['STRIPE_WEBHOOK_SECRET', process.env.STRIPE_WEBHOOK_SECRET],
+  ['NEXT_PUBLIC_META_PIXEL_ID', process.env.NEXT_PUBLIC_META_PIXEL_ID],
+  ['META_CONVERSIONS_API_TOKEN', process.env.META_CONVERSIONS_API_TOKEN],
+  ['NEXT_PUBLIC_GOOGLE_ANALYTICS_ID', process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID],
+  ['NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID', process.env.NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID],
+  ['NEXT_PUBLIC_TIKTOK_PIXEL_ID', process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID],
+].filter(([, v]) => typeof v === 'string' && v.length > 0);
+
 const VARS = [
   ['DATABASE_URL', dbUrl],
   ['NEXT_PUBLIC_APP_URL', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'],
@@ -61,7 +79,7 @@ const VARS = [
   ['NEXT_PUBLIC_SUPABASE_URL', supabaseUrl],
   ['NEXT_PUBLIC_SUPABASE_ANON_KEY', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY],
   ['SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY],
-  ['WHATSAPP_VERIFY_TOKEN', process.env.WHATSAPP_VERIFY_TOKEN],
+  ...OPTIONAL_VARS,
 ].filter(([, v]) => typeof v === 'string' && v.length > 0);
 
 if (VARS.length === 0) {

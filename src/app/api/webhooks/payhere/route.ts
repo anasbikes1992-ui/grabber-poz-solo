@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db, orders, payments, webhookEvents } from '@/db';
+import { getPayHereConfig } from '@/lib/payments/lkr-provider';
 
 function verifyPayHereSignature(params: Record<string, string>, secret: string): boolean {
   // PayHere md5sig = MD5(merchant_id + order_id + payhere_amount + payhere_currency + status_code + MD5(secret))
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const secret = process.env.PAYHERE_SECRET || '';
+    const secret = getPayHereConfig().secret;
     const providerEventId = params.payment_id || params.order_id || `evt_${Date.now()}`;
 
     // Dedupe

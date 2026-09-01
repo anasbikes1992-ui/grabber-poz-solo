@@ -154,7 +154,46 @@ export async function runEnvironmentValidation() {
     );
     activeIntegrations.push(`PayHere Payment Gateway (${mode})`);
   } else {
-    console.log(`  ℹ PayHere Gateway:          Disabled (Cash / Card / Polim Potha)`);
+    console.log(`  ℹ PayHere Gateway:          Disabled (webhook needs PAYHERE_SECRET when enabled)`);
+  }
+
+  const lkrProvider = (process.env.PAYMENTS_LKR_PROVIDER || '').toUpperCase();
+  if (lkrProvider === 'WEBXPAY') {
+    const wxEnv = process.env.WEBXPAY_ENV || 'staging';
+    const wxOk = process.env.WEBXPAY_PUBLIC_KEY && process.env.WEBXPAY_SECRET_KEY;
+    console.log(
+      `  ${wxOk ? '✓' : '✗'} WebXPay (${wxEnv}):         ${wxOk ? 'CONFIGURED' : 'INCOMPLETE — set PUBLIC + SECRET keys'}`
+    );
+    if (wxOk) activeIntegrations.push(`WebXPay (${wxEnv})`);
+  } else if (lkrProvider === 'PAYHERE') {
+    console.log(`  ℹ LKR provider:             PAYHERE (use PAYHERE_* vars)`);
+  } else {
+    console.log(`  ℹ LKR online payments:      Disabled (storefront uses COD)`);
+  }
+
+  if (process.env.STRIPE_SECRET_KEY) {
+    console.log(`  ℹ Stripe:                   Key set (online checkout not wired yet)`);
+  }
+
+  console.log(`\n[P2] MARKETING & ANALYTICS (optional)`);
+  const pixelVars = [
+    ['Meta Pixel', process.env.NEXT_PUBLIC_META_PIXEL_ID],
+    ['GA4', process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID],
+    ['GTM', process.env.NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID],
+    ['TikTok', process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID],
+  ];
+  for (const [label, val] of pixelVars) {
+    if (val) {
+      console.log(`  ✓ ${label.padEnd(22)} ${maskSecret(val)}`);
+      activeIntegrations.push(label);
+    }
+  }
+  if (process.env.META_CONVERSIONS_API_TOKEN) {
+    p2Notices.push('META_CONVERSIONS_API_TOKEN is set but server-side CAPI is not wired yet.');
+    console.log(`  ℹ Meta CAPI token:          Set (not wired)`);
+  }
+  if (!pixelVars.some(([, v]) => v)) {
+    console.log(`  ℹ Storefront pixels:        Use env vars or staff UI /marketing`);
   }
 
   if (process.env.KOOMBIYO_API_KEY) {

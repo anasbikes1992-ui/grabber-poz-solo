@@ -33,6 +33,7 @@ export async function PUT(req: Request) {
     const marketing = await writeMarketingConfig({
       metaPixelId: body.metaPixelId ?? '',
       ga4Id: body.ga4Id ?? '',
+      gtmId: body.gtmId ?? '',
       tiktokPixelId: body.tiktokPixelId ?? '',
     });
 
