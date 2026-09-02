@@ -25,6 +25,14 @@ export function matchJarvisIntent(message: string): { toolName: string; args: Re
     };
   }
 
+  if (/draft creative|creative campaign|storefront campaign|hero campaign/.test(q)) {
+    const title = message.replace(/draft creative|creative campaign|storefront campaign|hero campaign/gi, '').trim() || 'Seasonal hero';
+    return {
+      toolName: 'draft_creative_campaign',
+      args: { title, announcement: `New at our store: ${title}` },
+    };
+  }
+
   if (/low stock|reorder|stockout/.test(q)) {
     return { toolName: 'get_low_stock', args: { limit: 10 } };
   }
@@ -156,7 +164,7 @@ export function formatJarvisReply(result: JarvisToolExecutionResult): string {
     return items.slice(0, 8).map((p) => `${p.name} (${p.sku}): ${p.onHand ?? 0} on hand`).join('\n');
   }
 
-  if (result.toolName === 'draft_purchase_order' || result.toolName === 'draft_promotion' || result.toolName === 'draft_whatsapp_message') {
+  if (result.toolName === 'draft_purchase_order' || result.toolName === 'draft_promotion' || result.toolName === 'draft_whatsapp_message' || result.toolName === 'draft_creative_campaign') {
     return `Draft ready: ${JSON.stringify(data).slice(0, 200)}`;
   }
 

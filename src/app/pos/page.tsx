@@ -100,9 +100,17 @@ export default function POSPage() {
   const [completedOrder, setCompletedOrder] = useState<any>(null);
 
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [pinAction, setPinAction] = useState<{ type: 'DISCOUNT' | 'VOID' | 'CREDIT'; payload?: any } | null>(null);
+  const [pinAction, setPinAction] = useState<{ type: 'DISCOUNT' | 'VOID' | 'CREDIT' | 'OPEN_DRAWER'; payload?: any } | null>(null);
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState(false);
+  const [cashTenderInput, setCashTenderInput] = useState<number | ''>('');
+
+  const requestOpenDrawer = () => {
+    setPinAction({ type: 'OPEN_DRAWER' });
+    setEnteredPin('');
+    setPinError(false);
+    setIsPinModalOpen(true);
+  };
 
   useEffect(() => {
     fetch('/api/pos/catalog')
@@ -279,6 +287,13 @@ export default function POSPage() {
         setCart([]);
         setDiscountPercent(0);
         setActiveHoldId(null);
+      } else if (pinAction?.type === 'OPEN_DRAWER') {
+        try {
+          ESCPOSPrinterController.openCashDrawerPulse();
+        } catch {
+          /* optional hardware */
+        }
+        setAnnouncement('Cash drawer pulse sent. Opened by Manager (PIN 1234).');
       }
       setIsPinModalOpen(false);
       setPinAction(null);
@@ -459,6 +474,9 @@ export default function POSPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Checkout failed');
 
+      const effectivePaid = selectedTender === 'CASH' ? Number(cashTenderInput || grandTotal) : grandTotal;
+      const effectiveChange = Math.max(0, effectivePaid - grandTotal);
+
       try {
         ESCPOSPrinterController.generateReceiptBuffer({
           storeName: 'Grabber Store',
@@ -476,8 +494,8 @@ export default function POSPage() {
           vatAmount: taxTotal,
           grandTotal,
           tenderMethod: selectedTender,
-          amountPaid: grandTotal,
-          changeDue: 0,
+          amountPaid: effectivePaid,
+          changeDue: effectiveChange,
         });
         ESCPOSPrinterController.printBrowserReceipt({
           storeName: 'Grabber Store',
@@ -495,8 +513,8 @@ export default function POSPage() {
           vatAmount: taxTotal,
           grandTotal,
           tenderMethod: selectedTender,
-          amountPaid: grandTotal,
-          changeDue: 0,
+          amountPaid: effectivePaid,
+          changeDue: effectiveChange,
         });
       } catch {
         /* optional hardware */
@@ -620,6 +638,15 @@ export default function POSPage() {
             <p className="text-[11px] text-muted-foreground">Colombo Main Counter · Reg-01</p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={requestOpenDrawer}
+              title="Kick RJ11 Cash Drawer via Printer Pulse (Requires Manager PIN)"
+              className="text-[10px] px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 font-semibold cursor-pointer min-h-[44px] flex items-center gap-1"
+            >
+              <Lock className="h-3 w-3 text-amber-400" aria-hidden="true" />
+              <span>Drawer</span>
+            </button>
             {heldSales.length > 0 && (
               <button
                 type="button"
@@ -898,6 +925,54 @@ export default function POSPage() {
             </button>
           ))}
         </fieldset>
+
+        {selectedTender === 'CASH' && (
+          <div className="space-y-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs">
+            <div className="flex justify-between items-center">
+              <label htmlFor="cash-tendered-input" className="font-semibold text-foreground">
+                Cash Amount Tendered (LKR)
+              </label>
+              <span className="text-[10px] text-muted-foreground">Type or tap quick cash</span>
+            </div>
+            <input
+              id="cash-tendered-input"
+              type="number"
+              min={grandTotal}
+              step="100"
+              value={cashTenderInput}
+              onChange={(e) => setCashTenderInput(e.target.value ? Number(e.target.value) : '')}
+              placeholder={`e.g. ${Math.ceil(grandTotal / 500) * 500}`}
+              className="w-full px-3 py-2 text-base font-bold tabular-nums rounded-xl bg-secondary border border-border text-foreground text-right"
+            />
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setCashTenderInput(grandTotal)}
+                className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-[11px] font-semibold text-zinc-200 border border-zinc-700"
+              >
+                Exact (LKR {grandTotal.toFixed(0)})
+              </button>
+              {[1000, 2000, 5000, 10000, 20000]
+                .filter((amt) => amt >= grandTotal)
+                .map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setCashTenderInput(amt)}
+                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-[11px] font-semibold text-zinc-200 border border-zinc-700"
+                  >
+                    LKR {amt.toLocaleString()}
+                  </button>
+                ))}
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-zinc-800 text-sm font-bold">
+              <span className="text-muted-foreground">Change Due to Customer:</span>
+              <span className="text-emerald-400 tabular-nums">
+                LKR {Math.max(0, (Number(cashTenderInput || grandTotal) - grandTotal)).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        )}
 
         {selectedTender === 'SPLIT' && (
           <div className="grid grid-cols-2 gap-2 text-xs">

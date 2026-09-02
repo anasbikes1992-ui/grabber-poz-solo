@@ -6,6 +6,7 @@ import {
   validateImportRows,
   type ImportRowPreview,
 } from '@/lib/catalog/product-import';
+import { assertCsvSize } from '@/lib/catalog/catalog-csv';
 
 export async function POST(req: Request) {
   try {
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
 
     if (action === 'validate') {
       const csv = String(body.csv || '');
+      assertCsvSize(csv);
       const parsed = parseProductCsv(csv);
       if (!parsed.length) {
         return NextResponse.json({ success: false, error: 'No valid rows found in CSV' }, { status: 400 });

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Edit2, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, CheckCircle2, AlertCircle, Download } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 
 interface ProductVariant {
@@ -184,6 +184,29 @@ export default function ProductsCRUDPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/products/export');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Export failed');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `grabber-products-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const filtered = products.filter(
     (p) =>
       p.isActive !== false &&
@@ -200,11 +223,20 @@ export default function ProductsCRUDPage() {
           <p className="text-xs text-muted-foreground mt-0.5">Durable catalog via /api/products</p>
         </div>
         <div className="flex gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => void handleExportCsv()}
+            disabled={busy}
+            className="px-3.5 py-2 min-h-11 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-foreground font-semibold text-xs border border-zinc-800 flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </button>
           <Link
             href="/products/import"
             className="px-3.5 py-2 min-h-11 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-foreground font-semibold text-xs border border-zinc-800 flex items-center gap-1.5"
           >
-            Import Excel / CSV
+            Import CSV
           </Link>
           <button
             type="button"

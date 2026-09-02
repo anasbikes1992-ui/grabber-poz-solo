@@ -128,6 +128,28 @@ export class JarvisToolRegistry {
       },
     });
 
+    this.registerTool({
+      name: 'draft_creative_campaign',
+      description: 'Draft a storefront creative campaign (hero + announcement). Requires approval to publish.',
+      risk: 'DRAFT',
+      requiredRole: ['OWNER', 'ADMIN', 'MARKETING'],
+      execute: async (
+        args: { title: string; productName?: string; commandId?: string; announcement?: string; productImageUrl?: string },
+        context,
+      ) => {
+        return {
+          draftCampaignId: `DRAFT-CRE-${Date.now()}`,
+          title: args.title,
+          productName: args.productName || args.title,
+          commandId: args.commandId || 'clean-set',
+          announcement: args.announcement || `New campaign: ${args.title}`,
+          productImageUrl: args.productImageUrl,
+          status: 'DRAFT_CREATED',
+          createdBy: context.userId,
+        };
+      },
+    });
+
     // 4. HIGH_RISK_WRITE: Propose Stock Transfer between Locations
     this.registerTool({
       name: 'propose_stock_transfer',

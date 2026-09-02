@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
+import { buildDailyBrief } from '@/lib/ai/daily-brief';
 import {
   listEnabledAgents,
   listRecentAgentLogs,
@@ -7,7 +8,7 @@ import {
   runAllEnabledAgents,
 } from '@/lib/agents/orchestrator';
 
-/** Combined daily brief — all enabled vertical + core agents. */
+/** Combined daily brief — Jarvis metrics + all enabled agents. */
 export async function GET() {
   try {
     const session = await getSession();
@@ -15,7 +16,7 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const flags = await readVerticalFlagsForAgents();
+    const [jarvisBrief, flags] = await Promise.all([buildDailyBrief(), readVerticalFlagsForAgents()]);
     const enabled = listEnabledAgents(flags);
     const ctx = session
       ? { userId: session.userId, role: session.role, proposeApprovals: true }
@@ -29,6 +30,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       generatedAt: new Date().toISOString(),
+      jarvis: jarvisBrief,
       enabledAgents: enabled.map((a) => a.id),
       results,
       recentLogs: logs,

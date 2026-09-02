@@ -125,7 +125,7 @@ export async function searchStorefrontProducts(
   query: string,
   opts?: { categorySlug?: string; limit?: number },
 ): Promise<StorefrontSearchHit[]> {
-  const q = query.trim().toLowerCase();
+  const q = query.trim().toLowerCase().slice(0, 80);
   if (!q) return [];
 
   const limit = opts?.limit ?? 50;

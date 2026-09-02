@@ -26,7 +26,7 @@ describe('storefront theme presets', () => {
   });
 
   it('maps theme to storefront CSS variables', () => {
-    const style = storefrontThemeStyle(resolveStorefrontTheme(getStorefrontThemePreset('hearth')!.theme));
+    const style = storefrontThemeStyle(resolveStorefrontTheme(getStorefrontThemePreset('hearth')!.theme)) as Record<string, string>;
     expect(style['--sf-accent']).toBe('#D97706');
     expect(style['--sf-background']).toBe('#FAF6F1');
     expect(style['--sf-hero-gradient']).toContain('gradient');

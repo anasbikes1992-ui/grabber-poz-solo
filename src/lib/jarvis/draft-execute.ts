@@ -5,6 +5,8 @@ import { sendWhatsAppText } from '@/lib/integrations/whatsapp';
 import { savePromotions, listPromotions } from '@/lib/config/promotions-store';
 import type { PromotionRule } from '@/lib/commerce/promotion-engine';
 import type { JarvisUserContext } from '@/lib/ai/jarvis-types';
+import { draftCreativeCampaign } from '@/lib/creative/campaign-service';
+import { approveCreativeCampaign } from '@/lib/creative/creative-repo';
 
 const CAMPAIGN_BATCH_SIZE = 10;
 
@@ -118,6 +120,35 @@ export async function executeJarvisDraftApproval(
       status: 'DRAFT_ACKNOWLEDGED',
       note: 'Purchase order draft logged — create PO from /purchasing',
       payload: args,
+    };
+  }
+
+  if (toolName === 'draft_creative_campaign') {
+    const title = String(args.title || 'Seasonal campaign');
+    const drafted = await draftCreativeCampaign({
+      title,
+      productName: String(args.productName || title),
+      commandId: String(args.commandId || 'clean-set'),
+      announcement: String(args.announcement || `New campaign: ${title}`),
+      productImageUrl: args.productImageUrl as string | undefined,
+      createdBy: context.userId,
+    });
+
+    const published = await approveCreativeCampaign(drafted.projectId, {
+      announcement: String(args.announcement || drafted.announcement),
+      heroTitle: title,
+      heroSubtitle: String(args.announcement || drafted.announcement),
+      broadcastAudience: String(args.audience || 'ALL'),
+    });
+
+    return {
+      status: 'CREATIVE_PUBLISHED',
+      projectId: drafted.projectId,
+      jobId: drafted.jobId,
+      renderQueued: true,
+      storefront: published.storefront,
+      whatsapp: published.whatsapp,
+      customerBroadcast: published.customerBroadcast,
     };
   }
 

@@ -16,12 +16,43 @@ const ACTIONABLE_PATTERNS: RegExp[] = [
   /^Fire\/serve KOT/i,
   /^Ticket .+ — /i,
   /trigger REPAIR_READY WhatsApp/i,
-  /^Approve a creative campaign/i,
+  /^Approve\s+(?:a\s+)?creative campaign/i,
   /^Run WELCOME500/i,
 ];
 
 export function isActionableRecommendation(text: string): boolean {
   return ACTIONABLE_PATTERNS.some((re) => re.test(text.trim()));
+}
+
+function parseCreativeProjectId(recommendation: string): string | null {
+  const tagged = recommendation.match(/\[projectId=([0-9a-f-]{36})\]/i);
+  if (tagged) return tagged[1];
+  return null;
+}
+
+function buildAgentPayload(result: AgentResult, recommendation: string) {
+  const payload: Record<string, unknown> = {
+    agent: result.agent,
+    recommendation,
+    metrics: result.metrics ?? {},
+    summary: result.summary,
+  };
+
+  const projectId = parseCreativeProjectId(recommendation);
+  if (projectId) {
+    payload.projectId = projectId;
+    const titleMatch = recommendation.match(/"([^"]+)"/);
+    if (titleMatch) {
+      payload.heroTitle = titleMatch[1];
+      payload.announcement = `New campaign live: ${titleMatch[1]}`;
+    }
+  }
+
+  if (/Run WELCOME500/i.test(recommendation)) {
+    payload.promoCode = 'WELCOME500';
+  }
+
+  return payload;
 }
 
 export async function proposeApprovalsFromAgentResult(
@@ -39,12 +70,7 @@ export async function proposeApprovalsFromAgentResult(
       toolName: `agent:${result.agent}`,
       description: recommendation,
       risk: 'DRAFT',
-      payload: {
-        agent: result.agent,
-        recommendation,
-        metrics: result.metrics ?? {},
-        summary: result.summary,
-      },
+      payload: buildAgentPayload(result, recommendation),
       requestedBy: context.userId,
       role: context.role,
       expiresAt,

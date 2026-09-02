@@ -120,6 +120,13 @@ export class ESCPOSPrinterController {
   }
 
   /**
+   * Generates standalone ESC/POS pulse buffer to kick open RJ11 cash drawer (\x1B\x70\x00\x19\xFA).
+   */
+  public static openCashDrawerPulse(): Uint8Array {
+    return new Uint8Array([0x1b, 0x70, 0x00, 0x19, 0xfa]);
+  }
+
+  /**
    * Browser Direct Print Dispatcher.
    */
   public static printBrowserReceipt(data: ReceiptPayload): void {

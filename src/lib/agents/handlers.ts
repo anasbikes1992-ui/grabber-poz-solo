@@ -330,7 +330,10 @@ export async function runCreativeAgent(): Promise<AgentResult> {
     agent: 'CREATIVE',
     summary: `${pending.length} creative project(s) awaiting generation or approve-to-storefront.`,
     recommendations: pending.length
-      ? pending.slice(0, 4).map((p) => `Review "${p.title}" (${p.status}) — approve publish to storefront.`)
+      ? pending.slice(0, 4).map(
+          (p) =>
+            `Approve creative campaign [projectId=${p.id}] "${p.title}" — publish to storefront.`,
+        )
       : ['No pending campaigns — brief a repair or seasonal hero in Creative Studio.'],
     metrics: { pending: pending.length, total: projects.length },
   };

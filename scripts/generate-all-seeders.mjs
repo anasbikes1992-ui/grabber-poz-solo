@@ -1,18 +1,59 @@
 import fs from 'fs';
 import path from 'path';
-import XLSX from 'xlsx';
 
 /**
  * GRABBER BUSINESS OS — PRODUCTION SEED & CATALOG COMPILER
- * Compiles all client catalogs (Wowthings, Shopping Station) + Standard Multi-vertical Demo seed.
+ * Compiles client catalogs from CSV + standard multi-vertical demo seed.
+ * Export Excel to CSV first (see /products/import template columns).
  */
 
 console.log('🚀 Generating Production Catalogs & Database Seeds...');
 
-// 1. Wowthings Catalog Compiler
-const wowWb = XLSX.readFile('excel/wow_products_with_images.xlsx');
-const wowSheet = wowWb.Sheets[wowWb.SheetNames[0]];
-const wowData = XLSX.utils.sheet_to_json(wowSheet);
+function parseCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (ch === ',' && !inQuotes) {
+      out.push(cur.trim());
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
+}
+
+function loadCsvRecords(filePath) {
+  const abs = path.resolve(filePath);
+  if (!fs.existsSync(abs)) {
+    console.warn(`⚠ Skipped missing catalog: ${filePath}`);
+    return { headers: [], rows: [] };
+  }
+  const text = fs.readFileSync(abs, 'utf8').replace(/^\uFEFF/, '');
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length < 2) return { headers: [], rows: [] };
+  const headers = parseCsvLine(lines[0]);
+  const rows = lines.slice(1).map((line) => {
+    const cols = parseCsvLine(line);
+    const row = {};
+    headers.forEach((h, i) => {
+      row[h] = cols[i] ?? '';
+    });
+    return row;
+  });
+  return { headers, rows };
+}
+
+// 1. Wowthings Catalog Compiler (CSV export of wow_products_with_images.xlsx)
+const wowCsvPath = 'excel/wow_products_with_images.csv';
+const { rows: wowData } = loadCsvRecords(wowCsvPath);
 console.log(`✓ Loaded Wowthings: ${wowData.length} records`);
 
 let wowSql = `-- =====================================================\n`;
@@ -25,18 +66,22 @@ for (const row of wowData) {
   const barcode = (row['Barcode'] || `NS-${Date.now()}`).toString().trim();
   const sku = barcode;
   const category = (row['Category'] || 'Fashion & Apparel').toString().trim().replace(/'/g, "''");
-  const salePrice = parseFloat(row['Sale Price']) || 0;
-  const costPrice = parseFloat(row['Cost Price']) || Math.round(salePrice * 0.65);
-  const stock = parseInt(row['Quantity/Stock']) || 15;
-  const imageUrl = row['Image Links'] ? row['Image Links'].toString().trim() : `https://sauzjjbkfyhfntcitpuz.supabase.co/storage/v1/object/public/products/${barcode}.jpg`;
+  const salePrice = parseFloat(row['Sale Price'] || row['SalePrice']) || 0;
+  const costPrice = parseFloat(row['Cost Price'] || row['CostPrice']) || Math.round(salePrice * 0.65);
+  const stock = parseInt(row['Quantity/Stock'] || row['InitialStock'] || row['Stock'], 10) || 15;
+  const imageUrl = row['Image Links']
+    ? row['Image Links'].toString().trim()
+    : `https://sauzjjbkfyhfntcitpuz.supabase.co/storage/v1/object/public/products/${barcode}.jpg`;
 
   if (name && salePrice > 0) {
     wowSql += `INSERT INTO public.products (sku, barcode, name, category, base_cost, sale_price, on_hand, image_url) VALUES ('${sku}', '${barcode}', '${name}', '${category}', ${costPrice}, ${salePrice}, ${stock}, '${imageUrl}') ON CONFLICT (sku) DO UPDATE SET sale_price = EXCLUDED.sale_price, on_hand = EXCLUDED.on_hand;\n`;
   }
 }
 
-fs.writeFileSync('drizzle/seed_wowthings_catalog.sql', wowSql);
-console.log('✓ Generated drizzle/seed_wowthings_catalog.sql');
+if (wowData.length > 0) {
+  fs.writeFileSync('drizzle/seed_wowthings_catalog.sql', wowSql);
+  console.log('✓ Generated drizzle/seed_wowthings_catalog.sql');
+}
 
 // 2. Shopping Station Catalog Compiler
 const ssCsv = fs.readFileSync('excel/Shopping Station Products data.csv', 'utf8');

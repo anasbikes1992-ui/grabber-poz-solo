@@ -145,7 +145,7 @@ export default function ProductImportPage() {
           <div>
             <h3 className="text-base font-bold text-foreground">Upload your Inventory Spreadsheet</h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-md">
-              Upload a UTF-8 <code className="text-primary font-mono">.csv</code> file. Excel (.xlsx) should be exported to CSV first.
+              Upload a UTF-8 <code className="text-primary font-mono">.csv</code> file matching the template columns below.
             </p>
           </div>
 
