@@ -1,7 +1,4 @@
--- GRABBER SOLO — RLS baseline (all public tables)
--- Next.js API uses DATABASE_URL (postgres / service role) and bypasses RLS.
--- PostgREST anon/authenticated: deny by default (RLS enabled, no permissive policies).
-
+-- 0006 — Enable RLS on all public tables (Supabase Advisor: RLS Disabled in Public)
 DO $$
 DECLARE
   r RECORD;
@@ -18,11 +15,9 @@ BEGIN
   END LOOP;
 END $$;
 
--- Remove legacy partial policies (deny-by-default is safer for Solo)
 DROP POLICY IF EXISTS staff_read_orders ON public.orders;
 DROP POLICY IF EXISTS staff_read_products ON public.products;
 
--- Revoke direct table access from Supabase API roles
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon;

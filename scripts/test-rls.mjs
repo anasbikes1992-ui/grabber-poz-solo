@@ -6,8 +6,13 @@ import postgres from 'postgres';
 import { config as loadEnv } from 'dotenv';
 import { postgresClientOptions, resolveDatabaseUrl } from './lib/resolve-db-url.mjs';
 
-loadEnv({ path: '.env.local' });
-loadEnv({ path: '.env' });
+const envFile = process.argv.find((a) => a.startsWith('--env-file='))?.split('=')[1];
+if (envFile) {
+  loadEnv({ path: envFile });
+} else {
+  loadEnv({ path: '.env.local' });
+  loadEnv({ path: '.env' });
+}
 
 const url = resolveDatabaseUrl();
 if (!url) {
@@ -15,54 +20,32 @@ if (!url) {
   process.exit(0);
 }
 
-const RLS_TABLES = [
-  'orders',
-  'order_items',
-  'payments',
-  'stock_balances',
-  'customers',
-  'polim_potha_accounts',
-  'users',
-  'audit_logs',
-  'products',
-];
-
-const REQUIRED_POLICIES = ['staff_read_orders', 'staff_read_products'];
-
 const db = postgres(url, postgresClientOptions(url));
 
 let fail = 0;
 
-for (const table of RLS_TABLES) {
-  const [row] = await db`
-    SELECT c.relrowsecurity AS rls_enabled
-    FROM pg_class c
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE n.nspname = 'public' AND c.relname = ${table}
-  `;
-  if (!row) {
-    console.log('FAIL: table missing', table);
-    fail++;
-    continue;
-  }
-  if (!row.rls_enabled) {
-    console.log('FAIL: RLS not enabled on', table);
-    fail++;
-  } else {
-    console.log('OK: RLS enabled on', table);
-  }
-}
+const tables = await db`
+  SELECT c.relname AS tablename, c.relrowsecurity AS rls_enabled
+  FROM pg_class c
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public'
+    AND c.relkind = 'r'
+    AND NOT c.relispartition
+  ORDER BY c.relname
+`;
 
-for (const pol of REQUIRED_POLICIES) {
-  const rows = await db`
-    SELECT policyname FROM pg_policies
-    WHERE schemaname = 'public' AND policyname = ${pol}
-  `;
-  if (!rows.length) {
-    console.log('FAIL: policy missing', pol);
-    fail++;
-  } else {
-    console.log('OK: policy', pol);
+if (!tables.length) {
+  console.log('FAIL: no public tables found');
+  fail++;
+} else {
+  for (const row of tables) {
+    if (!row.rls_enabled) {
+      console.log('FAIL: RLS not enabled on', row.tablename);
+      fail++;
+    }
+  }
+  if (!fail) {
+    console.log(`OK: RLS enabled on all ${tables.length} public tables`);
   }
 }
 
@@ -70,13 +53,32 @@ const anonPrivs = await db`
   SELECT privilege_type, table_name
   FROM information_schema.table_privileges
   WHERE grantee = 'anon' AND table_schema = 'public'
-    AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
-  LIMIT 5
+    AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'SELECT')
+  LIMIT 10
 `;
 if (anonPrivs.length) {
-  console.log('WARN: anon has write privileges on', anonPrivs.map((r) => r.table_name).join(', '));
+  console.log(
+    'WARN: anon has table privileges on',
+    [...new Set(anonPrivs.map((r) => r.table_name))].join(', '),
+  );
 } else {
-  console.log('OK: anon has no DML privileges on public tables');
+  console.log('OK: anon has no table privileges on public tables');
+}
+
+const authPrivs = await db`
+  SELECT privilege_type, table_name
+  FROM information_schema.table_privileges
+  WHERE grantee = 'authenticated' AND table_schema = 'public'
+    AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'SELECT')
+  LIMIT 10
+`;
+if (authPrivs.length) {
+  console.log(
+    'WARN: authenticated has table privileges on',
+    [...new Set(authPrivs.map((r) => r.table_name))].join(', '),
+  );
+} else {
+  console.log('OK: authenticated has no table privileges on public tables');
 }
 
 console.log(fail ? `\nRLS probe: ${fail} failure(s)` : '\nRLS probe: PASS');
