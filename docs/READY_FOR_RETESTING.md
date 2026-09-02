@@ -6,8 +6,7 @@
 **Production:** https://grabber-poz-solo.vercel.app  
 **Prerequisite:** Waves 0–5 + dual storefront/staff auth closed in [`docs/correction.md`](./correction.md)
 
-**Kickoff log:** [`reports/RETEST_RUN_2026-09-01.md`](../reports/RETEST_RUN_2026-09-01.md)  
-**Release gate:** [`reports/RELEASE_GATE_RUN_2026-09-01.md`](../reports/RELEASE_GATE_RUN_2026-09-01.md) — R1–R5 automated PASS
+**Release gate:** [`RELEASE_GATE.md`](./RELEASE_GATE.md)
 
 This document is the **process entry** for re-testing after the correction waves. Do not treat a green unit-test run alone as production handover — complete the checklist below, then optionally the 7-day pilot in [`certification/CLIENT_ACCEPTANCE_TEST.md`](./certification/CLIENT_ACCEPTANCE_TEST.md).
 

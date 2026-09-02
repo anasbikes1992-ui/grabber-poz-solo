@@ -4,8 +4,6 @@ Deployment and feature rollout plan after initial Vercel + Supabase go-live.
 
 **Related:** [`FRESH_START.md`](./FRESH_START.md) · [`VERCEL_ENV.md`](./VERCEL_ENV.md) · [`ROADMAP.md`](./ROADMAP.md) · [`RELEASE_GATE.md`](./RELEASE_GATE.md)
 
-**Latest gate run:** [`reports/RELEASE_GATE_RUN_2026-09-01.md`](../reports/RELEASE_GATE_RUN_2026-09-01.md)
-
 ---
 
 ## Phase 1 — Deploy + DB (DONE)

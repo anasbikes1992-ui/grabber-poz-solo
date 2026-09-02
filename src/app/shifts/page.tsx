@@ -49,6 +49,8 @@ export default function ShiftsPage() {
   const [cashInOutReason, setCashInOutReason] = useState('');
 
   const [countedCash, setCountedCash] = useState(0);
+  const [actualPayhere, setActualPayhere] = useState(0);
+  const [actualPolim, setActualPolim] = useState(0);
   const [openingFloatInput, setOpeningFloatInput] = useState(25000);
   const [showZReport, setShowZReport] = useState(false);
 
@@ -131,6 +133,8 @@ export default function ShiftsPage() {
           shiftId: activeShift.id,
           closingCash: Number(countedCash),
           actualCard: activeShift.cardSales,
+          actualPayhere: Number(actualPayhere),
+          actualPolim: Number(actualPolim),
         }),
       });
       const data = await res.json();
@@ -273,6 +277,32 @@ export default function ShiftsPage() {
               onChange={(e) => setCountedCash(Number(e.target.value))}
               className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm font-mono"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="actual-payhere" className="text-xs font-semibold block mb-1">
+                PayHere terminal (LKR)
+              </label>
+              <input
+                id="actual-payhere"
+                type="number"
+                value={actualPayhere}
+                onChange={(e) => setActualPayhere(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm font-mono"
+              />
+            </div>
+            <div>
+              <label htmlFor="actual-polim" className="text-xs font-semibold block mb-1">
+                Polim Potha credit (LKR)
+              </label>
+              <input
+                id="actual-polim"
+                type="number"
+                value={actualPolim}
+                onChange={(e) => setActualPolim(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm font-mono"
+              />
+            </div>
           </div>
           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
             <Calculator className="h-3.5 w-3.5" aria-hidden="true" />

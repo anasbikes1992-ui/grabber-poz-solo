@@ -27,6 +27,7 @@ type Step = {
 export default function SetupPage() {
   const [steps, setSteps] = useState<Step[]>([]);
   const [seeding, setSeeding] = useState(false);
+  const [mobileRepairBusy, setMobileRepairBusy] = useState(false);
   const [seedMsg, setSeedMsg] = useState<string | null>(null);
   const [presetMsg, setPresetMsg] = useState<string | null>(null);
   const [applyingPreset, setApplyingPreset] = useState<string | null>(null);
@@ -93,6 +94,28 @@ export default function SetupPage() {
     void refresh();
   }, [refresh]);
 
+  async function runMobileRepairSetup() {
+    setMobileRepairBusy(true);
+    setSeedMsg(null);
+    try {
+      const seedRes = await fetch('/api/seed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: 'mobilerepair', storeName: 'MobileRepair Shop' }),
+      });
+      const seedData = await seedRes.json();
+      if (!seedData.success) throw new Error(seedData.error || 'MobileRepair setup failed');
+      setSeedMsg(
+        `MobileRepair profile applied — ${seedData.mobilerepair?.catalogRows ?? 0} repair prices, phones: ${(seedData.mobilerepair?.productSlugs || []).join(', ')}. Open /shop/repairs/book`,
+      );
+      await refresh();
+    } catch (err) {
+      setSeedMsg((err as Error).message);
+    } finally {
+      setMobileRepairBusy(false);
+    }
+  }
+
   async function runSeed() {
     setSeeding(true);
     setSeedMsg(null);
@@ -155,6 +178,23 @@ export default function SetupPage() {
           {presetMsg}
         </p>
       )}
+
+      <div className="p-4 rounded-2xl glass-card border border-emerald-500/30 space-y-3">
+        <h2 className="text-sm font-bold text-white flex items-center gap-2">
+          <Store className="w-4 h-4 text-emerald-400" /> MobileRepair shop profile
+        </h2>
+        <p className="text-xs text-zinc-400">
+          One-click setup: vertical preset (repairs, HP, appointments), repair price catalog, iPhone & Samsung demo SKUs with storage/condition/warranty variants.
+        </p>
+        <button
+          type="button"
+          disabled={mobileRepairBusy || seeding}
+          onClick={() => void runMobileRepairSetup()}
+          className="w-full min-h-11 rounded-xl bg-emerald-500 text-zinc-950 text-xs font-bold disabled:opacity-50"
+        >
+          {mobileRepairBusy ? 'Setting up MobileRepair…' : 'Complete MobileRepair setup'}
+        </button>
+      </div>
 
       <div className="p-4 rounded-2xl glass-card border border-zinc-800 space-y-3">
         <h2 className="text-sm font-bold text-white flex items-center gap-2">

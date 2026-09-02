@@ -19,6 +19,7 @@ import {
   PlayCircle,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
+import { TradeInModal, type TradeInCredit } from '@/components/pos/trade-in-modal';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
 import { BarcodeScannerListener } from '@/lib/hardware/scanner';
 import {
@@ -91,6 +92,8 @@ export default function POSPage() {
   const [splitCash, setSplitCash] = useState(0);
   const [splitCard, setSplitCard] = useState(0);
   const [promoCode, setPromoCode] = useState('');
+  const [tradeInCredit, setTradeInCredit] = useState<TradeInCredit | null>(null);
+  const [isTradeInModalOpen, setIsTradeInModalOpen] = useState(false);
   const [heldSales, setHeldSales] = useState<HeldSale[]>([]);
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [activeHoldId, setActiveHoldId] = useState<string | null>(null);
@@ -185,7 +188,8 @@ export default function POSPage() {
 
   const grossSubtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   const discountAmount = (grossSubtotal * discountPercent) / 100;
-  const netSubtotal = grossSubtotal - discountAmount;
+  const tradeInDeduction = tradeInCredit?.creditAmount ?? 0;
+  const netSubtotal = Math.max(0, grossSubtotal - discountAmount - tradeInDeduction);
   const taxTotal = Math.round(netSubtotal * 0.18 * 100) / 100;
   const grandTotal = netSubtotal + taxTotal;
 
@@ -313,6 +317,8 @@ export default function POSPage() {
       if (!data.success) throw new Error(data.error || 'Hold failed');
       setCart([]);
       setDiscountPercent(0);
+      setTradeInCredit(null);
+      setPromoCode('');
       setPromoCode('');
       setActiveHoldId(null);
       setAnnouncement(`Sale held as ${data.hold?.orderNumber || 'draft'}.`);
@@ -421,6 +427,10 @@ export default function POSPage() {
     if (promoCode.trim()) {
       checkoutPayload.promoCode = promoCode.trim();
     }
+    if (tradeInCredit) {
+      checkoutPayload.tradeInVoucherNumber = tradeInCredit.voucherNumber;
+      checkoutPayload.tradeInCredit = tradeInCredit.creditAmount;
+    }
 
     try {
       if (!branchId || cart.some((c) => String(c.productId).startsWith('prod_'))) {
@@ -496,6 +506,8 @@ export default function POSPage() {
       setIsPaymentModalOpen(false);
       setCart([]);
       setDiscountPercent(0);
+      setTradeInCredit(null);
+      setPromoCode('');
       setPromoCode('');
       if (activeHoldId) {
         await fetch(`/api/pos/holds?id=${encodeURIComponent(activeHoldId)}`, { method: 'DELETE' });
@@ -746,6 +758,21 @@ export default function POSPage() {
               <span>- LKR {discountAmount.toFixed(2)}</span>
             </div>
           )}
+
+          {tradeInCredit && (
+            <div className="flex justify-between text-amber-500 font-medium text-xs">
+              <span>Trade-in ({tradeInCredit.deviceModel})</span>
+              <span>- LKR {tradeInDeduction.toFixed(2)}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsTradeInModalOpen(true)}
+            className="w-full min-h-9 rounded-lg border border-zinc-700 text-[11px] font-bold text-muted-foreground hover:bg-zinc-900"
+          >
+            {tradeInCredit ? 'Change trade-in' : 'Apply trade-in / buyback'}
+          </button>
 
           <div className="flex justify-between text-muted-foreground">
             <span>VAT (18%)</span>
@@ -1049,6 +1076,18 @@ export default function POSPage() {
           </>
         )}
       </Modal>
+
+      {branchId && (
+        <TradeInModal
+          isOpen={isTradeInModalOpen}
+          onClose={() => setIsTradeInModalOpen(false)}
+          branchId={branchId}
+          onApplied={(credit) => {
+            setTradeInCredit(credit);
+            setAnnouncement(`Trade-in credit LKR ${credit.creditAmount.toLocaleString()} applied.`);
+          }}
+        />
+      )}
     </div>
   );
 }

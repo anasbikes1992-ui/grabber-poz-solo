@@ -6,6 +6,9 @@ import { reconcileStockDrift } from '@/lib/inventory/stock-service';
 import { releaseStock } from '@/lib/inventory/stock-reservation';
 import { processHpReminders } from '@/lib/hire-purchase/escalation';
 import { suggestNearExpiryPromos } from '@/lib/inventory/near-expiry';
+import { abandonedCartMessage } from '@/lib/commerce/abandoned-checkout';
+import { db, abandonedCarts } from '@/db';
+import { eq } from 'drizzle-orm';
 import type { JobType } from './outbox';
 
 export async function handleJob(type: JobType, payload: Record<string, unknown>): Promise<void> {
@@ -73,6 +76,36 @@ export async function handleJob(type: JobType, payload: Record<string, unknown>)
     }
     case 'DRAFT_PO': {
       // Inventory agent proposes; job ack only until approval execute wired
+      break;
+    }
+    case 'CHECKOUT_ABANDON': {
+      const phone = String(payload.phone || '');
+      const recoveryUrl = String(payload.recoveryUrl || '');
+      const promoCode = payload.promoCode as string | undefined;
+      const recoveryToken = String(payload.recoveryToken || '');
+      const [cart] = await db
+        .select()
+        .from(abandonedCarts)
+        .where(eq(abandonedCarts.recoveryToken, recoveryToken))
+        .limit(1);
+      if (!cart || cart.status !== 'OPEN') return;
+      const lines = (cart.cartJson as Array<{ name: string; qty: number }>) || [];
+      const text = abandonedCartMessage(
+        lines.map((l, i) => ({
+          productId: `p-${i}`,
+          name: l.name,
+          unitPrice: 0,
+          qty: l.qty,
+        })),
+        recoveryUrl,
+        promoCode || cart.promoCode || undefined,
+      );
+      const result = await sendWhatsAppText({ to: phone, text });
+      if (!result.success) throw new Error(result.error || 'Abandon recovery WhatsApp failed');
+      await db
+        .update(abandonedCarts)
+        .set({ remindedAt: new Date() })
+        .where(eq(abandonedCarts.id, cart.id));
       break;
     }
     default:

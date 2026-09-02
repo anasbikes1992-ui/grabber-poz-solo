@@ -1,6 +1,6 @@
 # Repairs + Storefront Blueprint — Analysis & Plan
 
-**Reference:** Manus AI blueprint (Sep 2026) · Mister Mobile service discovery · Grabber Poz Solo live stack.
+**Reference:** Manus AI blueprint (Sep 2026) · MobileRepair service discovery · Grabber Poz Solo live stack.
 
 **Design system:** [`design-system/grabber-poz-solo/MASTER.md`](../design-system/grabber-poz-solo/MASTER.md) · [`pages/repairs.md`](../design-system/grabber-poz-solo/pages/repairs.md)
 

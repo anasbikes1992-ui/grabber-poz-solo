@@ -1,4 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm';
+import { randomBytes } from 'crypto';
 import { db } from '@/db';
 import {
   chartOfAccounts,
@@ -205,6 +206,7 @@ export async function durableCheckout(input: CheckoutInput) {
         taxTotal: String(taxTotal.toFixed(2)),
         grandTotal: String(grandTotal.toFixed(2)),
         clientUuid: input.clientUuid || null,
+        trackingToken: randomBytes(12).toString('hex'),
         terminalId: input.terminalId || null,
         clientSequence: input.clientSequence ?? null,
         createdBy: input.actorId || null,

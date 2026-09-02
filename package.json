@@ -21,6 +21,7 @@
     "db:align": "node scripts/align-legacy-schema.mjs",
     "db:align-columns": "node scripts/align-missing-columns.mjs",
     "db:apply-sql": "node scripts/apply-sql-migration.mjs",
+    "setup:mobilerepair": "node scripts/setup-mobilerepair.mjs",
     "db:inspect-columns": "node scripts/inspect-columns.mjs",
     "creative:start": "python creative-engine/main.py",
     "env:validate": "node scripts/validate-env.mjs",

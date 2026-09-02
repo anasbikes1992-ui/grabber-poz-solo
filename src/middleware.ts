@@ -19,6 +19,11 @@ const PUBLIC_PREFIXES = [
   '/api/storefront/search',
   '/api/config/flags',
   '/api/repairs/public',
+  '/api/repairs/estimate',
+  '/api/repairs/appointments',
+  '/api/orders/track',
+  '/api/storefront/abandon-cart',
+  '/track/',
   '/api/cron/',
 ];
 
@@ -62,13 +67,22 @@ const STAFF_PREFIXES = [
   '/barcodes',
   '/approvals',
   '/ops',
+  '/wholesale',
   '/settings/automation',
   '/store/builder',
+  '/pos/trade-in',
+  '/inventory/stock-take',
+  '/inventory/transfer',
+  '/reports/tax',
+  '/serials',
 ];
 
 function isPublic(pathname: string) {
   if (PUBLIC_EXACT.has(pathname)) return true;
   if (isStorefrontProduct(pathname)) return true;
+  if (pathname.startsWith('/track/')) return true;
+  if (/^\/api\/orders\/[^/]+\/invoice$/.test(pathname)) return true;
+  if (pathname.startsWith('/serials/') && process.env.NODE_ENV !== 'production') return true;
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 

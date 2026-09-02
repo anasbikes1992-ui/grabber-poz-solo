@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
-import { closeShift } from '@/lib/db/repositories/shifts-repo';
+import { closeShiftWithReconciliation } from '@/lib/shifts/reconciliation';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
 
 export async function POST(req: Request) {
@@ -18,10 +18,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'shiftId required' }, { status: 400 });
     }
 
-    const result = await closeShift({
+    const result = await closeShiftWithReconciliation({
       shiftId,
       closingCash: Number(body.closingCash ?? 0),
       actualCard: body.actualCard != null ? Number(body.actualCard) : undefined,
+      actualPayhere: body.actualPayhere != null ? Number(body.actualPayhere) : undefined,
+      actualPolim: body.actualPolim != null ? Number(body.actualPolim) : undefined,
     });
 
     let zReportHint: string | null = null;
@@ -29,9 +31,9 @@ export async function POST(req: Request) {
     try {
       const buf = ESCPOSPrinterController.generateZReportBuffer({
         storeName: 'Grabber Store',
-        registerName: result.register?.name || 'Register',
-        registerCode: result.register?.code || 'REG',
-        cashierName: result.cashier?.name || session!.name,
+        registerName: 'Register',
+        registerCode: 'REG',
+        cashierName: session!.name,
         shiftId,
         openedAt: result.shift.openedAt?.toISOString?.() || String(result.shift.openedAt),
         closedAt: result.shift.closedAt?.toISOString?.() || new Date().toISOString(),
@@ -41,7 +43,7 @@ export async function POST(req: Request) {
         creditSales: result.summary.creditSales,
         expectedCash: result.summary.expectedCash,
         closingCash: result.summary.closingCash,
-        variance: result.summary.variance,
+        variance: result.summary.cashVariance,
       });
       zReportHint = `ESC/POS Z-report buffer ${buf.byteLength} bytes ready`;
       escposHint = Buffer.from(buf).toString('base64');
@@ -56,9 +58,12 @@ export async function POST(req: Request) {
         cashSales: result.summary.cashSales,
         cardSales: result.summary.cardSales,
         creditSales: result.summary.creditSales,
+        payhereSales: result.summary.payhereSales,
+        polimSales: result.summary.polimSales,
         orderCount: undefined,
         expectedCash: result.summary.expectedCash,
-        variance: result.summary.variance,
+        variance: result.summary.cashVariance,
+        totalVariance: result.summary.totalVariance,
       },
       summary: result.summary,
       zReportHint,

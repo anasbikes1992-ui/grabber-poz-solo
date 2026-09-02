@@ -1,6 +1,7 @@
 import type { PosMode, ProductItemType } from '@/lib/config/product-item-types';
 
 export type VerticalPresetId =
+  | 'mobilerepair'
   | 'electronics'
   | 'fashion'
   | 'grocery'
@@ -52,6 +53,33 @@ const ALL_FLAGS_ON: VerticalFlags = {
  * Presets set sensible defaults; merchants fine-tune in Settings → Verticals.
  */
 export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
+  mobilerepair: {
+    id: 'mobilerepair',
+    label: 'Mobile Repair Shop',
+    description: 'Device retail, OEM/Grade A repairs, trade-in, HP, courier pickup booking',
+    natureOfBusiness: 'Mobile phone retail & repair center',
+    exampleMerchant: 'MobileRepair.lk-style phone shop & service hub',
+    vertical: 'mobilerepair',
+    flags: {
+      repairs: true,
+      restaurant: false,
+      hirePurchase: true,
+      appointments: true,
+      loyalty: true,
+      wholesale: false,
+      grocery: false,
+      whatsapp: true,
+      creative: true,
+    },
+    itemTypes: ['SERIALIZED', 'PHYSICAL', 'SERVICE', 'PART'],
+    posModes: ['RETAIL_SALE', 'REPAIR_INTAKE', 'HP_COLLECTION'],
+    adaptedWorkflows: [
+      'Repair estimator at /shop/repairs/book',
+      'OEM vs Grade A repair pricing matrix',
+      'Trade-in credit at POS checkout',
+      'IMEI lifecycle + HP EMI collection',
+    ],
+  },
   electronics: {
     id: 'electronics',
     label: 'Mobile, Tech & Service',

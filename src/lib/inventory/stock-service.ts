@@ -351,28 +351,33 @@ export async function recordTransfer(
   to: { locationType: LocationType; locationId: string },
   line: StockLineInput,
   meta: MovementMeta,
+  options?: { skipDestinationCredit?: boolean; skipSourceDebit?: boolean },
 ) {
   const qty = Math.max(1, Math.floor(line.quantity));
-  const where = and(
-    eq(stockBalances.locationType, from.locationType),
-    eq(stockBalances.locationId, from.locationId),
-    eq(stockBalances.productId, line.productId),
-    sql`(${stockBalances.onHand} - ${stockBalances.reserved}) >= ${qty}`,
-    variantWhere(line.variantId),
-  );
 
-  const [src] = await tx
-    .update(stockBalances)
-    .set({ onHand: sql`${stockBalances.onHand} - ${qty}`, updatedAt: new Date() })
-    .where(where)
-    .returning();
+  if (!options?.skipSourceDebit) {
+    const where = and(
+      eq(stockBalances.locationType, from.locationType),
+      eq(stockBalances.locationId, from.locationId),
+      eq(stockBalances.productId, line.productId),
+      sql`(${stockBalances.onHand} - ${stockBalances.reserved}) >= ${qty}`,
+      variantWhere(line.variantId),
+    );
 
-  if (!src) throw new InsufficientStockError(`Insufficient stock at source`, line.productId, 0, qty);
+    const [src] = await tx
+      .update(stockBalances)
+      .set({ onHand: sql`${stockBalances.onHand} - ${qty}`, updatedAt: new Date() })
+      .where(where)
+      .returning();
 
-  await upsertBalance(tx, to, line, qty);
+    if (!src) throw new InsufficientStockError(`Insufficient stock at source`, line.productId, 0, qty);
+    await insertMovement(tx, from, 'TRANSFER_OUT', -qty, { ...line, quantity: qty }, meta);
+  }
 
-  await insertMovement(tx, from, 'TRANSFER_OUT', -qty, { ...line, quantity: qty }, meta);
-  await insertMovement(tx, to, 'TRANSFER_IN', qty, { ...line, quantity: qty }, meta);
+  if (!options?.skipDestinationCredit) {
+    await upsertBalance(tx, to, line, qty);
+    await insertMovement(tx, to, 'TRANSFER_IN', qty, { ...line, quantity: qty }, meta);
+  }
 }
 
 export async function reserveStockTx(

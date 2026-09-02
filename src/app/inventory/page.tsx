@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Boxes, ArrowRightLeft, History, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 
@@ -126,6 +127,14 @@ export default function InventoryPage() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">Physical Inventory & Stock Ledgers</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Live balances via /api/inventory</p>
+          <div className="flex gap-3 mt-1">
+            <Link href="/inventory/stock-take" className="text-xs text-emerald-400 underline">
+              Stock take
+            </Link>
+            <Link href="/inventory/transfer" className="text-xs text-emerald-400 underline">
+              Transfer verify
+            </Link>
+          </div>
         </div>
         <button
           type="button"

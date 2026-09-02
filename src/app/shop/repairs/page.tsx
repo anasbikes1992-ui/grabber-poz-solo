@@ -4,8 +4,8 @@ import { RepairServiceCard } from '@/components/repairs/repair-ui';
 import { REPAIR_SERVICES } from '@/lib/repairs/services';
 
 export const metadata = {
-  title: 'Device Repairs · Grabber',
-  description: 'Book phone, tablet, and laptop repairs with transparent estimates and ticket tracking.',
+  title: 'Device Repairs · MobileRepair',
+  description: 'Book phone, tablet, and laptop repairs with OEM vs Grade A estimates and courier pickup.',
 };
 
 export default function RepairsLandingPage() {
@@ -24,10 +24,16 @@ export default function RepairsLandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/shop/repairs/request"
+                href="/shop/repairs/book"
                 className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[var(--sf-accent)] px-6 py-3 text-sm font-semibold text-white shadow-md transition-opacity duration-200 hover:opacity-90"
               >
-                Start a repair request
+                Book repair (estimator)
+              </Link>
+              <Link
+                href="/shop/repairs/request"
+                className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-white/80 px-6 py-3 text-sm font-semibold transition-colors duration-200 hover:bg-white"
+              >
+                Quick request
               </Link>
               <Link
                 href="/shop/repairs/track"

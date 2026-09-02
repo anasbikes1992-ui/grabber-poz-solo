@@ -13,12 +13,13 @@ type CartLine = {
   qty: number;
 };
 
-type Shopper = { id: string; name: string };
+type Shopper = { id: string; name: string; phone?: string };
 type PayMethod = 'COD' | 'PAYHERE';
 
 export default function ShopCheckoutPage() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [shopper, setShopper] = useState<Shopper | null>(null);
+  const [contactPhone, setContactPhone] = useState('');
   const [branchId, setBranchId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState('');
   const [autoDiscount, setAutoDiscount] = useState(0);
@@ -34,9 +35,29 @@ export default function ShopCheckoutPage() {
     } catch {
       /* ignore */
     }
+    const params = new URLSearchParams(window.location.search);
+    const recover = params.get('recover');
+    if (recover) {
+      fetch(`/api/storefront/abandon-cart?token=${encodeURIComponent(recover)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.success && d.cart?.length) {
+            setCart(d.cart as CartLine[]);
+            localStorage.setItem('grabber_store_bag', JSON.stringify(d.cart));
+            if (d.promoCode) setPromoCode(d.promoCode);
+            setMsg('Your cart was restored — complete checkout to finish.');
+          }
+        })
+        .catch(() => undefined);
+    }
     fetch('/api/auth/shopper')
       .then((r) => r.json())
-      .then((d) => setShopper(d.authenticated ? d.customer : null));
+      .then((d) => {
+        if (d.authenticated) {
+          setShopper(d.customer);
+          if (d.customer?.phone) setContactPhone(d.customer.phone);
+        }
+      });
     fetch('/api/pos/catalog')
       .then((r) => r.json())
       .then((d) => setBranchId(d.branchId || null));
@@ -62,6 +83,32 @@ export default function ShopCheckoutPage() {
       .then((d) => setAutoDiscount(d.autoApply?.discountTotal || 0))
       .catch(() => setAutoDiscount(0));
   }, [subtotal, itemCount, cart.length]);
+
+  useEffect(() => {
+    const phone = contactPhone.replace(/\D/g, '');
+    if (!phone || phone.length < 9 || !cart.length) return;
+
+    const timer = window.setTimeout(() => {
+      void fetch('/api/storefront/abandon-cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          customerId: shopper?.id,
+          promoCode: 'COMEBACK5',
+          cart: cart.map((l) => ({
+            productId: l.productId,
+            variantId: l.variantId,
+            name: l.name,
+            unitPrice: l.unitPrice,
+            qty: l.qty,
+          })),
+        }),
+      });
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, [contactPhone, cart, shopper?.id]);
 
   const estimatedTotal = useMemo(() => {
     const taxable = Math.max(0, subtotal - autoDiscount);
@@ -148,7 +195,9 @@ export default function ShopCheckoutPage() {
       if (!data.success) throw new Error(data.error || 'Checkout failed');
       localStorage.removeItem('grabber_store_bag');
       setCart([]);
-      setMsg(`Order ${data.orderNumber || data.order?.orderNumber} placed. We'll prepare it for you.`);
+      const orderNum = data.orderNumber || data.order?.orderNumber;
+      const trackHint = orderNum ? ` Track: /track/${orderNum}` : '';
+      setMsg(`Order ${orderNum} placed.${trackHint}`);
     } catch (e) {
       setMsg((e as Error).message);
     } finally {
@@ -185,6 +234,15 @@ export default function ShopCheckoutPage() {
             </li>
           ))}
         </ul>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 block mb-1">WhatsApp / SMS phone (for order updates)</label>
+          <input
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+            placeholder="077XXXXXXX"
+          />
+        </div>
         <div>
           <label className="text-xs font-semibold text-slate-500 block mb-1">Promo code</label>
           <input

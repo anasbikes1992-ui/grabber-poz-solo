@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { depleteRecipeForProduct } from '@/lib/restaurant/recipe-bom';
+import { checkRecipeLowStock } from '@/lib/restaurant/recipe-low-stock';
 import { asc, desc, eq } from 'drizzle-orm';
 import { db, diningTables, kitchenTickets, branches } from '@/db';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
@@ -174,7 +175,9 @@ export async function PATCH(req: Request) {
       if (ticket?.tableId) {
         await db.update(diningTables).set({ status: 'SERVED' }).where(eq(diningTables.id, ticket.tableId));
       }
-      return NextResponse.json({ success: true, ticket });
+      const [branch] = await db.select().from(branches).limit(1);
+      const lowStockAlerts = branch ? await checkRecipeLowStock(db, branch.id).catch(() => []) : [];
+      return NextResponse.json({ success: true, ticket, lowStockAlerts });
     }
 
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });

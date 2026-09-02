@@ -9,6 +9,7 @@ export type StorefrontVariant = {
   salePrice: number;
   costPrice: number;
   stock: number;
+  attributesJson?: Record<string, string>;
 };
 
 export type StorefrontProduct = {
@@ -67,6 +68,7 @@ export async function getStorefrontProductBySlug(slug: string): Promise<Storefro
     salePrice: Number(v.salePrice ?? product.salePrice),
     costPrice: Number(v.costPrice ?? product.costPrice),
     stock: stockMap.get(stockKey(product.id, v.id)) ?? 0,
+    attributesJson: (v.attributesJson as Record<string, string>) || {},
   }));
 
   const baseStock = stockMap.get(stockKey(product.id, null)) ?? 0;

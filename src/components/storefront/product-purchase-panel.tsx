@@ -1,6 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { BnplCalculator } from '@/components/commerce/bnpl-calculator';
+import { ElectronicsVariantPicker } from '@/components/commerce/electronics-variant-picker';
+import { toElectronicsVariant } from '@/lib/electronics/variant-attrs';
+import { parseElectronicsAttrs } from '@/lib/electronics/variant-attrs';
 
 type Line = {
   productId: string;
@@ -10,9 +14,35 @@ type Line = {
   unitPrice: number;
   unitCost: number;
   stock: number;
+  attributesJson?: Record<string, string>;
 };
 
 export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
+  const electronicsVariants = useMemo(
+    () =>
+      lines
+        .filter((l) => l.variantId)
+        .map((l) =>
+          toElectronicsVariant(l.productId, {
+            id: l.variantId!,
+            sku: l.variantLabel,
+            salePrice: l.unitPrice,
+            attributesJson: l.attributesJson,
+            stock: l.stock,
+          }),
+        ),
+    [lines],
+  );
+
+  const hasElectronicsAttrs = useMemo(
+    () =>
+      lines.some((l) => {
+        const a = parseElectronicsAttrs(l.attributesJson);
+        return Boolean(a.storage || a.condition || a.warrantyType);
+      }),
+    [lines],
+  );
+
   const [selectedId, setSelectedId] = useState(lines[0]?.variantId || lines[0]?.productId || '');
   const [qty, setQty] = useState(1);
   const [msg, setMsg] = useState<string | null>(null);
@@ -40,31 +70,44 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-      {lines.length > 1 && (
-        <div>
-          <label className="text-xs font-semibold text-slate-500 block mb-1">Select variant</label>
-          <select
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          >
-            {lines.map((l) => {
-              const id = l.variantId || l.productId;
-              return (
-                <option key={id} value={id}>
-                  {l.variantLabel} — LKR {l.unitPrice.toLocaleString()} ({l.stock} in stock)
-                </option>
-              );
-            })}
-          </select>
-        </div>
+      {hasElectronicsAttrs && electronicsVariants.length > 0 ? (
+        <ElectronicsVariantPicker
+          productName={selected.name}
+          variants={electronicsVariants}
+          onSelect={(v) => setSelectedId(v.id)}
+        />
+      ) : (
+        lines.length > 1 && (
+          <div>
+            <label className="text-xs font-semibold text-slate-500 block mb-1">Select variant</label>
+            <select
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            >
+              {lines.map((l) => {
+                const id = l.variantId || l.productId;
+                return (
+                  <option key={id} value={id}>
+                    {l.variantLabel} — LKR {l.unitPrice.toLocaleString()} ({l.stock} in stock)
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )
       )}
-      <p className="font-display text-3xl font-bold text-emerald-800">
-        LKR {selected.unitPrice.toLocaleString('en-LK')}
-      </p>
+
+      {!hasElectronicsAttrs && (
+        <p className="font-display text-3xl font-bold text-emerald-800">
+          LKR {selected.unitPrice.toLocaleString('en-LK')}
+        </p>
+      )}
+
       <p className="text-sm text-slate-500">
         {selected.stock > 0 ? `${selected.stock} in stock` : 'Out of stock'}
       </p>
+
       <div className="flex items-center gap-2">
         <label className="text-sm text-slate-600">Qty</label>
         <input
@@ -76,6 +119,9 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
           className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-sm"
         />
       </div>
+
+      <BnplCalculator priceLkr={selected.unitPrice * qty} />
+
       <button
         type="button"
         disabled={selected.stock <= 0}

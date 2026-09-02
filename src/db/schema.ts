@@ -424,7 +424,10 @@ export const shifts = pgTable('shifts', {
   openingFloat: numeric('opening_float', { precision: 12, scale: 2 }).notNull().default('0.00'),
   closingCash: numeric('closing_cash', { precision: 12, scale: 2 }),
   actualCard: numeric('actual_card', { precision: 12, scale: 2 }),
+  actualPayhere: numeric('actual_payhere', { precision: 12, scale: 2 }),
+  actualPolim: numeric('actual_polim', { precision: 12, scale: 2 }),
   variance: numeric('variance', { precision: 12, scale: 2 }),
+  reconciliationJson: jsonb('reconciliation_json').$type<Record<string, unknown>>(),
   status: text('status').notNull().default('OPEN'), // OPEN, CLOSED
   openedAt: timestamp('opened_at', { withTimezone: true }).notNull().defaultNow(),
   closedAt: timestamp('closed_at', { withTimezone: true }),
@@ -447,6 +450,7 @@ export const orders = pgTable('orders', {
   taxTotal: numeric('tax_total', { precision: 12, scale: 2 }).notNull().default('0.00'),
   grandTotal: numeric('grand_total', { precision: 12, scale: 2 }).notNull().default('0.00'),
   clientUuid: text('client_uuid'), // Offline idempotency key
+  trackingToken: text('tracking_token'), // Public order tracker (passwordless)
   terminalId: text('terminal_id'),
   clientSequence: integer('client_sequence'),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
@@ -565,6 +569,8 @@ export const transferLines = pgTable('transfer_lines', {
   productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'restrict' }),
   variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'restrict' }),
   quantity: integer('quantity').notNull(),
+  receivedQty: integer('received_qty'),
+  varianceQty: integer('variance_qty'),
 });
 
 // ==========================================
@@ -733,6 +739,51 @@ export const repairJobs = pgTable('repair_jobs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   statusIdx: index('repair_jobs_status_idx').on(t.status),
+}));
+
+export const repairServiceCatalog = pgTable('repair_service_catalog', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  brand: text('brand').notNull(),
+  deviceModel: text('device_model').notNull(),
+  repairCategory: text('repair_category').notNull(), // SCREEN, BATTERY, etc.
+  partQuality: text('part_quality').notNull(), // OEM_ORIGINAL, GRADE_A_COMPATIBLE
+  estimatedCostLkr: numeric('estimated_cost_lkr', { precision: 12, scale: 2 }).notNull(),
+  estimatedMinutes: integer('estimated_minutes').notNull().default(60),
+  warrantyDays: integer('warranty_days').notNull().default(30),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  modelCatIdx: index('repair_catalog_model_cat_idx').on(t.brand, t.deviceModel, t.repairCategory),
+  modelCatQualityUniq: uniqueIndex('repair_catalog_model_cat_quality_idx').on(
+    t.brand,
+    t.deviceModel,
+    t.repairCategory,
+    t.partQuality,
+  ),
+}));
+
+export const repairAppointments = pgTable('repair_appointments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ticketId: uuid('ticket_id').references(() => repairJobs.id, { onDelete: 'set null' }),
+  customerName: text('customer_name').notNull(),
+  customerPhone: text('customer_phone').notNull(),
+  customerEmail: text('customer_email'),
+  visitType: text('visit_type').notNull(), // STORE_VISIT, COURIER_PICKUP
+  appointmentDate: text('appointment_date').notNull(), // YYYY-MM-DD
+  timeSlot: text('time_slot').notNull(),
+  pickupAddress: text('pickup_address'),
+  courierTrackingNo: text('courier_tracking_no'),
+  deviceModel: text('device_model').notNull(),
+  issueDescription: text('issue_description').notNull(),
+  partQuality: text('part_quality'),
+  estimatedCostLkr: numeric('estimated_cost_lkr', { precision: 12, scale: 2 }),
+  inspectionChecklist: jsonb('inspection_checklist').$type<Record<string, boolean>>().default({}),
+  status: text('status').notNull().default('SCHEDULED'), // SCHEDULED, RECEIVED, IN_DIAGNOSIS, REPAIRED, DELIVERED, CANCELLED
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  dateSlotIdx: index('repair_appt_date_slot_idx').on(t.appointmentDate, t.timeSlot),
+  phoneIdx: index('repair_appt_phone_idx').on(t.customerPhone),
 }));
 
 export const diningTables = pgTable('dining_tables', {
@@ -960,3 +1011,66 @@ export const approvals = pgTable('approvals', {
 }, (t) => ({
   statusIdx: index('approvals_status_idx').on(t.status, t.createdAt),
 }));
+
+// ==========================================
+// 14. PLATFORM COMPLETION (tracking, stock take, trade-in, abandonment)
+// ==========================================
+
+export const abandonedCarts = pgTable('abandoned_carts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  phone: text('phone').notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  cartJson: jsonb('cart_json')
+    .$type<Array<{ productId: string; variantId?: string; name: string; unitPrice: number; qty: number }>>()
+    .notNull()
+    .default([]),
+  promoCode: text('promo_code'),
+  recoveryToken: text('recovery_token').notNull().unique(),
+  status: text('status').notNull().default('OPEN'), // OPEN, RECOVERED, EXPIRED
+  recoveredOrderId: uuid('recovered_order_id').references(() => orders.id, { onDelete: 'set null' }),
+  abandonedAt: timestamp('abandoned_at', { withTimezone: true }).notNull().defaultNow(),
+  remindedAt: timestamp('reminded_at', { withTimezone: true }),
+}, (t) => ({
+  phoneStatusIdx: index('abandoned_carts_phone_status_idx').on(t.phone, t.status),
+}));
+
+export const stockTakeSessions = pgTable('stock_take_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionNumber: text('session_number').notNull().unique(),
+  locationType: locationTypeEnum('location_type').notNull(),
+  locationId: uuid('location_id').notNull(),
+  status: text('status').notNull().default('IN_PROGRESS'), // IN_PROGRESS, PENDING_APPROVAL, POSTED, CANCELLED
+  totalVarianceValue: numeric('total_variance_value', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
+  journalEntryId: uuid('journal_entry_id'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  postedAt: timestamp('posted_at', { withTimezone: true }),
+});
+
+export const stockTakeLines = pgTable('stock_take_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').notNull().references(() => stockTakeSessions.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'restrict' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  systemOnHand: integer('system_on_hand').notNull().default(0),
+  physicalCount: integer('physical_count').notNull().default(0),
+  variance: integer('variance').notNull().default(0),
+  unitCost: numeric('unit_cost', { precision: 12, scale: 2 }).notNull().default('0.00'),
+});
+
+export const tradeInVouchers = pgTable('trade_in_vouchers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  voucherNumber: text('voucher_number').notNull().unique(),
+  deviceModel: text('device_model').notNull(),
+  imei: text('imei'),
+  conditionGrade: text('condition_grade').notNull(), // A, B, C, D
+  appraisalValue: numeric('appraisal_value', { precision: 12, scale: 2 }).notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+  customerName: text('customer_name'),
+  customerPhone: text('customer_phone'),
+  status: text('status').notNull().default('ISSUED'), // ISSUED, APPLIED, EXPIRED
+  appliedOrderId: uuid('applied_order_id').references(() => orders.id, { onDelete: 'set null' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

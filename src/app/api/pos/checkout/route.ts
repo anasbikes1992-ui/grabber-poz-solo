@@ -3,9 +3,10 @@ import { eq } from 'drizzle-orm';
 import { durableCheckout } from '@/lib/db/repositories/checkout-repo';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 import { getCustomerSession } from '@/lib/auth/customer-session';
-import { db, branches, customers } from '@/db';
+import { db, branches, customers, tradeInVouchers } from '@/db';
 import { evaluatePromotion, evaluateCartPromotions } from '@/lib/commerce/promotion-engine';
 import { listPromotions, recordPromotionRedemption } from '@/lib/config/promotions-store';
+import { applyTradeInCredit } from '@/lib/trade-in/trade-in-service';
 
 type BodyLine = {
   productId?: string;
@@ -113,6 +114,21 @@ export async function POST(req: Request) {
       promoRuleId = promo.rule?.id;
     }
 
+    const tradeInVoucherNumber = body.tradeInVoucherNumber as string | undefined;
+    let tradeInCredit = Number(body.tradeInCredit) || 0;
+    if (tradeInVoucherNumber) {
+      const [v] = await db
+        .select()
+        .from(tradeInVouchers)
+        .where(eq(tradeInVouchers.voucherNumber, tradeInVoucherNumber))
+        .limit(1);
+      if (!v || v.status !== 'ISSUED') {
+        return NextResponse.json({ success: false, error: 'Trade-in voucher invalid or already used' }, { status: 400 });
+      }
+      tradeInCredit = Number(v.appraisalValue);
+      discountTotal += Math.min(tradeInCredit, itemSubtotal);
+    }
+
     const rawPayments: PaymentLine[] = Array.isArray(body.payments) ? body.payments : [];
     let paymentMethod = String(
       body.paymentMethod || rawPayments[0]?.method || (isStorefront ? 'COD' : 'CASH'),
@@ -193,6 +209,10 @@ export async function POST(req: Request) {
 
     if (!result.reused && promoRuleId) {
       await recordPromotionRedemption(promoRuleId);
+    }
+
+    if (tradeInVoucherNumber && result.order?.id) {
+      await applyTradeInCredit(db, tradeInVoucherNumber, result.order.id);
     }
 
     return NextResponse.json({

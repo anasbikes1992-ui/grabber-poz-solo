@@ -23,6 +23,7 @@ import {
 import { hashPin } from '@/lib/auth/session';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 import { REQUIRED_COA } from '@/lib/commerce/ensure-coa';
+import { runMobileRepairSetup } from '@/lib/repairs/mobilerepair-setup';
 
 export async function POST(req: Request) {
   try {
@@ -312,7 +313,14 @@ export async function POST(req: Request) {
       };
     });
 
-    return NextResponse.json({ success: true, seeded: result });
+    let mobilerepair: Awaited<ReturnType<typeof runMobileRepairSetup>> | undefined;
+    if (body.profile === 'mobilerepair') {
+      mobilerepair = await runMobileRepairSetup(db, {
+        storeName: body.storeName || 'MobileRepair Shop',
+      });
+    }
+
+    return NextResponse.json({ success: true, seeded: result, mobilerepair });
   } catch (err: unknown) {
     const e = err as { message?: string };
     return NextResponse.json(

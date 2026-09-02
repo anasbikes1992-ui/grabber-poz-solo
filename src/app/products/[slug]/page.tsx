@@ -63,6 +63,7 @@ export default async function ProductDetailPage({ params }: Props) {
           unitPrice: v.salePrice,
           unitCost: v.costPrice,
           stock: v.stock,
+          attributesJson: v.attributesJson,
         }))
       : [
           {

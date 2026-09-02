@@ -11,7 +11,8 @@ export type JobType =
   | 'RECONCILE_STOCK'
   | 'QUOTE_RESERVATION_EXPIRE'
   | 'NEAR_EXPIRY_PROMO'
-  | 'DRAFT_PO';
+  | 'DRAFT_PO'
+  | 'CHECKOUT_ABANDON';
 
 export type EnqueueInput = {
   type: JobType;
