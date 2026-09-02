@@ -28,6 +28,50 @@ const DEFAULT_TEMPLATES: WhatsAppTemplate[] = [
     active: true,
   },
   {
+    id: 'tpl_order_link',
+    name: 'order_link',
+    language: 'en',
+    body:
+      '🛒 *Order from {{storeName}}*\n\nBrowse catalog: {{shopUrl}}\nCOD checkout: {{checkoutUrl}}\n\nReply *menu* for more options.',
+    variables: ['storeName', 'shopUrl', 'checkoutUrl'],
+    active: true,
+  },
+  {
+    id: 'tpl_repair_status',
+    name: 'repair_status',
+    language: 'en',
+    body: '🔧 *Your repair tickets:*\n\n{{ticketLines}}\n\nTrack online: {{trackUrl}}\n\nReply *menu* for main options.',
+    variables: ['ticketLines', 'trackUrl'],
+    active: true,
+  },
+  {
+    id: 'tpl_repair_none',
+    name: 'repair_none',
+    language: 'en',
+    body:
+      '🔧 No repair ticket found for this WhatsApp number.\n\nRequest service: {{requestUrl}}\nTrack with ticket #: {{trackUrl}}',
+    variables: ['requestUrl', 'trackUrl'],
+    active: true,
+  },
+  {
+    id: 'tpl_staff_ack',
+    name: 'staff_ack',
+    language: 'en',
+    body:
+      '✅ Thanks! A {{storeName}} team member will reply shortly.\n\nReply *1* to order · *2* for repairs · *menu* for options.',
+    variables: ['storeName'],
+    active: true,
+  },
+  {
+    id: 'tpl_fallback',
+    name: 'fallback_menu',
+    language: 'en',
+    body:
+      'Reply *1* Order · *2* Repairs · *3* Staff · *menu* Show options',
+    variables: [],
+    active: true,
+  },
+  {
     id: 'tpl_order_confirm',
     name: 'order_confirmation',
     language: 'en',

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { resolveWhatsAppConfig, verifyWhatsAppWebhookSignature } from '@/lib/integrations/whatsapp';
-import { handleInboundWhatsAppGreeting } from '@/lib/whatsapp/inbound-handler';
+import { handleInboundWhatsAppMessage } from '@/lib/whatsapp/inbound-handler';
 
 function inboundIdempotencyKey(from: string, messageId?: string, text?: string) {
   const raw = `${from}:${messageId || text || ''}`;
@@ -61,10 +61,10 @@ export async function POST(req: Request) {
           detail: { from: m.from, text: m.text.slice(0, 500), inbound: true },
         });
 
-        const reply = await handleInboundWhatsAppGreeting(m.from, m.text);
+        const reply = await handleInboundWhatsAppMessage(m.from, m.text);
         if (reply.handled) {
           autoReplies += reply.sent;
-          if (reply.sent === 0 && reply.results?.length) {
+          if (reply.sent === 0 && 'results' in reply && reply.results?.length) {
             const err = reply.results.find((r) => !r.success);
             await appendAutomationLog({
               ruleId: 'whatsapp_inbound',
@@ -73,6 +73,7 @@ export async function POST(req: Request) {
               idempotencyKey: `${inboundIdempotencyKey(m.from, m.messageId, m.text)}_reply`,
               detail: {
                 from: m.from,
+                intent: 'intent' in reply ? reply.intent : undefined,
                 error: err && 'error' in err ? err.error : 'Auto-reply send failed',
                 inbound: true,
               },
