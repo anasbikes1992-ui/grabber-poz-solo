@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { and, eq, sql } from 'drizzle-orm';
-import { db, stockBalances, stockMovements, transfers, transferLines } from '@/db';
+import { db, transfers, transferLines } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
+import { recordTransfer } from '@/lib/inventory/stock-service';
 
 export async function POST(req: Request) {
   try {
@@ -54,52 +54,17 @@ export async function POST(req: Request) {
         const qty = Number(item.quantity);
         if (!qty || qty < 1) throw new Error('Invalid quantity');
 
-        const updated = await tx
-          .update(stockBalances)
-          .set({
-            onHand: sql`${stockBalances.onHand} - ${qty}`,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(stockBalances.locationType, fromLocationType),
-              eq(stockBalances.locationId, fromLocationId),
-              eq(stockBalances.productId, item.productId),
-              sql`(${stockBalances.onHand} - ${stockBalances.reserved}) >= ${qty}`
-            )
-          )
-          .returning({ id: stockBalances.id });
-
-        if (updated.length === 0) {
-          throw new Error(`Insufficient stock for ${item.productId} at source`);
-        }
-
-        const destUpdated = await tx
-          .update(stockBalances)
-          .set({
-            onHand: sql`${stockBalances.onHand} + ${qty}`,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(stockBalances.locationType, toLocationType),
-              eq(stockBalances.locationId, toLocationId),
-              eq(stockBalances.productId, item.productId)
-            )
-          )
-          .returning({ id: stockBalances.id });
-
-        if (destUpdated.length === 0) {
-          await tx.insert(stockBalances).values({
-            locationType: toLocationType,
-            locationId: toLocationId,
-            productId: item.productId,
-            variantId: item.variantId || null,
-            onHand: qty,
-            reserved: 0,
-            damaged: 0,
-          });
-        }
+        await recordTransfer(
+          tx,
+          { locationType: fromLocationType, locationId: fromLocationId },
+          { locationType: toLocationType, locationId: toLocationId },
+          { productId: item.productId, variantId: item.variantId || null, quantity: qty },
+          {
+            referenceType: 'TRANSFER',
+            referenceId: tr.id,
+            actorId: actorId || null,
+          },
+        );
 
         await tx.insert(transferLines).values({
           transferId: tr.id,
@@ -107,31 +72,6 @@ export async function POST(req: Request) {
           variantId: item.variantId || null,
           quantity: qty,
         });
-
-        await tx.insert(stockMovements).values([
-          {
-            locationType: fromLocationType,
-            locationId: fromLocationId,
-            productId: item.productId,
-            variantId: item.variantId || null,
-            type: 'TRANSFER_OUT',
-            delta: -qty,
-            referenceType: 'TRANSFER',
-            referenceId: tr.id,
-            actorId: actorId || null,
-          },
-          {
-            locationType: toLocationType,
-            locationId: toLocationId,
-            productId: item.productId,
-            variantId: item.variantId || null,
-            type: 'TRANSFER_IN',
-            delta: qty,
-            referenceType: 'TRANSFER',
-            referenceId: tr.id,
-            actorId: actorId || null,
-          },
-        ]);
       }
 
       return tr;

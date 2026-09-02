@@ -62,7 +62,7 @@ export function isStripeConfigured(): boolean {
   return Boolean(c.secretKey);
 }
 
-/** True when LKR online gateway env matches selected provider (checkout redirect not wired yet). */
+/** True when LKR online gateway env matches selected provider. */
 export function isLkrOnlinePaymentsConfigured(): boolean {
   const provider = getLkrPaymentProvider();
   if (provider === 'WEBXPAY') return isWebXPayConfigured();

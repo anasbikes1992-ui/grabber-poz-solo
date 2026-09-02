@@ -53,7 +53,7 @@ If you connect Supabase in Vercel **Integrations**, these may appear instead of 
 | `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID` | ✅ | GA4 `gtag` (skipped if GTM set) |
 | `NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID` | ✅ | GTM container |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | ✅ | TikTok pixel |
-| `META_CONVERSIONS_API_TOKEN` | ❌ not yet | Server-side CAPI — reserved, no route yet |
+| `META_CONVERSIONS_API_TOKEN` | ✅ CAPI | Server-side `Purchase` on checkout (`meta-capi.ts`) |
 
 **Skip on Vercel if** you configure pixels only via `/marketing` after login.
 
@@ -91,11 +91,12 @@ Schema supports `STRIPE` tender type on POS; online Stripe checkout is not imple
 
 | Variable | Wired? | Notes |
 |----------|--------|-------|
-| `WHATSAPP_VERIFY_TOKEN` | ✅ webhook | Meta challenge at **`/api/webhooks/whatsapp`** |
+| `WHATSAPP_VERIFY_TOKEN` | ✅ webhook | Meta challenge at **`/api/whatsapp/webhook`** (alias: `/api/webhooks/whatsapp`) |
 | `WHATSAPP_TOKEN` | ✅ send | Outbound Cloud API (alias: `WHATSAPP_ACCESS_TOKEN`) |
 | `WHATSAPP_PHONE_ID` | ✅ send | Phone number ID (alias: `WHATSAPP_PHONE_NUMBER_ID`) |
-| `WHATSAPP_APP_SECRET` | ✅ webhook | Validates `X-Hub-Signature-256` on inbound POST |
+| `WHATSAPP_APP_SECRET` | ✅ webhook + send | Validates inbound `X-Hub-Signature-256`; **required for outbound** when Meta app has *Require App Secret* (adds `appsecret_proof` to Graph API calls) |
 | `WHATSAPP_API_VERSION` | ✅ send | Graph API version (default `v21.0`) |
+| **`NEXT_PUBLIC_WHATSAPP_NUMBER`** | ✅ storefront | **Customer-facing wa.me link** (E.164, e.g. `947XXXXXXXX`) — replaces demo `94771234567` |
 | `KOOMBIYO_API_KEY` | ⚙️ | Courier integration |
 | `CERTIFY_HTTP_BASE_URL` | ⚙️ | Release certification scripts |
 | `FAL_KEY` | ⚙️ | Creative engine |
@@ -105,9 +106,14 @@ Schema supports `STRIPE` tender type on POS; online Stripe checkout is not imple
 **Meta webhook (production):**
 
 ```text
-Callback URL:  https://grabber-poz-solo.vercel.app/api/webhooks/whatsapp
+Callback URL:  https://grabber-poz-solo.vercel.app/api/whatsapp/webhook
 Verify token:  (same as WHATSAPP_VERIFY_TOKEN in Vercel)
 ```
+
+In Meta → WhatsApp → Configuration → Webhook fields, subscribe **`messages`** (required for inbound "Hi" auto-replies).  
+Optional alias URL `/api/webhooks/whatsapp` also works.
+
+Set **`NEXT_PUBLIC_WHATSAPP_NUMBER`** to your live business line so storefront wa.me links stop using the demo `94771234567` number.
 
 After storefront COD order, automation sends WhatsApp if customer has phone on file (`automationLogs` in Settings → Automation).
 

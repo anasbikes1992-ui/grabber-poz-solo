@@ -80,7 +80,11 @@ export default function WhatsAppCommercePage() {
       <div>
         <h2 className="text-xl font-bold text-foreground tracking-tight">WhatsApp Commerce & Automation</h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Send grounded messages via Cloud API (stub without credentials). Templates loaded from business config.
+          Inbound &quot;Hi&quot; on the Meta webhook auto-sends welcome + menu templates. Storefront wa.me uses{' '}
+          <code className="text-emerald-400">NEXT_PUBLIC_WHATSAPP_NUMBER</code>.
+        </p>
+        <p className="text-[10px] text-zinc-500 mt-2 font-mono">
+          Webhook: /api/whatsapp/webhook · Meta field: messages (subscribe) · Verify token = WHATSAPP_VERIFY_TOKEN
         </p>
       </div>
 

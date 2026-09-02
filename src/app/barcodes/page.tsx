@@ -78,6 +78,34 @@ export default function BarcodeGeneratorPage() {
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
+  const addMatrixVariants = useCallback(() => {
+    const matrixItems = catalog.filter((c) => c.variantId && c.variant && c.variant !== 'Standard');
+    if (!matrixItems.length) {
+      setQuery('');
+      return;
+    }
+    setItems((prev) => {
+      const next = [...prev];
+      for (const c of matrixItems) {
+        const idx = next.findIndex((i) => i.id === c.id);
+        if (idx >= 0) {
+          next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        } else {
+          next.push({
+            id: c.id,
+            name: c.name,
+            variant: c.variant || 'Standard',
+            sku: c.sku,
+            barcode: c.barcode || c.sku,
+            price: c.unitPrice,
+            quantity: 1,
+          });
+        }
+      }
+      return next;
+    });
+  }, [catalog]);
+
   const handlePrint = () => {
     window.print();
   };
@@ -119,6 +147,16 @@ export default function BarcodeGeneratorPage() {
               placeholder="Search name, SKU, barcode…"
               className="w-full pl-9 pr-3 py-2 rounded-xl bg-secondary border border-border text-foreground"
             />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={addMatrixVariants}
+              disabled={loading}
+              className="flex-1 px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-bold text-[11px]"
+            >
+              Load matrix variants
+            </button>
           </div>
           <div className="max-h-48 overflow-y-auto space-y-1">
             {loading && <p className="text-muted-foreground">Loading catalog…</p>}

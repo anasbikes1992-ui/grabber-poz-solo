@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FileText, Plus, Search, Trash2, ArrowLeft } from 'lucide-react';
+import { FileText, Plus, Search, Trash2, ArrowLeft, ArrowRightCircle } from 'lucide-react';
 
 type Quote = {
   id: string;
@@ -11,7 +11,10 @@ type Quote = {
   grandTotal: number;
   status: string;
   validUntil: string;
+  convertedOrderNumber?: string;
 };
+
+const STATUS_ACTIONS = ['ISSUED', 'ACCEPTED', 'REJECTED'] as const;
 
 export default function QuotationsPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -19,6 +22,7 @@ export default function QuotationsPage() {
   const [open, setOpen] = useState(false);
   const [clientName, setClientName] = useState('');
   const [lines, setLines] = useState([{ name: '', qty: 1, price: 0 }]);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = () =>
     fetch('/api/quotations')
@@ -48,6 +52,36 @@ export default function QuotationsPage() {
     void load();
   }
 
+  async function setStatus(id: string, status: string) {
+    setBusyId(id);
+    try {
+      await fetch('/api/quotations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'update_status', status }),
+      });
+      void load();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function convertToOrder(id: string) {
+    setBusyId(id);
+    try {
+      const res = await fetch('/api/quotations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'convert_to_order' }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      void load();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -58,6 +92,7 @@ export default function QuotationsPage() {
           <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
             <FileText className="w-6 h-6 text-purple-400" /> B2B Quotations
           </h1>
+          <p className="text-xs text-zinc-400 mt-1">Status workflow + convert to sales order</p>
         </div>
         <button
           type="button"
@@ -80,20 +115,50 @@ export default function QuotationsPage() {
 
       <div className="grid gap-3">
         {filtered.map((q) => (
-          <div key={q.id} className="p-4 rounded-2xl glass-card border border-zinc-800 flex justify-between gap-4">
+          <div key={q.id} className="p-4 rounded-2xl glass-card border border-zinc-800 flex flex-col sm:flex-row justify-between gap-4">
             <div>
               <div className="font-bold text-white">{q.quoteNo}</div>
               <div className="text-xs text-zinc-400">{q.clientName}</div>
               <div className="text-xs text-emerald-400 mt-1">LKR {Number(q.grandTotal || 0).toLocaleString()}</div>
+              <div className="text-[10px] text-zinc-500 mt-1">
+                {q.status} · Valid {q.validUntil}
+                {q.convertedOrderNumber && ` · Order ${q.convertedOrderNumber}`}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => fetch(`/api/quotations?id=${q.id}`, { method: 'DELETE' }).then(() => load())}
-              className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 cursor-pointer"
-              aria-label={`Delete ${q.quoteNo}`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex flex-wrap gap-2 items-start">
+              {q.status !== 'CONVERTED' &&
+                STATUS_ACTIONS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={busyId === q.id}
+                    onClick={() => void setStatus(q.id, s)}
+                    className={`px-2 py-1 rounded text-[10px] font-bold border ${
+                      q.status === s ? 'border-emerald-400 text-emerald-400' : 'border-zinc-700 text-zinc-400'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              {q.status === 'ACCEPTED' && (
+                <button
+                  type="button"
+                  disabled={busyId === q.id}
+                  onClick={() => void convertToOrder(q.id)}
+                  className="px-3 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-[10px] font-bold flex items-center gap-1"
+                >
+                  <ArrowRightCircle className="w-3 h-3" /> Convert to order
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => fetch(`/api/quotations?id=${q.id}`, { method: 'DELETE' }).then(() => load())}
+                className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 cursor-pointer"
+                aria-label={`Delete ${q.quoteNo}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         ))}
         {filtered.length === 0 && (

@@ -65,7 +65,7 @@ export const DEFAULT_STOREFRONT: StorefrontConfig = {
     accentColor: '#A16207',
     secondaryColor: '#44403C',
     fontFamily: 'Rubik, Nunito Sans',
-    whatsappNumber: '+94771234567',
+    whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim() || undefined,
   },
   blocks: [
     { id: 'ann_1', type: 'ANNOUNCEMENT', text: 'Free islandwide delivery on orders over LKR 10,000', slot: 'TOP', enabled: true },

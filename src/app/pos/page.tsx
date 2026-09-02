@@ -25,6 +25,8 @@ import {
   countPendingCheckouts,
   enqueueCheckout,
   flushPendingCheckouts,
+  getTerminalId,
+  nextClientSequence,
 } from '@/lib/pos/offline-queue';
 
 interface CartItem {
@@ -144,6 +146,16 @@ export default function POSPage() {
       })
       .catch(() => undefined);
 
+    const onOnline = () => {
+      flushPendingCheckouts()
+        .then((r) => {
+          setPendingOfflineCount(r.remaining);
+          if (r.flushed > 0) setAnnouncement(`Back online — synced ${r.flushed} sale(s).`);
+        })
+        .catch(() => undefined);
+    };
+    window.addEventListener('online', onOnline);
+
     const loadHolds = () => {
       fetch('/api/pos/holds')
         .then((r) => r.json())
@@ -153,6 +165,8 @@ export default function POSPage() {
         .catch(() => undefined);
     };
     loadHolds();
+
+    return () => window.removeEventListener('online', onOnline);
   }, []);
 
   useEffect(() => {
@@ -392,6 +406,8 @@ export default function POSPage() {
       discountTotal: discountAmount,
       clientUuid: clientUuidRef.current,
       idempotencyKey: `pos_${clientUuidRef.current}`,
+      terminalId: getTerminalId(),
+      clientSequence: nextClientSequence(),
       orderNumber,
     };
 

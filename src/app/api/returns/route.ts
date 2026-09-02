@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import {
   db,
   orderItems,
@@ -8,12 +8,11 @@ import {
   journalEntries,
   journalLines,
   chartOfAccounts,
-  stockBalances,
-  stockMovements,
   auditLogs,
 } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 import { ensureDefaultChartOfAccounts } from '@/lib/commerce/ensure-coa';
+import { recordReturn, recordDamage } from '@/lib/inventory/stock-service';
 
 export async function POST(req: Request) {
   try {
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { orderId, returnNumber, reason, restockApproved = true, refundAmount } = body;
+    const { orderId, returnNumber, reason, restockApproved = true, refundAmount, gradingStatus } = body;
     if (!orderId) return NextResponse.json({ success: false, error: 'orderId required' }, { status: 400 });
 
     const actorId = session && !isDemoUserId(session.userId) ? session.userId : undefined;
@@ -42,41 +41,50 @@ export async function POST(req: Request) {
           returnNumber: returnNumber || `RET-${Date.now().toString().slice(-6)}`,
           refundAmount: String(Number(refundAmount ?? order.grandTotal).toFixed(2)),
           restockApproved: Boolean(restockApproved),
+          gradingStatus: gradingStatus || (restockApproved ? 'GRADED_A' : 'RECEIVED'),
           reason: reason || 'Customer return',
           approvedBy: actorId || null,
         })
         .returning();
 
-      if (restockApproved && order.branchId) {
+      if (order.branchId) {
+        const grade = String(gradingStatus || (restockApproved ? 'GRADED_A' : 'RECEIVED')).toUpperCase();
         for (const line of items) {
-          await tx
-            .update(stockBalances)
-            .set({
-              onHand: sql`${stockBalances.onHand} + ${line.quantity}`,
-              updatedAt: new Date(),
-            })
-            .where(
-              and(
-                eq(stockBalances.locationType, 'BRANCH'),
-                eq(stockBalances.locationId, order.branchId),
-                eq(stockBalances.productId, line.productId),
-                line.variantId
-                  ? eq(stockBalances.variantId, line.variantId)
-                  : sql`${stockBalances.variantId} IS NULL`,
-              ),
+          if (grade === 'GRADED_A' || (restockApproved && grade !== 'DAMAGED' && grade !== 'GRADED_B')) {
+            await recordReturn(
+              tx,
+              { locationType: 'BRANCH', locationId: order.branchId },
+              {
+                productId: line.productId,
+                variantId: line.variantId,
+                quantity: line.quantity,
+                unitCost: Number(line.unitCost),
+              },
+              {
+                referenceType: 'ORDER_RETURN',
+                referenceId: ret.id,
+                actorId: actorId || null,
+                notes: `Return grading: ${grade}`,
+              },
             );
-          await tx.insert(stockMovements).values({
-            locationType: 'BRANCH',
-            locationId: order.branchId,
-            productId: line.productId,
-            variantId: line.variantId,
-            type: 'RETURN',
-            delta: line.quantity,
-            unitCost: line.unitCost,
-            referenceType: 'ORDER_RETURN',
-            referenceId: ret.id,
-            actorId: actorId || null,
-          });
+          } else if (grade === 'DAMAGED') {
+            await recordDamage(
+              tx,
+              { locationType: 'BRANCH', locationId: order.branchId },
+              {
+                productId: line.productId,
+                variantId: line.variantId,
+                quantity: line.quantity,
+                unitCost: Number(line.unitCost),
+              },
+              {
+                referenceType: 'ORDER_RETURN',
+                referenceId: ret.id,
+                actorId: actorId || null,
+                notes: 'Return graded damaged',
+              },
+            );
+          }
         }
       }
 

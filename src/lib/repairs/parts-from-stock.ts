@@ -1,14 +1,13 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import {
   db,
   branches,
   products,
   productVariants,
   repairJobs,
-  stockBalances,
-  stockMovements,
 } from '@/db';
 import { dispatchStockLowIfNeeded } from '@/lib/inventory/stock-low-alert';
+import { recordRepairParts } from '@/lib/inventory/stock-service';
 
 export type RepairPartLine = {
   id: string;
@@ -73,40 +72,22 @@ export async function addRepairPartFromStock(input: {
     const unitCost = Number(variant?.costPrice ?? product.costPrice ?? 0);
     const lineTotal = unitPrice * qty;
 
-    const stockWhere = and(
-      eq(stockBalances.locationType, 'BRANCH'),
-      eq(stockBalances.locationId, branchId),
-      eq(stockBalances.productId, product.id),
-      sql`(${stockBalances.onHand} - ${stockBalances.reserved}) >= ${qty}`,
-      input.variantId
-        ? eq(stockBalances.variantId, input.variantId)
-        : sql`${stockBalances.variantId} IS NULL`,
+    const { onHand } = await recordRepairParts(
+      tx,
+      { locationType: 'BRANCH', locationId: branchId },
+      {
+        productId: product.id,
+        variantId: input.variantId || null,
+        quantity: qty,
+        unitCost,
+      },
+      {
+        referenceType: 'REPAIR',
+        referenceId: job.jobNumber,
+        actorId: input.actorId || null,
+        notes: `Repair parts — ${job.jobNumber}`,
+      },
     );
-
-    const [balance] = await tx
-      .update(stockBalances)
-      .set({
-        onHand: sql`${stockBalances.onHand} - ${qty}`,
-        updatedAt: new Date(),
-      })
-      .where(stockWhere)
-      .returning({ onHand: stockBalances.onHand });
-
-    if (!balance) throw new Error(`Insufficient stock for ${product.name}`);
-
-    await tx.insert(stockMovements).values({
-      locationType: 'BRANCH',
-      locationId: branchId,
-      productId: product.id,
-      variantId: input.variantId || null,
-      type: 'ADJUSTMENT',
-      delta: -qty,
-      unitCost: unitCost.toFixed(2),
-      referenceType: 'REPAIR',
-      referenceId: job.jobNumber,
-      actorId: input.actorId || null,
-      notes: `Repair parts — ${job.jobNumber}`,
-    });
 
     const existing = getPartsLines(job.checklistJson);
     const line: RepairPartLine = {
@@ -139,7 +120,7 @@ export async function addRepairPartFromStock(input: {
       productId: product.id,
       productName: product.name,
       sku: line.sku,
-      onHand: Number(balance.onHand),
+      onHand: Number(onHand),
       reorderLevel: product.reorderLevel ?? 10,
     });
 

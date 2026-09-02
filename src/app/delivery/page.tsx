@@ -2,60 +2,55 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Truck, MapPin, RefreshCw } from 'lucide-react';
+import { Truck, MapPin, RefreshCw, PackageCheck } from 'lucide-react';
 
-type ApiOrder = {
-  id: string;
-  receiptNo: string;
+type ShipmentRow = {
+  orderId: string;
+  orderNumber: string;
   customerName: string;
   customerMobile: string;
+  shippingAddress: string;
   total: number;
   paymentMethod: string;
   paymentStatus: string;
   fulfillmentStatus: string;
-  deliveryAddress: string;
-};
-
-type DeliveryRow = {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  phone: string;
-  shippingAddress: string;
-  items: string;
+  courierPartner: string | null;
+  trackingNumber: string | null;
   codAmount: number;
-  codCollected: boolean;
   status: 'PENDING_DISPATCH' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
-  fulfillmentStatus: string;
 };
 
-function mapFulfillment(status: string): DeliveryRow['status'] {
+function mapFulfillment(status: string): ShipmentRow['status'] {
   const s = status.toUpperCase();
   if (s === 'DELIVERED') return 'DELIVERED';
   if (s === 'OUT_FOR_DELIVERY') return 'OUT_FOR_DELIVERY';
-  if (s === 'IN_TRANSIT' || s === 'PICKED_UP' || s === 'ASSIGNED') return 'IN_TRANSIT';
+  if (s === 'IN_TRANSIT' || s === 'PICKED_UP' || s === 'ASSIGNED' || s === 'SHIPPED') return 'IN_TRANSIT';
   return 'PENDING_DISPATCH';
 }
 
-function toRow(o: ApiOrder): DeliveryRow {
-  const isCod = o.paymentMethod === 'COD';
-  const codDue = isCod && o.paymentStatus !== 'paid' ? o.total : 0;
+function toRow(s: Record<string, unknown>): ShipmentRow {
+  const fulfillment = String(s.fulfillmentStatus || 'PENDING');
+  const isCod = String(s.paymentMethod) === 'COD';
+  const codDue = isCod && String(s.paymentStatus) !== 'paid' ? Number(s.total || 0) : Number(s.codAmount || 0);
   return {
-    id: o.id,
-    orderNumber: o.receiptNo,
-    customerName: o.customerName,
-    phone: o.customerMobile,
-    shippingAddress: o.deliveryAddress || 'Address on file',
-    items: `Order total LKR ${o.total.toLocaleString()}`,
+    orderId: String(s.orderId),
+    orderNumber: String(s.orderNumber),
+    customerName: String(s.customerName || 'Walk-in'),
+    customerMobile: String(s.customerMobile || ''),
+    shippingAddress: String(s.shippingAddress || 'Address on file'),
+    total: Number(s.total || 0),
+    paymentMethod: String(s.paymentMethod || 'CASH'),
+    paymentStatus: String(s.paymentStatus || 'pending'),
+    fulfillmentStatus: fulfillment,
+    courierPartner: s.courierPartner ? String(s.courierPartner) : null,
+    trackingNumber: s.trackingNumber ? String(s.trackingNumber) : null,
     codAmount: codDue,
-    codCollected: isCod ? o.paymentStatus === 'paid' : true,
-    status: mapFulfillment(o.fulfillmentStatus),
-    fulfillmentStatus: o.fulfillmentStatus,
+    status: mapFulfillment(fulfillment),
   };
 }
 
 export default function DeliveryBoardPage() {
-  const [deliveries, setDeliveries] = useState<DeliveryRow[]>([]);
+  const [deliveries, setDeliveries] = useState<ShipmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -64,10 +59,10 @@ export default function DeliveryBoardPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/orders?channel=STOREFRONT');
+      const res = await fetch('/api/delivery');
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Failed to load orders');
-      setDeliveries((data.orders || []).map(toRow));
+      if (!data.success) throw new Error(data.error || 'Failed to load shipments');
+      setDeliveries((data.shipments || []).map(toRow));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -97,9 +92,33 @@ export default function DeliveryBoardPage() {
     }
   };
 
+  const dispatchKoombiyo = async (row: ShipmentRow) => {
+    setBusyId(row.orderId);
+    try {
+      const res = await fetch('/api/delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: row.orderId,
+          recipientName: row.customerName,
+          recipientPhone: row.customerMobile,
+          address: row.shippingAddress,
+          paymentMethod: row.paymentMethod,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const pending = deliveries.filter((d) => d.status === 'PENDING_DISPATCH').length;
   const inTransit = deliveries.filter((d) => d.status === 'IN_TRANSIT' || d.status === 'OUT_FOR_DELIVERY').length;
-  const pendingCod = deliveries.reduce((sum, d) => (d.codAmount > 0 && !d.codCollected ? sum + d.codAmount : sum), 0);
+  const pendingCod = deliveries.reduce((sum, d) => (d.codAmount > 0 && d.paymentStatus !== 'paid' ? sum + d.codAmount : sum), 0);
   const delivered = deliveries.filter((d) => d.status === 'DELIVERED').length;
   const successRate = deliveries.length ? Math.round((delivered / deliveries.length) * 1000) / 10 : 0;
 
@@ -112,7 +131,7 @@ export default function DeliveryBoardPage() {
             <span>Logistics & Courier Dispatch Board</span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Live storefront orders from /api/orders — update fulfillment via order lifecycle presets.
+            Koombiyo dispatch + tracking via /api/delivery — fulfillment presets on /api/orders.
           </p>
         </div>
         <button
@@ -148,7 +167,7 @@ export default function DeliveryBoardPage() {
       </div>
 
       <div className="p-5 rounded-2xl glass-card space-y-4">
-        {loading && <p className="text-xs text-muted-foreground">Loading orders…</p>}
+        {loading && <p className="text-xs text-muted-foreground">Loading shipments…</p>}
         {!loading && deliveries.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-8">No storefront delivery orders yet.</p>
         )}
@@ -156,26 +175,37 @@ export default function DeliveryBoardPage() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-zinc-800 text-muted-foreground">
-                <th className="pb-2.5 font-medium">Order Number</th>
+                <th className="pb-2.5 font-medium">Order</th>
                 <th className="pb-2.5 font-medium">Customer & Address</th>
-                <th className="pb-2.5 font-medium">Summary</th>
-                <th className="pb-2.5 font-medium text-right">COD Due</th>
+                <th className="pb-2.5 font-medium">Tracking</th>
+                <th className="pb-2.5 font-medium text-right">COD</th>
                 <th className="pb-2.5 font-medium text-right">Status</th>
-                <th className="pb-2.5 font-medium text-right">Action</th>
+                <th className="pb-2.5 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {deliveries.map((d) => (
-                <tr key={d.id} className="hover:bg-zinc-900/60 transition-colors duration-200">
+                <tr key={d.orderId} className="hover:bg-zinc-900/60 transition-colors duration-200">
                   <td className="py-3 font-mono font-bold text-foreground">{d.orderNumber}</td>
                   <td className="py-3">
                     <p className="font-semibold text-foreground">{d.customerName}</p>
                     <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <MapPin className="h-3 w-3" /> {d.shippingAddress}
                     </p>
-                    {d.phone && <p className="text-[10px] text-zinc-500 font-mono">{d.phone}</p>}
+                    {d.customerMobile && (
+                      <p className="text-[10px] text-zinc-500 font-mono">{d.customerMobile}</p>
+                    )}
                   </td>
-                  <td className="py-3 text-muted-foreground max-w-xs">{d.items}</td>
+                  <td className="py-3">
+                    {d.trackingNumber ? (
+                      <div>
+                        <p className="font-mono text-emerald-400">{d.trackingNumber}</p>
+                        <p className="text-[10px] text-zinc-500">{d.courierPartner || 'Courier'}</p>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-zinc-500">Not dispatched</span>
+                    )}
+                  </td>
                   <td className="py-3 text-right">
                     {d.codAmount > 0 ? (
                       <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">
@@ -201,11 +231,21 @@ export default function DeliveryBoardPage() {
                     </span>
                   </td>
                   <td className="py-3 text-right space-x-1">
-                    {d.status === 'PENDING_DISPATCH' && (
+                    {!d.trackingNumber && d.status === 'PENDING_DISPATCH' && (
                       <button
                         type="button"
-                        disabled={busyId === d.id}
-                        onClick={() => void patchOrder(d.id, 'ship')}
+                        disabled={busyId === d.orderId}
+                        onClick={() => void dispatchKoombiyo(d)}
+                        className="px-2.5 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 font-semibold text-[11px] disabled:opacity-50 inline-flex items-center gap-1"
+                      >
+                        <PackageCheck className="h-3 w-3" /> Koombiyo
+                      </button>
+                    )}
+                    {d.status === 'PENDING_DISPATCH' && d.trackingNumber && (
+                      <button
+                        type="button"
+                        disabled={busyId === d.orderId}
+                        onClick={() => void patchOrder(d.orderId, 'ship')}
                         className="px-2.5 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 font-semibold text-[11px] disabled:opacity-50"
                       >
                         Ship
@@ -214,11 +254,11 @@ export default function DeliveryBoardPage() {
                     {d.status !== 'DELIVERED' && (
                       <button
                         type="button"
-                        disabled={busyId === d.id}
-                        onClick={() => void patchOrder(d.id, 'deliver')}
+                        disabled={busyId === d.orderId}
+                        onClick={() => void patchOrder(d.orderId, 'deliver')}
                         className="px-2.5 py-1.5 rounded-lg bg-emerald-500 text-zinc-950 font-semibold text-[11px] disabled:opacity-50"
                       >
-                        Mark Delivered
+                        Delivered
                       </button>
                     )}
                   </td>
@@ -228,6 +268,13 @@ export default function DeliveryBoardPage() {
           </table>
         </div>
       </div>
+
+      <p className="text-[10px] text-zinc-500">
+        <Link href="/app" className="text-emerald-400 hover:underline">
+          Merchant Hub
+        </Link>{' '}
+        · Set KOOMBIYO_API_KEY on Vercel for live courier create
+      </p>
     </div>
   );
 }

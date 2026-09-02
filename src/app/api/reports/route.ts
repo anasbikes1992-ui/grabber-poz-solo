@@ -34,18 +34,30 @@ export async function GET(req: Request) {
     }
 
     if (type === 'ar-aging') {
-      const accounts = await db.select().from(polimPothaAccounts).orderBy(desc(polimPothaAccounts.currentBalance)).limit(100);
-      return NextResponse.json({
-        success: true,
-        type,
-        rows: accounts.map((a) => ({
-          customerId: a.customerId,
-          balance: a.currentBalance,
-          status: a.status,
-          bucket: Number(a.currentBalance) > 0 ? 'CURRENT_OR_UNKNOWN' : 'ZERO',
-          note: 'Due-date aging requires entry due_date rollup — Wave 5 enhancement',
-        })),
+      const rows = await db.execute(sql`
+        SELECT ppa.customer_id,
+               ppa.current_balance,
+               ppa.credit_limit,
+               ppa.status,
+               MIN(CASE WHEN ppe.due_date < NOW() - INTERVAL '90 days' THEN ppe.due_date END) AS oldest_90,
+               MIN(CASE WHEN ppe.due_date < NOW() - INTERVAL '60 days' AND ppe.due_date >= NOW() - INTERVAL '90 days' THEN ppe.due_date END) AS bucket_60,
+               MIN(CASE WHEN ppe.due_date < NOW() - INTERVAL '30 days' AND ppe.due_date >= NOW() - INTERVAL '60 days' THEN ppe.due_date END) AS bucket_30
+        FROM polim_potha_accounts ppa
+        LEFT JOIN polim_potha_entries ppe ON ppe.customer_id = ppa.customer_id AND ppe.type = 'INVOICE'
+        GROUP BY ppa.customer_id, ppa.current_balance, ppa.credit_limit, ppa.status
+        ORDER BY ppa.current_balance DESC
+        LIMIT 100
+      `);
+      const mapped = (rows as Array<Record<string, unknown>>).map((r) => {
+        const balance = Number(r.current_balance || 0);
+        let bucket = 'CURRENT';
+        if (r.oldest_90) bucket = '90+';
+        else if (r.bucket_60) bucket = '61-90';
+        else if (r.bucket_30) bucket = '31-60';
+        else if (balance > 0) bucket = '0-30';
+        return { customerId: r.customer_id, balance, creditLimit: r.credit_limit, status: r.status, bucket };
       });
+      return NextResponse.json({ success: true, type, rows: mapped });
     }
 
     if (type === 'trial-balance') {

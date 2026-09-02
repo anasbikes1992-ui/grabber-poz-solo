@@ -10,15 +10,19 @@ interface Customer {
   phone: string;
   email: string;
   address: string;
+  segment?: string;
   creditAllowed: boolean;
   creditLimit: number;
   currentBalance: number;
 }
 
+const SEGMENTS = ['ALL', 'NEW', 'SILVER', 'GOLD', 'VIP', 'LAPSED'] as const;
+
 export default function CustomersCRUDPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [segmentFilter, setSegmentFilter] = useState<(typeof SEGMENTS)[number]>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -30,6 +34,7 @@ export default function CustomersCRUDPage() {
   const [address, setAddress] = useState('');
   const [creditAllowed, setCreditAllowed] = useState(false);
   const [creditLimit, setCreditLimit] = useState(0);
+  const [segment, setSegment] = useState('NEW');
 
   const load = useCallback(async () => {
     try {
@@ -55,6 +60,7 @@ export default function CustomersCRUDPage() {
     setAddress('');
     setCreditAllowed(false);
     setCreditLimit(0);
+    setSegment('NEW');
     setIsModalOpen(true);
   };
 
@@ -66,6 +72,7 @@ export default function CustomersCRUDPage() {
     setAddress(c.address);
     setCreditAllowed(c.creditAllowed);
     setCreditLimit(c.creditLimit);
+    setSegment(c.segment || 'NEW');
     setIsModalOpen(true);
   };
 
@@ -80,6 +87,7 @@ export default function CustomersCRUDPage() {
         address,
         creditAllowed,
         creditLimit: Number(creditLimit),
+        segment,
       };
       const res = await fetch('/api/customers', {
         method: editingCustomer ? 'PATCH' : 'POST',
@@ -103,9 +111,10 @@ export default function CustomersCRUDPage() {
 
   const filtered = customers.filter(
     (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone.includes(search) ||
-      c.email.toLowerCase().includes(search.toLowerCase())
+      (segmentFilter === 'ALL' || (c.segment || 'NEW') === segmentFilter) &&
+      (c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.phone.includes(search) ||
+        c.email.toLowerCase().includes(search.toLowerCase())),
   );
 
   return (
@@ -128,6 +137,21 @@ export default function CustomersCRUDPage() {
         </p>
       )}
 
+      <div className="flex flex-wrap gap-2">
+        {SEGMENTS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setSegmentFilter(s)}
+            className={`px-3 py-1 rounded-lg text-[10px] font-bold border ${
+              segmentFilter === s ? 'border-emerald-400 text-emerald-400' : 'border-zinc-800 text-zinc-500'
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
         <label htmlFor="cust-search" className="sr-only">Search</label>
@@ -140,6 +164,7 @@ export default function CustomersCRUDPage() {
             <tr className="border-b border-zinc-800 text-muted-foreground">
               <th className="pb-2.5">Name</th>
               <th className="pb-2.5">Phone</th>
+              <th className="pb-2.5">Segment</th>
               <th className="pb-2.5 text-right">Credit limit</th>
               <th className="pb-2.5 text-right">Balance</th>
               <th className="pb-2.5 text-right">Edit</th>
@@ -150,6 +175,7 @@ export default function CustomersCRUDPage() {
               <tr key={c.id}>
                 <td className="py-3 font-semibold">{c.name}</td>
                 <td className="py-3 font-mono text-muted-foreground">{c.phone}</td>
+                <td className="py-3 text-[10px] font-bold text-purple-300">{c.segment || 'NEW'}</td>
                 <td className="py-3 text-right font-mono">{c.creditLimit.toFixed(2)}</td>
                 <td className="py-3 text-right font-mono text-emerald-400">{c.currentBalance.toFixed(2)}</td>
                 <td className="py-3 text-right">
@@ -180,6 +206,21 @@ export default function CustomersCRUDPage() {
           <div>
             <label htmlFor="c-addr" className="text-xs font-semibold block mb-1">Address</label>
             <input id="c-addr" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm" />
+          </div>
+          <div>
+            <label htmlFor="c-segment" className="text-xs font-semibold block mb-1">CRM segment</label>
+            <select
+              id="c-segment"
+              value={segment}
+              onChange={(e) => setSegment(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm"
+            >
+              {SEGMENTS.filter((s) => s !== 'ALL').map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-2">
             <input id="c-credit" type="checkbox" checked={creditAllowed} onChange={(e) => setCreditAllowed(e.target.checked)} />

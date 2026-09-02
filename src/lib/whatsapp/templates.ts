@@ -11,6 +11,23 @@ export type WhatsAppTemplate = {
 
 const DEFAULT_TEMPLATES: WhatsAppTemplate[] = [
   {
+    id: 'tpl_welcome',
+    name: 'welcome_greeting',
+    language: 'en',
+    body: 'Hi! Welcome to {{storeName}} 👋 How can we help you today?',
+    variables: ['storeName'],
+    active: true,
+  },
+  {
+    id: 'tpl_menu',
+    name: 'main_menu',
+    language: 'en',
+    body:
+      'Choose an option:\n\n1️⃣ *Order* — browse our catalog & COD checkout\n2️⃣ *Repairs* — track a device ticket\n3️⃣ *Staff* — speak to our team\n\nReply with 1, 2, or 3.',
+    variables: [],
+    active: true,
+  },
+  {
     id: 'tpl_order_confirm',
     name: 'order_confirmation',
     language: 'en',

@@ -85,6 +85,10 @@ export async function runAllEnabledAgents(ctx?: AgentRunContext): Promise<AgentR
   return results;
 }
 
+export async function runAllEnabledAgentsBrief(ctx?: AgentRunContext): Promise<AgentRunOutcome[]> {
+  return runAllEnabledAgents(ctx);
+}
+
 export async function runAgentTask(task: AgentTask, ctx?: AgentRunContext): Promise<AgentRunOutcome> {
   return runAgentTaskDb(task, ctx);
 }

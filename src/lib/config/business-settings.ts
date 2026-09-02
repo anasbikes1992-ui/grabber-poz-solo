@@ -47,18 +47,26 @@ export async function readConfigJson(): Promise<Record<string, unknown>> {
 }
 
 export async function mergeConfigJson(patch: Record<string, unknown>) {
+  const prev = await readConfigJson();
+  const next = { ...prev, ...patch };
+
   if (!hasDatabaseUrl()) {
-    memoryConfigJson = { ...memoryConfigJson, ...patch };
+    memoryConfigJson = next;
     return { ...memoryConfigJson };
   }
-  const row = await ensureConfigRow();
-  const prev = (row.configJson || {}) as Record<string, unknown>;
-  const next = { ...prev, ...patch };
-  await db
-    .update(businessConfig)
-    .set({ configJson: next, updatedAt: new Date() })
-    .where(eq(businessConfig.id, row.id));
-  return next;
+
+  try {
+    const row = await ensureConfigRow();
+    await db
+      .update(businessConfig)
+      .set({ configJson: next, updatedAt: new Date() })
+      .where(eq(businessConfig.id, row.id));
+    memoryConfigJson = next;
+    return next;
+  } catch {
+    memoryConfigJson = next;
+    return { ...memoryConfigJson };
+  }
 }
 
 export async function readMarketingConfig(): Promise<MarketingConfig> {

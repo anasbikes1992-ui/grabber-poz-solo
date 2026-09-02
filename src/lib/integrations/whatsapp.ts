@@ -15,6 +15,18 @@ export function resolveWhatsAppConfig() {
   return { token, phoneId, verifyToken, appSecret, apiVersion };
 }
 
+/** Meta Graph API proof when "Require App Secret" is enabled on the app. */
+export function buildAppSecretProof(accessToken: string, appSecret: string): string {
+  return createHmac('sha256', appSecret).update(accessToken).digest('hex');
+}
+
+export function buildWhatsAppMessagesUrl(phoneId: string, apiVersion: string, token: string, appSecret?: string) {
+  const base = `https://graph.facebook.com/${apiVersion}/${phoneId}/messages`;
+  if (!appSecret) return base;
+  const proof = buildAppSecretProof(token, appSecret);
+  return `${base}?appsecret_proof=${encodeURIComponent(proof)}`;
+}
+
 export function isWhatsAppConfigured(): boolean {
   const { token, phoneId } = resolveWhatsAppConfig();
   return Boolean(token && phoneId);
@@ -40,7 +52,7 @@ export async function sendWhatsAppText(params: {
     return { success: false, error: 'to and text required' };
   }
 
-  const { token, phoneId, apiVersion } = resolveWhatsAppConfig();
+  const { token, phoneId, appSecret, apiVersion } = resolveWhatsAppConfig();
   if (!token || !phoneId) {
     if (process.env.NODE_ENV === 'production') {
       return {
@@ -56,7 +68,8 @@ export async function sendWhatsAppText(params: {
     };
   }
 
-  const res = await fetch(`https://graph.facebook.com/${apiVersion}/${phoneId}/messages`, {
+  const url = buildWhatsAppMessagesUrl(phoneId, apiVersion, token, appSecret);
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

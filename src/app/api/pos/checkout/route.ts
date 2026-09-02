@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
 import { durableCheckout } from '@/lib/db/repositories/checkout-repo';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 import { getCustomerSession } from '@/lib/auth/customer-session';
-import { db, branches } from '@/db';
-import { evaluatePromotion } from '@/lib/commerce/promotion-engine';
+import { db, branches, customers } from '@/db';
+import { evaluatePromotion, evaluateCartPromotions } from '@/lib/commerce/promotion-engine';
 import { listPromotions, recordPromotionRedemption } from '@/lib/config/promotions-store';
 
 type BodyLine = {
@@ -78,11 +79,32 @@ export async function POST(req: Request) {
     }));
 
     const itemSubtotal = items.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
+    const itemCount = items.reduce((s, l) => s + l.quantity, 0);
     let discountTotal = Number(body.discountTotal) || 0;
     let promoRuleId: string | undefined;
 
+    const rules = await listPromotions();
+
+    let customerSegment: string | undefined;
+    const customerIdPreview =
+      body.customerId || (isStorefront && shopper ? shopper.customerId : undefined);
+    if (customerIdPreview) {
+      const [cust] = await db.select().from(customers).where(eq(customers.id, customerIdPreview)).limit(1);
+      customerSegment = cust?.segment;
+    }
+
+    const auto = evaluateCartPromotions(rules, {
+      subtotal: itemSubtotal,
+      itemCount,
+      channel,
+      segment: customerSegment,
+    });
+    if (auto.valid && auto.rule) {
+      discountTotal += auto.discountTotal;
+      promoRuleId = auto.rule.id;
+    }
+
     if (body.promoCode) {
-      const rules = await listPromotions();
       const promo = evaluatePromotion(rules, body.promoCode, itemSubtotal);
       if (!promo.valid) {
         return NextResponse.json({ success: false, error: promo.error || 'Invalid promo code' }, { status: 400 });
@@ -164,6 +186,9 @@ export async function POST(req: Request) {
       actorId,
       discountTotal,
       promoRuleId,
+      terminalId: body.terminalId,
+      clientSequence: body.clientSequence != null ? Number(body.clientSequence) : undefined,
+      allowStockUnderrun: Boolean(body.offlineSync || body.allowStockUnderrun),
     });
 
     if (!result.reused && promoRuleId) {

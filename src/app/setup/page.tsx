@@ -11,7 +11,9 @@ import {
   Sparkles,
   Store,
   ArrowRight,
+  Layers,
 } from 'lucide-react';
+import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
 
 type Step = {
   id: string;
@@ -25,6 +27,8 @@ export default function SetupPage() {
   const [steps, setSteps] = useState<Step[]>([]);
   const [seeding, setSeeding] = useState(false);
   const [seedMsg, setSeedMsg] = useState<string | null>(null);
+  const [presetMsg, setPresetMsg] = useState<string | null>(null);
+  const [applyingPreset, setApplyingPreset] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const [healthRes, bizRes] = await Promise.all([
@@ -62,8 +66,9 @@ export default function SetupPage() {
       {
         id: 'integrations',
         title: 'WhatsApp & payments',
-        description: 'Verify token, phone ID, PayHere keys.',
-        href: '/settings',
+        description:
+          'Set NEXT_PUBLIC_WHATSAPP_NUMBER, WHATSAPP_TOKEN, WHATSAPP_PHONE_ID, WHATSAPP_VERIFY_TOKEN. Meta webhook: /api/whatsapp/webhook — subscribe messages field.',
+        href: '/whatsapp',
         done: false,
       },
       {
@@ -103,6 +108,25 @@ export default function SetupPage() {
     }
   }
 
+  async function applyPreset(presetId: VerticalPresetId) {
+    setApplyingPreset(presetId);
+    setPresetMsg(null);
+    try {
+      const res = await fetch('/api/config/flags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preset: presetId }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Preset apply failed');
+      setPresetMsg(`Applied "${VERTICAL_PRESETS[presetId].label}" — vertical modules updated.`);
+    } catch (err) {
+      setPresetMsg((err as Error).message);
+    } finally {
+      setApplyingPreset(null);
+    }
+  }
+
   const doneCount = steps.filter((s) => s.done).length;
 
   return (
@@ -124,6 +148,36 @@ export default function SetupPage() {
           {seedMsg}
         </p>
       )}
+
+      {presetMsg && (
+        <p className="text-xs text-emerald-400 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+          {presetMsg}
+        </p>
+      )}
+
+      <div className="p-4 rounded-2xl glass-card border border-zinc-800 space-y-3">
+        <h2 className="text-sm font-bold text-white flex items-center gap-2">
+          <Layers className="w-4 h-4 text-emerald-400" /> Vertical preset
+        </h2>
+        <p className="text-xs text-zinc-400">
+          One-click module toggles for your business type. You can fine-tune flags later in Settings.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {(Object.keys(VERTICAL_PRESETS) as VerticalPresetId[]).map((id) => (
+            <button
+              key={id}
+              type="button"
+              disabled={Boolean(applyingPreset)}
+              onClick={() => void applyPreset(id)}
+              className="text-left p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 hover:border-emerald-500/40 disabled:opacity-50"
+            >
+              <div className="font-bold text-white text-xs">{VERTICAL_PRESETS[id].label}</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">{VERTICAL_PRESETS[id].description}</div>
+              {applyingPreset === id && <div className="text-[10px] text-emerald-400 mt-1">Applying…</div>}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="space-y-3">
         {steps.map((step) => (

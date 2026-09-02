@@ -4,6 +4,7 @@ import {
   listAutomationLogs,
   type AutomationRule,
 } from '@/lib/automation/rules-store';
+import { enqueueJob } from '@/lib/jobs/outbox';
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp';
 
 export type AutomationEvent =
@@ -147,6 +148,12 @@ export async function dispatchAutomationEvent(event: AutomationEvent, ctx: Autom
         idempotencyKey,
         detail: { error: (err as Error).message, context: ctx },
       });
+      await enqueueJob({
+        type: 'AUTOMATION_RETRY',
+        idempotencyKey: `auto_retry_${idempotencyKey}`,
+        payload: { logId: idempotencyKey },
+        scheduledAt: new Date(Date.now() + 60_000),
+      }).catch(() => undefined);
       results.push({ ruleId: rule.id, status: 'FAILED' as const, error: (err as Error).message });
     }
   }

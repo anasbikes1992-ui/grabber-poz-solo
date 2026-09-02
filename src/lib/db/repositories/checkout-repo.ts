@@ -10,14 +10,15 @@ import {
   polimPothaAccounts,
   polimPothaEntries,
   products,
-  stockBalances,
-  stockMovements,
   auditLogs,
 } from '@/db/schema';
 import { resolveCheckoutStatuses, type CheckoutPaymentMethod } from '@/lib/commerce/order-lifecycle';
 import { ensureDefaultChartOfAccounts } from '@/lib/commerce/ensure-coa';
 import { dispatchAutomationEvent } from '@/lib/automation/engine';
 import { dispatchStockLowIfNeeded } from '@/lib/inventory/stock-low-alert';
+import { sendMetaPurchaseEvent } from '@/lib/integrations/meta-capi';
+import { recordSale } from '@/lib/inventory/stock-service';
+import { consumeFefoLot } from '@/lib/inventory/fefo';
 import { customers } from '@/db/schema';
 
 export type CheckoutItem = {
@@ -51,6 +52,10 @@ export type CheckoutInput = {
   actorId?: string;
   discountTotal?: number;
   promoRuleId?: string;
+  terminalId?: string;
+  clientSequence?: number;
+  /** Offline POS sync — honor sale even when stock would go negative */
+  allowStockUnderrun?: boolean;
 };
 
 function normalizePayMethod(method: CheckoutPaymentMethod) {
@@ -143,32 +148,34 @@ export async function durableCheckout(input: CheckoutInput) {
       reorderLevel: number;
     }> = [];
 
-    // Concurrent-safe stock decrement: available = on_hand - reserved
+    // Stock decrement via centralized StockService
     for (const line of lines) {
-      const result = await tx
-        .update(stockBalances)
-        .set({
-          onHand: sql`${stockBalances.onHand} - ${line.quantity}`,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(stockBalances.locationType, 'BRANCH'),
-            eq(stockBalances.locationId, input.branchId),
-            eq(stockBalances.productId, line.productId),
-            sql`(${stockBalances.onHand} - ${stockBalances.reserved}) >= ${line.quantity}`,
-            line.variantId
-              ? eq(stockBalances.variantId, line.variantId)
-              : sql`${stockBalances.variantId} IS NULL`
-          )
-        )
-        .returning({ id: stockBalances.id, onHand: stockBalances.onHand });
+      const { onHand } = await recordSale(
+        tx,
+        { locationType: 'BRANCH', locationId: input.branchId },
+        {
+          productId: line.productId,
+          variantId: line.variantId,
+          quantity: line.quantity,
+          unitCost: line.unitCost,
+        },
+        {
+          referenceType: 'ORDER',
+          referenceId: orderNumber,
+          actorId: input.actorId || null,
+          notes: input.channel === 'STOREFRONT' ? 'Storefront checkout' : 'POS checkout',
+        },
+        { allowUnderrun: Boolean(input.allowStockUnderrun) },
+      );
 
-      if (!result.length) {
-        throw new Error(`Insufficient stock for product ${line.productId}`);
-      }
+      await consumeFefoLot(
+        tx,
+        { locationType: 'BRANCH', locationId: input.branchId },
+        line.productId,
+        line.variantId,
+        line.quantity,
+      ).catch(() => null);
 
-      const onHand = Number(result[0].onHand);
       if (onHand <= line.reorderLevel) {
         stockLowCandidates.push({
           productId: line.productId,
@@ -178,20 +185,6 @@ export async function durableCheckout(input: CheckoutInput) {
           reorderLevel: line.reorderLevel,
         });
       }
-
-      await tx.insert(stockMovements).values({
-        locationType: 'BRANCH',
-        locationId: input.branchId,
-        productId: line.productId,
-        variantId: line.variantId || null,
-        type: 'SALE',
-        delta: -line.quantity,
-        unitCost: String(line.unitCost.toFixed(2)),
-        referenceType: 'ORDER',
-        referenceId: orderNumber,
-        actorId: input.actorId || null,
-        notes: input.channel === 'STOREFRONT' ? 'Storefront checkout' : 'POS checkout',
-      });
     }
 
     const [order] = await tx
@@ -212,6 +205,8 @@ export async function durableCheckout(input: CheckoutInput) {
         taxTotal: String(taxTotal.toFixed(2)),
         grandTotal: String(grandTotal.toFixed(2)),
         clientUuid: input.clientUuid || null,
+        terminalId: input.terminalId || null,
+        clientSequence: input.clientSequence ?? null,
         createdBy: input.actorId || null,
       })
       .returning();
@@ -369,10 +364,12 @@ export async function durableCheckout(input: CheckoutInput) {
     }
     let customerName = 'Customer';
     let customerPhone = '';
+    let customerEmail: string | null = null;
     if (input.customerId) {
       const [cust] = await db.select().from(customers).where(eq(customers.id, input.customerId)).limit(1);
       customerName = cust?.name || customerName;
       customerPhone = (cust?.phone || '').replace(/\D/g, '');
+      customerEmail = cust?.email || null;
     }
     void dispatchAutomationEvent('ORDER_CREATED', {
       orderId: result.order.id,
@@ -382,6 +379,15 @@ export async function durableCheckout(input: CheckoutInput) {
       customerName,
       customerPhone,
     }).catch(() => undefined);
+
+    if (input.channel === 'STOREFRONT' || input.channel === 'POS') {
+      void sendMetaPurchaseEvent({
+        orderNumber: result.order.orderNumber,
+        value: Number(result.grandTotal || 0),
+        email: customerEmail,
+        phone: customerPhone || undefined,
+      }).catch(() => undefined);
+    }
   }
 
   return result;

@@ -37,7 +37,7 @@ export async function createCreativeProject(input: CreateCreativeInput) {
       productId: input.productId || null,
       format: input.format || 'SHORT_FORM_30S',
       aspectRatio: input.aspectRatio || '9:16',
-      status: 'SCRIPTED',
+      status: 'PENDING_REVIEW',
       createdBy: input.createdBy || null,
     })
     .returning();

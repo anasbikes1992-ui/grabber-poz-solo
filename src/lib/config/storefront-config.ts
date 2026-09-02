@@ -1,4 +1,5 @@
 import { mergeConfigJson, readConfigJson } from '@/lib/config/business-settings';
+import { resolveStorefrontWhatsAppNumber } from '@/lib/whatsapp/inbound-handler';
 import {
   DEFAULT_STOREFRONT,
   normalizeBlock,
@@ -18,7 +19,11 @@ export async function readStorefrontConfig(): Promise<StorefrontConfig> {
   try {
     const cfg = await readConfigJson();
     const raw = (cfg.storefront || {}) as Partial<StorefrontConfig> & { blocks?: Record<string, unknown>[] };
-    const mergedTheme = { ...DEFAULT_STOREFRONT.theme, ...(raw.theme || {}) };
+    const mergedTheme = {
+      ...DEFAULT_STOREFRONT.theme,
+      ...(raw.theme || {}),
+      whatsappNumber: resolveStorefrontWhatsAppNumber(raw.theme?.whatsappNumber),
+    };
     const blocks = raw.blocks?.length
       ? raw.blocks.map((b) => normalizeBlock(b as Record<string, unknown>)).filter(Boolean)
       : DEFAULT_STOREFRONT.blocks;

@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import {
   db,
   purchaseOrders,
   purchaseOrderLines,
   stockBalances,
-  stockMovements,
   supplierAccounts,
   supplierEntries,
   journalEntries,
@@ -14,6 +13,8 @@ import {
   products,
 } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
+import { recordPurchaseReceipt } from '@/lib/inventory/stock-service';
+import { receiveStockLot } from '@/lib/inventory/fefo';
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { poIdOrNumber, items, receivedBy } = body as {
       poIdOrNumber: string;
-      items: Array<{ productId: string; quantity: number; unitCost?: number }>;
+      items: Array<{ productId: string; quantity: number; unitCost?: number; batchCode?: string; expiryDate?: string }>;
       receivedBy?: string;
     };
     if (!poIdOrNumber || !items?.length) {
@@ -52,32 +53,43 @@ export async function POST(req: Request) {
         const unitCost = Number(item.unitCost ?? line?.unitCost ?? 0);
         totalCost += unitCost * item.quantity;
 
-        const updated = await tx
-          .update(stockBalances)
-          .set({
-            onHand: sql`${stockBalances.onHand} + ${item.quantity}`,
-            updatedAt: new Date(),
-          })
-          .where(eq(stockBalances.productId, item.productId))
-          .returning({ id: stockBalances.id, onHand: stockBalances.onHand });
+        await recordPurchaseReceipt(
+          tx,
+          { locationType: 'WAREHOUSE', locationId: po.warehouseId },
+          {
+            productId: item.productId,
+            variantId: line?.variantId || null,
+            quantity: item.quantity,
+            unitCost,
+          },
+          {
+            referenceType: 'PURCHASE_ORDER',
+            referenceId: po.id,
+            actorId: actorId || null,
+          },
+        );
 
-        if (updated.length === 0) {
-          await tx.insert(stockBalances).values({
+        if (item.batchCode) {
+          await receiveStockLot(tx, {
+            batchCode: item.batchCode,
+            productId: item.productId,
+            variantId: line?.variantId || null,
             locationType: 'WAREHOUSE',
             locationId: po.warehouseId,
-            productId: item.productId,
-            onHand: item.quantity,
-            reserved: 0,
-            damaged: 0,
+            qty: item.quantity,
+            expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
           });
         }
 
-        // Weighted average cost on product
+        const [bal] = await tx
+          .select()
+          .from(stockBalances)
+          .where(eq(stockBalances.productId, item.productId))
+          .limit(1);
+        const onHandAfter = Number(bal?.onHand ?? item.quantity);
+        const onHandBefore = Math.max(0, onHandAfter - item.quantity);
         const [prod] = await tx.select().from(products).where(eq(products.id, item.productId)).limit(1);
         if (prod) {
-          const [bal] = await tx.select().from(stockBalances).where(eq(stockBalances.productId, item.productId)).limit(1);
-          const onHandAfter = Number(bal?.onHand ?? item.quantity);
-          const onHandBefore = Math.max(0, onHandAfter - item.quantity);
           const oldCost = Number(prod.costPrice);
           const wavg =
             onHandAfter > 0
@@ -88,18 +100,6 @@ export async function POST(req: Request) {
             .set({ costPrice: wavg.toFixed(2), updatedAt: new Date() })
             .where(eq(products.id, item.productId));
         }
-
-        await tx.insert(stockMovements).values({
-          locationType: 'WAREHOUSE',
-          locationId: po.warehouseId,
-          productId: item.productId,
-          type: 'PURCHASE_RECEIPT',
-          delta: item.quantity,
-          unitCost: String(unitCost.toFixed(2)),
-          referenceType: 'PURCHASE_ORDER',
-          referenceId: po.id,
-          actorId: actorId || null,
-        });
       }
 
       await tx

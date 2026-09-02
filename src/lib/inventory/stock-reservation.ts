@@ -1,5 +1,6 @@
-import { and, eq, sql } from 'drizzle-orm';
-import { db, branches, products, stockBalances, stockMovements } from '@/db';
+import { eq } from 'drizzle-orm';
+import { db, branches, products } from '@/db';
+import { reserveStockTx, releaseStockTx } from '@/lib/inventory/stock-service';
 
 export type StockReservationInput = {
   branchId?: string;
@@ -27,39 +28,17 @@ export async function reserveStock(input: StockReservationInput) {
   if (!product || !product.isActive) throw new Error('Product not found or inactive');
 
   return db.transaction(async (tx) => {
-    const where = and(
-      eq(stockBalances.locationType, 'BRANCH'),
-      eq(stockBalances.locationId, branchId),
-      eq(stockBalances.productId, input.productId),
-      sql`(${stockBalances.onHand} - ${stockBalances.reserved}) >= ${qty}`,
-      input.variantId
-        ? eq(stockBalances.variantId, input.variantId)
-        : sql`${stockBalances.variantId} IS NULL`,
+    const balance = await reserveStockTx(
+      tx,
+      { locationType: 'BRANCH', locationId: branchId },
+      { productId: input.productId, variantId: input.variantId, quantity: qty },
+      {
+        referenceType: input.referenceType,
+        referenceId: input.referenceId,
+        actorId: input.actorId || null,
+        notes: input.notes || `Reserved ${qty} for ${input.referenceId}`,
+      },
     );
-
-    const [balance] = await tx
-      .update(stockBalances)
-      .set({
-        reserved: sql`${stockBalances.reserved} + ${qty}`,
-        updatedAt: new Date(),
-      })
-      .where(where)
-      .returning();
-
-    if (!balance) throw new Error(`Insufficient available stock for ${product.name}`);
-
-    await tx.insert(stockMovements).values({
-      locationType: 'BRANCH',
-      locationId: branchId,
-      productId: input.productId,
-      variantId: input.variantId || null,
-      type: 'RESERVATION',
-      delta: qty,
-      referenceType: input.referenceType,
-      referenceId: input.referenceId,
-      actorId: input.actorId || null,
-      notes: input.notes || `Reserved ${qty} for ${input.referenceId}`,
-    });
 
     return {
       balance,
@@ -74,39 +53,17 @@ export async function releaseStock(input: StockReservationInput) {
   const branchId = await resolveBranchId(input.branchId);
 
   return db.transaction(async (tx) => {
-    const where = and(
-      eq(stockBalances.locationType, 'BRANCH'),
-      eq(stockBalances.locationId, branchId),
-      eq(stockBalances.productId, input.productId),
-      sql`${stockBalances.reserved} >= ${qty}`,
-      input.variantId
-        ? eq(stockBalances.variantId, input.variantId)
-        : sql`${stockBalances.variantId} IS NULL`,
+    const balance = await releaseStockTx(
+      tx,
+      { locationType: 'BRANCH', locationId: branchId },
+      { productId: input.productId, variantId: input.variantId, quantity: qty },
+      {
+        referenceType: input.referenceType,
+        referenceId: input.referenceId,
+        actorId: input.actorId || null,
+        notes: input.notes || `Released ${qty} for ${input.referenceId}`,
+      },
     );
-
-    const [balance] = await tx
-      .update(stockBalances)
-      .set({
-        reserved: sql`${stockBalances.reserved} - ${qty}`,
-        updatedAt: new Date(),
-      })
-      .where(where)
-      .returning();
-
-    if (!balance) throw new Error('Nothing reserved to release');
-
-    await tx.insert(stockMovements).values({
-      locationType: 'BRANCH',
-      locationId: branchId,
-      productId: input.productId,
-      variantId: input.variantId || null,
-      type: 'RELEASE',
-      delta: -qty,
-      referenceType: input.referenceType,
-      referenceId: input.referenceId,
-      actorId: input.actorId || null,
-      notes: input.notes || `Released ${qty} for ${input.referenceId}`,
-    });
 
     return {
       balance,

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BarChart3, TrendingUp, DollarSign, ArrowLeft, Download } from 'lucide-react';
+import Link from 'next/link';
 
 type Metrics = {
   todayRevenue: number;
@@ -13,13 +13,43 @@ type Metrics = {
   salesBySource: Array<{ source: string; count: number; revenue: number }>;
 };
 
+function BarChart({ rows, labelKey, valueKey }: { rows: Array<Record<string, unknown>>; labelKey: string; valueKey: string }) {
+  const max = Math.max(1, ...rows.map((r) => Number(r[valueKey] || 0)));
+  return (
+    <div className="space-y-2">
+      {rows.map((row) => {
+        const value = Number(row[valueKey] || 0);
+        const pct = Math.round((value / max) * 100);
+        return (
+          <div key={String(row[labelKey])} className="space-y-1">
+            <div className="flex justify-between text-[10px] text-zinc-400">
+              <span>{String(row[labelKey])}</span>
+              <span>LKR {value.toLocaleString()}</span>
+            </div>
+            <div className="h-2 rounded-full bg-zinc-900 overflow-hidden">
+              <div className="h-full bg-emerald-500/70 rounded-full" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [kpiNote, setKpiNote] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/reports/sales')
       .then((r) => r.json())
       .then((d) => d.success && setMetrics(d.metrics))
+      .catch(() => {});
+    fetch('/api/kpi?ids=today_revenue,month_revenue,sales_by_channel')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setKpiNote(`KPI API · today LKR ${Number(d.kpis.today_revenue || 0).toLocaleString()}`);
+      })
       .catch(() => {});
   }, []);
 
@@ -42,13 +72,22 @@ export default function ReportsPage() {
           <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-emerald-400" /> Reports & Analytics
           </h1>
+          {kpiNote && <p className="text-[10px] text-zinc-500 mt-1">{kpiNote} · /api/kpi</p>}
         </div>
-        <Link
-          href="/api/reports?type=sales-by-channel"
-          className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold flex items-center gap-2 cursor-pointer"
-        >
-          <Download className="w-4 h-4" /> Export JSON
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/api/kpi"
+            className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold"
+          >
+            KPI JSON
+          </Link>
+          <Link
+            href="/api/reports?type=sales-by-channel"
+            className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold flex items-center gap-2 cursor-pointer"
+          >
+            <Download className="w-4 h-4" /> Export JSON
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -77,12 +116,7 @@ export default function ReportsPage() {
           {m.salesBySource.length === 0 ? (
             <p className="text-xs text-zinc-500">No channel data yet.</p>
           ) : (
-            m.salesBySource.map((s) => (
-              <div key={s.source} className="flex justify-between text-xs">
-                <span className="text-zinc-300">{s.source}</span>
-                <span className="text-emerald-400 font-bold">LKR {s.revenue.toLocaleString()} ({s.count})</span>
-              </div>
-            ))
+            <BarChart rows={m.salesBySource.map((s) => ({ channel: s.source, revenue: s.revenue }))} labelKey="channel" valueKey="revenue" />
           )}
         </div>
 
@@ -91,14 +125,7 @@ export default function ReportsPage() {
           {m.topProducts.length === 0 ? (
             <p className="text-xs text-zinc-500">No product sales yet.</p>
           ) : (
-            m.topProducts.map((p, i) => (
-              <div key={p.name} className="flex justify-between text-xs">
-                <span className="text-zinc-300">
-                  #{i + 1} {p.name}
-                </span>
-                <span className="text-emerald-400 font-bold">LKR {p.revenue.toLocaleString()}</span>
-              </div>
-            ))
+            <BarChart rows={m.topProducts.map((p) => ({ name: p.name, revenue: p.revenue }))} labelKey="name" valueKey="revenue" />
           )}
         </div>
       </div>

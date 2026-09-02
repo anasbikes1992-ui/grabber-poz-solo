@@ -17,9 +17,19 @@ async function actor() {
   return session!;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const rows = await db.select().from(customers).orderBy(desc(customers.createdAt)).limit(500);
+    const { searchParams } = new URL(req.url);
+    const segment = searchParams.get('segment');
+
+    const rows = segment
+      ? await db
+          .select()
+          .from(customers)
+          .where(eq(customers.segment, segment.toUpperCase()))
+          .orderBy(desc(customers.createdAt))
+          .limit(500)
+      : await db.select().from(customers).orderBy(desc(customers.createdAt)).limit(500);
     const accounts = await db.select().from(polimPothaAccounts);
     const bal = new Map(accounts.map((a) => [a.customerId, a]));
     return NextResponse.json({
@@ -32,6 +42,7 @@ export async function GET() {
           phone: c.phone,
           email: c.email || '',
           address: c.address || '',
+          segment: c.segment,
           creditAllowed: Number(c.creditLimit) > 0 || Number(acct?.creditLimit || 0) > 0,
           creditLimit: Number(acct?.creditLimit ?? c.creditLimit),
           currentBalance: Number(acct?.currentBalance ?? 0),
@@ -64,6 +75,7 @@ export async function POST(req: Request) {
         address: body.address || null,
         creditLimit: creditLimit.toFixed(2),
         active: true,
+        segment: body.segment ? String(body.segment).toUpperCase() : 'NEW',
       })
       .returning();
 
@@ -98,6 +110,7 @@ export async function PATCH(req: Request) {
         address: body.address,
         creditLimit: creditLimit != null ? creditLimit.toFixed(2) : undefined,
         active: body.active,
+        segment: body.segment ? String(body.segment).toUpperCase() : undefined,
       })
       .where(eq(customers.id, body.id))
       .returning();

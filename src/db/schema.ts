@@ -84,6 +84,7 @@ export const stockMovementTypeEnum = pgEnum('stock_movement_type_enum', [
   'DAMAGE',
   'RESERVATION',
   'RELEASE',
+  'REPAIR_PARTS_ISSUE',
 ]);
 
 export const polimPothaEntryTypeEnum = pgEnum('polim_potha_entry_type_enum', [
@@ -446,6 +447,8 @@ export const orders = pgTable('orders', {
   taxTotal: numeric('tax_total', { precision: 12, scale: 2 }).notNull().default('0.00'),
   grandTotal: numeric('grand_total', { precision: 12, scale: 2 }).notNull().default('0.00'),
   clientUuid: text('client_uuid'), // Offline idempotency key
+  terminalId: text('terminal_id'),
+  clientSequence: integer('client_sequence'),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -509,6 +512,7 @@ export const orderReturns = pgTable('order_returns', {
   returnNumber: text('return_number').notNull().unique(),
   refundAmount: numeric('refund_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
   restockApproved: boolean('restock_approved').notNull().default(true),
+  gradingStatus: text('grading_status'), // RECEIVED, GRADED_A, GRADED_B, DAMAGED
   reason: text('reason'),
   approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -774,7 +778,8 @@ export const hirePurchaseContracts = pgTable('hire_purchase_contracts', {
   totalMonths: integer('total_months').notNull(),
   paidMonths: integer('paid_months').notNull().default(0),
   nextDueDate: timestamp('next_due_date', { withTimezone: true }),
-  status: text('status').notNull().default('ACTIVE'), // ACTIVE, SETTLED, OVERDUE, CANCELLED
+  status: text('status').notNull().default('ACTIVE'), // ACTIVE, SETTLED, OVERDUE, CANCELLED, LOCKED
+  lateFeeAccrued: numeric('late_fee_accrued', { precision: 12, scale: 2 }).notNull().default('0.00'),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -837,4 +842,121 @@ export const loyaltyTransactions = pgTable('loyalty_transactions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   memberIdx: index('loyalty_tx_member_idx').on(t.memberId),
+}));
+
+// ==========================================
+// 13. ENTERPRISE PLATFORM (job outbox, lots, serials, recipes, quotations)
+// ==========================================
+
+export const jobOutboxStatusEnum = pgEnum('job_outbox_status_enum', [
+  'PENDING',
+  'PROCESSING',
+  'COMPLETED',
+  'FAILED',
+  'DEAD',
+]);
+
+export const jobOutbox = pgTable('job_outbox', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  type: text('type').notNull(),
+  idempotencyKey: text('idempotency_key').notNull(),
+  payloadJson: jsonb('payload_json').$type<Record<string, unknown>>().notNull().default({}),
+  status: jobOutboxStatusEnum('status').notNull().default('PENDING'),
+  attempts: integer('attempts').notNull().default(0),
+  maxAttempts: integer('max_attempts').notNull().default(5),
+  scheduledAt: timestamp('scheduled_at', { withTimezone: true }).notNull().defaultNow(),
+  lockedAt: timestamp('locked_at', { withTimezone: true }),
+  lockedBy: text('locked_by'),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+}, (t) => ({
+  typeKeyIdx: uniqueIndex('job_outbox_type_key_idx').on(t.type, t.idempotencyKey),
+  statusSchedIdx: index('job_outbox_status_sched_idx').on(t.status, t.scheduledAt),
+}));
+
+export const serialNumbers = pgTable('serial_numbers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  serial: text('serial').notNull().unique(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'restrict' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('IN_STOCK'), // IN_STOCK, SOLD, IN_REPAIR, WRITTEN_OFF
+  locationType: locationTypeEnum('location_type'),
+  locationId: uuid('location_id'),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  warrantyExpires: timestamp('warranty_expires', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  productIdx: index('serial_numbers_product_idx').on(t.productId),
+}));
+
+export const stockLots = pgTable('stock_lots', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  batchCode: text('batch_code').notNull(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'restrict' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  locationType: locationTypeEnum('location_type').notNull(),
+  locationId: uuid('location_id').notNull(),
+  qtyOnHand: integer('qty_on_hand').notNull().default(0),
+  expiryDate: timestamp('expiry_date', { withTimezone: true }),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  batchLocIdx: index('stock_lots_batch_loc_idx').on(t.locationId, t.productId),
+  expiryIdx: index('stock_lots_expiry_idx').on(t.expiryDate),
+}));
+
+export const recipes = pgTable('recipes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const recipeLines = pgTable('recipe_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  recipeId: uuid('recipe_id').notNull().references(() => recipes.id, { onDelete: 'cascade' }),
+  ingredientProductId: uuid('ingredient_product_id').notNull().references(() => products.id, { onDelete: 'restrict' }),
+  quantity: numeric('quantity', { precision: 12, scale: 4 }).notNull(),
+  unit: text('unit').notNull().default('ea'),
+});
+
+export const quotations = pgTable('quotations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  quoteNumber: text('quote_number').notNull().unique(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  customerName: text('customer_name').notNull(),
+  customerPhone: text('customer_phone'),
+  status: text('status').notNull().default('DRAFT'), // DRAFT, ISSUED, ACCEPTED, REJECTED, EXPIRED, CONVERTED
+  linesJson: jsonb('lines_json')
+    .$type<Array<{ productId?: string; variantId?: string; name: string; qty: number; unitPrice: number }>>()
+    .notNull()
+    .default([]),
+  subtotal: numeric('subtotal', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  reservationExpiresAt: timestamp('reservation_expires_at', { withTimezone: true }),
+  convertedOrderId: uuid('converted_order_id').references(() => orders.id, { onDelete: 'set null' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index('quotations_status_idx').on(t.status),
+}));
+
+export const approvals = pgTable('approvals', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  token: text('token').notNull().unique(),
+  toolName: text('tool_name').notNull(),
+  description: text('description').notNull(),
+  risk: text('risk').notNull().default('DRAFT'),
+  payloadJson: jsonb('payload_json').$type<Record<string, unknown>>().notNull().default({}),
+  requestedBy: text('requested_by').notNull(),
+  role: text('role').notNull().default('OWNER'),
+  status: text('status').notNull().default('PENDING'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  resolvedBy: text('resolved_by'),
+}, (t) => ({
+  statusIdx: index('approvals_status_idx').on(t.status, t.createdAt),
 }));

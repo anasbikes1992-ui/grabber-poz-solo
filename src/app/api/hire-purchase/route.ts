@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import { db, hirePurchaseContracts, hirePurchaseInstallments } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
+import { buildInstallmentSchedule, computeHirePurchaseArrears } from '@/lib/hire-purchase/arrears';
 
 async function actor() {
   let session = await getSession();
@@ -16,15 +17,46 @@ async function actor() {
 export async function GET() {
   try {
     const rows = await db.select().from(hirePurchaseContracts).orderBy(desc(hirePurchaseContracts.createdAt)).limit(100);
-    return NextResponse.json({
-      success: true,
-      contracts: rows.map((c) => ({
+    const ids = rows.map((r) => r.id);
+    const installments =
+      ids.length > 0
+        ? await db
+            .select()
+            .from(hirePurchaseInstallments)
+            .where(inArray(hirePurchaseInstallments.contractId, ids))
+            .orderBy(desc(hirePurchaseInstallments.paidAt))
+        : [];
+
+    const now = new Date();
+    const contracts = [];
+    let totalArrears = 0;
+
+    for (const c of rows) {
+      const arrears = computeHirePurchaseArrears(c);
+      if (arrears.overdue && c.status === 'ACTIVE') {
+        await db
+          .update(hirePurchaseContracts)
+          .set({ status: 'OVERDUE', updatedAt: now })
+          .where(eq(hirePurchaseContracts.id, c.id));
+        c.status = 'OVERDUE';
+      }
+      totalArrears += arrears.arrearsAmount;
+      contracts.push({
         ...c,
         totalCashPrice: Number(c.totalCashPrice),
         downPayment: Number(c.downPayment),
         monthlyEmi: Number(c.monthlyEmi),
         nextDueDate: c.nextDueDate,
-      })),
+        arrears,
+        schedule: buildInstallmentSchedule(c),
+        installments: installments.filter((i) => i.contractId === c.id),
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      contracts,
+      summary: { totalArrears, overdueCount: contracts.filter((c) => c.arrears.overdue).length },
     });
   } catch (err: unknown) {
     return NextResponse.json({ success: false, error: (err as Error).message, contracts: [] }, { status: 500 });

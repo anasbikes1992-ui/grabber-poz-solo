@@ -53,6 +53,26 @@ export default function WholesalePage() {
     void load();
   }
 
+  async function setStatus(id: string, status: string) {
+    await fetch('/api/quotations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'update_status', status }),
+    });
+    void load();
+  }
+
+  async function convertToOrder(id: string) {
+    const res = await fetch('/api/quotations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'convert_to_order' }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    void load();
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -94,9 +114,36 @@ export default function WholesalePage() {
                 LKR {Number(q.grandTotal).toLocaleString()} · {q.status} · Valid {q.validUntil}
               </div>
             </div>
-            <button type="button" onClick={() => void remove(q.id)} className="text-red-400 text-xs font-bold flex items-center gap-1 self-start">
-              <Trash2 className="w-3.5 h-3.5" /> Delete
-            </button>
+            <div className="flex flex-wrap gap-2 items-start">
+              {q.status !== 'CONVERTED' && (
+                <>
+                  {(['ISSUED', 'ACCEPTED', 'REJECTED'] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => void setStatus(q.id, s)}
+                      className={`px-2 py-1 rounded text-[10px] font-bold border ${
+                        q.status === s ? 'border-purple-400 text-purple-300' : 'border-zinc-700 text-zinc-400'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                  {q.status === 'ACCEPTED' && (
+                    <button
+                      type="button"
+                      onClick={() => void convertToOrder(q.id)}
+                      className="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-bold"
+                    >
+                      Convert to order
+                    </button>
+                  )}
+                </>
+              )}
+              <button type="button" onClick={() => void remove(q.id)} className="text-red-400 text-xs font-bold flex items-center gap-1 self-start">
+                <Trash2 className="w-3.5 h-3.5" /> Delete
+              </button>
+            </div>
           </div>
         ))}
         {filtered.length === 0 && (

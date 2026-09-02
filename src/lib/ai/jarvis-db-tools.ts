@@ -345,4 +345,31 @@ export const JARVIS_DB_TOOLS: JarvisToolDefinition[] = [
       return { query: q, results: rows };
     },
   },
+  {
+    name: 'list_customers_by_segment',
+    description: 'List customers in a CRM segment (NEW, SILVER, GOLD, VIP, LAPSED, or ALL).',
+    risk: 'READ',
+    execute: async (args: { segment?: string; limit?: number }) => {
+      const seg = String(args?.segment || 'ALL').trim().toUpperCase();
+      const limit = Math.min(Math.max(args?.limit ?? 20, 1), 100);
+      const rows =
+        seg === 'ALL'
+          ? await db.select().from(customers).where(eq(customers.active, true)).limit(limit)
+          : await db
+              .select()
+              .from(customers)
+              .where(and(eq(customers.segment, seg), eq(customers.active, true)))
+              .limit(limit);
+      return {
+        segment: seg,
+        count: rows.length,
+        customers: rows.map((c) => ({
+          id: c.id,
+          name: c.name,
+          phone: c.phone,
+          segment: c.segment,
+        })),
+      };
+    },
+  },
 ];

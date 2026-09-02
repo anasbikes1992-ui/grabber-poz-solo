@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { depleteRecipeForProduct } from '@/lib/restaurant/recipe-bom';
 import { asc, desc, eq } from 'drizzle-orm';
 import { db, diningTables, kitchenTickets, branches } from '@/db';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
@@ -140,6 +141,38 @@ export async function PATCH(req: Request) {
         .returning();
       if (ticket?.tableId) {
         await db.update(diningTables).set({ status: 'VACANT' }).where(eq(diningTables.id, ticket.tableId));
+      }
+      return NextResponse.json({ success: true, ticket });
+    }
+
+    if (body.action === 'mark_fired') {
+      const where = body.ticketId
+        ? eq(kitchenTickets.id, body.ticketId)
+        : eq(kitchenTickets.kotNumber, body.kotNumber);
+      const [ticket] = await db.update(kitchenTickets).set({ status: 'FIRED' }).where(where).returning();
+      if (ticket?.tableId) {
+        await db.update(diningTables).set({ status: 'ORDERED' }).where(eq(diningTables.id, ticket.tableId));
+      }
+      return NextResponse.json({ success: true, ticket });
+    }
+
+    if (body.action === 'mark_served') {
+      const where = body.ticketId
+        ? eq(kitchenTickets.id, body.ticketId)
+        : eq(kitchenTickets.kotNumber, body.kotNumber);
+      const [ticket] = await db.update(kitchenTickets).set({ status: 'SERVED' }).where(where).returning();
+      if (ticket) {
+        const items = (ticket.itemsJson as Array<{ productId?: string; qty: number }>) || [];
+        await db.transaction(async (tx) => {
+          for (const item of items) {
+            if (item.productId) {
+              await depleteRecipeForProduct(tx, item.productId, item.qty || 1, ticket.kotNumber);
+            }
+          }
+        });
+      }
+      if (ticket?.tableId) {
+        await db.update(diningTables).set({ status: 'SERVED' }).where(eq(diningTables.id, ticket.tableId));
       }
       return NextResponse.json({ success: true, ticket });
     }

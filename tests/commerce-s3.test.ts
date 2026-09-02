@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolveCheckoutStatuses, applyOrderTransitions } from '../src/lib/commerce/order-lifecycle';
-import { evaluatePromotion, DEFAULT_PROMOTIONS } from '../src/lib/commerce/promotion-engine';
+import { evaluatePromotion, DEFAULT_PROMOTIONS, evaluateCartPromotions } from '../src/lib/commerce/promotion-engine';
 
 describe('order-lifecycle', () => {
   it('POS cash checkout completes immediately', () => {
@@ -55,5 +55,15 @@ describe('promotion-engine', () => {
   it('rejects below minimum spend', () => {
     const r = evaluatePromotion(DEFAULT_PROMOTIONS, 'WELCOME500', 1000);
     expect(r.valid).toBe(false);
+  });
+
+  it('auto-applies IF/THEN storefront cart rule', () => {
+    const r = evaluateCartPromotions(DEFAULT_PROMOTIONS, {
+      subtotal: 15000,
+      itemCount: 3,
+      channel: 'STOREFRONT',
+    });
+    expect(r.valid).toBe(true);
+    expect(r.autoApplied).toBe(true);
   });
 });

@@ -5,6 +5,7 @@
 
 import { JarvisToolDefinition, JarvisUserContext, JarvisToolExecutionResult, JarvisActionRisk } from './jarvis-types';
 import { JARVIS_DB_TOOLS } from './jarvis-db-tools';
+import { executeJarvisDraftApproval } from '@/lib/jarvis/draft-execute';
 import { createApproval, findApprovalByToken } from '@/lib/approvals/approval-store';
 import { db, auditLogs, hasDatabaseUrl } from '@/db';
 import { defaultCommerceService, CommerceService } from '../commerce/commerce-service';
@@ -328,7 +329,10 @@ export class JarvisToolRegistry {
     this.pendingConfirmations.delete(token);
 
     try {
-      const data = await pending.tool.execute(pending.args, pending.context);
+      const data =
+        pending.tool.risk === 'DRAFT'
+          ? await executeJarvisDraftApproval(pending.tool.name, pending.args as Record<string, unknown>, pending.context)
+          : await pending.tool.execute(pending.args, pending.context);
       await writeJarvisExecutionAudit({
         toolName: pending.tool.name,
         risk: pending.tool.risk,

@@ -52,6 +52,8 @@ export default function ProductsCRUDPage() {
   const [variantName, setVariantName] = useState('');
   const [variantSku, setVariantSku] = useState('');
   const [variantStock, setVariantStock] = useState(0);
+  const [matrixSizes, setMatrixSizes] = useState('S,M,L,XL');
+  const [matrixColors, setMatrixColors] = useState('Red,Blue,Black');
 
   const load = useCallback(async () => {
     try {
@@ -128,6 +130,26 @@ export default function ProductsCRUDPage() {
       await load();
     } catch (err) {
       setError((err as Error).message);
+    }
+  };
+
+  const handleMatrixGenerate = async (productId: string) => {
+    setBusy(true);
+    try {
+      const sizes = matrixSizes.split(',').map((s) => s.trim()).filter(Boolean);
+      const colors = matrixColors.split(',').map((c) => c.trim()).filter(Boolean);
+      const res = await fetch('/api/products/matrix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, sizes, colors }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Matrix generation failed');
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -356,6 +378,19 @@ export default function ProductsCRUDPage() {
               <label className="text-xs font-semibold block mb-1">Initial stock</label>
               <input type="number" value={variantStock} onChange={(e) => setVariantStock(Number(e.target.value))} className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm font-mono" />
             </div>
+          </div>
+          <div className="border-t border-zinc-800 pt-3 space-y-2">
+            <p className="text-xs font-semibold text-emerald-400">Size × Color matrix</p>
+            <input value={matrixSizes} onChange={(e) => setMatrixSizes(e.target.value)} placeholder="S,M,L,XL" className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm" />
+            <input value={matrixColors} onChange={(e) => setMatrixColors(e.target.value)} placeholder="Red,Blue,Black" className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm" />
+            <button
+              type="button"
+              disabled={busy || !variantProductId}
+              onClick={() => variantProductId && void handleMatrixGenerate(variantProductId)}
+              className="w-full min-h-10 rounded-xl bg-zinc-800 text-xs font-bold"
+            >
+              Generate matrix variants
+            </button>
           </div>
           <button type="submit" disabled={busy} className="w-full min-h-11 rounded-xl bg-emerald-500 text-zinc-950 text-xs font-bold disabled:opacity-50">
             {busy ? 'Saving…' : 'Save variant'}

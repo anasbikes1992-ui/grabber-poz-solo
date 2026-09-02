@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, businessConfig } from '@/db';
 import { getSession } from '@/lib/auth/session';
+import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
 
 const DEFAULT_FLAGS = {
   repairs: true,
@@ -38,7 +39,18 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
     const body = await req.json();
-    const flags = { ...DEFAULT_FLAGS, ...(body.flags || {}) };
+    let flags = { ...DEFAULT_FLAGS, ...(body.flags || {}) };
+    let vertical: string | undefined;
+
+    if (body.preset) {
+      const preset = VERTICAL_PRESETS[body.preset as VerticalPresetId];
+      if (!preset) {
+        return NextResponse.json({ success: false, error: 'Unknown preset' }, { status: 400 });
+      }
+      flags = { ...DEFAULT_FLAGS, ...preset.flags };
+      vertical = preset.vertical;
+    }
+
     const existing = await db.select().from(businessConfig).limit(1);
     if (existing[0]) {
       const prev = (existing[0].configJson || {}) as Record<string, unknown>;
@@ -46,6 +58,7 @@ export async function PUT(req: Request) {
         .update(businessConfig)
         .set({
           configJson: { ...prev, verticalFlags: flags },
+          ...(vertical ? { vertical } : {}),
           enableTableService: Boolean(flags.restaurant),
           enableKitchenOrders: Boolean(flags.restaurant),
           updatedAt: new Date(),
@@ -53,12 +66,13 @@ export async function PUT(req: Request) {
         .where(eq(businessConfig.id, existing[0].id));
     } else {
       await db.insert(businessConfig).values({
+        vertical: vertical || 'multi',
         configJson: { verticalFlags: flags },
         enableTableService: Boolean(flags.restaurant),
         enableKitchenOrders: Boolean(flags.restaurant),
       });
     }
-    return NextResponse.json({ success: true, flags });
+    return NextResponse.json({ success: true, flags, vertical: vertical || existing[0]?.vertical });
   } catch (err: unknown) {
     const e = err as { message?: string };
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
