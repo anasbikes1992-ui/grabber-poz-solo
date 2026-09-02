@@ -62,7 +62,23 @@ export async function POST(req: Request) {
         });
 
         const reply = await handleInboundWhatsAppGreeting(m.from, m.text);
-        if (reply.handled) autoReplies += reply.sent;
+        if (reply.handled) {
+          autoReplies += reply.sent;
+          if (reply.sent === 0 && reply.results?.length) {
+            const err = reply.results.find((r) => !r.success);
+            await appendAutomationLog({
+              ruleId: 'whatsapp_inbound',
+              event: 'CUSTOMER_CREATED',
+              status: 'FAILED',
+              idempotencyKey: `${inboundIdempotencyKey(m.from, m.messageId, m.text)}_reply`,
+              detail: {
+                from: m.from,
+                error: err && 'error' in err ? err.error : 'Auto-reply send failed',
+                inbound: true,
+              },
+            }).catch(() => undefined);
+          }
+        }
       }
     }
 

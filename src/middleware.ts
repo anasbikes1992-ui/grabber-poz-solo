@@ -19,6 +19,7 @@ const PUBLIC_PREFIXES = [
   '/api/storefront/search',
   '/api/config/flags',
   '/api/repairs/public',
+  '/api/cron/',
 ];
 
 /** Crawlable storefront product detail pages (not staff /products admin) */
@@ -60,6 +61,7 @@ const STAFF_PREFIXES = [
   '/discounts',
   '/barcodes',
   '/approvals',
+  '/ops',
   '/settings/automation',
   '/store/builder',
 ];

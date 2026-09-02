@@ -1,4 +1,4 @@
-import { sendWhatsAppText } from '@/lib/integrations/whatsapp';
+import { isWhatsAppConfigured, sendWhatsAppText } from '@/lib/integrations/whatsapp';
 import { listWhatsAppTemplates, renderTemplate } from '@/lib/whatsapp/templates';
 
 /** Placeholder seeded in demo config — override via NEXT_PUBLIC_WHATSAPP_NUMBER or Store Builder. */
@@ -60,5 +60,5 @@ export async function handleInboundWhatsAppGreeting(from: string, inboundText: s
     if (result.success) sent += 1;
   }
 
-  return { handled: true as const, sent, results };
+  return { handled: true as const, sent, results, configured: isWhatsAppConfigured() };
 }

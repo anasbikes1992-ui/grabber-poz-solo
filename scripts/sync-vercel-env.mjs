@@ -36,7 +36,7 @@ if (!env('WHATSAPP_TOKEN') && env('WHATSAPP_ACCESS_TOKEN')) {
 }
 
 const PROJECT = env('VERCEL_PROJECT') || 'grabber-poz-solo';
-const TARGETS = args.has('--preview') ? ['production', 'preview'] : ['production'];
+const TARGETS = args.has('--production-only') ? ['production'] : ['production', 'preview'];
 
 function normalizeDatabaseUrl(raw) {
   if (!raw) return null;
@@ -106,6 +106,8 @@ const OPTIONAL_VARS = [
   ['NEXT_PUBLIC_GOOGLE_ANALYTICS_ID', env('NEXT_PUBLIC_GOOGLE_ANALYTICS_ID')],
   ['NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID', env('NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID')],
   ['NEXT_PUBLIC_TIKTOK_PIXEL_ID', env('NEXT_PUBLIC_TIKTOK_PIXEL_ID')],
+  ['CRON_SECRET', env('CRON_SECRET')],
+  ['NEXT_PUBLIC_WHATSAPP_NUMBER', env('NEXT_PUBLIC_WHATSAPP_NUMBER')],
 ].filter(([, v]) => typeof v === 'string' && v.length > 0);
 
 const VARS = [
