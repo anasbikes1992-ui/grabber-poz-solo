@@ -12,6 +12,10 @@ export type StorefrontBlock =
       ctaLabel?: string;
       secondaryCtaLabel?: string;
       secondaryCtaHref?: string;
+      /** Hero banner media from Creative Studio or manual URL. */
+      heroMediaType?: 'none' | 'image' | 'video';
+      heroMediaUrl?: string;
+      heroMediaPosterUrl?: string;
       slot: 'HERO';
       enabled?: boolean;
     }
@@ -46,12 +50,28 @@ export type StorefrontBlock =
       enabled?: boolean;
     };
 
+export type StorefrontHeroStyle = 'classic' | 'cinematic' | 'glass' | 'minimal' | 'bold';
+export type StorefrontCardStyle = 'glass' | 'flat' | 'elevated';
+export type StorefrontColorScheme = 'light' | 'dark';
+
 export type StorefrontTheme = {
+  /** Preset id from theme-presets.ts (grabber, spindrift, hearth, …). */
+  presetId?: string;
   primaryColor: string;
   accentColor: string;
   secondaryColor?: string;
+  backgroundColor?: string;
+  foregroundColor?: string;
+  mutedColor?: string;
+  borderColor?: string;
+  onPrimaryColor?: string;
+  repairColor?: string;
   fontFamily: string;
   whatsappNumber?: string;
+  heroStyle?: StorefrontHeroStyle;
+  heroGradient?: string;
+  cardStyle?: StorefrontCardStyle;
+  colorScheme?: StorefrontColorScheme;
 };
 
 export type StorefrontConfig = {
@@ -61,10 +81,22 @@ export type StorefrontConfig = {
 
 export const DEFAULT_STOREFRONT: StorefrontConfig = {
   theme: {
+    presetId: 'grabber',
     primaryColor: '#1C1917',
     accentColor: '#A16207',
     secondaryColor: '#44403C',
+    backgroundColor: '#FAFAF9',
+    foregroundColor: '#0C0A09',
+    mutedColor: '#E8ECF0',
+    borderColor: '#D6D3D1',
+    onPrimaryColor: '#FFFFFF',
+    repairColor: '#0F766E',
     fontFamily: 'Rubik, Nunito Sans',
+    heroStyle: 'classic',
+    heroGradient:
+      'linear-gradient(120deg, rgba(161,98,7,0.10) 0%, transparent 55%), radial-gradient(ellipse at 80% 0%, rgba(161,98,7,0.06) 0%, transparent 50%)',
+    cardStyle: 'elevated',
+    colorScheme: 'light',
     whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim() || undefined,
   },
   blocks: [
@@ -119,6 +151,7 @@ export function normalizeBlock(raw: Record<string, unknown>): StorefrontBlock | 
     return { id, type: 'ANNOUNCEMENT', text: String(raw.text || ''), slot: 'TOP', enabled };
   }
   if (type === 'HERO') {
+    const mediaType = raw.heroMediaType as 'none' | 'image' | 'video' | undefined;
     return {
       id,
       type: 'HERO',
@@ -127,6 +160,9 @@ export function normalizeBlock(raw: Record<string, unknown>): StorefrontBlock | 
       ctaLabel: raw.ctaLabel ? String(raw.ctaLabel) : undefined,
       secondaryCtaLabel: raw.secondaryCtaLabel ? String(raw.secondaryCtaLabel) : undefined,
       secondaryCtaHref: raw.secondaryCtaHref ? String(raw.secondaryCtaHref) : undefined,
+      heroMediaType: mediaType && ['none', 'image', 'video'].includes(mediaType) ? mediaType : undefined,
+      heroMediaUrl: raw.heroMediaUrl ? String(raw.heroMediaUrl) : undefined,
+      heroMediaPosterUrl: raw.heroMediaPosterUrl ? String(raw.heroMediaPosterUrl) : undefined,
       slot: 'HERO',
       enabled,
     };

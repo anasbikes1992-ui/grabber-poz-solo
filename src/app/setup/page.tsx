@@ -14,6 +14,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
+import { POS_MODE_LABELS, PRODUCT_ITEM_TYPE_LABELS } from '@/lib/config/product-item-types';
 
 type Step = {
   id: string;
@@ -160,10 +161,12 @@ export default function SetupPage() {
           <Layers className="w-4 h-4 text-emerald-400" /> Vertical preset
         </h2>
         <p className="text-xs text-zinc-400">
-          One-click module toggles for your business type. You can fine-tune flags later in Settings.
+          Hybrid presets + composable module flags. Pick your business nature — fine-tune individual modules in Settings → Verticals.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {(Object.keys(VERTICAL_PRESETS) as VerticalPresetId[]).map((id) => (
+          {(Object.keys(VERTICAL_PRESETS) as VerticalPresetId[]).map((id) => {
+            const preset = VERTICAL_PRESETS[id];
+            return (
             <button
               key={id}
               type="button"
@@ -171,11 +174,25 @@ export default function SetupPage() {
               onClick={() => void applyPreset(id)}
               className="text-left p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 hover:border-emerald-500/40 disabled:opacity-50"
             >
-              <div className="font-bold text-white text-xs">{VERTICAL_PRESETS[id].label}</div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">{VERTICAL_PRESETS[id].description}</div>
+              <div className="font-bold text-white text-xs">{preset.label}</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">{preset.description}</div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {Object.entries(preset.flags)
+                  .filter(([, on]) => on)
+                  .map(([key]) => (
+                    <span key={key} className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold">
+                      {key}
+                    </span>
+                  ))}
+              </div>
+              <p className="text-[9px] text-zinc-600 mt-2 line-clamp-2">
+                Items: {preset.itemTypes.map((t) => PRODUCT_ITEM_TYPE_LABELS[t].split(' ')[0]).join(', ')} · POS:{' '}
+                {preset.posModes.map((m) => POS_MODE_LABELS[m].split(' ')[0]).join(', ')}
+              </p>
               {applyingPreset === id && <div className="text-[10px] text-emerald-400 mt-1">Applying…</div>}
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 

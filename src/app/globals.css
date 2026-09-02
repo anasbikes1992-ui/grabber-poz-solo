@@ -200,6 +200,43 @@
   font-family: var(--font-rubik), var(--font-plus-jakarta), system-ui, sans-serif;
 }
 
+.storefront[data-hero-style='cinematic'] .storefront-hero {
+  min-height: 22rem;
+}
+
+.storefront[data-hero-style='cinematic'] .storefront-hero h1 {
+  letter-spacing: -0.03em;
+}
+
+.storefront[data-hero-style='minimal'] .storefront-hero {
+  border-bottom-width: 0;
+}
+
+.storefront[data-hero-style='bold'] .storefront-hero h1 {
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.storefront[data-card-style='glass'] .storefront-hero-card {
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.45);
+}
+
+.storefront[data-card-style='flat'] .storefront-hero-card {
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.storefront[data-color-scheme='dark'] .field-input {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sf-foreground);
+  border-color: var(--sf-border);
+}
+
+.storefront[data-color-scheme='dark'] ::selection {
+  background: var(--sf-accent);
+  color: var(--sf-background);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .storefront *,
   .storefront *::before,

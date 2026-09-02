@@ -1,9 +1,15 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Eye, Layers, MessageCircle, Palette, Save, CheckCircle2 } from 'lucide-react';
+import { Eye, Layers, MessageCircle, Palette, Save, CheckCircle2, Sparkles } from 'lucide-react';
 import type { StorefrontBlock, StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
+import {
+  applyStorefrontThemePreset,
+  listStorefrontThemePresets,
+  resolveStorefrontTheme,
+} from '@/lib/storefront/theme-presets';
+import { storefrontThemeStyle } from '@/lib/storefront/theme-vars';
 
 const SLOT_LABELS: Record<string, string> = {
   TOP: 'Top announcement bar',
@@ -91,6 +97,13 @@ export default function StoreBuilderPage() {
   const mid = config.blocks.find((b) => b.type === 'MID_BANNER') || config.blocks.find((b) => b.type === 'VERTICAL_PROMO');
   const footer = config.blocks.find((b) => b.type === 'FOOTER_CTA');
   const featured = config.blocks.find((b) => b.type === 'FEATURED');
+  const presets = listStorefrontThemePresets();
+  const resolvedTheme = resolveStorefrontTheme(config.theme);
+  const activePresetId = config.theme.presetId || 'grabber';
+
+  function selectPreset(presetId: string, updateHeroCopy: boolean) {
+    setConfig((prev) => applyStorefrontThemePreset(prev, presetId, { updateHeroCopy }));
+  }
 
   return (
     <div className="space-y-6">
@@ -126,6 +139,53 @@ export default function StoreBuilderPage() {
             <Palette className="h-4 w-4 text-primary" />
             Theme & banners
           </h3>
+
+          <div>
+            <label className="mb-2 flex items-center gap-1.5 font-medium text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5" />
+              Store theme (VULK-inspired presets)
+            </label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {presets.map((preset) => {
+                const active = activePresetId === preset.id;
+                const swatch = resolveStorefrontTheme(preset.theme);
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => selectPreset(preset.id, false)}
+                    className={`rounded-xl border p-2 text-left transition-all ${
+                      active
+                        ? 'border-primary ring-2 ring-primary/30'
+                        : 'border-border hover:border-primary/40'
+                    }`}
+                    title={preset.description}
+                  >
+                    <div
+                      className="mb-1.5 h-8 w-full rounded-lg border border-black/10"
+                      style={{
+                        background: `linear-gradient(135deg, ${swatch.backgroundColor} 40%, ${swatch.accentColor} 100%)`,
+                      }}
+                    />
+                    <p className="truncate text-[11px] font-bold text-foreground">{preset.label}</p>
+                    <p className="line-clamp-2 text-[9px] leading-tight text-muted-foreground">{preset.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => selectPreset(activePresetId, true)}
+                className="rounded-lg border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Apply preset hero copy
+              </button>
+              <span className="text-[10px] text-muted-foreground">
+                Active: <strong>{presets.find((p) => p.id === activePresetId)?.label ?? activePresetId}</strong>
+              </span>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -178,6 +238,47 @@ export default function StoreBuilderPage() {
                   className="w-full rounded-xl border border-border bg-secondary px-3 py-2 font-medium text-foreground"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block font-medium text-muted-foreground">Hero banner type</label>
+                  <select
+                    value={hero.heroMediaType || 'none'}
+                    onChange={(e) =>
+                      patchBlock(hero.id, {
+                        heroMediaType: e.target.value as 'none' | 'image' | 'video',
+                      })
+                    }
+                    className="w-full rounded-xl border border-border bg-secondary px-3 py-2 font-medium text-foreground"
+                  >
+                    <option value="none">Text + gradient only</option>
+                    <option value="image">Photo banner</option>
+                    <option value="video">Video banner</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block font-medium text-muted-foreground">Poster / thumbnail URL</label>
+                  <input
+                    value={hero.heroMediaPosterUrl || ''}
+                    onChange={(e) => patchBlock(hero.id, { heroMediaPosterUrl: e.target.value })}
+                    placeholder="Optional for video"
+                    className="w-full rounded-xl border border-border bg-secondary px-3 py-2 font-mono text-[10px] text-foreground"
+                  />
+                </div>
+              </div>
+              {(hero.heroMediaType === 'image' || hero.heroMediaType === 'video') && (
+                <div>
+                  <label className="mb-1 block font-medium text-muted-foreground">Hero media URL (.jpg / .mp4)</label>
+                  <input
+                    value={hero.heroMediaUrl || ''}
+                    onChange={(e) => patchBlock(hero.id, { heroMediaUrl: e.target.value })}
+                    placeholder="https://…/hero.mp4"
+                    className="w-full rounded-xl border border-border bg-secondary px-3 py-2 font-mono text-[10px] text-foreground"
+                  />
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    Set from Creative Studio after Gemini render, or paste CDN URL here.
+                  </p>
+                </div>
+              )}
             </>
           )}
 
@@ -256,30 +357,60 @@ export default function StoreBuilderPage() {
           </h3>
           <div className="overflow-hidden rounded-2xl border border-border/80 bg-background shadow-inner">
             {ann?.type === 'ANNOUNCEMENT' && (
-              <div className="px-3 py-1.5 text-center text-[10px] font-semibold text-white" style={{ background: config.theme.primaryColor }}>
+              <div
+                className="px-3 py-1.5 text-center text-[10px] font-semibold"
+                style={{
+                  background: resolvedTheme.primaryColor,
+                  color: resolvedTheme.onPrimaryColor ?? '#fff',
+                }}
+              >
                 {ann.text}
               </div>
             )}
-            <div className="space-y-2 p-6" style={{ background: `linear-gradient(120deg, ${config.theme.accentColor}14, transparent)` }}>
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--sf-accent)]">HERO</span>
-              <h3 className="text-lg font-bold" style={{ color: config.theme.primaryColor }}>
+            <div
+              className="space-y-2 p-6"
+              style={{
+                ...storefrontThemeStyle(resolvedTheme),
+                background: resolvedTheme.heroGradient,
+                color: resolvedTheme.foregroundColor,
+              }}
+            >
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: resolvedTheme.accentColor }}>
+                HERO
+              </span>
+              <h3 className="text-lg font-bold" style={{ color: resolvedTheme.foregroundColor }}>
                 {hero?.type === 'HERO' ? hero.title : 'Hero'}
               </h3>
               <p className="max-w-md text-[11px] leading-relaxed opacity-80">{hero?.type === 'HERO' ? hero.subtitle : ''}</p>
             </div>
             {mid && (
-              <div className="border-t border-border/50 bg-muted/30 px-6 py-4">
+              <div
+                className="border-t px-6 py-4"
+                style={{
+                  borderColor: resolvedTheme.borderColor,
+                  background: resolvedTheme.mutedColor,
+                }}
+              >
                 <p className="text-[9px] font-semibold uppercase text-muted-foreground">MID</p>
                 <p className="text-sm font-bold">{mid.title}</p>
               </div>
             )}
             {footer?.type === 'FOOTER_CTA' && (
-              <div className="flex items-center justify-between gap-3 px-6 py-4 text-white" style={{ background: config.theme.primaryColor }}>
+              <div
+                className="flex items-center justify-between gap-3 px-6 py-4"
+                style={{
+                  background: resolvedTheme.primaryColor,
+                  color: resolvedTheme.onPrimaryColor ?? '#fff',
+                }}
+              >
                 <div>
                   <p className="text-sm font-bold">{footer.title}</p>
                   <p className="text-[10px] opacity-80">{footer.body}</p>
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-[10px] font-bold" style={{ color: config.theme.primaryColor }}>
+                <span
+                  className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-[10px] font-bold"
+                  style={{ color: resolvedTheme.primaryColor }}
+                >
                   <MessageCircle className="h-3 w-3" /> WhatsApp
                 </span>
               </div>

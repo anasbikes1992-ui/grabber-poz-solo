@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 import { createCreativeProject } from '@/lib/creative/creative-repo';
 import { readBrandBrain } from '@/lib/creative/brand-brain';
+import { buildGeminiVideoPrompt } from '@/lib/creative/marketing-yatra-prompts';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,14 +14,51 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { prompt, productName, productId, format, aspectRatio, duration } = body;
-    if (!prompt) {
-      return NextResponse.json({ success: false, error: 'Prompt is required' }, { status: 400 });
-    }
+    const {
+      prompt: rawPrompt,
+      commandId,
+      productName,
+      productId,
+      productImageUrl,
+      stylingHints,
+      format,
+      aspectRatio,
+      duration,
+    } = body;
 
     const brand = await readBrandBrain();
-    const title = `${productName || 'Campaign'} · ${format || 'SHORT_FORM_30S'}`;
-    const scriptSummary = `${brand.voice}: ${prompt.slice(0, 180)}`;
+    let visualPrompt = rawPrompt as string | undefined;
+    let geminiCommand: string | undefined;
+    let resolvedCommandId = commandId as string | undefined;
+    let heroMediaType: 'image' | 'video' | undefined;
+
+    let builtPrompt: ReturnType<typeof buildGeminiVideoPrompt> | undefined;
+
+    if (commandId) {
+      builtPrompt = buildGeminiVideoPrompt({
+        commandId,
+        productName: productName || 'Product',
+        productImageUrl,
+        stylingHints,
+        brandVoice: brand.voice,
+      });
+      visualPrompt = builtPrompt.visualPrompt;
+      geminiCommand = builtPrompt.geminiCommand;
+      resolvedCommandId = builtPrompt.prompt.id;
+      heroMediaType = builtPrompt.prompt.heroMediaType;
+    }
+
+    if (!visualPrompt?.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Prompt or commandId is required' },
+        { status: 400 },
+      );
+    }
+
+    const resolvedFormat = format || builtPrompt?.prompt.suggestedFormat || 'SHORT_FORM_30S';
+    const resolvedAspect = aspectRatio || builtPrompt?.prompt.suggestedAspectRatio || '9:16';
+    const title = `${productName || 'Campaign'} · ${resolvedCommandId || resolvedFormat || 'SHORT_FORM_30S'}`;
+    const scriptSummary = `${brand.voice}: ${visualPrompt.slice(0, 220)}`;
 
     const hasPipeline =
       Boolean(process.env.FAL_KEY || process.env.REPLICATE_API_TOKEN || process.env.CLOUDINARY_URL);
@@ -28,13 +66,35 @@ export async function POST(req: NextRequest) {
     const { project, job } = await createCreativeProject({
       title,
       productId: productId || null,
-      format: format || 'SHORT_FORM_30S',
-      aspectRatio: aspectRatio || '9:16',
-      visualPrompt: prompt,
+      format: resolvedFormat,
+      aspectRatio: resolvedAspect,
+      visualPrompt,
       productName,
+      productImageUrl,
+      commandId: resolvedCommandId,
+      geminiCommand,
+      heroMediaType,
       createdBy: session?.userId || null,
       scriptSummary,
     });
+
+    const responseBase = {
+      success: true as const,
+      jobId: job.id,
+      projectId: project.id,
+      productName: productName || 'Grabber Retail Product',
+      format: resolvedFormat,
+      aspectRatio: resolvedAspect,
+      durationSeconds: duration || 15.0,
+      videoUrl: null as string | null,
+      scriptSummary,
+      visualPrompt,
+      geminiCommand,
+      commandId: resolvedCommandId,
+      heroMediaType,
+      productImageUrl: productImageUrl || null,
+      createdAt: new Date().toISOString(),
+    };
 
     if (!hasPipeline) {
       if (process.env.NODE_ENV === 'production') {
@@ -47,35 +107,17 @@ export async function POST(req: NextRequest) {
         );
       }
       return NextResponse.json({
-        success: true,
+        ...responseBase,
         stub: true,
-        jobId: job.id,
-        projectId: project.id,
         status: 'QUEUED_STUB',
-        productName: productName || 'Grabber Retail Product',
-        format: format || 'SHORT_FORM_30S',
-        aspectRatio: aspectRatio || '9:16',
-        durationSeconds: duration || 15.0,
-        videoUrl: null,
-        note: 'Dev stub — project saved to DB. Configure a media provider to render.',
-        scriptSummary,
-        createdAt: new Date().toISOString(),
+        note: 'Dev stub — project saved to DB. Paste geminiCommand into Gemini with your product photo.',
       });
     }
 
     return NextResponse.json({
-      success: true,
-      jobId: job.id,
-      projectId: project.id,
+      ...responseBase,
       status: 'QUEUED',
-      productName: productName || 'Grabber Retail Product',
-      format: format || 'SHORT_FORM_30S',
-      aspectRatio: aspectRatio || '9:16',
-      durationSeconds: duration || 15.0,
-      videoUrl: null,
       note: 'Job queued in database — wire provider dispatcher for outputUrl',
-      scriptSummary,
-      createdAt: new Date().toISOString(),
     });
   } catch (error: unknown) {
     return NextResponse.json(

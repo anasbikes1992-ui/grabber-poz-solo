@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Settings, Download, Database, ShieldCheck, CheckCircle2, FileSpreadsheet, Key, CreditCard, Truck, MessageSquare, Sparkles, Check, RefreshCw, Layers } from 'lucide-react';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
+import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
 
 type BusinessProfile = {
   name: string;
@@ -44,6 +45,7 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
   const [flagsSaveSuccess, setFlagsSaveSuccess] = useState(false);
+  const [applyingPreset, setApplyingPreset] = useState<string | null>(null);
 
   const loadSettings = useCallback(async () => {
     setProfileLoading(true);
@@ -115,6 +117,25 @@ export default function SettingsPage() {
       setTimeout(() => setFlagsSaveSuccess(false), 2000);
     }
   };
+
+  async function applyBusinessPreset(presetId: VerticalPresetId) {
+    setApplyingPreset(presetId);
+    try {
+      const res = await fetch('/api/config/flags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preset: presetId }),
+      });
+      const data = await res.json();
+      if (data.success && data.flags) {
+        setVerticalFlags({ ...DEFAULT_VERTICAL_FLAGS, ...data.flags });
+        setFlagsSaveSuccess(true);
+        setTimeout(() => setFlagsSaveSuccess(false), 2000);
+      }
+    } finally {
+      setApplyingPreset(null);
+    }
+  }
 
   const handleSaveIntegrations = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,6 +374,30 @@ export default function SettingsPage() {
 
       {activeTab === 'VERTICALS' && (
         <div className="space-y-4">
+          <div className="rounded-2xl glass-card p-6 text-xs space-y-3">
+            <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
+              <Layers className="h-4 w-4 text-emerald-500" /> Business nature presets
+            </h3>
+            <p className="text-muted-foreground">
+              Presets auto-configure capability modules, item types, and POS modes. Polim Potha credit ledger is always on.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(Object.keys(VERTICAL_PRESETS) as VerticalPresetId[]).map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={Boolean(applyingPreset)}
+                  onClick={() => void applyBusinessPreset(id)}
+                  className="rounded-xl border border-border bg-secondary/40 p-3 text-left hover:border-emerald-500/40 disabled:opacity-50"
+                >
+                  <p className="font-bold text-foreground">{VERTICAL_PRESETS[id].label}</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">{VERTICAL_PRESETS[id].natureOfBusiness}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground line-clamp-2">{VERTICAL_PRESETS[id].adaptedWorkflows[0]}</p>
+                  {applyingPreset === id && <p className="mt-1 text-[10px] text-emerald-600">Applying…</p>}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="rounded-2xl glass-card p-6 text-xs space-y-4">
             <h3 className="font-bold text-sm text-foreground">Enabled vertical modules</h3>
             <p className="text-muted-foreground">

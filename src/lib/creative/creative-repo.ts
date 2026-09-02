@@ -10,8 +10,12 @@ export type CreateCreativeInput = {
   aspectRatio?: string;
   visualPrompt: string;
   productName?: string;
+  productImageUrl?: string;
+  commandId?: string;
+  geminiCommand?: string;
   createdBy?: string | null;
   scriptSummary?: string;
+  heroMediaType?: 'image' | 'video';
 };
 
 export async function listCreativeProjects(limit = 20) {
@@ -59,6 +63,9 @@ export async function approveCreativeCampaign(projectId: string, draft: {
   announcement?: string;
   heroTitle?: string;
   heroSubtitle?: string;
+  heroMediaType?: 'none' | 'image' | 'video';
+  heroMediaUrl?: string;
+  heroMediaPosterUrl?: string;
 }) {
   const data = await getCreativeProject(projectId);
   if (!data) throw new Error('Creative project not found');
@@ -81,6 +88,9 @@ export async function approveCreativeCampaign(projectId: string, draft: {
       title: heroTitle,
       subtitle: heroSubtitle,
       ctaLabel: 'Shop now',
+      heroMediaType: draft.heroMediaType ?? (draft.heroMediaUrl ? 'video' : 'none'),
+      heroMediaUrl: draft.heroMediaUrl,
+      heroMediaPosterUrl: draft.heroMediaPosterUrl,
       slot: 'HERO' as const,
       enabled: true,
     },

@@ -1,24 +1,20 @@
 /**
  * Vertical feature flags — shared client helper.
+ * Presets live in vertical-presets.ts; Polim Potha ledger is always on (core).
  */
-export type VerticalFlags = {
-  repairs: boolean;
-  restaurant: boolean;
-  hirePurchase: boolean;
-  appointments: boolean;
-  loyalty: boolean;
-  wholesale: boolean;
-  whatsapp: boolean;
-  creative: boolean;
-};
+import type { VerticalFlags as PresetVerticalFlags } from '@/lib/config/vertical-presets';
 
+export type VerticalFlags = PresetVerticalFlags;
+
+/** Conservative retail defaults when API unavailable (not demo-all-on). */
 export const DEFAULT_VERTICAL_FLAGS: VerticalFlags = {
-  repairs: true,
-  restaurant: true,
-  hirePurchase: true,
-  appointments: true,
+  repairs: false,
+  restaurant: false,
+  hirePurchase: false,
+  appointments: false,
   loyalty: true,
-  wholesale: true,
+  wholesale: false,
+  grocery: false,
   whatsapp: true,
   creative: true,
 };

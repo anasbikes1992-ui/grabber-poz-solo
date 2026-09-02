@@ -24,6 +24,7 @@ describe('agent registry', () => {
       appointments: false,
       loyalty: false,
       wholesale: false,
+      grocery: false,
       whatsapp: false,
       creative: false,
     });
@@ -34,7 +35,13 @@ describe('agent registry', () => {
   });
 
   it('includes vertical agents when flags on', () => {
-    const enabled = listEnabledAgents(DEFAULT_VERTICAL_FLAGS);
+    const enabled = listEnabledAgents({
+      ...DEFAULT_VERTICAL_FLAGS,
+      repairs: true,
+      hirePurchase: true,
+      loyalty: true,
+      creative: true,
+    });
     const ids = enabled.map((a) => a.id);
     expect(ids).toContain('HIRE_PURCHASE');
     expect(ids).toContain('LOYALTY');

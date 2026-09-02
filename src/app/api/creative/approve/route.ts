@@ -20,6 +20,9 @@ export async function POST(req: Request) {
       announcement: body.announcement,
       heroTitle: body.heroTitle,
       heroSubtitle: body.heroSubtitle,
+      heroMediaType: body.heroMediaType,
+      heroMediaUrl: body.heroMediaUrl,
+      heroMediaPosterUrl: body.heroMediaPosterUrl,
     });
 
     return NextResponse.json({ success: true, ...result });

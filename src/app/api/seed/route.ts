@@ -275,6 +275,7 @@ export async function POST(req: Request) {
           appointments: true,
           loyalty: true,
           wholesale: true,
+          grocery: true,
           whatsapp: true,
           creative: true,
         };

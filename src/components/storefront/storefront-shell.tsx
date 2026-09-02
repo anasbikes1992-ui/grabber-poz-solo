@@ -8,7 +8,7 @@ import { BrandLogo } from '@/components/ui/brand-logo';
 import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
-import { storefrontThemeStyle, whatsappHref } from '@/lib/storefront/theme-vars';
+import { storefrontThemeStyle, storefrontThemeAttrs, whatsappHref } from '@/lib/storefront/theme-vars';
 
 type Shopper = { id: string; name: string; phone: string | null; email: string | null };
 
@@ -66,6 +66,7 @@ export function StorefrontShell({
   return (
     <div
       data-surface="storefront"
+      {...storefrontThemeAttrs(cms.theme)}
       style={storefrontThemeStyle(cms.theme)}
       className="storefront min-h-screen bg-[var(--sf-background)] pb-20 text-[var(--sf-foreground)] md:pb-0"
     >

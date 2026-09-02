@@ -5,12 +5,13 @@ import { getSession } from '@/lib/auth/session';
 import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
 
 const DEFAULT_FLAGS = {
-  repairs: true,
-  restaurant: true,
-  hirePurchase: true,
-  appointments: true,
+  repairs: false,
+  restaurant: false,
+  hirePurchase: false,
+  appointments: false,
   loyalty: true,
-  wholesale: true,
+  wholesale: false,
+  grocery: false,
   whatsapp: true,
   creative: true,
 };
@@ -24,6 +25,7 @@ export async function GET() {
       success: true,
       flags,
       vertical: rows[0]?.vertical,
+      preset: (cfg.verticalPreset as string) || undefined,
       enableCreditSales: rows[0]?.enableCreditSales ?? true,
       enableDelivery: rows[0]?.enableDelivery ?? true,
     });
@@ -57,7 +59,11 @@ export async function PUT(req: Request) {
       await db
         .update(businessConfig)
         .set({
-          configJson: { ...prev, verticalFlags: flags },
+          configJson: {
+            ...prev,
+            verticalFlags: flags,
+            ...(body.preset ? { verticalPreset: body.preset } : {}),
+          },
           ...(vertical ? { vertical } : {}),
           enableTableService: Boolean(flags.restaurant),
           enableKitchenOrders: Boolean(flags.restaurant),
@@ -67,7 +73,7 @@ export async function PUT(req: Request) {
     } else {
       await db.insert(businessConfig).values({
         vertical: vertical || 'multi',
-        configJson: { verticalFlags: flags },
+        configJson: { verticalFlags: flags, ...(body.preset ? { verticalPreset: body.preset } : {}) },
         enableTableService: Boolean(flags.restaurant),
         enableKitchenOrders: Boolean(flags.restaurant),
       });

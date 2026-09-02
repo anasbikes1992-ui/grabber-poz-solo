@@ -227,8 +227,32 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   return (
     <StorefrontShell cms={cms} verticalFlags={verticalFlags}>
       <div>
-        <section className="relative overflow-hidden border-b border-[var(--sf-border)]">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(161,98,7,0.08),transparent_50%)]" />
+        <section className="storefront-hero relative overflow-hidden border-b border-[var(--sf-border)]">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: 'var(--sf-hero-gradient)' }}
+            aria-hidden
+          />
+          {hero?.heroMediaType === 'video' && hero.heroMediaUrl && (
+            <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-40" aria-hidden>
+              <video
+                className="h-full w-full object-cover"
+                src={hero.heroMediaUrl}
+                poster={hero.heroMediaPosterUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
+            </div>
+          )}
+          {hero?.heroMediaType === 'image' && hero.heroMediaUrl && (
+            <div
+              className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-30"
+              style={{ backgroundImage: `url(${hero.heroMediaUrl})` }}
+              aria-hidden
+            />
+          )}
           <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:py-20">
             <motion.div {...motionProps}>
               <motion.p
@@ -262,7 +286,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                 {verticalFlags.repairs && (
                   <Link
                     href={hero?.secondaryCtaHref || '/shop/repairs'}
-                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-repair)] bg-[var(--sf-repair-muted)] px-6 py-3 text-sm font-semibold text-[var(--sf-repair)] transition-colors duration-200 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-repair)] bg-[var(--sf-repair-muted)] px-6 py-3 text-sm font-semibold text-[var(--sf-repair)] transition-colors duration-200 hover:bg-[var(--sf-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
                   >
                     {hero?.secondaryCtaLabel || 'Device repairs'}
                   </Link>
@@ -272,7 +296,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                     href={waOrder}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-white/80 px-6 py-3 text-sm font-semibold text-[var(--sf-primary)] transition-colors duration-200 hover:bg-white"
+                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-6 py-3 text-sm font-semibold text-[var(--sf-primary)] transition-colors duration-200 hover:opacity-90"
                   >
                     WhatsApp order
                   </a>
@@ -280,7 +304,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                 {!shopper && (
                   <Link
                     href="/shop/login"
-                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-white/80 px-6 py-3 text-sm font-semibold text-[var(--sf-primary)] transition-colors duration-200 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-6 py-3 text-sm font-semibold text-[var(--sf-primary)] transition-colors duration-200 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
                   >
                     Create account
                   </Link>
@@ -291,7 +315,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
               variants={reduceMotion ? undefined : heroItem}
               initial={reduceMotion ? undefined : 'hidden'}
               animate={reduceMotion ? undefined : 'show'}
-              className="rounded-3xl border border-white/60 bg-white/70 p-6 shadow-xl backdrop-blur"
+              className="storefront-hero-card rounded-3xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] p-6 shadow-xl backdrop-blur"
             >
               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-secondary)]">Your bag</p>
               <p className="mt-2 font-display text-3xl font-bold text-[var(--sf-primary)]">{money(totals.subtotal)}</p>
@@ -343,7 +367,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search name, SKU, barcode…"
-                className="w-full min-h-11 rounded-2xl border border-[var(--sf-border)] bg-white px-4 py-2.5 shadow-sm outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]/30"
+                className="w-full min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] px-4 py-2.5 shadow-sm outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]/30"
               />
             </label>
           </div>
@@ -362,7 +386,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
               <motion.article
                 key={item.id}
                 variants={reduceMotion ? undefined : gridItem}
-                className="flex flex-col justify-between rounded-3xl border border-[var(--sf-border)] bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
+                className="flex flex-col justify-between rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
               >
                 <div>
                   <h3 className="font-semibold text-[var(--sf-foreground)]">
@@ -406,7 +430,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
           </motion.div>
 
           {cart.length > 0 && (
-            <div className="mt-10 rounded-3xl border border-[var(--sf-border)] bg-white p-5">
+            <div className="mt-10 rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5">
               <h3 className="font-semibold text-[var(--sf-foreground)]">Bag details</h3>
               <ul className="mt-4 space-y-3">
                 {cart.map((l) => (
@@ -441,7 +465,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
 
         <StorefrontFooterCta cms={cms} />
 
-        <footer className="border-t border-[var(--sf-border)] bg-white/60 py-8 text-center text-sm text-[var(--sf-secondary)]">
+        <footer className="border-t border-[var(--sf-border)] bg-[var(--sf-muted)]/40 py-8 text-center text-sm text-[var(--sf-secondary)]">
           <p>© {new Date().getFullYear()} Grabber Business OS</p>
         </footer>
       </div>
