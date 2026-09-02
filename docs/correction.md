@@ -1,6 +1,9 @@
 # Grabber Business OS — Final Correction Tracker
 
-Master fix list + sprint execution tracker for MyPoz Solo evolution.  
+> **Internal engineering tracker.** Not for client contracts. Historical “MyPoz” = lineage only.  
+> Contracts / claims / ops: [`README.md`](./README.md).
+
+Master fix list + sprint execution tracker for Grabber Business OS Solo.  
 **Status:** `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 Last updated: 2026-09-01  
@@ -74,8 +77,8 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | RSL-01 | One codebase, per-customer DB/env/branding | DONE |
 | RSL-02 | `scripts/sync-vercel-env.mjs` | DONE |
 | RSL-03 | `scripts/provision-client.mjs` runbook | DONE |
-| RSL-04 | Onboarding wizard (no code edits per customer) | TODO (S3+) |
-| RSL-05 | Business + brand + payment + WhatsApp setup checklist | PARTIAL |
+| RSL-04 | Onboarding wizard (no code edits per customer) | DONE (`/setup` guided flow, `/api/setup/progress`, preset-aware dynamic seed) |
+| RSL-05 | Business + brand + payment + WhatsApp setup checklist | DONE (live milestones: DB, preset, seed, profile, WhatsApp, storefront, automation, first sale) |
 | SET-01 | Business profile API (`/api/settings/business`) | DONE |
 | SET-02 | Marketing pixels API (`/api/settings/marketing`) | DONE |
 | SET-03 | Settings UI loads/saves from DB | DONE |
@@ -185,9 +188,9 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | AGT-03 | `/api/agents/brief` + run-all | DONE |
 | AGT-04 | Agent → Approval EXECUTE bridge | DONE (PROPOSE drafts + EXECUTE via `/approvals` + audit) |
 | CRE-01 | Brand brain in config | DONE |
-| CRE-02 | Brief → generate → review → approve → publish | PARTIAL (approve-to-storefront) |
-| CRE-03 | Store banner + WhatsApp from creative | DONE (MID_BANNER slot + owner WhatsApp on approve) |
-| INT-01 | Jarvis → agents → creative → approval pipeline | PARTIAL |
+| CRE-02 | Brief → generate → review → approve → publish | DONE (CREATIVE_RENDER job worker, FAL/Replicate provider, auto hero from job output) |
+| CRE-03 | Store banner + WhatsApp from creative | DONE (MID_BANNER slot + owner WhatsApp + customer broadcast queue on approve) |
+| INT-01 | Jarvis → agents → creative → approval pipeline | DONE (`draft_creative_campaign`, agent projectId payloads, unified `/api/agents/brief` + Jarvis metrics) |
 
 ---
 
@@ -270,7 +273,7 @@ DUAL-01 … DUAL-04
 | POS cash + stock + GL (SQL) | YES |
 | Polim / returns / purchasing | YES |
 | Webhook idempotency | YES |
-| Jarvis DB-grounded tools | PARTIAL (S1) |
+| Jarvis DB-grounded tools | DONE (11+ READ tools, draft promo/WhatsApp/creative, approval execute) |
 | HTTP API cert | OPTIONAL (`client:certify:http`) |
 | RLS automated | PARTIAL (`db:apply-rls`, `db:test-rls`) |
 | Storage CDN | NO (honest) |
@@ -333,6 +336,39 @@ Staff: `/adminpoz` → `/app` · Shopper: `/` · Jarvis tools: `POST /api/jarvis
 4. **DB-06** — drop legacy column bridges after verification
 5. **Lighthouse budgets** — product + checkout mobile perf
 6. **R7** — vertical depth + CRM campaigns (deferred)
+
+---
+
+## Production Hardening (Ruflo) — 2026-09-02
+
+Automated analysis via `npx ruflo@latest` + manual review. **Do not rebuild POS** — harden dependencies and thin API routes.
+
+| ID | Item | Disposition | Status |
+|----|------|-------------|--------|
+| PH-01 | drizzle-orm ≥ 0.45.2 (GHSA-gpj5-g38j-94v9) | **Fix** — upgraded | DONE |
+| PH-02 | Remove xlsx; CSV import/export only | **Fix** — xlsx removed from prod deps; `/api/products/export` added | DONE |
+| PH-03 | SQL heuristic audit (Ruflo 50 flags) | See table below | DONE |
+| PH-04 | `release:gate` re-run after hardening | Run before deploy — **blocked 2026-09-02** by Supabase auth circuit breaker on `db:test-rls`; retry when pooler clears | TODO |
+| PH-05 | Extract `api/seed` → `seed-service.ts` | Refactor | DONE |
+| PH-06 | Thin `api/quotations` | Refactor | DONE |
+| PH-07 | Extract `api/products` → `product-service.ts` | Refactor | DONE |
+| PH-08 | Extract `api/restaurant` → `restaurant-service.ts` | Refactor | DONE |
+| PH-09 | Thin `api/pos/checkout` → `pos-checkout-service.ts` | Refactor | DONE |
+| PH-10 | `npx ruflo init --minimal` | Optional harness | DONE |
+
+### Security review (Ruflo heuristics)
+
+| Location | Ruflo flag | Manual disposition |
+|----------|------------|-------------------|
+| `src/lib/storefront/catalog-server.ts` | SQL LIKE with user search | **Safe** — Drizzle binds `${pattern}` as parameter; query capped at 80 chars |
+| `src/app/api/reports/route.ts` | `db.execute(sql\`...\`)` | **Safe** — static aggregate queries, no user input in SQL |
+| `src/lib/agents/handlers.ts` | `sql` tagged templates | **Safe** — column refs + bound values, no dynamic identifiers |
+| `src/lib/agents/approval-execute.ts` | `sql` increment | **Safe** — Drizzle column reference in SET |
+| `src/lib/inventory/stock-service.ts` | Atomic stock `sql` updates | **Safe** — parameterized qty deltas; review for correctness not injection |
+| `src/lib/inventory/reorder-engine.ts`, `markdown-engine.ts` | `db.execute` | **Safe** — static or bound analytics SQL |
+| `src/app/layout.tsx:38` | React XSS / `dangerouslySetInnerHTML` | **Safe** — static theme bootstrap script, no user input |
+| `package.json` postcss/esbuild (via next/drizzle-kit) | CVE chain | **Monitor** — dev/build toolchain; defer Next major upgrade |
+| Heuristic bulk flags (~43) | SQL injection | **False positive** — Drizzle `sql` template pattern |
 
 ---
 

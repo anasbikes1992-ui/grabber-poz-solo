@@ -27,6 +27,8 @@ This document is the **process entry** for re-testing after the correction waves
 
 **Exit criteria for this gate:** all **P0** items in §3 PASS; P1 either PASS or explicitly WAIVED with owner sign-off.
 
+**Authoritative next-stage pack:** [`STAGE_READINESS.md`](./STAGE_READINESS.md) · [`SOFTWARE_PLAYBOOK.md`](./SOFTWARE_PLAYBOOK.md) · [`CLIENT_DELIVERABLES.md`](./CLIENT_DELIVERABLES.md) · [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md)
+
 ---
 
 ## 2. Surfaces under test
@@ -64,7 +66,7 @@ npm run client:certify -- --client "Re-Test" --slug "retest"
 | ID | Check | Pass criteria | Result |
 |----|--------|---------------|--------|
 | RT-A01 | `npm run typecheck` | Exit 0 | ✅ PASS |
-| RT-A02 | `npm test` | All tests pass (≥64) | ✅ PASS 64/64 |
+| RT-A02 | `npm test` | Exit 0 (all tests pass on release commit) | ☐ Re-run before go-live |
 | RT-A03 | `env:validate` | 0 P0 errors | ✅ PASS (`.env.prod.txt`) |
 | RT-A04 | `db:test-rls` on prod pooler | RLS probe PASS | ✅ PASS |
 | RT-A05 | `client:certify` (SQL) | 0 P0 failures; report under `reports/` | ✅ PASS `CERT-77D0E7FA` L4_SCHEMA_SQL |

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { hasDatabaseUrl, databaseEnvDiagnostics } from '@/lib/db/connection';
+import { isSentryEnabled } from '@/lib/observability/sentry';
 
 /** Lightweight health probe for cert / load balancers */
 export async function GET() {
@@ -10,6 +11,7 @@ export async function GET() {
     ok: true,
     service: 'grabber-poz-solo',
     ts: new Date().toISOString(),
+    sentry: isSentryEnabled() ? 'configured' : 'off',
   };
 
   if (!hasDatabaseUrl()) {
@@ -17,7 +19,7 @@ export async function GET() {
       ...base,
       db: 'not_configured',
       env: databaseEnvDiagnostics(),
-      hint: 'Add DATABASE_URL (pooler, port 6543) to Vercel Production env and redeploy.',
+      hint: 'Add DATABASE_URL to the host env (VPS or Vercel) and restart.',
     });
   }
 

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
-import { createCreativeProject } from '@/lib/creative/creative-repo';
+import { createCreativeProject, queueCreativeRender } from '@/lib/creative/creative-repo';
 import { readBrandBrain } from '@/lib/creative/brand-brain';
 import { buildGeminiVideoPrompt } from '@/lib/creative/marketing-yatra-prompts';
+import { hasCreativeMediaPipeline } from '@/lib/creative/media-provider';
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,11 +61,20 @@ export async function POST(req: NextRequest) {
     const title = `${productName || 'Campaign'} · ${resolvedCommandId || resolvedFormat || 'SHORT_FORM_30S'}`;
     const scriptSummary = `${brand.voice}: ${visualPrompt.slice(0, 220)}`;
 
-    const hasPipeline =
-      Boolean(process.env.FAL_KEY || process.env.REPLICATE_API_TOKEN || process.env.CLOUDINARY_URL);
+    const pipelineReady = hasCreativeMediaPipeline();
+    if (!pipelineReady && process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Creative media pipeline not configured (set FAL_KEY or REPLICATE_API_TOKEN)',
+        },
+        { status: 503 },
+      );
+    }
 
     const { project, job } = await createCreativeProject({
       title,
+      kind: 'VIDEO',
       productId: productId || null,
       format: resolvedFormat,
       aspectRatio: resolvedAspect,
@@ -78,15 +88,27 @@ export async function POST(req: NextRequest) {
       scriptSummary,
     });
 
-    const responseBase = {
-      success: true as const,
+    const queued = await queueCreativeRender({
+      jobId: job.id,
+      projectId: project.id,
+      visualPrompt,
+      productImageUrl,
+      aspectRatio: resolvedAspect,
+      heroMediaType,
+      renderKind: 'VIDEO',
+      productName: productName || undefined,
+      format: resolvedFormat,
+    });
+
+    return NextResponse.json({
+      success: true,
       jobId: job.id,
       projectId: project.id,
       productName: productName || 'Grabber Retail Product',
       format: resolvedFormat,
       aspectRatio: resolvedAspect,
       durationSeconds: duration || 15.0,
-      videoUrl: null as string | null,
+      videoUrl: null,
       scriptSummary,
       visualPrompt,
       geminiCommand,
@@ -94,30 +116,12 @@ export async function POST(req: NextRequest) {
       heroMediaType,
       productImageUrl: productImageUrl || null,
       createdAt: new Date().toISOString(),
-    };
-
-    if (!hasPipeline) {
-      if (process.env.NODE_ENV === 'production') {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Creative media pipeline not configured (set FAL_KEY / REPLICATE_API_TOKEN / CLOUDINARY_URL)',
-          },
-          { status: 503 },
-        );
-      }
-      return NextResponse.json({
-        ...responseBase,
-        stub: true,
-        status: 'QUEUED_STUB',
-        note: 'Dev stub — project saved to DB. Paste geminiCommand into Gemini with your product photo.',
-      });
-    }
-
-    return NextResponse.json({
-      ...responseBase,
-      status: 'QUEUED',
-      note: 'Job queued in database — wire provider dispatcher for outputUrl',
+      status: pipelineReady ? 'QUEUED' : 'QUEUED_DEV',
+      stub: !pipelineReady,
+      queued: queued.enqueued,
+      note: pipelineReady
+        ? 'Render job queued — media will appear when processing completes.'
+        : 'Dev mode — placeholder media will render via job worker.',
     });
   } catch (error: unknown) {
     return NextResponse.json(

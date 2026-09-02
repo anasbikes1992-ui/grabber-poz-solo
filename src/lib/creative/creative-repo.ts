@@ -1,10 +1,13 @@
 import { desc, eq } from 'drizzle-orm';
-import { db, creativeJobs, creativeProjects } from '@/db';
+import { db, creativeJobs, creativeProjects, customers } from '@/db';
 import { readStorefrontConfig, writeStorefrontConfig } from '@/lib/config/storefront-config';
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp';
+import { enqueueJob } from '@/lib/jobs/outbox';
+import { titleWithKind, type CreativeKind } from '@/lib/creative/kinds';
 
 export type CreateCreativeInput = {
   title: string;
+  kind?: CreativeKind;
   productId?: string | null;
   format?: 'SHORT_FORM_30S' | 'SHORT_FORM_15S' | 'SHORT_FORM_60S' | 'LONG_FORM_2M';
   aspectRatio?: string;
@@ -29,15 +32,98 @@ export async function listCreativeProjects(limit = 20) {
 export async function getCreativeProject(id: string) {
   const [project] = await db.select().from(creativeProjects).where(eq(creativeProjects.id, id)).limit(1);
   if (!project) return null;
-  const jobs = await db.select().from(creativeJobs).where(eq(creativeJobs.projectId, id)).orderBy(desc(creativeJobs.createdAt));
+  const jobs = await db
+    .select()
+    .from(creativeJobs)
+    .where(eq(creativeJobs.projectId, id))
+    .orderBy(desc(creativeJobs.createdAt));
   return { project, jobs };
 }
 
+export async function resolveHeroMediaFromProject(projectId: string) {
+  const data = await getCreativeProject(projectId);
+  if (!data) return null;
+  const completed = data.jobs.find((j) => j.status === 'COMPLETED' && j.outputUrl);
+  if (!completed?.outputUrl) return null;
+  const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(completed.outputUrl);
+  return {
+    heroMediaUrl: completed.outputUrl,
+    heroMediaType: (isVideo ? 'video' : 'image') as 'video' | 'image',
+    heroMediaPosterUrl: isVideo ? undefined : completed.outputUrl,
+  };
+}
+
+export async function queueCreativeRender(input: {
+  jobId: string;
+  projectId: string;
+  visualPrompt: string;
+  productImageUrl?: string | null;
+  aspectRatio?: string;
+  heroMediaType?: 'image' | 'video';
+  renderKind?: 'VIDEO' | 'UGC';
+  scriptText?: string;
+  variantLabel?: string;
+  productName?: string;
+  format?: string;
+}) {
+  return enqueueJob({
+    type: 'CREATIVE_RENDER',
+    idempotencyKey: `creative_render_${input.jobId}`,
+    payload: input,
+    maxAttempts: 4,
+  });
+}
+
+export async function queueCreativePdf(input: {
+  jobId: string;
+  projectId: string;
+  template: string;
+  title: string;
+  productIds?: string[];
+  promoText?: string;
+}) {
+  return enqueueJob({
+    type: 'CREATIVE_PDF',
+    idempotencyKey: `creative_pdf_${input.jobId}`,
+    payload: input,
+    maxAttempts: 3,
+  });
+}
+
+async function broadcastCreativeToCustomers(input: {
+  announcement: string;
+  heroTitle: string;
+  audience?: string;
+  limit?: number;
+}) {
+  const seg = String(input.audience || 'ALL').trim().toUpperCase();
+  const limit = input.limit ?? 50;
+  const shopUrl = process.env.NEXT_PUBLIC_STORE_URL || process.env.NEXT_PUBLIC_SITE_URL || '';
+  const message = `${input.heroTitle}\n\n${input.announcement}${shopUrl ? `\n\nShop: ${shopUrl}/products` : ''}`.trim();
+
+  const targets =
+    seg === 'ALL'
+      ? await db.select().from(customers).where(eq(customers.active, true)).limit(limit)
+      : await db.select().from(customers).where(eq(customers.segment, seg)).limit(limit);
+
+  const phones = targets.map((c) => c.phone).filter(Boolean) as string[];
+  if (!phones.length) return { queued: 0, targeted: 0, audience: seg };
+
+  await enqueueJob({
+    type: 'WHATSAPP_BROADCAST',
+    idempotencyKey: `creative_publish_${Date.now()}_${seg}`,
+    payload: { recipients: phones, text: message },
+  });
+
+  return { queued: phones.length, targeted: targets.length, audience: seg };
+}
+
 export async function createCreativeProject(input: CreateCreativeInput) {
+  const title = input.kind ? titleWithKind(input.kind, input.title) : input.title;
   const [project] = await db
     .insert(creativeProjects)
     .values({
-      title: input.title,
+      title,
       productId: input.productId || null,
       format: input.format || 'SHORT_FORM_30S',
       aspectRatio: input.aspectRatio || '9:16',
@@ -59,16 +145,23 @@ export async function createCreativeProject(input: CreateCreativeInput) {
   return { project, job, scriptSummary: input.scriptSummary || input.visualPrompt.slice(0, 200) };
 }
 
-export async function approveCreativeCampaign(projectId: string, draft: {
-  announcement?: string;
-  heroTitle?: string;
-  heroSubtitle?: string;
-  heroMediaType?: 'none' | 'image' | 'video';
-  heroMediaUrl?: string;
-  heroMediaPosterUrl?: string;
-}) {
+export async function approveCreativeCampaign(
+  projectId: string,
+  draft: {
+    announcement?: string;
+    heroTitle?: string;
+    heroSubtitle?: string;
+    heroMediaType?: 'none' | 'image' | 'video';
+    heroMediaUrl?: string;
+    heroMediaPosterUrl?: string;
+    broadcastAudience?: string;
+    skipCustomerBroadcast?: boolean;
+  },
+) {
   const data = await getCreativeProject(projectId);
   if (!data) throw new Error('Creative project not found');
+
+  const autoMedia = !draft.heroMediaUrl ? await resolveHeroMediaFromProject(projectId) : null;
 
   await db
     .update(creativeProjects)
@@ -79,6 +172,11 @@ export async function approveCreativeCampaign(projectId: string, draft: {
   const announcement = draft.announcement || `New campaign live: ${data.project.title}`;
   const heroTitle = draft.heroTitle || data.project.title;
   const heroSubtitle = draft.heroSubtitle || announcement;
+  const heroMediaUrl = draft.heroMediaUrl || autoMedia?.heroMediaUrl;
+  const heroMediaType =
+    draft.heroMediaType ??
+    (heroMediaUrl ? (autoMedia?.heroMediaType || 'video') : 'none');
+  const heroMediaPosterUrl = draft.heroMediaPosterUrl || autoMedia?.heroMediaPosterUrl;
 
   const blocks = [
     { id: 'ann_1', type: 'ANNOUNCEMENT' as const, text: announcement, slot: 'TOP' as const, enabled: true },
@@ -88,9 +186,9 @@ export async function approveCreativeCampaign(projectId: string, draft: {
       title: heroTitle,
       subtitle: heroSubtitle,
       ctaLabel: 'Shop now',
-      heroMediaType: draft.heroMediaType ?? (draft.heroMediaUrl ? 'video' : 'none'),
-      heroMediaUrl: draft.heroMediaUrl,
-      heroMediaPosterUrl: draft.heroMediaPosterUrl,
+      heroMediaType,
+      heroMediaUrl,
+      heroMediaPosterUrl,
       slot: 'HERO' as const,
       enabled: true,
     },
@@ -124,5 +222,14 @@ export async function approveCreativeCampaign(projectId: string, draft: {
     };
   }
 
-  return { projectId, storefront, whatsapp };
+  let customerBroadcast: { queued: number; targeted: number; audience: string } | undefined;
+  if (!draft.skipCustomerBroadcast) {
+    customerBroadcast = await broadcastCreativeToCustomers({
+      announcement,
+      heroTitle,
+      audience: draft.broadcastAudience || 'ALL',
+    });
+  }
+
+  return { projectId, storefront, whatsapp, customerBroadcast, heroMediaUrl };
 }

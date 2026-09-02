@@ -1,6 +1,7 @@
 # Grabber Business OS — Implementation Map
 
-Factual map of **what exists**, **what to keep**, and **what is missing** vs the MyPoz Solo master vision.
+Factual map of **what exists**, **what to keep**, and **what is missing**.  
+**For contracts use** [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) — this map may lag.
 
 Last updated: 2026-09-01  
 **Fresh deploy:** [`FRESH_START.md`](./FRESH_START.md)

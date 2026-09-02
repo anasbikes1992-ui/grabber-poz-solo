@@ -2,6 +2,8 @@
 
 Deployment and feature rollout plan after initial Vercel + Supabase go-live.
 
+**Authoritative readiness / claims:** [`STAGE_READINESS.md`](./STAGE_READINESS.md) · [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) · [`SOFTWARE_PLAYBOOK.md`](./SOFTWARE_PLAYBOOK.md)
+
 **Related:** [`FRESH_START.md`](./FRESH_START.md) · [`VERCEL_ENV.md`](./VERCEL_ENV.md) · [`ROADMAP.md`](./ROADMAP.md) · [`RELEASE_GATE.md`](./RELEASE_GATE.md)
 
 ---
@@ -10,9 +12,9 @@ Deployment and feature rollout plan after initial Vercel + Supabase go-live.
 
 | Step | Status |
 |------|--------|
-| Supabase project `rbayhrskowtahepwccrq` (ap-southeast-1) | DONE |
-| `npm run db:bootstrap` migrations | DONE |
-| Vercel project `grabber-poz-solo` linked | DONE |
+| Dedicated Supabase project (ap-southeast-1) | DONE (use client-specific ref — do not hardcode demo refs in contracts) |
+| Schema bootstrap / migrations | DONE |
+| Vercel project linked | DONE |
 | `DATABASE_URL` pooler on Vercel | DONE |
 | `GET /api/health` → `"db": "connected"` | DONE |
 
@@ -51,7 +53,7 @@ curl -X POST https://grabber-poz-solo.vercel.app/api/seed `
 | `ORDER_CREATED` → WhatsApp automation (storefront + phone) | DONE |
 | Meta webhook verified in Developer Console | TODO (operator) |
 | Live delivery proof in `automationLogs` | TODO (operator) |
-| Marketing pixels env or `/marketing` UI | Optional |
+| Marketing pixels env or `/social` UI | Optional |
 | LKR online checkout (PayHere/WebXPay) | TODO — storefront COD today |
 
 **Meta webhook:**

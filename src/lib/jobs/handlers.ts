@@ -9,6 +9,8 @@ import { suggestNearExpiryPromos } from '@/lib/inventory/near-expiry';
 import { abandonedCartMessage } from '@/lib/commerce/abandoned-checkout';
 import { db, abandonedCarts } from '@/db';
 import { eq } from 'drizzle-orm';
+import { processCreativeRenderJob } from '@/lib/creative/creative-job-processor';
+import { generateAndCachePdf, processCreativePdfJob } from '@/lib/creative/creative-pdf-processor';
 import type { JobType } from './outbox';
 
 export async function handleJob(type: JobType, payload: Record<string, unknown>): Promise<void> {
@@ -74,10 +76,6 @@ export async function handleJob(type: JobType, payload: Record<string, unknown>)
       await suggestNearExpiryPromos();
       break;
     }
-    case 'DRAFT_PO': {
-      // Inventory agent proposes; job ack only until approval execute wired
-      break;
-    }
     case 'CHECKOUT_ABANDON': {
       const phone = String(payload.phone || '');
       const recoveryUrl = String(payload.recoveryUrl || '');
@@ -106,6 +104,20 @@ export async function handleJob(type: JobType, payload: Record<string, unknown>)
         .update(abandonedCarts)
         .set({ remindedAt: new Date() })
         .where(eq(abandonedCarts.id, cart.id));
+      break;
+    }
+    case 'CREATIVE_RENDER': {
+      await processCreativeRenderJob(payload as Parameters<typeof processCreativeRenderJob>[0]);
+      break;
+    }
+    case 'CREATIVE_PDF': {
+      const pdfPayload = payload as Parameters<typeof processCreativePdfJob>[0];
+      await generateAndCachePdf(pdfPayload);
+      await processCreativePdfJob(pdfPayload);
+      break;
+    }
+    case 'DRAFT_PO': {
+      // Inventory agent proposes; job ack only until approval execute wired
       break;
     }
     default:

@@ -2,7 +2,8 @@
 
 Battle-tested pilot protocol from automated L3/L4 schema cert + **Ready for Re-Testing** into live store operations.
 
-**Entry criteria:** [`docs/READY_FOR_RETESTING.md`](../READY_FOR_RETESTING.md) P0 = PASS (or CONDITIONAL with listed waivers).
+**Entry criteria:** [`docs/READY_FOR_RETESTING.md`](../READY_FOR_RETESTING.md) P0 = PASS (or CONDITIONAL with listed waivers).  
+**Handover pack:** [`CLIENT_DELIVERABLES.md`](../CLIENT_DELIVERABLES.md) · [`SOFTWARE_PLAYBOOK.md`](../SOFTWARE_PLAYBOOK.md) · [`CLAIMS_AND_SCOPE.md`](../CLAIMS_AND_SCOPE.md)
 
 ---
 

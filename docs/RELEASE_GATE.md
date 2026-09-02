@@ -1,7 +1,8 @@
 # Grabber Business OS — Release Gate
 
-Ship / no-ship checklist for Grabber Poz Solo.  
-**Strategy:** finish **R1 → R2 → R3** before R4–R7. Do not jump to agents/creative until foundation is green.
+**Ship / no-ship checklist.**  
+**Strategy:** finish **R1 → R2 → R3** before R4–R7.  
+**Client claims / packages:** [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) · [`CLIENT_DELIVERABLES.md`](./CLIENT_DELIVERABLES.md) · [`STAGE_READINESS.md`](./STAGE_READINESS.md)
 
 **Verdict values:** `READY` · `CONDITIONALLY READY` · `BLOCKED`
 

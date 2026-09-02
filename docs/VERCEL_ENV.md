@@ -1,33 +1,47 @@
-# Vercel Environment Variables
+# Environment Variables (Grabber Business OS)
 
-Checklist for **Grabber Poz Solo**. Deploy flow: [`FRESH_START.md`](./FRESH_START.md)
+Checklist for **any host**: Grabber Managed **VPS** (default) or Vercel.  
+**VPS procedure:** [`VPS_DEPLOY.md`](./VPS_DEPLOY.md) · **Commercial:** [`COMMERCIAL_MODEL.md`](./COMMERCIAL_MODEL.md)
+
+Filename `VERCEL_ENV.md` is historical — variables apply on VPS too.
 
 ---
 
-## Required (manual)
+## Required (manual) — P0
 
 | Variable | Notes |
 |----------|--------|
-| `AUTH_SECRET` | Session signing |
-| `MASTER_ENCRYPTION_KEY` | Encrypts secrets saved in Settings |
-| **`DATABASE_URL`** | **Pooler URL (port 6543)** — app will not load catalog without this |
-| `NEXT_PUBLIC_APP_URL` | e.g. `https://grabber-poz-solo.vercel.app` |
+| `AUTH_SECRET` | Session signing (≥32 chars in production) |
+| `MASTER_ENCRYPTION_KEY` | Encrypts secrets in Settings |
+| **`DATABASE_URL`** | Dedicated Postgres (VPS local or Supabase pooler `:6543`) |
+| `NEXT_PUBLIC_APP_URL` | Public HTTPS URL |
 | `NEXT_PUBLIC_STORE_NAME` | Store display name |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only — dashboard → API |
 
-> **If `/api/health` shows `"db": "not_configured"`** — you are missing `DATABASE_URL` (or Supabase integration `POSTGRES_URL`). The storefront catalog will fail until this is set and you redeploy.
+### Supabase API keys (if using Supabase URL/storage)
+
+| Variable | Notes |
+|----------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only |
+
+> **If `/api/health` shows `"db": "not_configured"`** — set `DATABASE_URL` and restart the app.
 
 ### How to get `DATABASE_URL`
 
-Supabase → [Database Settings](https://supabase.com/dashboard/project/rbayhrskowtahepwccrq/settings/database) → **Connection string** → **URI** → **Transaction pooler**:
+**On Grabber VPS (Postgres local):**
 
 ```text
-postgresql://postgres.rbayhrskowtahepwccrq:[YOUR_DB_PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://grabber_USER:PASSWORD@127.0.0.1:5432/grabber_DB
 ```
 
-Use the password from **Database → Reset database password** (must match what you paste in the URI).
+**On Supabase (optional):** Project Settings → Database → Transaction pooler port **6543**:
+
+```text
+postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+```
+
+Never hardcode a shared demo project ref into client production docs.
 
 ## Auto (Supabase ↔ Vercel integration only)
 
@@ -45,7 +59,7 @@ If you connect Supabase in Vercel **Integrations**, these may appear instead of 
 **Two ways to configure** (DB wins when set):
 
 1. **Vercel env** — good for first deploy before seed
-2. **Staff UI** [`/marketing`](/marketing) — saved to `business_config` (recommended long-term)
+2. **Staff UI** [`/social`](/social) (Channels & Pixels tab; `/marketing` redirects here) — saved to `business_config`
 
 | Variable | Wired? | Notes |
 |----------|--------|-------|
@@ -55,7 +69,7 @@ If you connect Supabase in Vercel **Integrations**, these may appear instead of 
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID` | ✅ | TikTok pixel |
 | `META_CONVERSIONS_API_TOKEN` | ✅ CAPI | Server-side `Purchase` on checkout (`meta-capi.ts`) |
 
-**Skip on Vercel if** you configure pixels only via `/marketing` after login.
+**Skip on Vercel if** you configure pixels only via `/social` after login.
 
 ---
 
@@ -99,27 +113,31 @@ Schema supports `STRIPE` tender type on POS; online Stripe checkout is not imple
 | **`NEXT_PUBLIC_WHATSAPP_NUMBER`** | ✅ storefront | **Customer-facing wa.me link** (E.164, e.g. `947XXXXXXXX`) — replaces demo `94771234567` |
 | `KOOMBIYO_API_KEY` | ⚙️ | Courier integration |
 | `CERTIFY_HTTP_BASE_URL` | ⚙️ | Release certification scripts |
-| `FAL_KEY` | ⚙️ | Creative engine |
+| `FAL_KEY` / `REPLICATE_API_TOKEN` | ⚙️ | Creative image fallback (optional) |
+| `CREATIVE_WORKER_URL` | ⚙️ | GPU video worker base URL (**not** on Vercel) |
+| `CRON_SECRET` | ⚙️ | Bearer for `/api/cron/process-jobs` (VPS crontab or Vercel cron) |
 
-`npm run ops:sync-env` pushes all set values from `.env.local` or `--env-file .env.prod.txt` to **production + preview**.
+---
 
-**Meta webhook (production):**
+## Observability — Sentry (recommended on VPS)
 
-```text
-Callback URL:  https://grabber-poz-solo.vercel.app/api/whatsapp/webhook
-Verify token:  (same as WHATSAPP_VERIFY_TOKEN in Vercel)
-```
+| Variable | Notes |
+|----------|--------|
+| `SENTRY_DSN` | Server/edge DSN (Grabber ops project) |
+| `NEXT_PUBLIC_SENTRY_DSN` | Browser (can match server DSN) |
+| `SENTRY_ENVIRONMENT` | e.g. `production`, `staging`, `client-slug` |
+| `SENTRY_RELEASE` | git sha or `grabber@1.0.0` |
+| `SENTRY_ORG` / `SENTRY_PROJECT` | Optional; source maps upload on CI |
 
-In Meta → WhatsApp → Configuration → Webhook fields, subscribe **`messages`** (required for inbound "Hi" auto-replies).  
-Optional alias URL `/api/webhooks/whatsapp` also works.
-
-Set **`NEXT_PUBLIC_WHATSAPP_NUMBER`** to your live business line so storefront wa.me links stop using the demo `94771234567` number.
-
-After storefront COD order, automation sends WhatsApp if customer has phone on file (`automationLogs` in Settings → Automation).
+App runs without Sentry if DSN unset. Health returns `"sentry":"configured"|"off"`.
 
 ---
 
 ## Sync & verify
+
+**VPS:** set env in `/etc/grabber/[slug].env`, restart unit — see [`VPS_DEPLOY.md`](./VPS_DEPLOY.md).
+
+**Vercel (optional):**
 
 ```powershell
 $env:VERCEL_PROJECT="grabber-poz-solo"
@@ -128,9 +146,11 @@ npm run ops:sync-env
 
 After deploy:
 
-1. `GET /api/health` → `"db": "connected"`
-2. View storefront source — pixel scripts present when IDs configured
-3. `POST /api/seed` once if DB is empty
+1. `GET /api/health` → `"db": "connected"`, `"sentry":"configured"` when DSN set  
+2. Trigger a test error or use POS → confirm event in Sentry  
+3. `POST /api/seed` once if DB is empty  
+
+**Meta webhook:** `https://[YOUR_DOMAIN]/api/whatsapp/webhook` + `WHATSAPP_VERIFY_TOKEN`; subscribe `messages`.
 
 ---
 
@@ -138,6 +158,7 @@ After deploy:
 
 | Symptom | Fix |
 |---------|-----|
-| Pixels missing | Set env vars **or** save IDs at `/marketing` |
+| Pixels missing | Set env vars **or** save IDs at `/social` |
 | PayHere webhook 400 | `PAYHERE_SECRET` must match PayHere dashboard |
 | Payment env unused | Expected — online checkout not live yet |
+| Sentry silent | Set both DSN vars; rebuild so client bundle picks up `NEXT_PUBLIC_*` |

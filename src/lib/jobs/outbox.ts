@@ -12,7 +12,9 @@ export type JobType =
   | 'QUOTE_RESERVATION_EXPIRE'
   | 'NEAR_EXPIRY_PROMO'
   | 'DRAFT_PO'
-  | 'CHECKOUT_ABANDON';
+  | 'CHECKOUT_ABANDON'
+  | 'CREATIVE_RENDER'
+  | 'CREATIVE_PDF';
 
 export type EnqueueInput = {
   type: JobType;

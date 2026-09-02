@@ -92,7 +92,7 @@ export const AGENT_REGISTRY: AgentDefinition[] = [
     description: 'Queued campaigns awaiting approve-to-storefront',
     category: 'communication',
     verticalFlag: 'creative',
-    href: '/creative',
+    href: '/creative/dashboard',
   },
 ];
 

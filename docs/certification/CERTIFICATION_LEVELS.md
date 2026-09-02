@@ -2,9 +2,9 @@
 
 Before any client instance is declared ready for production handover, it is graded against four certification tiers.
 
-> **Implementation status (2026-09-01):** Waves 0–5 closed. Automated `npm run client:certify` covers **schema + synthetic SQL** for L1/L3/L4 resilience basics, plus **optional HTTP** when `CERTIFY_HTTP_BASE_URL` is set.  
-> App durability (checkout, GRN, returns, shifts, dual auth) is implemented — prove it via [`docs/READY_FOR_RETESTING.md`](../READY_FOR_RETESTING.md), not cert SQL alone.  
-> L1 RLS/CDN automation and L4 concurrent last-unit load tests are still **not** in the cert script.
+> **Implementation status:** Waves 0–5 closed. Automated `npm run client:certify` covers **schema + synthetic SQL** (+ optional HTTP).  
+> App durability is proven via [`READY_FOR_RETESTING.md`](../READY_FOR_RETESTING.md) + physical POS + (optional) 7-day acceptance — not cert SQL alone.  
+> Contract language: [`CLAIMS_AND_SCOPE.md`](../CLAIMS_AND_SCOPE.md).
 
 ---
 

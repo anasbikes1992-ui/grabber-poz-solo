@@ -1,7 +1,11 @@
 # GRABBER BUSINESS OS — SYSTEM ARCHITECTURE SPECIFICATION
 **Single-Business Edition: Commerce Core + Physical Operations + Jarvis Copilot + Creative Factory**
 
-> **Execution docs (2026-09-01):** [`ROADMAP.md`](./ROADMAP.md) · [`IMPLEMENTATION_MAP.md`](./IMPLEMENTATION_MAP.md) · [`RELEASE_GATE.md`](./RELEASE_GATE.md) · [`correction.md`](./correction.md)
+> **Design / vision doc.** For contracts and honest capability claims use [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md).  
+> Creative GPU path is **optional** — see [`BUSINESS_OS_CREATIVE_FACTORY.md`](./BUSINESS_OS_CREATIVE_FACTORY.md).  
+> Ops: [`SOFTWARE_PLAYBOOK.md`](./SOFTWARE_PLAYBOOK.md) · Index: [`README.md`](./README.md)
+
+> **Execution docs:** [`ROADMAP.md`](./ROADMAP.md) · [`IMPLEMENTATION_MAP.md`](./IMPLEMENTATION_MAP.md) · [`RELEASE_GATE.md`](./RELEASE_GATE.md) · [`correction.md`](./correction.md)
 
 ---
 

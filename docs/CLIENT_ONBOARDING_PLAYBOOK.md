@@ -1,9 +1,12 @@
 # GRABBER BUSINESS OS — CLIENT ONBOARDING & PRODUCTION CERTIFICATION PLAYBOOK
 
-Operational handbook for provisioning, validating, certifying, and handing over dedicated **GRABBER Business OS** client instances.
+> **Canonical ops path (2026-09-02):** [`SOFTWARE_PLAYBOOK.md`](./SOFTWARE_PLAYBOOK.md).  
+> This file remains a short companion; prefer Software Playbook + [`CLIENT_DELIVERABLES.md`](./CLIENT_DELIVERABLES.md) + [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) for contracts.
 
-> **Readiness (2026-09-01):** Correction waves 0–5 + dual storefront/staff auth are **closed** ([`docs/correction.md`](./correction.md)). Commerce APIs persist to Postgres. Re-test gate: [`docs/READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md).  
-> Automated `client:certify` still means **schema + synthetic SQL** (plus optional HTTP). RLS host apply and full CDN probes remain manual / not auto-certified.
+Operational handbook for provisioning, validating, certifying, and handing over dedicated **Grabber Business OS** client instances.
+
+> **Readiness:** Correction waves closed; dual storefront/staff auth live. Re-test: [`READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md). Stage snapshot: [`STAGE_READINESS.md`](./STAGE_READINESS.md).  
+> Automated `client:certify` = **schema + synthetic SQL** (+ optional HTTP). Physical POS and 7-day acceptance are separate.
 
 ---
 
@@ -154,9 +157,11 @@ Full re-provision: drop/recreate schema from SSOT (`db:push`), re-seed, then re-
 
 ## 5. Related docs
 
+* [`docs/README.md`](./README.md) — documentation SSOT index  
+* [`docs/SOFTWARE_PLAYBOOK.md`](./SOFTWARE_PLAYBOOK.md) — full ops playbook  
+* [`docs/CLIENT_DELIVERABLES.md`](./CLIENT_DELIVERABLES.md) — packages  
+* [`docs/CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) — claim language  
+* [`docs/STAGE_READINESS.md`](./STAGE_READINESS.md) — next-stage readiness  
 * [`docs/READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md) — re-test gate  
-* [`docs/correction.md`](./correction.md) — master fix tracker  
 * [`docs/certification/CERTIFICATION_LEVELS.md`](./certification/CERTIFICATION_LEVELS.md)  
-* [`docs/certification/BUSINESS_INVARIANTS.md`](./certification/BUSINESS_INVARIANTS.md)  
 * [`docs/certification/CLIENT_ACCEPTANCE_TEST.md`](./certification/CLIENT_ACCEPTANCE_TEST.md)  
-* [`docs/certification/FAILURE_SCENARIOS.md`](./certification/FAILURE_SCENARIOS.md)  

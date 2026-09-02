@@ -199,7 +199,15 @@ export async function runEnvironmentValidation() {
     console.log(`  ℹ Meta CAPI token:          Set (not wired)`);
   }
   if (!pixelVars.some(([, v]) => v)) {
-    console.log(`  ℹ Storefront pixels:        Use env vars or staff UI /marketing`);
+    console.log(`  ℹ Storefront pixels:        Use env vars or staff UI /social`);
+  }
+
+  if (process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    console.log(`  ✓ Sentry:                   ACTIVE (${maskSecret(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN)})`);
+    activeIntegrations.push('Sentry');
+  } else {
+    p1Warnings.push('Sentry DSN not set — recommended on Grabber VPS for production testing.');
+    console.log(`  ⚠ Sentry:                   NOT SET (recommended for VPS)`);
   }
 
   if (process.env.KOOMBIYO_API_KEY) {

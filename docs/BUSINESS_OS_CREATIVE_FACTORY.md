@@ -1,60 +1,61 @@
-# GRABBER BUSINESS OS — CREATIVE FACTORY & MEDIA LIBRARY SPECIFICATION
-**Abstracted Provider Pipeline, Decoupled Async Worker & Media Asset Management**
+# Grabber Business OS — Creative Factory (Honest Spec)
+
+**Claims boundary:** Creative is an **add-on**. Core POS/storefront works without GPU.  
+See [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) tiers C0–C2.
 
 ---
 
-## 1. Decoupled Architecture
+## 1. Architecture (as implemented)
 
-* **Independent Operation:** The core Business OS is 100% operational without GPU hardware or the Creative Factory.
-* **Asynchronous Background Worker:** Creative generation tasks are submitted to a database job queue and processed by an optional dedicated Python/GPU worker or cloud API.
-* **Provider Abstraction (`VideoProvider`):** Enables swapping models (Wan 2.1, LTX, Hunyuan, Cloud APIs) seamlessly without rewriting core logic.
-
-```
-       BUSINESS OS CORE (Next.js / Node.js)
-                 │
-                 │  Enqueue Render Job
-                 ▼
-         CREATIVE_JOBS TABLE (Queue)
-                 │
-                 ▼
-    PYTHON CREATIVE WORKER (Asynchronous)
-                 │
-   ┌─────────────┴─────────────┐
-   ▼                           ▼
-VIDEO PROVIDER ADAPTER     PIPER TTS & WHISPER
- (Wan / LTX / Hunyuan)     (Voiceover & Audio)
-   │                           │
-   └─────────────┬─────────────┘
-                 │
-                 ▼
-           FFMPEG ENGINE
- (Timeline, Music, Captions, Ducking)
-                 │
-                 ▼
-          FINISHED VIDEO
-                 │
-                 ▼
-           MEDIA LIBRARY
+```text
+Next.js (/creative/*, /api/creative/*)
+      → job_outbox (CREATIVE_RENDER | CREATIVE_PDF)
+      → processors (creative-job-processor, creative-pdf-processor)
+      → optional CREATIVE_WORKER_URL (GPU FastAPI — not on Vercel)
+      → optional FAL_KEY / REPLICATE_API_TOKEN (images)
+      → pdf-lib (PDF Studio, in-process)
+      → media_assets + Creative Library UI
 ```
 
----
-
-## 2. Multi-Format & Long-Form Video Pipeline
-
-### 2.1 Short-Form (Social & Ads)
-* **Durations:** 15s, 30s, 45s, 60s, 90s.
-* **Aspect Ratios:** 9:16 (TikTok, Reels, Shorts), 1:1 (Square Feed), 16:9 (Landscape).
-* **Use Cases:** Flash sale promotions, product showcase, customer testimonials, UGC hook videos.
-
-### 2.2 Long-Form (Brand & Educational)
-* **Durations:** 2m, 5m, 10m, 20m+.
-* **Structured Hierarchy:**
-  $$\text{Project} \longrightarrow \text{Script} \longrightarrow \text{Chapters} \longrightarrow \text{Scenes} \longrightarrow \text{Shots} \longrightarrow \text{Voice} \longrightarrow \text{Music} \longrightarrow \text{Captions} \longrightarrow \text{Timeline} \longrightarrow \text{Render}$$
+Social Channel Manager (`/social`) merges handles, pixels, feeds, and links into Creative.
 
 ---
 
-## 3. Central Media Library
+## 2. What works without GPU
 
-Every asset stored in the Media Library includes structured metadata:
-* `id`, `title`, `asset_type` (`PRODUCT_IMAGE`, `PRODUCT_VIDEO`, `STOCK_FOOTAGE`, `AI_GENERATED`, `LOGO`, `BRAND_ASSET`, `MUSIC`, `SFX`, `VOICE`, `FINISHED_VIDEO`).
-* `source`, `license`, `file_url`, `mime_type`, `size_bytes`, `duration_seconds`, `resolution`, `tags`, `owner_id`, `created_at`.
+| Feature | Status |
+|---------|--------|
+| PDF Studio (price list, catalog, flyer, …) | ✅ In-app |
+| UGC hooks / scripts / storyboard persistence | ✅ In-app |
+| Video/UGC **job queue** | ✅ |
+| Approve campaign → storefront hero | ✅ |
+| Brand kit | ✅ |
+| Marketing Yatra prompt pack | ✅ |
+| Dev placeholder / product-image fallback | ✅ |
+
+---
+
+## 3. What needs extra infra
+
+| Feature | Requirement |
+|---------|-------------|
+| Live AI video / UGC render | `CREATIVE_WORKER_URL` → `creative-engine` on GPU host |
+| Cloud image gen | `FAL_KEY` or `REPLICATE_API_TOKEN` |
+| Auto-post to Meta/TikTok | **Not implemented** — copy URL / open profile only |
+
+Python stub worker: `creative-engine/main.py` (`npm run creative:start`). Treat stub preview URLs as non-production until real inference is wired.
+
+---
+
+## 4. Media library metadata
+
+Assets use `media_assets` (`asset_type`, `file_url`, `mime_type`, tags, etc.).  
+Finished renders should be saved into the library when jobs complete.
+
+---
+
+## 5. Forbidden marketing lines
+
+- “AI videos run entirely on Vercel”  
+- “One-click publish to Instagram Ads”  
+- Bundling C2 GPU as “included in CORE”

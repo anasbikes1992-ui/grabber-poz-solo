@@ -1,67 +1,99 @@
 # GRABBER BUSINESS OS — CLIENT ONBOARDING & CREDENTIALS CHECKLIST
 
-Use this checklist when onboarding a new business client to deploy and configure their dedicated Single-Business OS instance.
+Collect these items before provisioning a dedicated instance.  
+**Ops:** [`SOFTWARE_PLAYBOOK.md`](./SOFTWARE_PLAYBOOK.md) · **Deliverables:** [`CLIENT_DELIVERABLES.md`](./CLIENT_DELIVERABLES.md)
 
 ---
 
-## 1. Business Identity & Operational Profile
+## 1. Business identity & operations
 
-| Required Item | Description | Example / Notes |
+| Required item | Description | Example |
 | :--- | :--- | :--- |
-| **Business Trading Name** | Customer-facing store name. | `Urban Trendz Flagship Store` |
-| **Legal Entity Name** | Formal company registration name for invoices. | `Urban Trendz Retail Pvt Ltd` |
-| **Business Registration / Tax Number** | Tax ID for receipts (VAT / SVAT). | `VAT-123456789-7000` |
-| **Store Physical Addresses** | Primary flagship branch and central warehouses. | `123 Galle Road, Colombo 03` |
-| **Contact Phone & Email** | Official support line & billing email. | `+94 11 234 5678`, `info@store.lk` |
-| **Receipt Header & Footer** | Custom text printed on thermal 80mm/58mm slips. | Header: *Welcome to Urban Trendz*<br/>Footer: *Returns within 7 days with bill* |
-| **Brand Assets** | High-resolution logo (PNG vector) & favicon. | Transparent PNG (min 512x512px) |
+| Trading name | Storefront / receipt name | `Urban Trendz` |
+| Legal name | Invoices / tax | `Urban Trendz Retail Pvt Ltd` |
+| Tax / VAT number | Receipts | `VAT-…` |
+| Branch + warehouse addresses | Locations | Colombo 03 + warehouse |
+| Phone & email | Support / billing | `+94…`, `info@…` |
+| Receipt header & footer | Thermal slip text | Returns policy |
+| Brand assets | Logo PNG ≥512px, favicon | Transparent PNG |
+| Currency / timezone | Defaults LKR / Asia/Colombo | |
+| Vertical modules sold | Flags to enable | repairs, restaurant, HP, … |
+| Package | CORE / +COMMS / +SOCIAL C0–C2 | See deliverables |
 
 ---
 
-## 2. Infrastructure & Hosting Credentials
+## 2. Infrastructure
 
-| Provider | Purpose | Required Credentials |
+| Provider | Purpose | Credentials |
 | :--- | :--- | :--- |
-| **Domain Registrar** | Custom domain for Web Storefront (`mystore.lk`). | DNS Access (Cloudflare, GoDaddy, LK Domain Registry) to point CNAME / A records to Vercel. |
-| **Supabase / PostgreSQL** | Dedicated private PostgreSQL database instance. | `DATABASE_URL` connection string with password, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. |
-| **Vercel Account** | Global edge serverless hosting. | Client Vercel Team access or managed under your master deployment agency account. |
+| Domain | Storefront URL | DNS access for Vercel |
+| Supabase | Dedicated Postgres | New project; pooler `DATABASE_URL`; anon + service_role |
+| Vercel | Edge host | Project or team access |
 
 ---
 
-## 3. Payment Gateway Credentials (Optional per Client)
+## 3. Payments (optional)
 
-| Gateway | Supported Region | Required Keys from Client |
+| Gateway | Region | Keys |
 | :--- | :--- | :--- |
-| **PayHere** | Sri Lanka (Visa, Master, Frimi, Genie, EzCash) | `PAYHERE_MERCHANT_ID`, `PAYHERE_SECRET`, `PAYHERE_MODE` (`sandbox` or `live`). |
-| **WebXPay** | Sri Lanka (Multi-bank direct debit & cards) | `WEBXPAY_SECRET_KEY`, `WEBXPAY_PUBLIC_KEY`. |
-| **Stripe** | Global / USD / EUR transactions | `STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`. |
-| **Cash on Delivery (COD)** | Islandwide courier cash collections | Enabled by default (No API credentials required). |
+| **COD** | Default storefront | None |
+| PayHere | LK cards / wallets | `PAYHERE_MERCHANT_ID`, `PAYHERE_SECRET`, `PAYHERE_MODE` — only if contracted |
+| WebXPay | LK | Public/secret keys — only if contracted |
+| Stripe | Global | **Not wired** for storefront unless future SOW |
 
 ---
 
-## 4. Logistics & Delivery Partner Credentials
+## 4. Logistics (optional)
 
-| Courier Partner | Coverage | Required Integration Keys |
-| :--- | :--- | :--- |
-| **Koombiyo Delivery** | Islandwide Sri Lanka | `KOOMBIYO_API_KEY`, `KOOMBIYO_MERCHANT_ID` |
-| **Prompt Express** | Islandwide Sri Lanka | `PROMPT_CLIENT_CODE`, `PROMPT_API_TOKEN` |
-| **Domex Courier** | Islandwide Sri Lanka | `DOMEX_API_KEY`, `DOMEX_USER_CODE` |
-| **In-House Fleet** | Local radius / Same-day dispatch | Staff rider phone numbers & delivery zones. |
+| Partner | Keys |
+| :--- | :--- |
+| Koombiyo | `KOOMBIYO_API_KEY` (+ merchant id if required by API) |
+| Other couriers | Only if integration exists in app for that client |
 
 ---
 
-## 5. WhatsApp Hotline & Messaging
+## 5. WhatsApp & messaging
 
-| Channel | Setup Options | Required Information |
-| :--- | :--- | :--- |
-| **Direct WhatsApp Link** | Instant 1-click (Zero monthly fee) | Official WhatsApp Business phone number (e.g. `+94771234567`). |
-| **WhatsApp Cloud API** | Fully automated bot via Meta Graph API | `META_APP_ID`, `META_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`. |
+| Mode | Required |
+| :--- | :--- |
+| Storefront wa.me only | E.164 → `NEXT_PUBLIC_WHATSAPP_NUMBER` |
+| Cloud API (COMMS) | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID` (or `WHATSAPP_PHONE_NUMBER_ID`), `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` (if Meta requires), webhook URL `/api/whatsapp/webhook` |
 
 ---
 
-## 6. Initial Data Migration Template (Excel / CSV)
+## 6. Marketing / social (optional — `/social`)
 
-Request the following data in spreadsheet format for 1-click onboarding import:
-1. **Product Catalog:** Product Name, Category, SKU, Barcode (if existing), Cost Price, Selling Price, Initial Stock Quantity per Branch.
-2. **Customer Directory:** Full Name, Phone Number, Email, Address, Initial Polim Potha Credit Balance (if migrating existing credit accounts).
-3. **Supplier Directory:** Supplier Name, Contact Person, Phone, Payment Terms (Net 15/30/60), Opening Payable Balance.
+| Item | Notes |
+| :--- | :--- |
+| Facebook / Instagram / TikTok / YouTube handles | Stored in Social Channel Manager |
+| WhatsApp business number | Same as messaging |
+| Meta Pixel + CAPI token | Pixel ID + `META_CONVERSIONS_API_TOKEN` |
+| TikTok / GA4 / GTM | Pixel / measurement IDs |
+| Meta Page ID / Ad Account ID | For future ads; not auto-publish today |
+
+---
+
+## 7. Creative (optional)
+
+| Tier | Client / Grabber provides |
+| :--- | :--- |
+| C0 PDF + UGC scripts | Staff access only |
+| C1 Cloud image | `FAL_KEY` or `REPLICATE_API_TOKEN` |
+| C2 GPU video | Grabber/ops GPU host + `CREATIVE_WORKER_URL` |
+
+---
+
+## 8. Data migration files
+
+1. **Products:** Name, Category, SKU, Barcode, Cost, Sell, Opening qty / location  
+2. **Customers:** Name, Phone, Email, Address, Opening Polim balance  
+3. **Suppliers:** Name, Contact, Terms, Opening AP  
+
+Import: `npm run client:migrate -- --client "Name" --file "…csv"`
+
+---
+
+## 9. Staff users to create
+
+OWNER (required), plus MANAGER / CASHIER / WAREHOUSE / ACCOUNTANT / MARKETING as needed.  
+**Production PIN must not be demo `1234` after handover.**

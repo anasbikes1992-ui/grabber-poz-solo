@@ -46,6 +46,7 @@ const STAFF_PREFIXES = [
   '/orders',
   '/reports',
   '/marketing',
+  '/social',
   '/warranties',
   '/ai',
   '/inventory',

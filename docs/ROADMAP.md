@@ -1,6 +1,6 @@
 # Grabber Business OS — Product Roadmap
 
-Sprint-based plan aligned with the MyPoz Solo master vision.  
+Sprint-based plan. **Sellable scope:** [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) · [`STAGE_READINESS.md`](./STAGE_READINESS.md).  
 **No rebuild of POS.** Extend the existing commerce engine.
 
 Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
@@ -68,7 +68,7 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 ---
 
-### Release 3 — MyPoz Storefront `R3` ⭐ highest ROI
+### Release 3 — Storefront `R3` ⭐ highest ROI
 
 **Goal:** Flagship customer-facing commerce.
 
