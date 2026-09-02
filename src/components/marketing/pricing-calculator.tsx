@@ -62,8 +62,8 @@ export const MODULE_CATALOG: ModularAddon[] = [
   },
 ];
 
-export const BASE_SETUP_LKR = 95000;
-export const BASE_MONTHLY_LKR = 4900;
+export const BASE_SETUP_LKR = 125000;
+export const BASE_MONTHLY_LKR = 5000;
 
 export function ModularPricingCalculator() {
   const [selectedModules, setSelectedModules] = useState<string[]>(['repairs']);
