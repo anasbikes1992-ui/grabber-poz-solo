@@ -5,7 +5,7 @@ import { decodeSessionEdge } from '@/lib/auth/session-edge';
 import { checkPathRateLimit, clientIpFromHeaders } from '@/lib/security/rate-limit';
 
 /** Public marketing / storefront / auth / webhooks */
-const PUBLIC_EXACT = new Set(['/', '/store', '/shop/login', '/adminpoz', '/login']);
+const PUBLIC_EXACT = new Set(['/', '/store', '/shop', '/shop/login', '/adminpoz', '/login']);
 const PUBLIC_PREFIXES = [
   '/shop/',
   '/categories/',

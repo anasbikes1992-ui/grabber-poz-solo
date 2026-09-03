@@ -38,6 +38,7 @@ const PUBLIC_API = [
   '/payments/methods',
   '/promotions/public',
   '/installation/identity',
+  '/company/leads',
 ];
 
 const STAFF_MARKERS = [

@@ -80,12 +80,12 @@ export function StorefrontShell({
 
       <header className="sticky top-0 z-40 border-b border-[var(--sf-border)] bg-[var(--sf-background)]/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link href="/" className="inline-flex shrink-0 cursor-pointer" aria-label="Grabber home">
+          <Link href="/shop" className="inline-flex shrink-0 cursor-pointer" aria-label="Grabber home">
             <BrandLogo size="md" showTagline={false} showSoloBadge={false} />
           </Link>
 
           <nav className="hidden items-center gap-1 text-sm md:flex" aria-label="Store navigation">
-            <Link href="/" className={navLinkClass(isProducts)}>
+            <Link href="/shop" className={navLinkClass(isProducts)}>
               <Package className="mr-1.5 inline h-4 w-4" aria-hidden />
               Products
             </Link>
@@ -110,14 +110,14 @@ export function StorefrontShell({
 
           <div className="flex items-center gap-1 sm:gap-2">
             <Link
-              href="/#catalog"
+              href="/shop#catalog"
               className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-primary)] hover:bg-[var(--sf-muted)] md:hidden"
               aria-label="Search catalog"
             >
               <Search className="h-5 w-5" />
             </Link>
             <Link
-              href="/#catalog"
+              href="/shop#catalog"
               className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-primary)] hover:bg-[var(--sf-muted)]"
               aria-label={`Shopping bag, ${bagCount} items`}
             >
@@ -163,7 +163,7 @@ export function StorefrontShell({
         aria-label="Mobile store navigation"
       >
         <div className={`mx-auto grid max-w-lg gap-1 px-2 py-2 ${showRepairs ? 'grid-cols-4' : 'grid-cols-3'}`}>
-          <Link href="/" className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${isProducts ? 'text-[var(--sf-accent)]' : 'text-[var(--sf-secondary)]'}`}>
+          <Link href="/shop" className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold ${isProducts ? 'text-[var(--sf-accent)]' : 'text-[var(--sf-secondary)]'}`}>
             <Package className="h-5 w-5" aria-hidden />
             Products
           </Link>
