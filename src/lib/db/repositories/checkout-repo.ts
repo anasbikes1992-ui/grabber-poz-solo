@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import { db } from '@/db';
 import {
@@ -10,24 +10,32 @@ import {
   payments,
   polimPothaAccounts,
   polimPothaEntries,
-  products,
   auditLogs,
+  customers,
 } from '@/db/schema';
 import { resolveCheckoutStatuses, type CheckoutPaymentMethod } from '@/lib/commerce/order-lifecycle';
+import { computeAuthoritativeCheckoutTotals } from '@/lib/commerce/authoritative-pricing';
+import { loadAuthoritativeLines, loadTaxRegistry } from '@/lib/commerce/load-catalog-pricing';
 import { ensureDefaultChartOfAccounts } from '@/lib/commerce/ensure-coa';
 import { dispatchAutomationEvent } from '@/lib/automation/engine';
 import { dispatchStockLowIfNeeded } from '@/lib/inventory/stock-low-alert';
 import { sendMetaPurchaseEvent } from '@/lib/integrations/meta-capi';
-import { recordSale } from '@/lib/inventory/stock-service';
+import { recordSale, reserveStockTx } from '@/lib/inventory/stock-service';
 import { consumeFefoLot } from '@/lib/inventory/fefo';
-import { customers } from '@/db/schema';
+import { resolveStockApplyMode } from '@/lib/inventory/stock-invariants';
+import {
+  authorizeCreditSale,
+  authorizeCreditRepayment,
+} from '@/lib/commerce/customer-credit-authorization';
 
 export type CheckoutItem = {
   productId: string;
   variantId?: string | null;
   name?: string;
   quantity: number;
-  unitPrice: number;
+  /** Ignored — catalog sale price is authoritative. */
+  unitPrice?: number;
+  /** Ignored — catalog cost is authoritative. */
   unitCost?: number;
 };
 
@@ -102,33 +110,34 @@ export async function durableCheckout(input: CheckoutInput) {
       }
     }
 
-    // Load product costs if needed
-    const lines: Array<
-      CheckoutItem & { unitCost: number; lineTotal: number; sku: string; reorderLevel: number }
-    > = [];
-    for (const item of input.items) {
-      const [prod] = await tx.select().from(products).where(eq(products.id, item.productId)).limit(1);
-      if (!prod || !prod.isActive) throw new Error(`Product not found or inactive: ${item.productId}`);
-      const unitCost = item.unitCost ?? Number(prod.costPrice);
-      const unitPrice = item.unitPrice ?? Number(prod.salePrice);
-      lines.push({
-        ...item,
-        name: item.name || prod.name,
-        unitCost,
-        unitPrice,
-        quantity: item.quantity,
-        lineTotal: unitPrice * item.quantity,
-        sku: prod.sku,
-        reorderLevel: prod.reorderLevel ?? 10,
-      });
-    }
+    const catalogLines = await loadAuthoritativeLines(tx as unknown as typeof db, input.items);
+    const { rates, defaultTaxProfileId } = await loadTaxRegistry(tx as unknown as typeof db);
+    const pricing = computeAuthoritativeCheckoutTotals(catalogLines, {
+      discountTotal: input.discountTotal ?? 0,
+      ratesRegistry: rates,
+      defaultTaxProfileId,
+    });
 
-    const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
-    const discountTotal = input.discountTotal ?? 0;
-    const taxable = Math.max(0, subtotal - discountTotal);
-    const taxTotal = Math.round(taxable * 0.18 * 100) / 100;
-    const grandTotal = taxable + taxTotal;
+    const lines = catalogLines.map((line, i) => {
+      const priced = pricing.lines[i];
+      return {
+        ...line,
+        unitPrice: priced.unitPrice,
+        unitCost: priced.unitCost,
+        lineTotal: priced.grossAmount,
+        taxAmount: priced.taxAmount,
+        discountAmount: priced.lineDiscount + priced.allocatedCartDiscount,
+      };
+    });
+
+    const subtotal = pricing.subtotal;
+    const discountTotal = pricing.totalDiscount;
+    const taxable = pricing.taxableTotal;
+    const taxTotal = pricing.taxTotal;
+    const grandTotal = pricing.grandTotal;
     const totalCost = lines.reduce((s, l) => s + l.unitCost * l.quantity, 0);
+    const taxMemo =
+      Object.values(pricing.taxBreakdown)[0]?.taxName || (taxTotal > 0 ? 'Output tax' : 'Tax');
     const orderNumber = input.orderNumber || `POS-${Date.now().toString().slice(-8)}`;
 
     const paymentLines: CheckoutPaymentLine[] =
@@ -140,6 +149,7 @@ export async function durableCheckout(input: CheckoutInput) {
     const lifecycleMethod = isSplit ? 'CASH' : input.paymentMethod;
     const statuses = resolveCheckoutStatuses(input.channel, lifecycleMethod, isSplit);
     const paymentSuccess = statuses.paymentStatus === 'PAID';
+    const stockMode = resolveStockApplyMode(statuses.decrementStock);
 
     const stockLowCandidates: Array<{
       productId: string;
@@ -149,33 +159,36 @@ export async function durableCheckout(input: CheckoutInput) {
       reorderLevel: number;
     }> = [];
 
-    // Stock decrement via centralized StockService
+    // decrementStock true → SALE (POS + storefront). false → RESERVE only (async hold).
     for (const line of lines) {
-      const { onHand } = await recordSale(
-        tx,
-        { locationType: 'BRANCH', locationId: input.branchId },
-        {
-          productId: line.productId,
-          variantId: line.variantId,
-          quantity: line.quantity,
-          unitCost: line.unitCost,
-        },
-        {
-          referenceType: 'ORDER',
-          referenceId: orderNumber,
-          actorId: input.actorId || null,
-          notes: input.channel === 'STOREFRONT' ? 'Storefront checkout' : 'POS checkout',
-        },
-        { allowUnderrun: Boolean(input.allowStockUnderrun) },
-      );
+      const loc = { locationType: 'BRANCH' as const, locationId: input.branchId };
+      const stockLine = {
+        productId: line.productId,
+        variantId: line.variantId,
+        quantity: line.quantity,
+        unitCost: line.unitCost,
+      };
+      const meta = {
+        referenceType: 'ORDER',
+        referenceId: orderNumber,
+        actorId: input.actorId || null,
+        notes: input.channel === 'STOREFRONT' ? 'Storefront checkout' : 'POS checkout',
+      };
 
-      await consumeFefoLot(
-        tx,
-        { locationType: 'BRANCH', locationId: input.branchId },
-        line.productId,
-        line.variantId,
-        line.quantity,
-      ).catch(() => null);
+      let onHand: number;
+      if (stockMode === 'DECREMENT') {
+        const sold = await recordSale(tx, loc, stockLine, meta, {
+          allowUnderrun: Boolean(input.allowStockUnderrun),
+        });
+        onHand = sold.onHand;
+        await consumeFefoLot(tx, loc, line.productId, line.variantId, line.quantity).catch(() => null);
+      } else {
+        const reserved = await reserveStockTx(tx, loc, stockLine, {
+          ...meta,
+          notes: `${meta.notes}; reserved pending fulfillment`,
+        });
+        onHand = Number(reserved.onHand);
+      }
 
       if (onHand <= line.reorderLevel) {
         stockLowCandidates.push({
@@ -221,8 +234,8 @@ export async function durableCheckout(input: CheckoutInput) {
         quantity: line.quantity,
         unitPrice: String(line.unitPrice.toFixed(2)),
         unitCost: String(line.unitCost.toFixed(2)),
-        taxAmount: String(((line.lineTotal / Math.max(subtotal, 1)) * taxTotal).toFixed(2)),
-        discountAmount: '0.00',
+        taxAmount: String(line.taxAmount.toFixed(2)),
+        discountAmount: String(line.discountAmount.toFixed(2)),
         lineTotal: String(line.lineTotal.toFixed(2)),
       });
     }
@@ -248,25 +261,46 @@ export async function durableCheckout(input: CheckoutInput) {
     const payment = insertedPayments[0];
 
     if (primaryPayMethod === 'CREDIT' && input.customerId && paymentSuccess) {
+      const [cust] = await tx
+        .select()
+        .from(customers)
+        .where(eq(customers.id, input.customerId))
+        .limit(1);
+
       const [acct] = await tx
         .select()
         .from(polimPothaAccounts)
         .where(eq(polimPothaAccounts.customerId, input.customerId))
         .limit(1);
-      if (!acct) throw new Error('Polim Potha account missing for customer');
-      const bal = Number(acct.currentBalance) + grandTotal;
-      if (bal > Number(acct.creditLimit)) throw new Error('Credit limit exceeded');
+
+      const auth = authorizeCreditSale({
+        customer: cust ? { ...cust, creditLimit: Number(cust.creditLimit || 0) } : null,
+        account: acct
+          ? {
+              customerId: acct.customerId,
+              creditLimit: Number(acct.creditLimit),
+              currentBalance: Number(acct.currentBalance),
+              status: acct.status as any,
+            }
+          : null,
+        creditAmount: grandTotal,
+        staffRole: 'OWNER',
+        staffUserId: input.actorId,
+        orderNumber,
+        idempotencyKey: input.idempotencyKey,
+      });
+
       await tx
         .update(polimPothaAccounts)
-        .set({ currentBalance: String(bal.toFixed(2)), updatedAt: new Date() })
+        .set({ currentBalance: String(auth.newBalance.toFixed(2)), updatedAt: new Date() })
         .where(eq(polimPothaAccounts.customerId, input.customerId));
       await tx.insert(polimPothaEntries).values({
         customerId: input.customerId,
         orderId: order.id,
         type: 'INVOICE',
         amount: String(grandTotal.toFixed(2)),
-        balanceAfter: String(bal.toFixed(2)),
-        notes: `POS credit sale ${orderNumber}`,
+        balanceAfter: String(auth.newBalance.toFixed(2)),
+        notes: auth.entryDraft.notes,
         createdBy: input.actorId || null,
       });
     }
@@ -323,7 +357,7 @@ export async function durableCheckout(input: CheckoutInput) {
       await tx.insert(journalLines).values([
         ...debitLines,
         { journalEntryId: je.id, accountId: aRev, debit: '0.00', credit: String(netSales.toFixed(2)), memo: 'Sales revenue' },
-        { journalEntryId: je.id, accountId: aVat, debit: '0.00', credit: String(taxTotal.toFixed(2)), memo: 'VAT 18%' },
+        { journalEntryId: je.id, accountId: aVat, debit: '0.00', credit: String(taxTotal.toFixed(2)), memo: taxMemo },
         { journalEntryId: je.id, accountId: aCogs, debit: String(totalCost.toFixed(2)), credit: '0.00', memo: 'COGS' },
         { journalEntryId: je.id, accountId: aInv, debit: '0.00', credit: String(totalCost.toFixed(2)), memo: 'Inventory relieved' },
       ]);
@@ -410,10 +444,23 @@ export async function durablePolimRepay(params: {
       .where(eq(polimPothaAccounts.customerId, params.customerId))
       .limit(1);
     if (!acct) throw new Error('Polim account not found');
-    const next = Math.max(0, Number(acct.currentBalance) - params.amount);
+
+    const auth = authorizeCreditRepayment({
+      account: {
+        customerId: acct.customerId,
+        creditLimit: Number(acct.creditLimit),
+        currentBalance: Number(acct.currentBalance),
+        status: acct.status as any,
+      },
+      repaymentAmount: params.amount,
+      paymentMethod: params.paymentMethod,
+      notes: params.notes,
+      actorId: params.actorId,
+    });
+
     await tx
       .update(polimPothaAccounts)
-      .set({ currentBalance: String(next.toFixed(2)), updatedAt: new Date() })
+      .set({ currentBalance: String(auth.newBalance.toFixed(2)), updatedAt: new Date() })
       .where(eq(polimPothaAccounts.customerId, params.customerId));
     const [entry] = await tx
       .insert(polimPothaEntries)
@@ -421,8 +468,8 @@ export async function durablePolimRepay(params: {
         customerId: params.customerId,
         type: 'REPAYMENT',
         amount: String(params.amount.toFixed(2)),
-        balanceAfter: String(next.toFixed(2)),
-        notes: params.notes || 'Customer repayment',
+        balanceAfter: String(auth.newBalance.toFixed(2)),
+        notes: auth.entryDraft.notes,
         createdBy: params.actorId || null,
       })
       .returning();
@@ -445,6 +492,6 @@ export async function durablePolimRepay(params: {
       { journalEntryId: je.id, accountId: aCash, debit: String(params.amount.toFixed(2)), credit: '0.00', memo: 'Cash/bank in' },
       { journalEntryId: je.id, accountId: aAr, debit: '0.00', credit: String(params.amount.toFixed(2)), memo: 'AR reduced' },
     ]);
-    return { accountBalance: next, entry, journalEntryId: je.id };
+    return { accountBalance: auth.newBalance, entry, journalEntryId: je.id };
   });
 }

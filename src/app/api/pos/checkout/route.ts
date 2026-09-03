@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
+import { db, userAssignments } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 import { getCustomerSession } from '@/lib/auth/customer-session';
 import { processPosCheckout } from '@/lib/commerce/pos-checkout-service';
@@ -27,14 +29,28 @@ export async function POST(req: Request) {
       assertCanMutateCommerce(session);
     }
 
+    let assignedBranchIds: string[] | undefined;
+    if (session && session.role !== 'OWNER' && session.role !== 'ADMIN' && !isDemoUserId(session.userId)) {
+      const rows = await db
+        .select()
+        .from(userAssignments)
+        .where(eq(userAssignments.userId, session.userId));
+      assignedBranchIds = rows.map((r) => r.branchId).filter(Boolean) as string[];
+    }
+
     const rawLines = Array.isArray(body.items) ? body.items : Array.isArray(body.lines) ? body.lines : [];
 
     const result = await processPosCheckout({
       channel,
       branchId: body.branchId,
       fulfillmentLocationId: body.fulfillmentLocationId,
+      assignedBranchIds,
       items: rawLines,
       discountTotal: body.discountTotal,
+      discountPercent: body.discountPercent,
+      staffRole: session?.role as any,
+      overrideRole: body.overrideRole,
+      overrideUserId: body.overrideUserId,
       promoCode: body.promoCode,
       tradeInVoucherNumber: body.tradeInVoucherNumber,
       tradeInCredit: body.tradeInCredit,

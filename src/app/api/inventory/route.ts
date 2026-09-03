@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { desc } from 'drizzle-orm';
 import { db, stockBalances, stockMovements, products, branches, warehouses } from '@/db';
 import { requireStaffSession } from '@/lib/auth/session';
+import { availableStock } from '@/lib/inventory/stock-invariants';
 
 export async function GET() {
   try {
@@ -35,7 +36,7 @@ export async function GET() {
           sku: p?.sku,
           onHand: b.onHand,
           reserved: b.reserved,
-          available: b.onHand - b.reserved,
+          available: availableStock(b.onHand, b.reserved),
         };
       }),
       movements: movements.map((m) => ({

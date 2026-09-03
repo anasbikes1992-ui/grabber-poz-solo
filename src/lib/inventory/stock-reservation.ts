@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db, branches, products } from '@/db';
 import { reserveStockTx, releaseStockTx } from '@/lib/inventory/stock-service';
+import { availableStock } from '@/lib/inventory/stock-invariants';
 
 export type StockReservationInput = {
   branchId?: string;
@@ -42,7 +43,7 @@ export async function reserveStock(input: StockReservationInput) {
 
     return {
       balance,
-      available: Number(balance.onHand) - Number(balance.reserved),
+      available: availableStock(Number(balance.onHand), Number(balance.reserved)),
       product: { id: product.id, name: product.name, sku: product.sku },
     };
   });
@@ -67,7 +68,7 @@ export async function releaseStock(input: StockReservationInput) {
 
     return {
       balance,
-      available: Number(balance.onHand) - Number(balance.reserved),
+      available: availableStock(Number(balance.onHand), Number(balance.reserved)),
     };
   });
 }

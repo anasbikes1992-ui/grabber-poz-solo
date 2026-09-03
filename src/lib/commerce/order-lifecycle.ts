@@ -22,11 +22,17 @@ export type CheckoutStatuses = {
   orderStatus: OrderStatus;
   paymentStatus: PaymentStatus;
   fulfillmentStatus: FulfillmentStatus;
-  /** Whether to decrement stock immediately at checkout */
+  /** Whether to decrement on_hand at checkout (SALE) vs reserve only */
   decrementStock: boolean;
 };
 
-/** Statuses applied when an order is first created at checkout. */
+/**
+ * Statuses applied when an order is first created at checkout.
+ *
+ * decrementStock is honored by durableCheckout:
+ *   true  → recordSale (SALE movement) — POS cash/card/credit and storefront COD/paid
+ *   false → reserveStockTx (RESERVATION) — async hold; flip only when introducing hold-then-fulfill
+ */
 export function resolveCheckoutStatuses(
   channel: OrderChannel | undefined,
   paymentMethod: CheckoutPaymentMethod,

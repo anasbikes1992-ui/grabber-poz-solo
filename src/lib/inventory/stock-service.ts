@@ -5,6 +5,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { db, stockBalances, stockMovements } from '@/db';
 import * as schema from '@/db/schema';
+import { availableStock } from '@/lib/inventory/stock-invariants';
 
 export type DbTx = PostgresJsDatabase<typeof schema>;
 export type LocationType = 'BRANCH' | 'WAREHOUSE';
@@ -206,7 +207,9 @@ export async function recordSale(
     .returning();
 
   if (!balance) {
-    throw new InsufficientStockError(`Insufficient stock for ${line.productId}`, line.productId, 0, qty);
+    const [current] = await tx.select().from(stockBalances).where(baseWhere).limit(1);
+    const available = current ? availableStock(Number(current.onHand), Number(current.reserved)) : 0;
+    throw new InsufficientStockError(`Insufficient stock for ${line.productId}`, line.productId, available, qty);
   }
 
   const reservedRelease = Math.min(qty, Number(balance.reserved));
@@ -401,7 +404,22 @@ export async function reserveStockTx(
     .where(where)
     .returning();
 
-  if (!balance) throw new InsufficientStockError(`Insufficient available stock`, line.productId, 0, qty);
+  if (!balance) {
+    const [current] = await tx
+      .select()
+      .from(stockBalances)
+      .where(
+        and(
+          eq(stockBalances.locationType, loc.locationType),
+          eq(stockBalances.locationId, loc.locationId),
+          eq(stockBalances.productId, line.productId),
+          variantWhere(line.variantId),
+        ),
+      )
+      .limit(1);
+    const available = current ? availableStock(Number(current.onHand), Number(current.reserved)) : 0;
+    throw new InsufficientStockError(`Insufficient available stock`, line.productId, available, qty);
+  }
 
   await insertMovement(tx, loc, 'RESERVATION', qty, { ...line, quantity: qty }, meta);
   return balance;

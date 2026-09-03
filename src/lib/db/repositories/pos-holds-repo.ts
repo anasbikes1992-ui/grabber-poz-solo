@@ -1,6 +1,8 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { orderItems, orders, products, productVariants } from '@/db/schema';
+import { computeAuthoritativeCheckoutTotals } from '@/lib/commerce/authoritative-pricing';
+import { loadAuthoritativeLines, loadTaxRegistry } from '@/lib/commerce/load-catalog-pricing';
 
 export type HoldLine = {
   productId: string;
@@ -24,11 +26,17 @@ export async function createPosHold(input: PosHoldInput) {
   if (!input.items.length) throw new Error('Cannot hold an empty cart');
 
   return db.transaction(async (tx) => {
-    const subtotal = input.items.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
-    const discountTotal = input.discountTotal ?? 0;
-    const taxable = Math.max(0, subtotal - discountTotal);
-    const taxTotal = Math.round(taxable * 0.18 * 100) / 100;
-    const grandTotal = taxable + taxTotal;
+    const catalogLines = await loadAuthoritativeLines(tx as unknown as typeof db, input.items);
+    const { rates, defaultTaxProfileId } = await loadTaxRegistry(tx as unknown as typeof db);
+    const pricing = computeAuthoritativeCheckoutTotals(catalogLines, {
+      discountTotal: input.discountTotal ?? 0,
+      ratesRegistry: rates,
+      defaultTaxProfileId,
+    });
+    const subtotal = pricing.subtotal;
+    const discountTotal = pricing.totalDiscount;
+    const taxTotal = pricing.taxTotal;
+    const grandTotal = pricing.grandTotal;
     const orderNumber = input.label?.trim()
       ? `HOLD-${input.label.trim().replace(/\s+/g, '-').slice(0, 24)}-${Date.now().toString().slice(-6)}`
       : `HOLD-${Date.now().toString().slice(-8)}`;
@@ -52,7 +60,9 @@ export async function createPosHold(input: PosHoldInput) {
       })
       .returning();
 
-    for (const line of input.items) {
+    for (let i = 0; i < catalogLines.length; i++) {
+      const line = catalogLines[i];
+      const priced = pricing.lines[i];
       await tx.insert(orderItems).values({
         orderId: order.id,
         productId: line.productId,
@@ -60,8 +70,8 @@ export async function createPosHold(input: PosHoldInput) {
         quantity: line.quantity,
         unitPrice: String(line.unitPrice.toFixed(2)),
         unitCost: String(line.unitCost.toFixed(2)),
-        taxAmount: '0.00',
-        discountAmount: '0.00',
+        taxAmount: String((priced?.taxAmount ?? 0).toFixed(2)),
+        discountAmount: String(((priced?.lineDiscount ?? 0) + (priced?.allocatedCartDiscount ?? 0)).toFixed(2)),
         lineTotal: String((line.unitPrice * line.quantity).toFixed(2)),
       });
     }

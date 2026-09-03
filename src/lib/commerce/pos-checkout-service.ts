@@ -1,9 +1,18 @@
 import { eq } from 'drizzle-orm';
 import { durableCheckout } from '@/lib/db/repositories/checkout-repo';
-import { db, branches, customers, tradeInVouchers } from '@/db';
+import { db, branches, customers, tradeInVouchers, registers } from '@/db';
 import { evaluatePromotion, evaluateCartPromotions } from '@/lib/commerce/promotion-engine';
 import { listPromotions, recordPromotionRedemption } from '@/lib/config/promotions-store';
 import { applyTradeInCredit } from '@/lib/trade-in/trade-in-service';
+import { computeAuthoritativeCheckoutTotals } from '@/lib/commerce/authoritative-pricing';
+import { loadAuthoritativeLines, loadTaxRegistry } from '@/lib/commerce/load-catalog-pricing';
+
+import { authorizeDiscount, type StaffRole } from '@/lib/commerce/discount-authorization';
+import {
+  buildUserBranchProfile,
+  resolveAuthoritativeBranch,
+  assertRegisterBranchIntegrity,
+} from '@/lib/auth/branch-authorization';
 
 type BodyLine = {
   productId?: string;
@@ -22,8 +31,13 @@ export type PosCheckoutInput = {
   channel: string;
   branchId?: string;
   fulfillmentLocationId?: string;
+  assignedBranchIds?: string[];
   items: BodyLine[];
   discountTotal?: number;
+  discountPercent?: number;
+  staffRole?: StaffRole;
+  overrideRole?: StaffRole;
+  overrideUserId?: string;
   promoCode?: string;
   tradeInVoucherNumber?: string;
   tradeInCredit?: number;
@@ -44,38 +58,44 @@ export type PosCheckoutInput = {
   actorId?: string;
 };
 
-function computeGrandTotal(subtotal: number, discountTotal: number) {
-  const taxable = Math.max(0, subtotal - discountTotal);
-  const taxTotal = Math.round(taxable * 0.18 * 100) / 100;
-  return taxable + taxTotal;
-}
-
 export async function processPosCheckout(body: PosCheckoutInput) {
   const channel = body.channel || 'POS';
   const isStorefront = channel === 'STOREFRONT';
 
-  let branchId = body.branchId || body.fulfillmentLocationId;
-  if (!branchId) {
-    const [b] = await db.select().from(branches).limit(1);
-    branchId = b?.id;
-  }
-  if (!branchId) {
-    throw Object.assign(new Error('branchId is required — run POST /api/seed'), { status: 400 });
+  // CI-010: Server-side Branch Authorization (Do not trust branchId from browser)
+  const userProfile = buildUserBranchProfile({
+    userId: body.actorId || '00000000-0000-0000-0000-000000000001',
+    role: body.staffRole || (isStorefront ? 'OWNER' : 'CASHIER'),
+    assignedBranchIds: body.assignedBranchIds,
+  });
+
+  const [defaultBranch] = await db.select().from(branches).limit(1);
+  const branchId = resolveAuthoritativeBranch(
+    userProfile,
+    body.branchId || body.fulfillmentLocationId,
+    defaultBranch?.id,
+  );
+
+  if (body.registerId) {
+    const [reg] = await db.select().from(registers).where(eq(registers.id, body.registerId)).limit(1);
+    if (reg) {
+      assertRegisterBranchIntegrity(reg, branchId);
+    }
   }
 
   const rawLines = body.items;
-  const items = rawLines.map((l) => ({
+  const intent = rawLines.map((l) => ({
     productId: String(l.productId || l.id),
     variantId: l.variantId ? String(l.variantId) : undefined,
-    name: l.name,
     quantity: Number(l.quantity ?? l.qty ?? 0),
-    unitPrice: Number(l.unitPrice ?? 0),
-    unitCost: l.unitCost != null ? Number(l.unitCost) : undefined,
   }));
 
-  const itemSubtotal = items.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
-  const itemCount = items.reduce((s, l) => s + l.quantity, 0);
-  let discountTotal = Number(body.discountTotal) || 0;
+  const catalogLines = await loadAuthoritativeLines(db, intent);
+  const { rates, defaultTaxProfileId } = await loadTaxRegistry(db);
+  const itemSubtotal = catalogLines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
+  const itemCount = catalogLines.reduce((s, l) => s + l.quantity, 0);
+
+  let promoTotal = 0;
   let promoRuleId: string | undefined;
 
   const rules = await listPromotions();
@@ -94,7 +114,7 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     segment: customerSegment,
   });
   if (auto.valid && auto.rule) {
-    discountTotal += auto.discountTotal;
+    promoTotal += auto.discountTotal;
     promoRuleId = auto.rule.id;
   }
 
@@ -103,7 +123,7 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     if (!promo.valid) {
       throw Object.assign(new Error(promo.error || 'Invalid promo code'), { status: 400 });
     }
-    discountTotal += promo.discountTotal;
+    promoTotal += promo.discountTotal;
     promoRuleId = promo.rule?.id;
   }
 
@@ -119,8 +139,29 @@ export async function processPosCheckout(body: PosCheckoutInput) {
       throw Object.assign(new Error('Trade-in voucher invalid or already used'), { status: 400 });
     }
     tradeInCredit = Number(v.appraisalValue);
-    discountTotal += Math.min(tradeInCredit, itemSubtotal);
   }
+
+  // CI-004: Server-Side Discount Authorization
+  const discountAuth = authorizeDiscount({
+    subtotal: itemSubtotal,
+    requestedDiscountAmount: body.discountTotal,
+    requestedDiscountPercent: body.discountPercent,
+    staffRole: body.staffRole || (isStorefront ? null : 'OWNER'),
+    staffUserId: body.actorId,
+    overrideRole: body.overrideRole,
+    overrideUserId: body.overrideUserId,
+    channel,
+    promotionDiscount: promoTotal,
+    tradeInCredit,
+  });
+
+  const discountTotal = discountAuth.authorizedDiscountTotal;
+
+  const pricingPreview = computeAuthoritativeCheckoutTotals(catalogLines, {
+    discountTotal,
+    ratesRegistry: rates,
+    defaultTaxProfileId,
+  });
 
   const rawPayments: PaymentLine[] = Array.isArray(body.payments) ? body.payments : [];
   let paymentMethod = String(body.paymentMethod || rawPayments[0]?.method || (isStorefront ? 'COD' : 'CASH')).toUpperCase();
@@ -139,7 +180,7 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     if (payments.length < 2) {
       throw Object.assign(new Error('Split payment requires cash and card amounts'), { status: 400 });
     }
-    const expectedTotal = computeGrandTotal(itemSubtotal, discountTotal);
+    const expectedTotal = pricingPreview.grandTotal;
     const paySum = payments.reduce((s, p) => s + p.amount, 0);
     if (Math.abs(paySum - expectedTotal) > 0.01) {
       throw Object.assign(
@@ -173,7 +214,7 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     registerId: body.registerId,
     shiftId: body.shiftId,
     customerId,
-    items,
+    items: intent,
     paymentMethod: resolvedMethod,
     payments,
     amount,
