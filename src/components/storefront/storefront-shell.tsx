@@ -26,10 +26,12 @@ export function StorefrontShell({
   children,
   cms = DEFAULT_STOREFRONT,
   verticalFlags = DEFAULT_VERTICAL_FLAGS,
+  onOpenBag,
 }: {
   children: React.ReactNode;
   cms?: StorefrontConfig;
   verticalFlags?: VerticalFlags;
+  onOpenBag?: () => void;
 }) {
   const pathname = usePathname();
   const [shopper, setShopper] = useState<Shopper | null>(null);
@@ -116,18 +118,34 @@ export function StorefrontShell({
             >
               <Search className="h-5 w-5" />
             </Link>
-            <Link
-              href="/shop#catalog"
-              className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-primary)] hover:bg-[var(--sf-muted)]"
-              aria-label={`Shopping bag, ${bagCount} items`}
-            >
-              <ShoppingBag className="h-5 w-5" />
-              {bagCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--sf-accent)] px-1 text-[10px] font-bold text-white">
-                  {bagCount}
-                </span>
-              )}
-            </Link>
+            {onOpenBag ? (
+              <button
+                type="button"
+                onClick={onOpenBag}
+                className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-primary)] hover:bg-[var(--sf-muted)]"
+                aria-label={`Shopping bag, ${bagCount} items`}
+              >
+                <ShoppingBag className="h-5 w-5" />
+                {bagCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--sf-accent)] px-1 text-[10px] font-bold text-white">
+                    {bagCount}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <Link
+                href="/shop#catalog"
+                className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-primary)] hover:bg-[var(--sf-muted)]"
+                aria-label={`Shopping bag, ${bagCount} items`}
+              >
+                <ShoppingBag className="h-5 w-5" />
+                {bagCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--sf-accent)] px-1 text-[10px] font-bold text-white">
+                    {bagCount}
+                  </span>
+                )}
+              </Link>
+            )}
             {shopper ? (
               <>
                 <Link

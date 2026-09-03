@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -18,15 +18,19 @@ export default function LoginClient() {
   const router = useRouter();
   const search = useSearchParams();
   const mustRotate = search.get('rotate') === '1';
-  const nextPath = search.get('next') || '/app';
+  const requestedNext = search.get('next');
 
-  const [selectedRole, setSelectedRole] = useState('OWNER');
+  const [selectedRole, setSelectedRole] = useState(
+    search.get('role') || (search.get('demo') === 'pos' ? 'CASHIER' : 'OWNER'),
+  );
   const [pin, setPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const nextPath = requestedNext || (selectedRole === 'CASHIER' ? '/pos' : '/app');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,10 +125,19 @@ export default function LoginClient() {
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="staff-pin" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-            <span>{mustRotate ? 'Current PIN' : 'Staff Security PIN'}</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="staff-pin" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <KeyRound className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+              <span>{mustRotate ? 'Current PIN' : 'Staff Security PIN'}</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setPin('1234')}
+              className="text-[11px] font-mono font-bold text-amber-400 hover:underline cursor-pointer"
+            >
+              Fill Demo PIN (1234)
+            </button>
+          </div>
           <input
             id="staff-pin"
             type="password"
@@ -137,6 +150,24 @@ export default function LoginClient() {
             required
             className="w-full px-4 py-3 text-base rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono tracking-widest text-center"
           />
+
+          {/* Quick touch numpad for counter screens */}
+          <div className="grid grid-cols-3 gap-1.5 pt-2">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => {
+                  if (k === 'C') setPin('');
+                  else if (k === '⌫') setPin((p) => p.slice(0, -1));
+                  else setPin((p) => (p.length < 6 ? p + k : p));
+                }}
+                className="py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-foreground font-mono font-bold text-sm transition-colors cursor-pointer active:scale-95"
+              >
+                {k}
+              </button>
+            ))}
+          </div>
         </div>
 
         {mustRotate && (
@@ -194,8 +225,12 @@ export default function LoginClient() {
             Customer sign in
           </a>
           {' · '}
-          <a href="/" className="text-emerald-400 underline underline-offset-2">
+          <a href="/shop" className="text-emerald-400 underline underline-offset-2">
             Storefront
+          </a>
+          {' · '}
+          <a href="/" className="text-emerald-400 underline underline-offset-2">
+            GrabberPoz.com
           </a>
         </p>
       </form>

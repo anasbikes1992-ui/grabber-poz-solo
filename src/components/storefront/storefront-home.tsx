@@ -13,6 +13,8 @@ import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { blocksForSlot } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { whatsappHref } from '@/lib/storefront/theme-vars';
+import { CartDrawer } from '@/components/storefront/CartDrawer';
+import { CartFloatingBar } from '@/components/storefront/CartFloatingBar';
 
 type CatalogItem = {
   id: string;
@@ -71,6 +73,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [branchId, setBranchId] = useState<string | null>(null);
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [shopper, setShopper] = useState<Shopper | null>(null);
   const [q, setQ] = useState('');
   const [serverHits, setServerHits] = useState<Array<{ id: string; slug: string; name: string; sku: string; barcode: string | null; salePrice: number }>>([]);
@@ -198,6 +201,15 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
       return next;
     });
     setMsg(null);
+    setCartDrawerOpen(true);
+  }
+
+  function removeFromCart(id: string) {
+    setCart((prev) => {
+      const next = prev.filter((l) => l.id !== id);
+      persistBag(next);
+      return next;
+    });
   }
 
   function setQty(id: string, qty: number) {
@@ -225,7 +237,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   const waOrder = whatsappHref(cms.theme.whatsappNumber, 'Hi, I would like to place an order.');
 
   return (
-    <StorefrontShell cms={cms} verticalFlags={verticalFlags}>
+    <StorefrontShell cms={cms} verticalFlags={verticalFlags} onOpenBag={() => setCartDrawerOpen(true)}>
       <div>
         <section className="storefront-hero relative overflow-hidden border-b border-[var(--sf-border)]">
           <div
@@ -317,17 +329,32 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
               animate={reduceMotion ? undefined : 'show'}
               className="storefront-hero-card rounded-3xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] p-6 shadow-xl backdrop-blur"
             >
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-secondary)]">Your bag</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-secondary)]">Your bag</p>
+                <span className="px-2.5 py-0.5 rounded-full bg-[var(--sf-accent)]/10 text-[var(--sf-accent)] text-xs font-bold font-mono">
+                  {totals.itemCount} item(s)
+                </span>
+              </div>
               <p className="mt-2 font-display text-3xl font-bold text-[var(--sf-primary)]">{money(totals.subtotal)}</p>
-              <p className="mt-1 text-sm text-[var(--sf-secondary)]">{totals.itemCount} item(s)</p>
-              <button
-                type="button"
-                disabled={busy || cart.length === 0}
-                onClick={() => void checkout()}
-                className="mt-5 w-full min-h-11 cursor-pointer rounded-full bg-[var(--sf-primary)] py-3 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
-              >
-                {busy ? 'Loading…' : shopper ? 'Go to checkout' : 'Sign in to checkout'}
-              </button>
+              <p className="mt-1 text-xs text-[var(--sf-secondary)]">Live prices & inventory synced</p>
+
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCartDrawerOpen(true)}
+                  className="w-full min-h-11 cursor-pointer rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] py-2.5 text-xs font-bold text-[var(--sf-primary)] hover:bg-[var(--sf-muted)] transition-colors"
+                >
+                  View Bag
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || cart.length === 0}
+                  onClick={() => void checkout()}
+                  className="w-full min-h-11 cursor-pointer rounded-full bg-[var(--sf-primary)] py-2.5 text-xs font-bold text-white transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {busy ? 'Loading…' : shopper ? 'Checkout' : 'Sign in'}
+                </button>
+              </div>
               {msg && (
                 <p className="mt-3 text-sm text-[var(--sf-accent)]" role="status">
                   {msg}
@@ -386,14 +413,31 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
               <motion.article
                 key={item.id}
                 variants={reduceMotion ? undefined : gridItem}
-                className="flex flex-col justify-between rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
+                className="group flex flex-col justify-between rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5 shadow-sm transition-all duration-200 hover:shadow-lg hover:border-[var(--sf-accent)]/40"
               >
                 <div>
-                  <h3 className="font-semibold text-[var(--sf-foreground)]">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="px-2 py-0.5 rounded-md bg-[var(--sf-muted)] text-[var(--sf-secondary)] text-[10px] font-mono font-medium">
+                      {item.variant || item.sku}
+                    </span>
+                    {item.stock > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-500 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        In Stock ({item.stock})
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                        Sold Out
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="font-bold text-base text-[var(--sf-foreground)] group-hover:text-[var(--sf-accent)] transition-colors">
                     {item.slug ? (
                       <Link
                         href={`/products/${item.slug}`}
-                        className="cursor-pointer hover:text-[var(--sf-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                        className="cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
                       >
                         {item.name}
                       </Link>
@@ -401,66 +445,48 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                       item.name
                     )}
                   </h3>
-                  <p className="mt-1 text-xs text-[var(--sf-secondary)]">{item.variant || item.sku}</p>
-                  <p className="mt-3 font-display text-xl font-bold text-[var(--sf-accent)]">
+
+                  <p className="mt-3 font-display text-2xl font-black text-[var(--sf-accent)]">
                     {money(Number(item.unitPrice))}
                   </p>
-                  <p className="mt-1 text-xs text-[var(--sf-secondary)]">
-                    {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
-                  </p>
                 </div>
-                <button
-                  type="button"
-                  disabled={item.stock <= 0}
-                  onClick={() => addToCart(item)}
-                  className="mt-4 min-h-11 cursor-pointer rounded-full bg-[var(--sf-accent)] py-2.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
-                >
-                  Add to bag
-                </button>
-                {item.slug && (
-                  <Link
-                    href={`/products/${item.slug}`}
-                    className="mt-2 block cursor-pointer text-center text-xs font-semibold text-[var(--sf-accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+
+                <div className="mt-5 space-y-2">
+                  <button
+                    type="button"
+                    disabled={item.stock <= 0}
+                    onClick={() => addToCart(item)}
+                    className="w-full min-h-11 cursor-pointer rounded-2xl bg-[var(--sf-accent)] py-2.5 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:opacity-95 transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
                   >
-                    View product page
-                  </Link>
-                )}
+                    {item.stock > 0 ? '+ Add to Bag' : 'Out of Stock'}
+                  </button>
+                  {item.slug && (
+                    <Link
+                      href={`/products/${item.slug}`}
+                      className="block text-center text-xs font-medium text-[var(--sf-secondary)] hover:text-[var(--sf-accent)] hover:underline"
+                    >
+                      View Details &rarr;
+                    </Link>
+                  )}
+                </div>
               </motion.article>
             ))}
           </motion.div>
 
-          {cart.length > 0 && (
-            <div className="mt-10 rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5">
-              <h3 className="font-semibold text-[var(--sf-foreground)]">Bag details</h3>
-              <ul className="mt-4 space-y-3">
-                {cart.map((l) => (
-                  <li key={l.id} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-medium text-[var(--sf-foreground)]">{l.name}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-[var(--sf-border)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
-                        onClick={() => setQty(l.id, l.qty - 1)}
-                        aria-label={`Decrease ${l.name}`}
-                      >
-                        −
-                      </button>
-                      <span className="w-6 text-center">{l.qty}</span>
-                      <button
-                        type="button"
-                        className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-[var(--sf-border)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
-                        onClick={() => setQty(l.id, l.qty + 1)}
-                        aria-label={`Increase ${l.name}`}
-                      >
-                        +
-                      </button>
-                      <span className="w-24 text-right font-semibold">{money(Number(l.unitPrice) * l.qty)}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* Slide-Over Cart Drawer & Floating Bag Bar */}
+          <CartDrawer
+            isOpen={cartDrawerOpen}
+            onClose={() => setCartDrawerOpen(false)}
+            items={cart}
+            onUpdateQty={setQty}
+            onRemoveItem={removeFromCart}
+            whatsappPhone={cms.theme.whatsappNumber}
+          />
+          <CartFloatingBar
+            itemCount={totals.itemCount}
+            subtotal={totals.subtotal}
+            onOpenDrawer={() => setCartDrawerOpen(true)}
+          />
         </section>
 
         <StorefrontFooterCta cms={cms} />
