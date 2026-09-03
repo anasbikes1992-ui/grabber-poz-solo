@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { desc, gte, lte, and } from 'drizzle-orm';
 import { db, orders } from '@/db';
+import { requireStaffSession } from '@/lib/auth/session';
 import {
   aggregateMonthlyTaxLiability,
   calculateMultiTaxLine,
@@ -10,6 +11,7 @@ import {
 
 export async function GET(req: Request) {
   try {
+    await requireStaffSession();
     const { searchParams } = new URL(req.url);
     const month = searchParams.get('month') || new Date().toISOString().slice(0, 7);
     const format = searchParams.get('format');
@@ -57,6 +59,7 @@ export async function GET(req: Request) {
       sampleCalculation: calculateMultiTaxLine({ netAmount: 1000, taxProfileId: 'STANDARD_VAT' }),
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    const e = err as { message?: string; status?: number };
+    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
   }
 }

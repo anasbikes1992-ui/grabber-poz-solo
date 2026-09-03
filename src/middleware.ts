@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { COOKIE_NAME, CUSTOMER_COOKIE_NAME } from '@/lib/auth/session-constants';
+import { COOKIE_NAME, CUSTOMER_COOKIE_NAME, isStaffMiddlewareOptional } from '@/lib/auth/session-constants';
+import { decodeSessionEdge } from '@/lib/auth/session-edge';
 import { checkPathRateLimit, clientIpFromHeaders } from '@/lib/security/rate-limit';
 
 /** Public marketing / storefront / auth / webhooks */
@@ -14,7 +15,7 @@ const PUBLIC_PREFIXES = [
   '/api/health',
   '/api/seed',
   '/api/pos/catalog',
-  '/api/pos/checkout', // storefront checkout (validates customerId server-side)
+  '/api/pos/checkout', // storefront + POS; handler still authenticates
   '/api/storefront/public',
   '/api/storefront/search',
   '/api/config/flags',
@@ -23,6 +24,8 @@ const PUBLIC_PREFIXES = [
   '/api/repairs/appointments',
   '/api/orders/track',
   '/api/storefront/abandon-cart',
+  '/api/promotions/evaluate-cart', // storefront checkout
+  '/api/promotions/validate',
   '/track/',
   '/api/cron/',
 ];
@@ -32,7 +35,7 @@ function isStorefrontProduct(pathname: string) {
   return /^\/products\/[^/]+$/.test(pathname);
 }
 
-/** Staff back-office surfaces (require staff cookie in production) */
+/** Staff back-office surfaces (require verified staff cookie in production) */
 const STAFF_PREFIXES = [
   '/app',
   '/dashboard',
@@ -95,9 +98,10 @@ function isStaffSurface(pathname: string) {
 /**
  * Dual auth:
  * - Storefront + shopper APIs: public (or customer cookie for /shop/account)
- * - Staff OS: staff grabber_session in production
+ * - Staff OS / staff APIs: HMAC-verified grabber_session in production
+ * AUTH_OPTIONAL is ignored when NODE_ENV=production (see isStaffMiddlewareOptional).
  */
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (
@@ -125,7 +129,7 @@ export function middleware(req: NextRequest) {
 
   // Shopper account page
   if (pathname.startsWith('/shop/account')) {
-    if (process.env.NODE_ENV !== 'production' || process.env.AUTH_OPTIONAL === 'true') {
+    if (isStaffMiddlewareOptional()) {
       return NextResponse.next();
     }
     if (!req.cookies.get(CUSTOMER_COOKIE_NAME)?.value) {
@@ -137,20 +141,21 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const optional = process.env.NODE_ENV !== 'production' || process.env.AUTH_OPTIONAL === 'true';
+  const optional = isStaffMiddlewareOptional();
 
-  // Staff API mutating routes still gated lightly in prod via cookie presence
   if (pathname.startsWith('/api/')) {
     if (optional || isPublic(pathname)) return NextResponse.next();
-    if (!req.cookies.get(COOKIE_NAME)?.value) {
+    const session = await decodeSessionEdge(req.cookies.get(COOKIE_NAME)?.value);
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.next();
   }
 
-  if (isStaffSurface(pathname) || pathname.startsWith('/api/')) {
+  if (isStaffSurface(pathname)) {
     if (optional) return NextResponse.next();
-    if (!req.cookies.get(COOKIE_NAME)?.value) {
+    const session = await decodeSessionEdge(req.cookies.get(COOKIE_NAME)?.value);
+    if (!session) {
       const url = req.nextUrl.clone();
       url.pathname = '/adminpoz';
       url.searchParams.set('next', pathname);

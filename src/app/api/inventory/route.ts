@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
+import { desc } from 'drizzle-orm';
 import { db, stockBalances, stockMovements, products, branches, warehouses } from '@/db';
+import { requireStaffSession } from '@/lib/auth/session';
 
 export async function GET() {
   try {
+    await requireStaffSession();
     const balances = await db.select().from(stockBalances).limit(500);
     const movements = await db.select().from(stockMovements).orderBy(desc(stockMovements.createdAt)).limit(50);
     const prods = await db.select().from(products).limit(500);
@@ -48,6 +50,7 @@ export async function GET() {
       })),
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    const e = err as { message?: string; status?: number };
+    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
   }
 }

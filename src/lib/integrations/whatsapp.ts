@@ -107,7 +107,10 @@ export async function sendWhatsAppText(params: {
 /** Verify Meta webhook X-Hub-Signature-256 when WHATSAPP_APP_SECRET is set. */
 export function verifyWhatsAppWebhookSignature(rawBody: string, signatureHeader: string | null): boolean {
   const { appSecret } = resolveWhatsAppConfig();
-  if (!appSecret) return true;
+  if (!appSecret) {
+    // Fail closed in production — unsigned webhooks must not drive automation.
+    return process.env.NODE_ENV !== 'production';
+  }
   if (!signatureHeader?.startsWith('sha256=')) return false;
 
   const expected = createHmac('sha256', appSecret).update(rawBody, 'utf8').digest('hex');

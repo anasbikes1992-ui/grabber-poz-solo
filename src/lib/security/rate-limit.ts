@@ -37,6 +37,10 @@ export function clientIpFromRequest(req: Request): string {
 }
 
 export const RATE_LIMIT_RULES = [
+  { prefix: '/api/auth/login', limit: 20, windowMs: 60_000 },
+  { prefix: '/api/pos/checkout', limit: 60, windowMs: 60_000 },
+  { prefix: '/api/seed', limit: 5, windowMs: 60_000 },
+  { prefix: '/api/promotions/', limit: 60, windowMs: 60_000 },
   { prefix: '/api/jarvis/', limit: 30, windowMs: 60_000 },
   { prefix: '/api/repairs/public', limit: 20, windowMs: 60_000 },
   { prefix: '/api/agents/', limit: 15, windowMs: 60_000 },

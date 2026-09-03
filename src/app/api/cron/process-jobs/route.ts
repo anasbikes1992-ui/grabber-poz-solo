@@ -6,12 +6,26 @@ import type { JobType } from '@/lib/jobs/outbox';
 
 export const maxDuration = 60;
 
-export async function GET(req: Request) {
-  const auth = req.headers.get('authorization');
+function authorizeCron(req: Request): NextResponse | null {
   const secret = process.env.CRON_SECRET;
-  if (secret && auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  if (process.env.NODE_ENV === 'production' && !secret) {
+    return NextResponse.json(
+      { success: false, error: 'CRON_SECRET required in production' },
+      { status: 401 },
+    );
   }
+  if (secret) {
+    const auth = req.headers.get('authorization');
+    if (auth !== `Bearer ${secret}`) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+  return null;
+}
+
+export async function GET(req: Request) {
+  const denied = authorizeCron(req);
+  if (denied) return denied;
 
   const workerId = `cron_${Date.now()}`;
   const scheduled = await ensurePeriodicJobs();

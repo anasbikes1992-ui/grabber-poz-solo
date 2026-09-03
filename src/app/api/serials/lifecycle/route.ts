@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { buildSerialLifecycle } from '@/lib/serials/lifecycle';
 import { db } from '@/db';
+import { requireStaffSession } from '@/lib/auth/session';
 
 export async function GET(req: Request) {
   try {
+    await requireStaffSession();
     const imei = new URL(req.url).searchParams.get('imei')?.trim();
     if (!imei) return NextResponse.json({ success: false, error: 'imei required' }, { status: 400 });
 
@@ -13,6 +15,7 @@ export async function GET(req: Request) {
     }
     return NextResponse.json({ success: true, ...result });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    const e = err as { message?: string; status?: number };
+    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
   }
 }

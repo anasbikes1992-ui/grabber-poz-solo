@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
+import { assertCanMutateCommerce, requireStaffSession } from '@/lib/auth/session';
 
 /**
  * Koombiyo delivery create stub — honest when credentials missing.
  */
 export async function POST(req: Request) {
   try {
+    assertCanMutateCommerce(await requireStaffSession());
     const body = await req.json();
     const { orderNumber, recipientName, recipientPhone, address } = body as {
       orderNumber?: string;
@@ -15,7 +17,7 @@ export async function POST(req: Request) {
     if (!orderNumber || !recipientPhone || !address) {
       return NextResponse.json(
         { success: false, error: 'orderNumber, recipientPhone, address required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -24,7 +26,10 @@ export async function POST(req: Request) {
 
     if (!apiKey) {
       if (process.env.NODE_ENV === 'production') {
-        return NextResponse.json({ success: false, error: 'KOOMBIYO_API_KEY required in production' }, { status: 503 });
+        return NextResponse.json(
+          { success: false, error: 'KOOMBIYO_API_KEY required in production' },
+          { status: 503 },
+        );
       }
       return NextResponse.json({
         success: true,
@@ -51,6 +56,7 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ success: true, provider: data });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    const e = err as { message?: string; status?: number };
+    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
   }
 }

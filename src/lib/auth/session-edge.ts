@@ -22,13 +22,11 @@ export interface SessionUser {
   mustRotateCredentials?: boolean;
 }
 
-function authSecret(): string {
-  return (
-    process.env.AUTH_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    process.env.SESSION_SECRET ||
-    'dev-only-insecure-auth-secret-change-me'
-  );
+function authSecret(): string | null {
+  const s = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET;
+  if (s) return s;
+  if (process.env.NODE_ENV === 'production') return null;
+  return 'dev-only-insecure-auth-secret-change-me';
 }
 
 function b64urlFromString(s: string): string {
@@ -36,10 +34,12 @@ function b64urlFromString(s: string): string {
 }
 
 async function hmacSign(payloadB64: string): Promise<string> {
+  const secret = authSecret();
+  if (!secret) throw new Error('AUTH_SECRET is required in production');
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     'raw',
-    enc.encode(authSecret()),
+    enc.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
@@ -62,9 +62,15 @@ export async function encodeSessionEdge(user: SessionUser, maxAgeSec = 43200): P
 
 export async function decodeSessionEdge(token: string | undefined | null): Promise<SessionUser | null> {
   if (!token) return null;
+  if (!authSecret()) return null;
   const [payloadB64, sig] = token.split('.');
   if (!payloadB64 || !sig) return null;
-  const expected = await hmacSign(payloadB64);
+  let expected: string;
+  try {
+    expected = await hmacSign(payloadB64);
+  } catch {
+    return null;
+  }
   if (expected.length !== sig.length) return null;
   let mismatch = 0;
   for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ sig.charCodeAt(i);

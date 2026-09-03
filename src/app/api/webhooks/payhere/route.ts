@@ -1,24 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db, orders, payments, webhookEvents } from '@/db';
 import { getPayHereConfig } from '@/lib/payments/lkr-provider';
-
-function verifyPayHereSignature(params: Record<string, string>, secret: string): boolean {
-  // PayHere md5sig = MD5(merchant_id + order_id + payhere_amount + payhere_currency + status_code + MD5(secret))
-  const merchantId = params.merchant_id || '';
-  const orderId = params.order_id || '';
-  const amount = params.payhere_amount || '';
-  const currency = params.payhere_currency || '';
-  const statusCode = params.status_code || '';
-  const md5sig = (params.md5sig || '').toUpperCase();
-  const secretHash = createHash('md5').update(secret).digest('hex').toUpperCase();
-  const local = createHash('md5')
-    .update(merchantId + orderId + amount + currency + statusCode + secretHash)
-    .digest('hex')
-    .toUpperCase();
-  return local === md5sig;
-}
+import { payHereWebhookSecretRequired, verifyPayHereSignature } from '@/lib/payments/payhere-signature';
 
 export async function POST(req: Request) {
   try {
@@ -35,6 +19,13 @@ export async function POST(req: Request) {
 
     const secret = getPayHereConfig().secret;
     const providerEventId = params.payment_id || params.order_id || `evt_${Date.now()}`;
+
+    if (payHereWebhookSecretRequired() && !secret) {
+      return NextResponse.json(
+        { success: false, error: 'PayHere secret required in production' },
+        { status: 503 },
+      );
+    }
 
     // Dedupe
     try {
@@ -62,15 +53,18 @@ export async function POST(req: Request) {
       const [order] = await db.select().from(orders).where(eq(orders.orderNumber, orderNumber)).limit(1);
       if (order) {
         await db.update(orders).set({ paymentStatus: 'PAID', updatedAt: new Date() }).where(eq(orders.id, order.id));
-        await db.insert(payments).values({
-          orderId: order.id,
-          method: 'PAYHERE',
-          amount: params.payhere_amount || order.grandTotal,
-          currency: params.payhere_currency || 'LKR',
-          providerRef: params.payment_id,
-          status: 'SUCCESS',
-          idempotencyKey: `payhere_${providerEventId}`,
-        }).onConflictDoNothing();
+        await db
+          .insert(payments)
+          .values({
+            orderId: order.id,
+            method: 'PAYHERE',
+            amount: params.payhere_amount || order.grandTotal,
+            currency: params.payhere_currency || 'LKR',
+            providerRef: params.payment_id,
+            status: 'SUCCESS',
+            idempotencyKey: `payhere_${providerEventId}`,
+          })
+          .onConflictDoNothing();
       }
     }
 

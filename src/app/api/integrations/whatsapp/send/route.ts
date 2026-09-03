@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
+import { assertCanMutateCommerce, requireStaffSession } from '@/lib/auth/session';
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp';
 
 export async function POST(req: Request) {
   try {
+    assertCanMutateCommerce(await requireStaffSession());
     const body = await req.json();
     const to = body.to as string | undefined;
     const text = body.text as string | undefined;
@@ -26,6 +28,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, provider: result.provider, messageId: result.messageId });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    const e = err as { message?: string; status?: number };
+    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
   }
 }

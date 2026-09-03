@@ -17,10 +17,6 @@ import { hasDatabaseUrl, resolveDatabaseUrl } from './lib/resolve-db-url.mjs';
 const args = process.argv.slice(2);
 const envFileIdx = args.indexOf('--env-file');
 const targetEnvFile = envFileIdx !== -1 && args[envFileIdx + 1] ? args[envFileIdx + 1] : '.env';
-const isProduction =
-  process.env.NODE_ENV === 'production' ||
-  /prod/i.test(targetEnvFile) ||
-  args.includes('--production');
 
 if (fs.existsSync(targetEnvFile)) {
   dotenv.config({ path: path.resolve(targetEnvFile), override: true });
@@ -36,7 +32,16 @@ const maskSecret = (val) => {
   return `${val.slice(0, 3)}****${val.slice(-4)}`;
 };
 
+function resolveIsProduction() {
+  return (
+    process.env.NODE_ENV === 'production' ||
+    /prod/i.test(targetEnvFile) ||
+    args.includes('--production')
+  );
+}
+
 export async function runEnvironmentValidation() {
+  const isProduction = resolveIsProduction();
   console.log(`\n======================================================`);
   console.log(`GRABBER BUSINESS OS: PRE-FLIGHT ENVIRONMENT VALIDATION`);
   console.log(`======================================================`);
@@ -136,6 +141,27 @@ export async function runEnvironmentValidation() {
     console.log(`  ✗ AUTH_SECRET:              TOO SHORT (<32 chars)`);
   } else {
     console.log(`  ✓ AUTH_SECRET:              CONFIGURED (${maskSecret(authSecret)})`);
+  }
+
+  if (isProduction && String(process.env.AUTH_OPTIONAL || '').toLowerCase() === 'true') {
+    p0Errors.push(
+      'AUTH_OPTIONAL=true is forbidden in production. Staff auth must not be bypassed at the edge.',
+    );
+    console.log(`  ✗ AUTH_OPTIONAL:            true (FORBIDDEN in production)`);
+  } else if (String(process.env.AUTH_OPTIONAL || '').toLowerCase() === 'true') {
+    p1Warnings.push('AUTH_OPTIONAL=true — ignored when NODE_ENV=production; do not set on client installs.');
+    console.log(`  ⚠ AUTH_OPTIONAL:            true (dev-only; ignored in production middleware)`);
+  } else {
+    console.log(`  ✓ AUTH_OPTIONAL:            unset/false`);
+  }
+
+  if (isProduction && !(process.env.CRON_SECRET || '').trim()) {
+    p0Errors.push('CRON_SECRET is required in production (Vercel cron hits /api/cron/process-jobs).');
+    console.log(`  ✗ CRON_SECRET:              MISSING (CRITICAL in production)`);
+  } else if ((process.env.CRON_SECRET || '').trim()) {
+    console.log(`  ✓ CRON_SECRET:              CONFIGURED (${maskSecret(process.env.CRON_SECRET)})`);
+  } else {
+    console.log(`  ℹ CRON_SECRET:              Not set (required with --production)`);
   }
 
   console.log(`\n[P1] STORAGE & SUPABASE CLIENT LAYER`);

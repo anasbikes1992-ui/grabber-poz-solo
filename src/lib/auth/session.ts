@@ -5,10 +5,10 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 import type { SessionRole, SessionUser } from './session-edge';
-import { COOKIE_NAME, MAX_AGE_SEC as EDGE_MAX } from './session-constants';
+import { COOKIE_NAME, DEV_OWNER_SESSION, MAX_AGE_SEC as EDGE_MAX } from './session-constants';
 
 export type { SessionRole, SessionUser };
-export { COOKIE_NAME } from './session-constants';
+export { COOKIE_NAME, DEV_OWNER_SESSION, isStaffMiddlewareOptional } from './session-constants';
 
 const MAX_AGE_SEC = EDGE_MAX;
 
@@ -117,6 +117,19 @@ export async function getSession(): Promise<SessionUser | null> {
   return decodeSession(jar.get(COOKIE_NAME)?.value);
 }
 
+/**
+ * Staff API gate. Production: valid HMAC session required.
+ * Non-production: injects DEV_OWNER when no cookie (local DX only).
+ */
+export async function requireStaffSession(): Promise<SessionUser> {
+  const session = await getSession();
+  if (session) return session;
+  if (process.env.NODE_ENV !== 'production') {
+    return { ...DEV_OWNER_SESSION };
+  }
+  throw Object.assign(new Error('Unauthorized'), { status: 401 });
+}
+
 const MUTATING_ROLES: SessionRole[] = ['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAREHOUSE', 'ACCOUNTANT'];
 
 export function assertRole(user: SessionUser | null, allowed: SessionRole[]): SessionUser {
@@ -132,5 +145,5 @@ export function assertCanMutateCommerce(user: SessionUser | null): SessionUser {
 }
 
 export function isDemoUserId(id: string): boolean {
-  return id === '00000000-0000-0000-0000-000000000001';
+  return id === DEV_OWNER_SESSION.userId;
 }

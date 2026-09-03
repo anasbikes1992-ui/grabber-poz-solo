@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { desc } from 'drizzle-orm';
 import { db, customers, polimPothaAccounts, polimPothaEntries } from '@/db';
+import { requireStaffSession } from '@/lib/auth/session';
 
 export async function GET() {
   try {
+    await requireStaffSession();
     const accounts = await db.select().from(polimPothaAccounts).orderBy(desc(polimPothaAccounts.updatedAt)).limit(200);
     const custs = await db.select().from(customers);
     const cMap = new Map(custs.map((c) => [c.id, c]));
@@ -38,6 +40,7 @@ export async function GET() {
       })),
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    const e = err as { message?: string; status?: number };
+    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
   }
 }
