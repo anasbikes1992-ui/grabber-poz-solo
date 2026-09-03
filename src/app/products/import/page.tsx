@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Download, RefreshCw, Check, X } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle, ArrowRight, Download, RefreshCw, Check } from 'lucide-react';
 import Link from 'next/link';
 
 interface ParsedRow {
@@ -75,7 +75,7 @@ export default function ProductImportPage() {
 
   const handleDownloadTemplate = () => {
     const csvContent =
-      'data:text/csv;charset=utf-8,Name,Category,SKU,Barcode,CostPrice,SalePrice,InitialStock,VariantName\nCotton Casual Shirt,Apparel,CTN-SHT-01,8901112223334,2500.00,4500.00,20,Size M / White\n';
+      'data:text/csv;charset=utf-8,Name,Category,SKU,Barcode,CostPrice,SalePrice,InitialStock,VariantName\nCotton Casual Shirt,Apparel,CTN-SHT-01,"8901112223334",2500.00,4500.00,20,Size M / White\n';
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -118,24 +118,36 @@ export default function ProductImportPage() {
         </button>
       </div>
 
-      {importError && (
-        <p className="text-xs text-destructive p-3 rounded-xl bg-destructive/10 border border-destructive/20">{importError}</p>
-      )}
+      <p role="status" aria-live="polite" className="sr-only">
+        {isValidating
+          ? 'Validating CSV file'
+          : isCommitting
+            ? 'Committing products'
+            : step === 2
+              ? `Validated. ${previewRows.length} rows ready, ${warningCount} warnings, ${collisionCount} SKU updates. Step 2 of 3.`
+              : step === 3 && commitSummary
+                ? `Import committed. ${commitSummary.added} added, ${commitSummary.updated} updated. Step 3 of 3.`
+                : ''}
+      </p>
 
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <div className={`p-3 rounded-xl border flex items-center gap-2 ${step === 1 ? 'border-primary bg-primary/5 text-foreground font-bold' : step > 1 ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 font-medium' : 'border-border text-muted-foreground'}`}>
-          <span className="h-5 w-5 rounded-full flex items-center justify-center bg-card border text-[11px] font-bold">1</span>
-          <span>Upload File</span>
-        </div>
-        <div className={`p-3 rounded-xl border flex items-center gap-2 ${step === 2 ? 'border-primary bg-primary/5 text-foreground font-bold' : step > 2 ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 font-medium' : 'border-border text-muted-foreground'}`}>
-          <span className="h-5 w-5 rounded-full flex items-center justify-center bg-card border text-[11px] font-bold">2</span>
-          <span>Validate & Preview</span>
-        </div>
-        <div className={`p-3 rounded-xl border flex items-center gap-2 ${step === 3 ? 'border-primary bg-primary/5 text-foreground font-bold' : 'border-border text-muted-foreground'}`}>
-          <span className="h-5 w-5 rounded-full flex items-center justify-center bg-card border text-[11px] font-bold">3</span>
+      {importError ? (
+        <p role="alert" className="text-sm text-destructive p-3 rounded-xl bg-destructive/10 border border-destructive/20">{importError}</p>
+      ) : null}
+
+      <ol className="grid grid-cols-3 gap-2 text-xs" aria-label="Import progress">
+        <li className={`p-3 rounded-xl border min-h-11 flex items-center gap-2 ${step === 1 ? 'border-primary bg-primary/5 text-foreground font-bold' : step > 1 ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 font-medium' : 'border-border text-muted-foreground'}`} aria-current={step === 1 ? 'step' : undefined}>
+          <span className="h-6 w-6 rounded-full flex items-center justify-center bg-card border text-[11px] font-bold" aria-hidden>1</span>
+          <span>Upload File{step > 1 ? ' (done)' : ''}</span>
+        </li>
+        <li className={`p-3 rounded-xl border min-h-11 flex items-center gap-2 ${step === 2 ? 'border-primary bg-primary/5 text-foreground font-bold' : step > 2 ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600 font-medium' : 'border-border text-muted-foreground'}`} aria-current={step === 2 ? 'step' : undefined}>
+          <span className="h-6 w-6 rounded-full flex items-center justify-center bg-card border text-[11px] font-bold" aria-hidden>2</span>
+          <span>Validate & Preview{step > 2 ? ' (done)' : ''}</span>
+        </li>
+        <li className={`p-3 rounded-xl border min-h-11 flex items-center gap-2 ${step === 3 ? 'border-primary bg-primary/5 text-foreground font-bold' : 'border-border text-muted-foreground'}`} aria-current={step === 3 ? 'step' : undefined}>
+          <span className="h-6 w-6 rounded-full flex items-center justify-center bg-card border text-[11px] font-bold" aria-hidden>3</span>
           <span>Commit & Complete</span>
-        </div>
-      </div>
+        </li>
+      </ol>
 
       {step === 1 && (
         <div className="p-8 rounded-2xl bg-card border border-dashed border-border flex flex-col items-center justify-center text-center space-y-4 shadow-sm">
@@ -149,10 +161,23 @@ export default function ProductImportPage() {
             </p>
           </div>
 
-          <label className="cursor-pointer px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
-            <span>{isValidating ? 'Validating…' : 'Choose CSV File'}</span>
-            <input type="file" accept=".csv,text/csv" onChange={handleFileUpload} className="hidden" disabled={isValidating} />
-          </label>
+          <div className="flex flex-col items-center gap-2">
+            <input
+              id="csv-file"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleFileUpload}
+              disabled={isValidating}
+              className="sr-only peer"
+            />
+            <label
+              htmlFor="csv-file"
+              className="cursor-pointer min-h-11 inline-flex items-center px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-md shadow-primary/20 hover:bg-primary/90 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500 peer-focus-visible:ring-offset-2"
+            >
+              {isValidating ? 'Validating…' : 'Choose CSV File'}
+            </label>
+            <p className="text-[11px] text-muted-foreground">Columns: Name, Category, SKU, Barcode, CostPrice, SalePrice, InitialStock, VariantName</p>
+          </div>
         </div>
       )}
 
@@ -172,14 +197,14 @@ export default function ProductImportPage() {
             </div>
 
             <div className="flex gap-2">
-              <button type="button" onClick={() => setStep(1)} className="px-3 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border border-border">
+              <button type="button" onClick={() => setStep(1)} className="px-3 min-h-11 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border border-border">
                 Choose Another File
               </button>
               <button
                 type="button"
                 onClick={() => void handleCommit()}
                 disabled={isCommitting || previewRows.length === 0}
-                className="px-4 py-1.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-50"
+                className="px-4 min-h-11 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-primary/20 hover:bg-primary/90 disabled:opacity-50"
               >
                 {isCommitting ? (
                   <>
@@ -200,11 +225,11 @@ export default function ProductImportPage() {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
-                  <th className="pb-2.5 font-medium">Validation</th>
-                  <th className="pb-2.5 font-medium">Product Name</th>
-                  <th className="pb-2.5 font-medium">SKU</th>
-                  <th className="pb-2.5 font-medium text-right">Price</th>
-                  <th className="pb-2.5 font-medium text-right">Stock</th>
+                  <th scope="col" className="pb-2.5 font-medium">Validation</th>
+                  <th scope="col" className="pb-2.5 font-medium">Product Name</th>
+                  <th scope="col" className="pb-2.5 font-medium">SKU</th>
+                  <th scope="col" className="pb-2.5 font-medium text-right">Price</th>
+                  <th scope="col" className="pb-2.5 font-medium text-right">Stock</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
@@ -217,13 +242,15 @@ export default function ProductImportPage() {
                         </span>
                       )}
                       {row.status === 'WARNING' && (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 font-bold inline-flex items-center gap-1" title={row.note}>
-                          <AlertTriangle className="h-3 w-3" /> Warning
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold inline-flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" aria-hidden="true" /> Warning
+                          {row.note ? <span className="sr-only">: {row.note}</span> : null}
                         </span>
                       )}
                       {row.status === 'COLLISION' && (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 font-bold inline-flex items-center gap-1" title={row.note}>
-                          <X className="h-3 w-3" /> Update
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold inline-flex items-center gap-1">
+                          <RefreshCw className="h-3 w-3" aria-hidden="true" /> Update
+                          {row.note ? <span className="sr-only">: {row.note}</span> : null}
                         </span>
                       )}
                     </td>

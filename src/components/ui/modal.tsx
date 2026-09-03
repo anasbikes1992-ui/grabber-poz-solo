@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useCallback, useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 const FOCUSABLE =
-  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -14,6 +15,13 @@ export interface ModalProps {
   as?: 'div' | 'form';
   onSubmit?: (e: React.FormEvent) => void;
   className?: string;
+  /** Prevents close while a mutation is in flight. */
+  busy?: boolean;
+  description?: string;
+}
+
+function isCloseControl(el: HTMLElement) {
+  return el.hasAttribute('data-modal-close');
 }
 
 export function Modal({
@@ -23,31 +31,52 @@ export function Modal({
   children,
   as = 'div',
   onSubmit,
-  className = 'max-w-md',
+  className = 'max-w-lg',
+  busy = false,
+  description,
 }: ModalProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const busyRef = useRef(busy);
   const titleId = useId();
+  const descId = useId();
+  const openedOnce = useRef(false);
+
+  onCloseRef.current = onClose;
+  busyRef.current = busy;
+
+  const requestClose = useCallback(() => {
+    if (busyRef.current) return;
+    onCloseRef.current();
+  }, []);
 
   useEffect(() => {
-    if (!isOpen) return;
-    restoreTo.current = document.activeElement as HTMLElement;
+    if (!isOpen) {
+      openedOnce.current = false;
+      return;
+    }
+
     const panel = panelRef.current;
-    const autofocus =
-      panel?.querySelector<HTMLElement>('[autofocus]') ??
-      panel?.querySelector<HTMLElement>(FOCUSABLE) ??
-      panel;
-    autofocus?.focus();
+    if (!openedOnce.current) {
+      restoreTo.current = document.activeElement as HTMLElement;
+      openedOnce.current = true;
+      const preferred =
+        panel?.querySelector<HTMLElement>('[data-autofocus]') ??
+        Array.from(panel?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).find((el) => !isCloseControl(el)) ??
+        panel;
+      window.requestAnimationFrame(() => preferred?.focus());
+    }
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.isComposing) {
         e.stopPropagation();
-        onClose();
+        requestClose();
         return;
       }
       if (e.key !== 'Tab' || !panel) return;
       const nodes = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (el) => !el.hasAttribute('disabled') && el.tabIndex !== -1
+        (el) => !el.hasAttribute('disabled') && el.tabIndex !== -1 && el.offsetParent !== null,
       );
       if (nodes.length === 0) return;
       const first = nodes[0];
@@ -67,72 +96,73 @@ export function Modal({
     return () => {
       document.removeEventListener('keydown', onKeyDown, true);
       document.body.style.overflow = prevOverflow;
-      restoreTo.current?.focus();
+      const target = restoreTo.current;
+      if (target && document.contains(target)) target.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, requestClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  const panelClass = `glass-card border border-zinc-800 rounded-2xl p-6 w-full shadow-2xl space-y-4 text-xs outline-none ${className}`;
+  const panelClass = `glass-card border border-zinc-800 rounded-2xl p-6 w-full max-h-[min(90vh,720px)] overflow-y-auto shadow-2xl space-y-5 text-sm outline-none ${className}`;
 
   const header = (
-    <div className="flex items-center justify-between pb-2 border-b border-white/10">
-      <h2 id={titleId} className="font-bold text-sm text-foreground">
-        {title}
-      </h2>
+    <div className="flex items-start justify-between gap-4 pb-3 border-b border-white/10">
+      <div className="min-w-0">
+        <h2 id={titleId} className="font-bold text-base text-foreground tracking-tight">
+          {title}
+        </h2>
+        {description ? (
+          <p id={descId} className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            {description}
+          </p>
+        ) : null}
+      </div>
       <button
         type="button"
-        onClick={onClose}
+        data-modal-close
+        onClick={requestClose}
+        disabled={busy}
         aria-label={`Close ${title}`}
-        className="h-11 w-11 -mr-2 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-zinc-800 cursor-pointer"
+        className="h-11 w-11 shrink-0 -mr-1 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-zinc-800 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:opacity-40"
       >
         <X className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   );
 
-  if (as === 'form') {
-    return (
-      <div
-        className="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
-      >
+  const labelled = {
+    role: 'dialog' as const,
+    'aria-modal': true as const,
+    'aria-labelledby': titleId,
+    'aria-describedby': description ? descId : undefined,
+    tabIndex: -1 as const,
+    className: panelClass,
+  };
+
+  const overlay = (
+    <div
+      className="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) requestClose();
+      }}
+    >
+      {as === 'form' ? (
         <form
-          ref={panelRef as unknown as React.RefObject<HTMLFormElement>}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          tabIndex={-1}
+          {...labelled}
+          ref={panelRef as React.RefObject<HTMLFormElement>}
           onSubmit={onSubmit}
-          className={panelClass}
         >
           {header}
           {children}
         </form>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
-        className={panelClass}
-      >
-        {header}
-        {children}
-      </div>
+      ) : (
+        <div {...labelled} ref={panelRef as React.RefObject<HTMLDivElement>}>
+          {header}
+          {children}
+        </div>
+      )}
     </div>
   );
+
+  return createPortal(overlay, document.body);
 }
