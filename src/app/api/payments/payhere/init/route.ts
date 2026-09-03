@@ -7,12 +7,7 @@ import { evaluateCartPromotions, evaluatePromotion } from '@/lib/commerce/promot
 import { listPromotions, recordPromotionRedemption } from '@/lib/config/promotions-store';
 import { buildPayHereCheckoutPayload } from '@/lib/payments/payhere-checkout';
 import { isPayHereConfigured } from '@/lib/payments/lkr-provider';
-
-function computeGrandTotal(subtotal: number, discountTotal: number) {
-  const taxable = Math.max(0, subtotal - discountTotal);
-  const taxTotal = Math.round(taxable * 0.18 * 100) / 100;
-  return taxable + taxTotal;
-}
+import { loadAuthoritativeLines } from '@/lib/commerce/load-catalog-pricing';
 
 export async function GET() {
   return NextResponse.json({
@@ -36,26 +31,31 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const items = (body.items || []) as Array<{
+    const rawItems = (body.items || []) as Array<{
       productId: string;
       variantId?: string;
       name?: string;
       quantity: number;
-      unitPrice: number;
-      unitCost?: number;
     }>;
 
-    if (!items.length) {
+    if (!rawItems.length) {
       return NextResponse.json({ success: false, error: 'Cart items required' }, { status: 400 });
     }
+
+    const intent = rawItems.map((l) => ({
+      productId: String(l.productId),
+      variantId: l.variantId ? String(l.variantId) : undefined,
+      quantity: Number(l.quantity),
+    }));
+    const catalogLines = await loadAuthoritativeLines(db, intent);
 
     const [branch] = await db.select().from(branches).limit(1);
     if (!branch) {
       return NextResponse.json({ success: false, error: 'No branch — run POST /api/seed' }, { status: 400 });
     }
 
-    const itemSubtotal = items.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
-    const itemCount = items.reduce((s, l) => s + l.quantity, 0);
+    const itemSubtotal = catalogLines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
+    const itemCount = catalogLines.reduce((s, l) => s + l.quantity, 0);
 
     let customerSegment: string | undefined;
     if (shopper?.customerId) {
@@ -87,7 +87,6 @@ export async function POST(req: Request) {
       promoRuleId = promo.rule?.id;
     }
 
-    const grandTotal = computeGrandTotal(itemSubtotal, discountTotal);
     const orderNumber = `WEB-${Date.now().toString().slice(-8)}`;
     const clientUuid = body.clientUuid || crypto.randomUUID?.() || `web_${Date.now()}`;
 
@@ -97,7 +96,7 @@ export async function POST(req: Request) {
       branchId: branch.id,
       customerId: shopper?.customerId,
       paymentMethod: 'PAYHERE',
-      items,
+      items: intent,
       discountTotal,
       promoRuleId,
       clientUuid,
@@ -123,8 +122,8 @@ export async function POST(req: Request) {
 
     const payload = buildPayHereCheckoutPayload({
       orderNumber: result.order.orderNumber,
-      amount: Number(result.grandTotal || grandTotal),
-      itemsDescription: items.map((i) => `${i.quantity}x ${i.name || 'Item'}`).join(', '),
+      amount: Number(result.grandTotal),
+      itemsDescription: catalogLines.map((i) => `${i.quantity}x ${i.name}`).join(', '),
       customerName: customer?.name,
       customerPhone: customer?.phone,
       customerEmail: customer?.email || undefined,

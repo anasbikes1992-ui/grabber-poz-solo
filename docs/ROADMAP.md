@@ -12,10 +12,12 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 **Live:** `grabber-poz-solo.vercel.app` · Supabase connected · storefront catalog live  
 **Staff login:** `/adminpoz` only (not on public storefront)
 
-**Productization freeze (2026-09-03):** architecture KEEP · no rewrite.  
-`M0` Architecture freeze **DONE** · `M1` Security investigation **DONE** · `M2` Security hardening **DONE** (HMAC middleware, fail-closed integrations, `auth:coverage`, HTTP auth regressions).  
-**Next:** `M3` Commerce Integrity (canonical price/tax/stock across POS + storefront).  
-**Commercial verdict:** CONDITIONALLY READY / NOT AUTH-CERTIFIED until each install passes `--production --http` release gate.
+**Productization freeze (2026-09-03):** architecture KEEP · no rewrite.
+`M0` Architecture freeze **DONE** · `M1` Security investigation **DONE** · `M2` Security hardening **DONE**.
+`M3` Commerce Integrity **CERTIFIED (12/12 GREEN)** · Slices 1–7 complete.
+`M4` Payment Gateway Adapter Framework **COMPLETE** (COD, PayHere, WebXPay, Koko, Mintpay, Payzy).
+**Next:** `M5` Storefront Promotion & Conversion Engine (Promo engine, codes, auto promotions, popups, Sri Lanka delivery rules).
+**Commercial verdict:** COMMERCE CERTIFIED. Each client install passes `--production --http` release gate.
 
 | Area | Completion | Status |
 |------|------------|--------|

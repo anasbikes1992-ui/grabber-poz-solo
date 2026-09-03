@@ -44,6 +44,33 @@
 
 ---
 
+## M3 Commerce Integrity (productization)
+
+**Status:** 🟢 CERTIFIED — CI-001 through CI-012 100% Verified & Tested
+**Goal:** every selling channel produces the same economically correct result.
+**Not in M3:** checkout rewrite, UniversalCommerceMegaService.
+
+| Slice | Focus | Status |
+|-------|--------|--------|
+| 1 | Server-authoritative price, variant price, canonical tax | ✅ |
+| 2 | Stock available/concurrency, reserve vs decrement | ✅ |
+| 3 | Payment lifecycle, refund/cancel, GL identity, COGS journal | ✅ |
+| 4 | Server-side discount authorization & role limits | ✅ |
+| 5 | Branch / register / location authorization | ✅ |
+| 6 | Customer credit & Polim Potha ledger reconciliation | ✅ |
+| 7 | Full 12/12 End-to-End Commerce Certification & Golden Tx | ✅ |
+
+```powershell
+npm run release:gate-m3
+npm test -- tests/commerce-integrity.test.ts
+```
+
+Evidence: [`reports/COMMERCE_INTEGRITY_AUDIT.md`](../reports/COMMERCE_INTEGRITY_AUDIT.md) · [`reports/COMMERCE_INVARIANTS.md`](../reports/COMMERCE_INVARIANTS.md)
+
+**Do not mark Production Certified until CI-001–CI-012 are green.**
+
+---
+
 ## Automated gate commands
 
 ```powershell

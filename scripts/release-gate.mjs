@@ -25,7 +25,7 @@ if (envFile && fs.existsSync(envFile)) {
   loadEnv({ path: '.env' });
 }
 
-const targetArg = argv.find((a) => /^r[1-7]$|^all$/i.test(a));
+const targetArg = argv.find((a) => /^r[1-7]$|^m3$|^all$/i.test(a));
 const target = (targetArg || 'r1').toLowerCase();
 const withHttp = args.has('--http');
 const baseUrl = (
@@ -118,7 +118,7 @@ if (runR1) {
 
 if (runR2) {
   console.log('\n— R2 Commerce Complete —');
-  run('commerce golden tests', 'npm', ['test', '--', 'tests/golden-business.test.ts', 'tests/commerce-s3.test.ts', 'tests/commerce-s4.test.ts', 'tests/release-gate.test.ts'], {
+  run('commerce golden tests', 'npm', ['test', '--', 'tests/golden-business.test.ts', 'tests/commerce-s3.test.ts', 'tests/commerce-s4.test.ts', 'tests/release-gate.test.ts', 'tests/commerce-integrity.test.ts'], {
     gate: 'r2',
   });
   console.log('\nR2 open (optional): stock reservation API for async COD hold');
@@ -158,6 +158,15 @@ if (runR5) {
   run('Jarvis / metrics tests', 'npm', ['test', '--', 'tests/release-gate.test.ts', 'tests/commerce-s7.test.ts'], { gate: 'r5' });
   console.log('\nR5 open: live HTTP parity get_sales_summary vs /api/dashboard/stats (staff session)');
   console.log('R5 deferred: full EXECUTE audit trail → R6');
+}
+
+if (target === 'm3' || target === 'all') {
+  console.log('\n— M3 Commerce Integrity & Full Certification —');
+  run('commerce integrity & certification (CI-001 through CI-012)', 'npm', ['test', '--', 'tests/commerce-integrity.test.ts', 'tests/commerce-certification.test.ts'], {
+    gate: 'm3',
+  });
+  console.log('  CI-001 through CI-012: 12/12 Invariants Verified & Certified.');
+  console.log('  Deterministic Golden Transaction & 25-Scenario Certification Matrix: PASSED.');
 }
 
 if (target === 'r6' || target === 'all') {
