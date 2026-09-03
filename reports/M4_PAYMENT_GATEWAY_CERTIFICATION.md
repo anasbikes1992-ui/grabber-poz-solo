@@ -103,7 +103,7 @@ All adapters implement the unified `PaymentGateway` interface in [`src/lib/payme
 * **M3 Release Gate:** `npm run release:gate-m3` $\rightarrow$ PASS (118/118 assertions green)
 * **Auth Coverage:** `npm run auth:coverage` $\rightarrow$ 102/102 endpoints classified (PASS)
 * **Git Diff Check:** `git diff --check` $\rightarrow$ Clean
-* **Working Tree State:** `Modified / Uncommitted — intentionally awaiting milestone commit`
+* **Working Tree State:** `Clean (Committed & Tagged v4.0.0-m4)`
 
 ---
 
