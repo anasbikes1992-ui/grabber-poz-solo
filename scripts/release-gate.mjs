@@ -87,6 +87,7 @@ const runR5 = target === 'r5' || target === 'all';
 if (runR1) {
   console.log('— R1 Solo Foundation —');
   run('env:validate', 'npm', envValidateArgs(), { gate: 'r1' });
+  run('auth:coverage', 'npm', ['run', 'auth:coverage'], { gate: 'r1' });
 
   if (hasDatabaseUrl()) {
     run('db:test-rls', 'npm', ['run', 'db:test-rls'], { gate: 'r1' });
@@ -97,10 +98,14 @@ if (runR1) {
 
   run('typecheck', 'npm', ['run', 'typecheck'], { gate: 'r1' });
   run('unit tests', 'npm', ['test'], { gate: 'r1' });
+  run('security auth HTTP unit', 'npm', ['test', '--', 'tests/security-p0.test.ts', 'tests/security-http-auth.test.ts'], {
+    gate: 'r1',
+  });
 
   if (withHttp) {
     if (process.env.CERTIFY_HTTP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL) {
       run('client:certify:http', 'npm', ['run', 'client:certify:http'], { gate: 'r1' });
+      run('client:certify:auth', 'npm', ['run', 'client:certify:auth'], { gate: 'r1' });
     } else {
       console.log('\n⚠ Set CERTIFY_HTTP_BASE_URL or NEXT_PUBLIC_APP_URL for HTTP cert');
       results.push({ gate: 'r1', label: 'client:certify:http', ok: false, optional: true });

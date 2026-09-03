@@ -6,7 +6,8 @@
 **Graph:** `getSession` 175 edges · `assertCanMutateCommerce` 95 edges.
 
 **Milestone status:** DONE (audit).  
-**P0 remediation (in progress):** HMAC middleware via `decodeSessionEdge`; `AUTH_OPTIONAL` ignored in production; `requireStaffSession` on previously open GETs/mutations; PayHere/WhatsApp/cron fail-closed without secrets; `validate-env` blocks `AUTH_OPTIONAL=true` and missing `CRON_SECRET` in production. See `tests/security-p0.test.ts`.
+**M2 Security Hardening:** COMPLETE (HMAC middleware · `requireStaffSession` on P0 routes · fail-closed integrations · `AUTH_OPTIONAL` blocked at env validate + instrumentation boot · API auth coverage · HTTP auth regressions). See `tests/security-p0.test.ts`, `tests/security-http-auth.test.ts`, `npm run auth:coverage`.  
+**Commercial status:** CONDITIONALLY READY / NOT AUTH-CERTIFIED until live `--production --http` release gate on each install.
 
 ---
 
