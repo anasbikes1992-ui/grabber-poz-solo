@@ -36,6 +36,7 @@ const PUBLIC_API = [
   '/cron/',
   '/social/feeds/meta-catalog',
   '/payments/methods',
+  '/promotions/public',
 ];
 
 const STAFF_MARKERS = [

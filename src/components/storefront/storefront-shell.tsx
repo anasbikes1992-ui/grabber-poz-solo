@@ -9,6 +9,7 @@ import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { storefrontThemeStyle, storefrontThemeAttrs, whatsappHref } from '@/lib/storefront/theme-vars';
+import { PromotionPopup } from './PromotionPopup';
 
 type Shopper = { id: string; name: string; phone: string | null; email: string | null };
 
@@ -70,6 +71,7 @@ export function StorefrontShell({
       style={storefrontThemeStyle(cms.theme)}
       className="storefront min-h-screen bg-[var(--sf-background)] pb-20 text-[var(--sf-foreground)] md:pb-0"
     >
+      <PromotionPopup />
       {announcement?.type === 'ANNOUNCEMENT' && (
         <div className="bg-[var(--sf-primary)] text-center text-xs font-semibold text-[var(--sf-on-primary)] px-4 py-2">
           {announcement.text}
