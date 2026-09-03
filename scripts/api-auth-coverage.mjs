@@ -37,6 +37,7 @@ const PUBLIC_API = [
   '/social/feeds/meta-catalog',
   '/payments/methods',
   '/promotions/public',
+  '/installation/identity',
 ];
 
 const STAFF_MARKERS = [

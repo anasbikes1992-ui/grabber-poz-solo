@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { FileText, Download, Loader2 } from 'lucide-react';
-import { PDF_TEMPLATES } from '@/lib/creative/pdf-studio';
+import { PDF_TEMPLATES } from '@/lib/creative/pdf-templates';
 
 export default function PdfStudioPage() {
   const [template, setTemplate] = useState('PRICE_LIST');

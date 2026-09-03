@@ -17,7 +17,8 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 `M3` Commerce Integrity **CERTIFIED (12/12 GREEN)** · Slices 1–7 complete.
 `M4` Payment Gateway Adapter Framework **COMPLETE** (COD, PayHere, WebXPay, Koko, Mintpay, Payzy).
 `M5` Storefront Promotion & Conversion Engine **CERTIFIED** (PI-001 through PI-012, popup, announcement, auto-promotions, promo codes).
-**Next:** `M6` Installation Identity & Client Whitelabeling (Business name, logo, tax identity, custom domain, branding).
+`M6` Installation Identity & Client Configuration **CERTIFIED** (Standalone single-business identity, tamper-resistant HMAC license, diagnostics).
+**Next:** `M7` Client Onboarding (11-step interactive owner setup wizard for fresh installations).
 **Commercial verdict:** COMMERCE CERTIFIED. Each client install passes `--production --http` release gate.
 
 | Area | Completion | Status |

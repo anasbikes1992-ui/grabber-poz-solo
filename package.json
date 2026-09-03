@@ -33,6 +33,7 @@
     "release:gate-r1": "node scripts/release-gate.mjs r1",
     "release:gate-m3": "node scripts/release-gate.mjs m3",
     "release:gate-m5": "node scripts/release-gate-m5.mjs",
+    "release:gate-m6": "node scripts/release-gate-m6.mjs",
     "release:gate": "node scripts/release-gate.mjs all",
     "client:migrate": "node scripts/migrate-client-catalog.mjs",
     "ops:sync-env": "node scripts/sync-vercel-env.mjs",

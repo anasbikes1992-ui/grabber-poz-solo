@@ -2,15 +2,8 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { eq, inArray, and } from 'drizzle-orm';
 import { db, products, businessProfile } from '@/db';
 import type { BrandBrain } from '@/lib/creative/brand-brain';
-
-export type PdfTemplateKind =
-  | 'PRICE_LIST'
-  | 'PRODUCT_CATALOG'
-  | 'FLYER'
-  | 'RECEIPT'
-  | 'QUOTATION'
-  | 'BROCHURE'
-  | 'PROMO';
+import type { PdfTemplateKind } from './pdf-templates';
+export * from './pdf-templates';
 
 export type PdfGenerateInput = {
   template: PdfTemplateKind;
@@ -135,12 +128,3 @@ export async function generatePdfDocument(input: PdfGenerateInput): Promise<Uint
   return pdf.save();
 }
 
-export const PDF_TEMPLATES: { id: PdfTemplateKind; label: string; description: string }[] = [
-  { id: 'PRICE_LIST', label: 'Price list', description: 'Live sale prices from inventory' },
-  { id: 'PRODUCT_CATALOG', label: 'Product catalog', description: 'SKU + price table for sharing' },
-  { id: 'FLYER', label: 'Flyer', description: 'Promotional one-pager with CTA' },
-  { id: 'QUOTATION', label: 'Quotation', description: 'Branded quote layout from products' },
-  { id: 'RECEIPT', label: 'Receipt', description: 'Simple receipt-style PDF' },
-  { id: 'BROCHURE', label: 'Brochure', description: 'Multi-section product brochure' },
-  { id: 'PROMO', label: 'Promotional PDF', description: 'Offer / discount announcement' },
-];

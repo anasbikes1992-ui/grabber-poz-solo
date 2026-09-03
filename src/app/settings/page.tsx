@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Settings, Download, Database, ShieldCheck, CheckCircle2, FileSpreadsheet, Key, CreditCard, Truck, MessageSquare, Sparkles, Check, RefreshCw, Layers } from 'lucide-react';
+import Link from 'next/link';
+import { Settings, Download, Database, ShieldCheck, CheckCircle2, FileSpreadsheet, Key, CreditCard, Truck, MessageSquare, Sparkles, Check, RefreshCw, Layers, Building2 } from 'lucide-react';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
 
@@ -250,6 +251,13 @@ export default function SettingsPage() {
           <Database className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Backups & Disaster Recovery</span>
         </button>
+        <Link
+          href="/settings/installation"
+          className="px-4 py-2 min-h-11 rounded-xl font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer text-amber-500 hover:text-amber-400 hover:bg-zinc-900 border border-amber-500/20"
+        >
+          <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Installation & License</span>
+        </Link>
       </div>
 
       {/* TAB 1: General Profile & Tax Rules */}
