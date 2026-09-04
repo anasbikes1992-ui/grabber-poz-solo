@@ -39,6 +39,7 @@
     "client:migrate": "node scripts/migrate-client-catalog.mjs",
     "ops:sync-env": "node scripts/sync-vercel-env.mjs",
     "ops:inspect-db": "node scripts/inspect-db-tables.mjs",
+    "seed:vertical": "tsx scripts/seed-vertical.ts",
     "push:poz-solo": "git push poz-solo main"
   },
   "dependencies": {

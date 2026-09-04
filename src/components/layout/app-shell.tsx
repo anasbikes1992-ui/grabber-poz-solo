@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto outline-none"
+        className="flex-1 p-4 sm:p-6 md:p-8 pb-24 md:pb-8 max-w-7xl w-full mx-auto outline-none"
       >
         {children}
       </main>
