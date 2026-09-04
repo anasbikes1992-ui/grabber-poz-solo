@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Automation Rules'
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/automation/rules'

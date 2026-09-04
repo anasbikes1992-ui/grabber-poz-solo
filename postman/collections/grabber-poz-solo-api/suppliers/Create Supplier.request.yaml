@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Create Supplier'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/suppliers'
+body:
+  type: json
+  content: |-
+    {
+      "name": "Tech Distributors Ltd",
+      "contactName": "Ahmed",
+      "phone": "+94112345678",
+      "email": "ahmed@techdist.lk",
+      "paymentTerms": "NET_30"
+    }

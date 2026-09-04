@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Product Variants'
+order: 7000
+method: GET
+url: '{{baseUrl}}/api/products/variants'

@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Generate PDF'
+order: 8000
+method: POST
+url: '{{baseUrl}}/api/creative/pdf'
+body:
+  type: json
+  content: |-
+    {
+      "type": "INVOICE",
+      "orderId": "{{orderId}}"
+    }

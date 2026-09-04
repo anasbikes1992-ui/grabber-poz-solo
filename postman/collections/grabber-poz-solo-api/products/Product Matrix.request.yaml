@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Product Matrix'
+order: 8000
+method: GET
+url: '{{baseUrl}}/api/products/matrix'

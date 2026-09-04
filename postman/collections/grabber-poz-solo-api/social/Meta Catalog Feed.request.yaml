@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Meta Catalog Feed'
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/social/feeds/meta-catalog'

@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Validate Promo Code'
+order: 3000
+method: POST
+url: '{{baseUrl}}/api/promotions/validate'
+body:
+  type: json
+  content: |-
+    {
+      "code": "SUMMER10",
+      "cartTotal": 10000
+    }

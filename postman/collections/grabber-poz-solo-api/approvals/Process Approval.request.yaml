@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Process Approval'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/approvals'
+body:
+  type: json
+  content: |-
+    {
+      "approvalId": "{{approvalId}}",
+      "action": "APPROVE",
+      "notes": "Approved by manager"
+    }

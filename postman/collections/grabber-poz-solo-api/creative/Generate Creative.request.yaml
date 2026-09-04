@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Generate Creative'
+order: 3000
+method: POST
+url: '{{baseUrl}}/api/creative/generate'
+body:
+  type: json
+  content: |-
+    {
+      "type": "PRODUCT_AD",
+      "productId": "{{productId}}",
+      "style": "modern"
+    }

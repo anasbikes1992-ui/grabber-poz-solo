@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Approve Creative'
+order: 7000
+method: POST
+url: '{{baseUrl}}/api/creative/approve'
+body:
+  type: json
+  content: |-
+    {
+      "assetId": "{{assetId}}",
+      "approved": true
+    }

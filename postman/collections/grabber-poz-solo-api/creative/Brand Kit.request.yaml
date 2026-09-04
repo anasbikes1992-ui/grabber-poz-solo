@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Brand Kit'
+order: 6000
+method: GET
+url: '{{baseUrl}}/api/creative/brand'

@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Create Appointment'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/appointments'
+body:
+  type: json
+  content: |-
+    {
+      "customerId": "{{customerId}}",
+      "serviceType": "REPAIR",
+      "scheduledAt": "2025-06-15T10:00:00Z",
+      "notes": "Screen replacement"
+    }

@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Repay'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/polim-potha/repay'
+body:
+  type: json
+  content: |-
+    {
+      "accountId": "{{accountId}}",
+      "amount": 5000,
+      "method": "CASH"
+    }

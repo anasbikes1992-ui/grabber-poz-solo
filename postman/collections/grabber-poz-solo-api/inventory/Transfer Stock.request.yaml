@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Transfer Stock'
+order: 5000
+method: POST
+url: '{{baseUrl}}/api/inventory/transfer'
+body:
+  type: json
+  content: |-
+    {
+      "fromLocationId": "{{locationId}}",
+      "toLocationId": "{{toLocationId}}",
+      "items": [
+        { "productId": "{{productId}}", "quantity": 5 }
+      ]
+    }

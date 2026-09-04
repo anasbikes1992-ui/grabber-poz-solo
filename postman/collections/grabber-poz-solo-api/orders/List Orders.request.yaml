@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'List Orders'
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/orders'
+queryParams:
+  - key: channel
+    value: all
+    disabled: true
+  - key: status
+    value: all
+    disabled: true

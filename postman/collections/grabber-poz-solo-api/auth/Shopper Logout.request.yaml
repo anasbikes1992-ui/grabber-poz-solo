@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Shopper Logout'
+order: 8000
+method: DELETE
+url: '{{baseUrl}}/api/auth/shopper'

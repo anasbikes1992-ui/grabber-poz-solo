@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Diagnostics'
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/installation/diagnostics'

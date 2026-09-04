@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'Public Repair Status'
+order: 9000
+method: GET
+url: '{{baseUrl}}/api/repairs/public'
+queryParams:
+  - key: ticket
+    value: 'REP-001'

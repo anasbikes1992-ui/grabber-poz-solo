@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Config Flags'
+order: 9000
+method: GET
+url: '{{baseUrl}}/api/config/flags'

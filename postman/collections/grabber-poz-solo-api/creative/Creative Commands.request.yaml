@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Creative Commands'
+order: 5000
+method: POST
+url: '{{baseUrl}}/api/creative/commands'
+body:
+  type: json
+  content: |-
+    {
+      "command": "generate_banner",
+      "params": {}
+    }

@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Shopper Login or Register'
+order: 6000
+method: POST
+url: '{{baseUrl}}/api/auth/shopper'
+body:
+  type: json
+  content: |-
+    {
+      "action": "login",
+      "phone": "+94771234567",
+      "password": "pass1234"
+    }

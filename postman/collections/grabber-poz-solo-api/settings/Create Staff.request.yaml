@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Create Staff'
+order: 4000
+method: POST
+url: '{{baseUrl}}/api/settings/staff'
+body:
+  type: json
+  content: |-
+    {
+      "name": "Ali Hassan",
+      "email": "ali@shop.lk",
+      "role": "CASHIER",
+      "pin": "5678"
+    }

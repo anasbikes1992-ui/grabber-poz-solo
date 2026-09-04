@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Update Product'
+order: 3000
+method: PATCH
+url: '{{baseUrl}}/api/products'
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{productId}}",
+      "salePrice": 295000,
+      "reorderLevel": 3
+    }

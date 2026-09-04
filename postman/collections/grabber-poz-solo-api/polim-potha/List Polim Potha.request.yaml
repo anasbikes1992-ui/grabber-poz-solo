@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'List Polim Potha'
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/polim-potha'

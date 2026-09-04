@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'Lookup Order'
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/orders/lookup'
+queryParams:
+  - key: q
+    value: 'ORD-001'

@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'Track Order'
+order: 4000
+method: GET
+url: '{{baseUrl}}/api/orders/track'
+queryParams:
+  - key: orderNumber
+    value: 'ORD-001'

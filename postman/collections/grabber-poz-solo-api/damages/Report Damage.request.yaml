@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Report Damage'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/damages'
+body:
+  type: json
+  content: |-
+    {
+      "productId": "{{productId}}",
+      "quantity": 1,
+      "reason": "Dropped during handling",
+      "locationId": "{{locationId}}"
+    }

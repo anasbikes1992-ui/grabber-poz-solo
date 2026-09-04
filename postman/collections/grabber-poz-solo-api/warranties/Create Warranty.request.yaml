@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Create Warranty'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/warranties'
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "{{orderId}}",
+      "productId": "{{productId}}",
+      "serialNumber": "SN123456",
+      "warrantyMonths": 12
+    }

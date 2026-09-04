@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Repair Appointments'
+order: 10000
+method: GET
+url: '{{baseUrl}}/api/repairs/appointments'

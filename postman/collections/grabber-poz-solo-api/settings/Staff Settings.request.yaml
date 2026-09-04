@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Staff Settings'
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/settings/staff'

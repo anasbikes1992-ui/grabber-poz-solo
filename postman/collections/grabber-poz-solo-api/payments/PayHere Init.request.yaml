@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'PayHere Init'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/payments/payhere/init'
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "{{orderId}}",
+      "amount": 5000,
+      "currency": "LKR",
+      "customerName": "John Doe",
+      "customerEmail": "john@example.com",
+      "customerPhone": "+94771234567"
+    }

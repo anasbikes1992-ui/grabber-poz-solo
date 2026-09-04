@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Jarvis Chat'
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/jarvis/chat'
+body:
+  type: json
+  content: |-
+    {
+      "message": "What are today's sales?",
+      "sessionId": "{{sessionId}}"
+    }

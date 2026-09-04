@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Create Purchase Order'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/purchasing/orders'
+body:
+  type: json
+  content: |-
+    {
+      "supplierId": "{{supplierId}}",
+      "items": [
+        { "productId": "{{productId}}", "quantity": 10, "unitCost": 2000 }
+      ]
+    }

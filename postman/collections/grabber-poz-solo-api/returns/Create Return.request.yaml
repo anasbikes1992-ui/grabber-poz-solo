@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Create Return'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/returns'
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "{{orderId}}",
+      "items": [
+        { "orderItemId": "{{orderItemId}}", "quantity": 1, "reason": "Defective" }
+      ]
+    }

@@ -1,0 +1,17 @@
+$kind: http-request
+name: 'POS Checkout'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/pos/checkout'
+body:
+  type: json
+  content: |-
+    {
+      "items": [
+        { "productId": "{{productId}}", "quantity": 1, "unitPrice": 5000 }
+      ],
+      "payments": [
+        { "method": "CASH", "amount": 5000 }
+      ],
+      "customerId": null
+    }

@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Open Shift'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/shifts'
+body:
+  type: json
+  content: |-
+    {
+      "openingFloat": 5000,
+      "staffId": "{{staffId}}"
+    }

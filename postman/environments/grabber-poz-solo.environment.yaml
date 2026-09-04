@@ -1,0 +1,90 @@
+name: 'GRABBER POZ SOLO - Local'
+values:
+  - key: baseUrl
+    value: 'http://localhost:3000'
+    enabled: true
+    type: default
+  - key: productId
+    value: ''
+    enabled: true
+    type: default
+  - key: orderId
+    value: ''
+    enabled: true
+    type: default
+  - key: orderNumber
+    value: ''
+    enabled: true
+    type: default
+  - key: customerId
+    value: ''
+    enabled: true
+    type: default
+  - key: repairId
+    value: ''
+    enabled: true
+    type: default
+  - key: supplierId
+    value: ''
+    enabled: true
+    type: default
+  - key: locationId
+    value: ''
+    enabled: true
+    type: default
+  - key: toLocationId
+    value: ''
+    enabled: true
+    type: default
+  - key: staffId
+    value: ''
+    enabled: true
+    type: default
+  - key: shiftId
+    value: ''
+    enabled: true
+    type: default
+  - key: purchaseOrderId
+    value: ''
+    enabled: true
+    type: default
+  - key: approvalId
+    value: ''
+    enabled: true
+    type: default
+  - key: sessionId
+    value: ''
+    enabled: true
+    type: default
+  - key: agentId
+    value: ''
+    enabled: true
+    type: default
+  - key: jobId
+    value: ''
+    enabled: true
+    type: default
+  - key: assetId
+    value: ''
+    enabled: true
+    type: default
+  - key: templateId
+    value: ''
+    enabled: true
+    type: default
+  - key: accountId
+    value: ''
+    enabled: true
+    type: default
+  - key: orderItemId
+    value: ''
+    enabled: true
+    type: default
+  - key: merchantId
+    value: ''
+    enabled: true
+    type: default
+  - key: md5sig
+    value: ''
+    enabled: true
+    type: default

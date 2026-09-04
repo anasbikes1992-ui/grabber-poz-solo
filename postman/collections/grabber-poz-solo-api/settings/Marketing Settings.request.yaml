@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Marketing Settings'
+order: 7000
+method: GET
+url: '{{baseUrl}}/api/settings/marketing'

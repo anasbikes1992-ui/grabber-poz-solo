@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Run Agent'
+order: 4000
+method: POST
+url: '{{baseUrl}}/api/agents/run'
+body:
+  type: json
+  content: |-
+    {
+      "agentId": "{{agentId}}",
+      "input": {}
+    }

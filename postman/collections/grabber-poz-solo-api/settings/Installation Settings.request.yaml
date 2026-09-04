@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Installation Settings'
+order: 8000
+method: GET
+url: '{{baseUrl}}/api/settings/installation'

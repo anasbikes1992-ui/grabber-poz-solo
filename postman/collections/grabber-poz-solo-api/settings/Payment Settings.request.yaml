@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Payment Settings'
+order: 5000
+method: GET
+url: '{{baseUrl}}/api/settings/payments'

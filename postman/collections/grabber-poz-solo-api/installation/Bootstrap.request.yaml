@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Bootstrap'
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/installation/bootstrap'
+body:
+  type: json
+  content: |-
+    {
+      "shopName": "My Shop",
+      "ownerEmail": "owner@shop.lk",
+      "ownerPin": "1234"
+    }

@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Stock Take'
+order: 4000
+method: POST
+url: '{{baseUrl}}/api/inventory/stock-take'
+body:
+  type: json
+  content: |-
+    {
+      "locationId": "{{locationId}}",
+      "items": [
+        { "productId": "{{productId}}", "counted": 10 }
+      ]
+    }

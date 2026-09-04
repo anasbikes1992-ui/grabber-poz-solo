@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Close Shift'
+order: 3000
+method: POST
+url: '{{baseUrl}}/api/shifts/close'
+body:
+  type: json
+  content: |-
+    {
+      "shiftId": "{{shiftId}}",
+      "closingFloat": 4500,
+      "notes": "End of day"
+    }

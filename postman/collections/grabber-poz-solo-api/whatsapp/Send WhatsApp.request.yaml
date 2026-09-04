@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Send WhatsApp'
+order: 3000
+method: POST
+url: '{{baseUrl}}/api/integrations/whatsapp/send'
+body:
+  type: json
+  content: |-
+    {
+      "to": "+94771234567",
+      "templateName": "order_confirmation",
+      "params": ["John", "ORD-001"]
+    }

@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Mobile Repair Setup'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/setup/mobilerepair'
+body:
+  type: json
+  content: |-
+    {
+      "shopName": "My Repair Shop",
+      "ownerEmail": "owner@shop.lk",
+      "ownerPin": "1234"
+    }

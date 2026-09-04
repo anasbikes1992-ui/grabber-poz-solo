@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Export Products'
+order: 5000
+method: GET
+url: '{{baseUrl}}/api/products/export'

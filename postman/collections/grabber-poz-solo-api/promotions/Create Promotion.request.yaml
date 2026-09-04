@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Create Promotion'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/promotions'
+body:
+  type: json
+  content: |-
+    {
+      "name": "Summer Sale",
+      "type": "PERCENTAGE",
+      "value": 10,
+      "startDate": "2025-06-01",
+      "endDate": "2025-06-30"
+    }

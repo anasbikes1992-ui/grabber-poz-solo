@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Creative Job Status'
+order: 12000
+method: GET
+url: '{{baseUrl}}/api/creative/jobs/{{jobId}}'

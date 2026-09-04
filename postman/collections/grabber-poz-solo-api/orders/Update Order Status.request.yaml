@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Update Order Status'
+order: 2000
+method: PATCH
+url: '{{baseUrl}}/api/orders'
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{orderId}}",
+      "preset": "CONFIRM_PAID"
+    }

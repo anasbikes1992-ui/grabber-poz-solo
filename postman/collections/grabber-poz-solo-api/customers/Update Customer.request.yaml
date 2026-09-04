@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Update Customer'
+order: 3000
+method: PATCH
+url: '{{baseUrl}}/api/customers'
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{customerId}}",
+      "name": "John Updated",
+      "phone": "+94771234567"
+    }

@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'POS Holds'
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/pos/holds'

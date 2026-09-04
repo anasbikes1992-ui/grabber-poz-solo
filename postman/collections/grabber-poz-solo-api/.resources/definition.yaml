@@ -1,0 +1,3 @@
+$kind: collection
+name: 'GRABBER POZ SOLO API'
+description: 'Complete API collection for the GRABBER POZ SOLO business management platform (Next.js). Base URL: {{baseUrl}}'

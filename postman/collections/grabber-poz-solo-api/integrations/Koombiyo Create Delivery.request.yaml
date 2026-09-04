@@ -1,0 +1,16 @@
+$kind: http-request
+name: 'Koombiyo Create Delivery'
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/integrations/koombiyo/create'
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "{{orderId}}",
+      "recipientName": "John Doe",
+      "recipientPhone": "+94771234567",
+      "recipientAddress": "123 Main St, Colombo",
+      "weight": 0.5,
+      "codAmount": 5000
+    }

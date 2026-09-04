@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Seed Data'
+order: 7000
+method: POST
+url: '{{baseUrl}}/api/seed'
+body:
+  type: json
+  content: |-
+    {
+      "target": "demo"
+    }

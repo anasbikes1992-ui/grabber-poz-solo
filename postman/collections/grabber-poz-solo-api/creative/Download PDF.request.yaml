@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'Download PDF'
+order: 9000
+method: GET
+url: '{{baseUrl}}/api/creative/pdf/download'
+queryParams:
+  - key: jobId
+    value: '{{jobId}}'

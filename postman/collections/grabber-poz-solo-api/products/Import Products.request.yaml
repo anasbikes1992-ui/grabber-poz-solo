@@ -1,0 +1,11 @@
+$kind: http-request
+name: 'Import Products'
+order: 6000
+method: POST
+url: '{{baseUrl}}/api/products/import'
+body:
+  type: json
+  content: |-
+    {
+      "rows": []
+    }

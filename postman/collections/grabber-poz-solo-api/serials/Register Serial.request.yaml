@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Register Serial'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/serials'
+body:
+  type: json
+  content: |-
+    {
+      "productId": "{{productId}}",
+      "imei": "352099001761481",
+      "serialNumber": "SN123456"
+    }

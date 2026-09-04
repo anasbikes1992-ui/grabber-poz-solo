@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Setup Progress'
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/setup/progress'

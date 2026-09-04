@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Social Channels'
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/social/channels'

@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Staff Login'
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/auth/login'
+body:
+  type: json
+  content: |-
+    {
+      "email": "owner@example.com",
+      "pin": "1234",
+      "role": "OWNER"
+    }

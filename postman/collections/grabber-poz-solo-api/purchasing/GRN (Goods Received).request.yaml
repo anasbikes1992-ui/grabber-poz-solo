@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'GRN (Goods Received)'
+order: 3000
+method: POST
+url: '{{baseUrl}}/api/purchasing/grn'
+body:
+  type: json
+  content: |-
+    {
+      "purchaseOrderId": "{{purchaseOrderId}}",
+      "items": [
+        { "productId": "{{productId}}", "receivedQty": 10 }
+      ]
+    }

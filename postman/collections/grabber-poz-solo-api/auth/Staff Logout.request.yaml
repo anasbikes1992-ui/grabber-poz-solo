@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Staff Logout'
+order: 2000
+method: DELETE
+url: '{{baseUrl}}/api/auth/login'

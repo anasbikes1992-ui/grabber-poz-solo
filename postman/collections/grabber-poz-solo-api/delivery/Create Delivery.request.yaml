@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Create Delivery'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/delivery'
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "{{orderId}}",
+      "address": "123 Main St",
+      "scheduledDate": "2025-06-15"
+    }

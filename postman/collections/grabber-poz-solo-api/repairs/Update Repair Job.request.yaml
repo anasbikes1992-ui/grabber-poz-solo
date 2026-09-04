@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Update Repair Job'
+order: 3000
+method: PATCH
+url: '{{baseUrl}}/api/repairs'
+body:
+  type: json
+  content: |-
+    {
+      "id": "{{repairId}}",
+      "status": "IN_PROGRESS",
+      "serviceCharge": 2500
+    }

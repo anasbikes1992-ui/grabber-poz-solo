@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Reserve Stock'
+order: 3000
+method: POST
+url: '{{baseUrl}}/api/inventory/reserve'
+body:
+  type: json
+  content: |-
+    {
+      "productId": "{{productId}}",
+      "quantity": 1,
+      "orderId": "{{orderId}}"
+    }

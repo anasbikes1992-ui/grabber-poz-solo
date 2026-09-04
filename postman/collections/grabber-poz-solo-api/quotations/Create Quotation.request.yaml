@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Create Quotation'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/quotations'
+body:
+  type: json
+  content: |-
+    {
+      "customerId": "{{customerId}}",
+      "items": [
+        { "productId": "{{productId}}", "quantity": 1, "unitPrice": 5000 }
+      ],
+      "validDays": 7
+    }

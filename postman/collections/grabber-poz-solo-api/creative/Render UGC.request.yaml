@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Render UGC'
+order: 11000
+method: POST
+url: '{{baseUrl}}/api/creative/ugc/render'
+body:
+  type: json
+  content: |-
+    {
+      "templateId": "{{templateId}}",
+      "productId": "{{productId}}"
+    }

@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Creative Projects'
+order: 4000
+method: GET
+url: '{{baseUrl}}/api/creative/projects'

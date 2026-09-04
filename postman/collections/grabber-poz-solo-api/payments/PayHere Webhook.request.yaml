@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'PayHere Webhook'
+order: 3000
+method: POST
+url: '{{baseUrl}}/api/webhooks/payhere'
+body:
+  type: json
+  content: |-
+    {
+      "merchant_id": "{{merchantId}}",
+      "order_id": "{{orderId}}",
+      "payment_id": "PAY-001",
+      "status_code": "2",
+      "md5sig": "{{md5sig}}"
+    }

@@ -1,0 +1,17 @@
+$kind: http-request
+name: 'Create Product'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/products'
+body:
+  type: json
+  content: |-
+    {
+      "name": "iPhone 15 Pro",
+      "sku": "IPH15PRO-128",
+      "barcode": "1234567890123",
+      "salePrice": 299000,
+      "costPrice": 250000,
+      "reorderLevel": 5,
+      "categoryId": null
+    }

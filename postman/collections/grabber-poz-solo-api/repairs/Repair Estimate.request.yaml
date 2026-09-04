@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Repair Estimate'
+order: 8000
+method: POST
+url: '{{baseUrl}}/api/repairs/estimate'
+body:
+  type: json
+  content: |-
+    {
+      "deviceModel": "iPhone 14",
+      "fault": "Battery replacement"
+    }

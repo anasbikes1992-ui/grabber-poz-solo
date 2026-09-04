@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Create Hire Purchase'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/hire-purchase'
+body:
+  type: json
+  content: |-
+    {
+      "customerId": "{{customerId}}",
+      "orderId": "{{orderId}}",
+      "downPayment": 10000,
+      "installments": 12,
+      "monthlyAmount": 5000
+    }

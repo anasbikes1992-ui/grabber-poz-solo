@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'List Deliveries'
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/delivery'

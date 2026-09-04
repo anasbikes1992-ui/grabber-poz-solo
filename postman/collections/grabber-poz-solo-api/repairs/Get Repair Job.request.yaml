@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Get Repair Job'
+order: 4000
+method: GET
+url: '{{baseUrl}}/api/repairs/{{repairId}}'

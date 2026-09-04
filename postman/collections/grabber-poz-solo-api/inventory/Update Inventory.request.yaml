@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Update Inventory'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/inventory'
+body:
+  type: json
+  content: |-
+    {
+      "productId": "{{productId}}",
+      "locationId": "{{locationId}}",
+      "quantity": 50
+    }

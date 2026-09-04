@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Serial Lifecycle'
+order: 3000
+method: POST
+url: '{{baseUrl}}/api/serials/lifecycle'
+body:
+  type: json
+  content: |-
+    {
+      "imei": "352099001761481",
+      "event": "SOLD",
+      "orderId": "{{orderId}}"
+    }

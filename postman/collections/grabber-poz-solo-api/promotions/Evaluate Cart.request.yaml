@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Evaluate Cart'
+order: 4000
+method: POST
+url: '{{baseUrl}}/api/promotions/evaluate-cart'
+body:
+  type: json
+  content: |-
+    {
+      "items": [
+        { "productId": "{{productId}}", "quantity": 2, "unitPrice": 5000 }
+      ],
+      "couponCode": null
+    }

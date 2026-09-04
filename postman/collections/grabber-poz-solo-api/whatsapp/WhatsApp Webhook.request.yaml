@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'WhatsApp Webhook'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/whatsapp/webhook'
+body:
+  type: json
+  content: |-
+    {
+      "object": "whatsapp_business_account",
+      "entry": []
+    }

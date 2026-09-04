@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Business Settings'
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/settings/business'

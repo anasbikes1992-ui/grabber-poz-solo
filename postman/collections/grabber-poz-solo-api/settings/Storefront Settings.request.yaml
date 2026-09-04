@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Storefront Settings'
+order: 6000
+method: GET
+url: '{{baseUrl}}/api/settings/storefront'

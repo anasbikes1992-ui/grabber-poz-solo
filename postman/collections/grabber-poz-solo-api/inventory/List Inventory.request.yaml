@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'List Inventory'
+order: 1000
+method: GET
+url: '{{baseUrl}}/api/inventory'

@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Update Loyalty Points'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/loyalty'
+body:
+  type: json
+  content: |-
+    {
+      "customerId": "{{customerId}}",
+      "points": 100,
+      "reason": "Purchase reward"
+    }

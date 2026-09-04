@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Update Business Settings'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/settings/business'
+body:
+  type: json
+  content: |-
+    {
+      "name": "My Shop",
+      "phone": "+94112345678",
+      "address": "123 Main St, Colombo"
+    }

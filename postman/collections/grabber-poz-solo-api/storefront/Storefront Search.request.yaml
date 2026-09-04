@@ -1,0 +1,8 @@
+$kind: http-request
+name: 'Storefront Search'
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/storefront/search'
+queryParams:
+  - key: q
+    value: 'iPhone'

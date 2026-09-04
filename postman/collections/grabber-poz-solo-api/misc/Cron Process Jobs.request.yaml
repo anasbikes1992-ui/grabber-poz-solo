@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Cron Process Jobs'
+order: 8000
+method: POST
+url: '{{baseUrl}}/api/cron/process-jobs'

@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Create Repair Job'
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/repairs'
+body:
+  type: json
+  content: |-
+    {
+      "customerName": "Jane Smith",
+      "customerPhone": "+94771234567",
+      "deviceModel": "Samsung Galaxy S23",
+      "primaryFault": "Cracked screen",
+      "partsAmount": 5000,
+      "serviceCharge": 2000,
+      "advancePaid": 1000,
+      "technician": "Ali",
+      "status": "INTAKE"
+    }

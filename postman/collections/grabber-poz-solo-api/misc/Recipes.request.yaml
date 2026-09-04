@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Recipes'
+order: 6000
+method: GET
+url: '{{baseUrl}}/api/recipes'

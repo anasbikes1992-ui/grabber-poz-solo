@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'Delete Repair Job'
+order: 6000
+method: DELETE
+url: '{{baseUrl}}/api/repairs/{{repairId}}'

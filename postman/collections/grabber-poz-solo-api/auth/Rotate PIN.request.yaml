@@ -1,0 +1,13 @@
+$kind: http-request
+name: 'Rotate PIN'
+order: 3000
+method: PATCH
+url: '{{baseUrl}}/api/auth/login'
+body:
+  type: json
+  content: |-
+    {
+      "email": "owner@example.com",
+      "currentPin": "1234",
+      "newPin": "5678"
+    }

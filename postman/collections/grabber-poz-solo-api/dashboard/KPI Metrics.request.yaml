@@ -1,0 +1,5 @@
+$kind: http-request
+name: 'KPI Metrics'
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/kpi'
