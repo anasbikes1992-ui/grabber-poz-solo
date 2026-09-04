@@ -1,11 +1,11 @@
 import postgres from 'postgres';
 import { config as loadEnv } from 'dotenv';
-import { postgresClientOptions, resolveDirectDatabaseUrl } from './lib/resolve-db-url.mjs';
+import { postgresClientOptions, resolveDatabaseUrl } from './lib/resolve-db-url.mjs';
 
 loadEnv({ path: '.env.local' });
 loadEnv({ path: '.env' });
 
-const url = resolveDirectDatabaseUrl();
+const url = resolveDatabaseUrl();
 if (!url) {
   console.error('Database URL missing — set DATABASE_URL or POSTGRES_URL');
   process.exit(1);
