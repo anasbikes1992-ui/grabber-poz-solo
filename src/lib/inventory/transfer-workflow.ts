@@ -21,6 +21,10 @@ export async function createDraftTransfer(
     actorId?: string;
   },
 ) {
+  if (input.fromLocationType === input.toLocationType && input.fromLocationId === input.toLocationId) {
+    throw new Error('Source and destination locations must be different');
+  }
+
   const [tr] = await tx
     .insert(transfers)
     .values({
@@ -134,3 +138,24 @@ export async function receiveTransfer(
     .returning();
   return updated;
 }
+
+/** CANCELLED: cancel a draft or requested transfer without mutating inventory. */
+export async function cancelTransfer(
+  tx: Parameters<typeof recordTransfer>[0],
+  transferId: string,
+  actorId?: string,
+) {
+  const [tr] = await tx.select().from(transfers).where(eq(transfers.id, transferId)).limit(1);
+  if (!tr) throw new Error('Transfer not found');
+  if (tr.status !== 'DRAFT' && tr.status !== 'REQUESTED' && tr.status !== 'APPROVED') {
+    throw new Error(`Cannot cancel transfer in status ${tr.status}. Only un-dispatched transfers can be cancelled.`);
+  }
+
+  const [updated] = await tx
+    .update(transfers)
+    .set({ status: 'CANCELLED' })
+    .where(eq(transfers.id, transferId))
+    .returning();
+  return updated;
+}
+

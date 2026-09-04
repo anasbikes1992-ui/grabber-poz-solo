@@ -3,7 +3,7 @@ import { desc, eq } from 'drizzle-orm';
 import { db, transferLines, transfers } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 import { recordTransfer } from '@/lib/inventory/stock-service';
-import { createDraftTransfer, dispatchTransfer, receiveTransfer } from '@/lib/inventory/transfer-workflow';
+import { createDraftTransfer, dispatchTransfer, receiveTransfer, cancelTransfer } from '@/lib/inventory/transfer-workflow';
 
 async function actor() {
   let session = await getSession();
@@ -70,6 +70,13 @@ export async function POST(req: Request) {
     if (action === 'receive') {
       const tr = await db.transaction(async (tx) =>
         receiveTransfer(tx, body.transferId, items, actorId),
+      );
+      return NextResponse.json({ success: true, transfer: tr });
+    }
+
+    if (action === 'cancel') {
+      const tr = await db.transaction(async (tx) =>
+        cancelTransfer(tx, body.transferId, actorId),
       );
       return NextResponse.json({ success: true, transfer: tr });
     }

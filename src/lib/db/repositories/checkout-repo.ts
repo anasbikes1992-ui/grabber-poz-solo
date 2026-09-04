@@ -63,6 +63,8 @@ export type CheckoutInput = {
   promoRuleId?: string;
   terminalId?: string;
   clientSequence?: number;
+  /** Authenticated staff role executing or supervising checkout */
+  staffRole?: 'OWNER' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAREHOUSE' | 'ACCOUNTANT' | 'MARKETING';
   /** Offline POS sync — honor sale even when stock would go negative */
   allowStockUnderrun?: boolean;
 };
@@ -143,7 +145,7 @@ export async function durableCheckout(input: CheckoutInput) {
     const paymentLines: CheckoutPaymentLine[] =
       input.payments?.length && input.payments.length > 0
         ? input.payments
-        : [{ method: input.paymentMethod, amount: input.amount ?? grandTotal }];
+        : [{ method: input.paymentMethod, amount: grandTotal }];
 
     const isSplit = paymentLines.length > 1;
     const lifecycleMethod = isSplit ? 'CASH' : input.paymentMethod;
@@ -181,7 +183,10 @@ export async function durableCheckout(input: CheckoutInput) {
           allowUnderrun: Boolean(input.allowStockUnderrun),
         });
         onHand = sold.onHand;
-        await consumeFefoLot(tx, loc, line.productId, line.variantId, line.quantity).catch(() => null);
+        await consumeFefoLot(tx, loc, line.productId, line.variantId, line.quantity).catch((err) => {
+          console.error(`[FEFO] Failed to consume lot for product ${line.productId}:`, err);
+          return null;
+        });
       } else {
         const reserved = await reserveStockTx(tx, loc, stockLine, {
           ...meta,
@@ -284,7 +289,7 @@ export async function durableCheckout(input: CheckoutInput) {
             }
           : null,
         creditAmount: grandTotal,
-        staffRole: 'OWNER',
+        staffRole: input.staffRole || 'CASHIER',
         staffUserId: input.actorId,
         orderNumber,
         idempotencyKey: input.idempotencyKey,

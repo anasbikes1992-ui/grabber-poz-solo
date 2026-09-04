@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Settings, Download, Database, ShieldCheck, CheckCircle2, FileSpreadsheet, Key, CreditCard, Truck, MessageSquare, Sparkles, Check, RefreshCw, Layers, Building2 } from 'lucide-react';
+import { Settings, Download, Database, ShieldCheck, CheckCircle2, FileSpreadsheet, Key, CreditCard, Truck, MessageSquare, Sparkles, Check, RefreshCw, Layers, Building2, Warehouse } from 'lucide-react';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
 
@@ -257,6 +257,20 @@ export default function SettingsPage() {
         >
           <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Installation & License</span>
+        </Link>
+        <Link
+          href="/settings/warehouses"
+          className="px-4 py-2 min-h-11 rounded-xl font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer text-emerald-400 hover:text-emerald-300 hover:bg-zinc-900 border border-emerald-500/20"
+        >
+          <Warehouse className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Warehouses</span>
+        </Link>
+        <Link
+          href="/settings/staff"
+          className="px-4 py-2 min-h-11 rounded-xl font-semibold flex items-center gap-1.5 transition-all duration-200 cursor-pointer text-purple-400 hover:text-purple-300 hover:bg-zinc-900 border border-purple-500/20"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>Staff & PINs</span>
         </Link>
       </div>
 

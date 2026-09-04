@@ -32,6 +32,18 @@ export function assertNonNegativeStock(snap: StockBalanceSnap): void {
   if (availableStock(snap.onHand, snap.reserved) < 0) throw new Error('available must not be negative');
 }
 
+export class InsufficientStockError extends Error {
+  readonly available: number;
+  readonly requested: number;
+
+  constructor(available: number, requested: number, message = 'Insufficient available stock') {
+    super(message);
+    this.name = 'InsufficientStockError';
+    this.available = available;
+    this.requested = requested;
+  }
+}
+
 /**
  * Immediate sale: decrement on_hand; release min(qty, reserved).
  * Matches stock-service recordSale WHERE (on_hand - reserved) >= qty.
@@ -39,11 +51,7 @@ export function assertNonNegativeStock(snap: StockBalanceSnap): void {
 export function applyDecrementSale(snap: StockBalanceSnap, qty: number): StockBalanceSnap {
   const q = Math.floor(Number(qty) || 0);
   if (!canFulfill(snap.onHand, snap.reserved, q)) {
-    throw Object.assign(new Error('Insufficient available stock'), {
-      name: 'InsufficientStockError',
-      available: availableStock(snap.onHand, snap.reserved),
-      requested: q,
-    });
+    throw new InsufficientStockError(availableStock(snap.onHand, snap.reserved), q);
   }
   const reservedRelease = Math.min(q, snap.reserved);
   const next: StockBalanceSnap = {
