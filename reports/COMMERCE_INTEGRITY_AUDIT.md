@@ -5,8 +5,9 @@
 **Scope:** 12/12 Invariants (CI-001 through CI-012) Certified across POS, Storefront, COD, Credit, GL, Branch & Audit.
 
 **M2 Security:** 🟢 FROZEN
-**M3 Commerce:** 🟢 CERTIFIED (12/12 Invariants Green · Golden Transaction Reconciled)
-**Production certification:** 🟢 COMMERCE CERTIFIED (Gate M3 PASS)
+**M3 Commerce:** 🟢 CERTIFIED (CI-001–CI-012)  
+**Residual:** credit path still hardcodes `staffRole: 'OWNER'` in `durableCheckout`; POS discount auth may trust `body.staffRole` — track in `COMMERCE_INVARIANTS.md`, fix before claiming role-proof production.  
+**Next:** M7 Onboarding — `reports/M7_ONBOARDING_PLAN.md`.
 
 ---
 

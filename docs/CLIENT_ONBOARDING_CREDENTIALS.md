@@ -22,24 +22,27 @@ Collect these items before provisioning a dedicated instance.
 
 ---
 
-## 2. Infrastructure
+## 2. Infrastructure (Managed VPS / Dedicated Stack)
 
-| Provider | Purpose | Credentials |
+| Provider | Purpose | Credentials / Details |
 | :--- | :--- | :--- |
-| Domain | Storefront URL | DNS access for Vercel |
-| Supabase | Dedicated Postgres | New project; pooler `DATABASE_URL`; anon + service_role |
-| Vercel | Edge host | Project or team access |
+| Domain | Storefront & POS URL | DNS A / CNAME access (`shop.client.lk`) |
+| Postgres | Dedicated Client Database | Supabase or VPS Postgres pooler `DATABASE_URL` |
+| Host | App Deployment | Grabber Managed VPS (Docker/PM2) or Vercel Edge |
+| Installation ID | M6 Identity UUID | Format `INST-[CLIENT]-001` (Auto-generated) |
 
 ---
 
-## 3. Payments (optional)
+## 3. Payments (M4 Adapters)
 
-| Gateway | Region | Keys |
-| :--- | :--- | :--- |
-| **COD** | Default storefront | None |
-| PayHere | LK cards / wallets | `PAYHERE_MERCHANT_ID`, `PAYHERE_SECRET`, `PAYHERE_MODE` — only if contracted |
-| WebXPay | LK | Public/secret keys — only if contracted |
-| Stripe | Global | **Not wired** for storefront unless future SOW |
+| Gateway | Type | Status | Keys Required |
+| :--- | :--- | :--- | :--- |
+| **COD** | Cash on Delivery | Production Ready | None |
+| **PayHere** | LK Cards / Genie / FriMi | Regression Certified | `PAYHERE_MERCHANT_ID`, `PAYHERE_SECRET`, `PAYHERE_MODE` |
+| **WebXPay** | Visa / Mastercard | Sandbox Ready | `WEBXPAY_PUBLIC_KEY`, `WEBXPAY_SECRET_KEY` |
+| **Koko** | BNPL (3 installments) | Sandbox Ready | `KOKO_MERCHANT_ID`, `KOKO_API_KEY` |
+| **Mintpay** | Pay in 3 (Upfront) | Sandbox Ready | `MINTPAY_MERCHANT_ID`, `MINTPAY_API_KEY` |
+| **Payzy** | Installment Financing | Sandbox Ready | `PAYZY_MERCHANT_ID`, `PAYZY_SECRET` |
 
 ---
 

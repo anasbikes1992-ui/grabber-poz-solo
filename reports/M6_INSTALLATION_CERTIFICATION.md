@@ -113,5 +113,5 @@ Implemented in [`src/lib/installation/diagnostics.ts`](file:///d:/GRABBER%20POZ%
 ## 7. Next Milestones
 
 Following the revised commercial roadmap:
-* **M7 Client Onboarding:** 11-step interactive owner setup wizard for fresh installations.
+* **M7 Client Onboarding:** 11-step interactive owner setup wizard — [`reports/M7_ONBOARDING_PLAN.md`](./M7_ONBOARDING_PLAN.md). First slice: wizard shell + progress SSOT.
 * **M8 Excel / CSV Import:** High-volume product catalog import engine with preview, column mapping, duplicate detection, and error reports.

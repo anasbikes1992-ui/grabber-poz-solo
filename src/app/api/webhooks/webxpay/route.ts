@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, orders, payments, webhookEvents } from '@/db';
-import { getPayHereConfig } from '@/lib/payments/lkr-provider';
-import {
-  payHereWebhookSecretRequired,
-  verifyPayHereSignature,
-  auditPayHereWebhook,
-} from '@/lib/payments/payhere-signature';
+import { getWebXPayConfig } from '@/lib/payments/lkr-provider';
+import { auditWebXPayWebhook } from '@/lib/payments/webxpay/webhook';
+import { mapWebXPayStatus } from '@/lib/payments/webxpay/mapper';
 
 export async function POST(req: Request) {
   try {
@@ -21,13 +18,13 @@ export async function POST(req: Request) {
       });
     }
 
-    const { secret, merchantId } = getPayHereConfig();
-    const providerEventId = params.payment_id || params.order_id || `evt_${Date.now()}`;
+    const { secretKey } = getWebXPayConfig();
+    const providerEventId = params.transaction_id || params.payment_id || params.order_id || `wxp_${Date.now()}`;
     const orderNumber = params.order_id;
 
-    if (payHereWebhookSecretRequired() && !secret) {
+    if (process.env.NODE_ENV === 'production' && !secretKey) {
       return NextResponse.json(
-        { success: false, error: 'PayHere secret required in production' },
+        { success: false, error: 'WebXPay secret required in production' },
         { status: 503 },
       );
     }
@@ -35,26 +32,23 @@ export async function POST(req: Request) {
     // PAY-006 & PAY-007: Deduplication & Replay Protection
     try {
       await db.insert(webhookEvents).values({
-        provider: 'payhere',
+        provider: 'webxpay',
         providerEventId,
         payload: params,
         status: 'PENDING',
       });
     } catch {
-      // Event already recorded — return idempotent success
       return NextResponse.json({ success: true, deduped: true, code: 'PAY_006_DUPLICATE_IGNORED' });
     }
 
-    // Lookup referenced order
     const [order] = orderNumber
       ? await db.select().from(orders).where(eq(orders.orderNumber, orderNumber)).limit(1)
       : [null];
 
     // PAY-001 through PAY-008 Comprehensive Security Audit
-    const audit = auditPayHereWebhook({
+    const audit = auditWebXPayWebhook({
       params,
-      expectedMerchantId: merchantId,
-      expectedSecret: secret,
+      expectedSecretKey: secretKey,
       order: order
         ? {
             orderNumber: order.orderNumber,
@@ -76,9 +70,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const statusCode = params.status_code;
-    if (statusCode === '2' && order) {
-      // Transition payment status if not already PAID
+    const canonicalStatus = mapWebXPayStatus(params.status || params.status_code || '');
+    if (canonicalStatus === 'CAPTURED' && order) {
       if (order.paymentStatus !== 'PAID') {
         await db.update(orders).set({ paymentStatus: 'PAID', updatedAt: new Date() }).where(eq(orders.id, order.id));
       }
@@ -87,12 +80,12 @@ export async function POST(req: Request) {
         .insert(payments)
         .values({
           orderId: order.id,
-          method: 'PAYHERE',
-          amount: params.payhere_amount || String(order.grandTotal),
-          currency: params.payhere_currency || 'LKR',
-          providerRef: params.payment_id,
+          method: 'WEBXPAY',
+          amount: params.amount || String(order.grandTotal),
+          currency: params.currency || 'LKR',
+          providerRef: params.transaction_id || params.payment_id,
           status: 'SUCCESS',
-          idempotencyKey: `payhere_${providerEventId}`,
+          idempotencyKey: `webxpay_${providerEventId}`,
         })
         .onConflictDoNothing();
     }
@@ -108,4 +101,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
-

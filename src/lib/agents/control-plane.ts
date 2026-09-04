@@ -186,6 +186,82 @@ export const AGENT_TOOL_REGISTRY: Record<string, AgentToolDefinition> = {
     },
   },
 
+  get_dashboard_summary: {
+    name: 'get_dashboard_summary',
+    description: 'Retrieve real-time business health: daily sales, receivables, cash, low stock items',
+    riskLevel: 'READ',
+    autonomyLevel: 'L0_OBSERVE',
+    requiredRole: 'ANY',
+    approvalRequired: false,
+    inputSchema: {
+      period: { type: 'string', required: false, description: 'Optional period: today, week, month' },
+    },
+  },
+
+  get_low_stock: {
+    name: 'get_low_stock',
+    description: 'List products currently at or below safety stock threshold',
+    riskLevel: 'READ',
+    autonomyLevel: 'L0_OBSERVE',
+    requiredRole: 'ANY',
+    approvalRequired: false,
+    inputSchema: {
+      locationId: { type: 'string', required: false, description: 'Optional location UUID filter' },
+    },
+  },
+
+  get_customer_balance: {
+    name: 'get_customer_balance',
+    description: 'Lookup credit balance, outstanding receivables, and loyalty points for a customer',
+    riskLevel: 'READ',
+    autonomyLevel: 'L0_OBSERVE',
+    requiredRole: 'ANY',
+    approvalRequired: false,
+    inputSchema: {
+      customerId: { type: 'string', required: true, description: 'Customer UUID' },
+    },
+  },
+
+  get_sales_summary: {
+    name: 'get_sales_summary',
+    description: 'Query sales totals, order volume, and channel breakdowns for a time window',
+    riskLevel: 'READ',
+    autonomyLevel: 'L0_OBSERVE',
+    requiredRole: 'MANAGER',
+    approvalRequired: false,
+    inputSchema: {
+      startDate: { type: 'string', required: false, description: 'ISO date string' },
+      endDate: { type: 'string', required: false, description: 'ISO date string' },
+    },
+  },
+
+  get_profit_summary: {
+    name: 'get_profit_summary',
+    description: 'Calculate gross profit, revenue, and COGS for an accounting period',
+    riskLevel: 'READ',
+    autonomyLevel: 'L0_OBSERVE',
+    requiredRole: 'OWNER',
+    approvalRequired: false,
+    inputSchema: {
+      startDate: { type: 'string', required: false, description: 'ISO date string' },
+      endDate: { type: 'string', required: false, description: 'ISO date string' },
+    },
+  },
+
+  draft_promotion: {
+    name: 'draft_promotion',
+    description: 'Draft a promotion rule for discounts, category promos, or bundle deals',
+    riskLevel: 'LOW_RISK_WRITE',
+    autonomyLevel: 'L2_DRAFT',
+    requiredRole: 'MANAGER',
+    approvalRequired: false,
+    inputSchema: {
+      name: { type: 'string', required: true, description: 'Promotion campaign name' },
+      discountPercent: { type: 'number', required: false, description: 'Percentage off' },
+      discountAmount: { type: 'number', required: false, description: 'Flat amount off' },
+    },
+  },
+
   arbitrary_sql: {
     name: 'arbitrary_sql',
     description: 'FORBIDDEN: Raw SQL execution attempts are strictly blocked',
@@ -197,6 +273,20 @@ export const AGENT_TOOL_REGISTRY: Record<string, AgentToolDefinition> = {
       sql: { type: 'string', required: true, description: 'Raw SQL' },
     },
   },
+};
+
+export type AgentBudgetConfig = {
+  maxToolCallsPerTask: number;
+  maxMonetaryAmount: number;
+  maxStockQuantity: number;
+  maxRetries: number;
+};
+
+export const DEFAULT_AGENT_BUDGET: AgentBudgetConfig = {
+  maxToolCallsPerTask: 10,
+  maxMonetaryAmount: 500000, // 500,000 LKR
+  maxStockQuantity: 500, // 500 units
+  maxRetries: 3,
 };
 
 /**
@@ -211,3 +301,4 @@ export function validateToolInput(tool: AgentToolDefinition, input: Record<strin
   }
   return { valid: errors.length === 0, errors };
 }
+

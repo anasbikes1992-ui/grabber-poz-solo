@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
-import { db, userAssignments } from '@/db';
-import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
+import { eq, inArray } from 'drizzle-orm';
+import { db, userAssignments, users } from '@/db';
+import { assertCanMutateCommerce, getSession, isDemoUserId, verifyPin } from '@/lib/auth/session';
 import { getCustomerSession } from '@/lib/auth/customer-session';
 import { processPosCheckout } from '@/lib/commerce/pos-checkout-service';
 
@@ -38,6 +38,31 @@ export async function POST(req: Request) {
       assignedBranchIds = rows.map((r) => r.branchId).filter(Boolean) as string[];
     }
 
+    // CI-004-F: Verify Manager/Owner PIN override before honoring overrideRole
+    let authorizedOverrideRole: any = undefined;
+    let authorizedOverrideUserId: string | undefined = undefined;
+
+    if (body.overrideRole) {
+      if (session?.role === 'OWNER' || session?.role === 'ADMIN') {
+        authorizedOverrideRole = session.role;
+      } else if (body.overridePin) {
+        // Authenticate the supervisor granting the override
+        const targetUserId = body.overrideUserId;
+        const privilegedUsers = targetUserId
+          ? await db.select().from(users).where(eq(users.id, targetUserId)).limit(1)
+          : await db.select().from(users).where(inArray(users.role, ['OWNER', 'ADMIN', 'MANAGER']));
+
+        for (const supervisor of privilegedUsers) {
+          if (supervisor.active && verifyPin(body.overridePin, supervisor.hashedPin)) {
+            authorizedOverrideRole = supervisor.role;
+            authorizedOverrideUserId = supervisor.id;
+            break;
+          }
+        }
+      }
+      // If PIN was missing or invalid, authorizedOverrideRole remains undefined (default deny)
+    }
+
     const rawLines = Array.isArray(body.items) ? body.items : Array.isArray(body.lines) ? body.lines : [];
 
     const result = await processPosCheckout({
@@ -49,8 +74,8 @@ export async function POST(req: Request) {
       discountTotal: body.discountTotal,
       discountPercent: body.discountPercent,
       staffRole: session?.role as any,
-      overrideRole: body.overrideRole,
-      overrideUserId: body.overrideUserId,
+      overrideRole: authorizedOverrideRole,
+      overrideUserId: authorizedOverrideUserId,
       promoCode: body.promoCode,
       tradeInVoucherNumber: body.tradeInVoucherNumber,
       tradeInCredit: body.tradeInCredit,

@@ -17,9 +17,13 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 `M3` Commerce Integrity **CERTIFIED (12/12 GREEN)** · Slices 1–7 complete.
 `M4` Payment Gateway Adapter Framework **COMPLETE** (COD, PayHere, WebXPay, Koko, Mintpay, Payzy).
 `M5` Storefront Promotion & Conversion Engine **CERTIFIED** (PI-001 through PI-012, popup, announcement, auto-promotions, promo codes).
-`M6` Installation Identity & Client Configuration **CERTIFIED** (Standalone single-business identity, tamper-resistant HMAC license, diagnostics).
-**Next:** `M7` Client Onboarding (11-step interactive owner setup wizard for fresh installations).
-**Commercial verdict:** COMMERCE CERTIFIED. Each client install passes `--production --http` release gate.
+`M6` Installation Identity & Client Configuration **CERTIFIED** (Single-business standalone deployment identity, diagnostics, audit trail).
+`P0` Portal & Route Separation **DONE** (Company `/` vs Merchant `/shop` vs Staff `/adminpoz`).
+`P1` GrabberPoz.com Company Landing Page **DONE** (Hero, Features, Polim Potha, Hardware, Packages, Lead capture).
+`P2` Storefront UX & Animated Cart Drawer **DONE** (Slide-over drawer, quick floating bar, in-drawer promo validation).
+`P3` Staff Portal UX & Keypad Polish **DONE** (Touch numpad, demo PIN quick-fill, direct cashier `/pos` routing).
+**Next:** `M7` Client Deployment & Onboarding Console — plan [`reports/M7_ONBOARDING_PLAN.md`](../reports/M7_ONBOARDING_PLAN.md).  
+**Commercial verdict:** COMMERCE CERTIFIED. Residual: inject session role server-side (see `COMMERCE_INVARIANTS.md`). 1 VPS → 20 Independent Managed Deployments → 20 DBs. Zero tenant_id.
 
 | Area | Completion | Status |
 |------|------------|--------|

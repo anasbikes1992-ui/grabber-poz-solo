@@ -67,7 +67,8 @@ npm test -- tests/commerce-integrity.test.ts
 
 Evidence: [`reports/COMMERCE_INTEGRITY_AUDIT.md`](../reports/COMMERCE_INTEGRITY_AUDIT.md) · [`reports/COMMERCE_INVARIANTS.md`](../reports/COMMERCE_INVARIANTS.md)
 
-**Do not mark Production Certified until CI-001–CI-012 are green.**
+**M3 certified.** Residual role-injection debt tracked in `COMMERCE_INVARIANTS.md` (does not reopen M3).  
+**Next productization milestone:** M7 Client Onboarding — [`reports/M7_ONBOARDING_PLAN.md`](../reports/M7_ONBOARDING_PLAN.md).
 
 ---
 

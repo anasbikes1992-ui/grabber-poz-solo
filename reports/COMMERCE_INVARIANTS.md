@@ -2,7 +2,7 @@
 
 Machine-testable rules for Grabber checkout. Implementation: `src/lib/commerce/authoritative-pricing.ts`, `src/lib/inventory/stock-invariants.ts`. Tests: `tests/commerce-integrity.test.ts`.
 
-Status: ✅ slice 1–2 · 🟠 partial · ⬜ not yet
+Status: ✅ **M3 CERTIFIED (CI-001–CI-012)** · residual hardening debt listed below · next productization milestone **M7**
 
 | ID | Rule | Status |
 |----|------|--------|
@@ -18,6 +18,15 @@ Status: ✅ slice 1–2 · 🟠 partial · ⬜ not yet
 | CI-010 | Cashier cannot transact on an unauthorized branch | ✅ |
 | CI-011 | Request cannot mutate another customer's credit / Polim | ✅ |
 | CI-012 | POS and storefront use the same money function for the same intent | ✅ |
+
+### Residual debt (do not block M7; fix in hardening pass)
+
+| Debt | Where | Risk |
+|------|--------|------|
+| Credit path hardcodes `staffRole: 'OWNER'` | `checkout-repo.ts` | Role checks in `authorizeCreditSale` are bypassed |
+| Discount/branch auth may use `body.staffRole` | `pos-checkout-service.ts` | Client can escalate role unless route injects session role |
+| UI still estimates VAT as 18% | POS / shop checkout / CartDrawer | Display only; server totals win |
+| Quotation → order still trusts line `unitPrice` | `convert-to-order.ts` | Off durable checkout path |
 
 ---
 

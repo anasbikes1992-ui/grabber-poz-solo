@@ -712,6 +712,19 @@ export const backupRecords = pgTable('backup_records', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const idempotencyRecords = pgTable('idempotency_records', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  scope: text('scope').notNull(), // 'CHECKOUT', 'PAYMENT', 'REFUND', 'AGENT_ACTION', 'TRANSFER', 'STOCK_ADJUST', 'GRN', 'WHATSAPP'
+  key: text('key').notNull(),
+  resultJson: jsonb('result_json').$type<Record<string, unknown>>(),
+  status: text('status').notNull().default('COMPLETED'), // 'IN_FLIGHT', 'COMPLETED', 'FAILED'
+  lockedAt: timestamp('locked_at', { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  scopeKeyIdx: uniqueIndex('idempotency_records_scope_key_idx').on(t.scope, t.key),
+}));
+
 // ==========================================
 // 12. VERTICAL MODULES (W5-06)
 // ==========================================

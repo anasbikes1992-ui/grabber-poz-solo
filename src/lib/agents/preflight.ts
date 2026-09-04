@@ -1,9 +1,10 @@
-import { eq, sql } from 'drizzle-orm';
-import { db, auditLogs, stockBalances, products, orders } from '@/db';
+import { eq, and, sql } from 'drizzle-orm';
+import { db, auditLogs, stockBalances, products, orders, customers, polimPothaAccounts } from '@/db';
 import {
   AGENT_TOOL_REGISTRY,
   validateToolInput,
   AgentSecurityError,
+  DEFAULT_AGENT_BUDGET,
   type AgentAction,
   type AgentToolDefinition,
 } from './control-plane';
@@ -11,9 +12,10 @@ import { createApproval } from '@/lib/approvals/approval-store';
 import { recordTransfer, recordAdjustment } from '@/lib/inventory/stock-service';
 import { createDraftTransfer, dispatchTransfer, receiveTransfer } from '@/lib/inventory/transfer-workflow';
 import { InsufficientStockError } from '@/lib/inventory/stock-invariants';
-
-// Idempotency cache for agent executions (AG-007)
-const executedActionCache = new Map<string, AgentAction>();
+import {
+  getDurableIdempotencyResult,
+  saveDurableIdempotencyResult,
+} from '@/lib/security/durable-idempotency';
 
 export async function preflightAndExecuteAgentAction(
   action: AgentAction,
@@ -24,22 +26,22 @@ export async function preflightAndExecuteAgentAction(
 ): Promise<AgentAction> {
   const timestamp = new Date().toISOString();
 
-  // 1. Check Idempotency (AG-007)
-  if (executedActionCache.has(action.actionId)) {
-    const cached = executedActionCache.get(action.actionId)!;
+  // 1. Check Durable Idempotency across process restarts (AG-007)
+  const existingCached = await getDurableIdempotencyResult<AgentAction>('AGENT_ACTION', action.actionId);
+  if (existingCached) {
     return {
-      ...cached,
-      result: cached.result,
-      executionStatus: cached.executionStatus,
-      completedAt: cached.completedAt,
+      ...existingCached,
+      result: existingCached.result,
+      executionStatus: existingCached.executionStatus,
+      completedAt: existingCached.completedAt,
     };
   }
 
   // 2. AG-004: Absolute Prohibition of Arbitrary SQL
   if (
     action.tool === 'arbitrary_sql' ||
-    action.input.sql ||
-    action.input.query?.match(/\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE)\b/i)
+    action.input?.sql ||
+    action.input?.query?.match(/\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE)\b/i)
   ) {
     throw new AgentSecurityError(
       'AG-004: Arbitrary SQL execution is strictly forbidden for all agents and tools',
@@ -58,7 +60,7 @@ export async function preflightAndExecuteAgentAction(
     );
   }
 
-  const { valid, errors } = validateToolInput(toolDef, action.input);
+  const { valid, errors } = validateToolInput(toolDef, action.input || {});
   if (!valid) {
     return {
       ...action,
@@ -71,7 +73,46 @@ export async function preflightAndExecuteAgentAction(
     };
   }
 
-  // 4. AG-002 & AG-010: Authorization & Privilege Escalation Immunity
+  // 4. Agent Safety Budgets & Quantity/Monetary Guards
+  if (action.input?.delta != null && Math.abs(Number(action.input.delta)) > DEFAULT_AGENT_BUDGET.maxStockQuantity) {
+    throw new AgentSecurityError(
+      `AG-012: Quantity ${Math.abs(Number(action.input.delta))} exceeds agent safety budget limit (${DEFAULT_AGENT_BUDGET.maxStockQuantity} units)`,
+      'AGENT_BUDGET_EXCEEDED',
+      'AG-012',
+    );
+  }
+  if (action.input?.refundAmount != null && Number(action.input.refundAmount) > DEFAULT_AGENT_BUDGET.maxMonetaryAmount) {
+    throw new AgentSecurityError(
+      `AG-012: Monetary amount LKR ${action.input.refundAmount} exceeds agent financial safety limit (${DEFAULT_AGENT_BUDGET.maxMonetaryAmount} LKR)`,
+      'AGENT_FINANCIAL_BUDGET_EXCEEDED',
+      'AG-012',
+    );
+  }
+
+  // 5. AG-013: State Freshness Invariant (Abort if underlying state mutated)
+  if (action.input?.expectedBalance != null && action.input?.productId && action.input?.locationId) {
+    let liveQty = 0;
+    try {
+      const [currentBalance] = await db
+        .select()
+        .from(stockBalances)
+        .where(and(eq(stockBalances.productId, action.input.productId), eq(stockBalances.locationId, action.input.locationId)))
+        .limit(1);
+      liveQty = currentBalance ? Number(currentBalance.onHand) : 0;
+    } catch {
+      liveQty = 0;
+    }
+
+    if (liveQty !== Number(action.input.expectedBalance)) {
+      throw new AgentSecurityError(
+        `AG-013: State Freshness Violation. Product inventory changed from expected ${action.input.expectedBalance} to current ${liveQty}. Aborting execution to prevent stale update.`,
+        'STALE_STATE_ABORT',
+        'AG-013',
+      );
+    }
+  }
+
+  // 6. AG-002 & AG-010: Authorization & Privilege Escalation Immunity
   if (toolDef.requiredRole !== 'ANY') {
     const roleHierarchy: Record<string, number> = {
       OWNER: 100,
@@ -95,7 +136,7 @@ export async function preflightAndExecuteAgentAction(
     }
   }
 
-  // 5. AG-003: Approval Bridge for High-Risk Writes
+  // 7. AG-003: Approval Bridge for High-Risk Writes
   if (toolDef.approvalRequired && action.approvalStatus !== 'APPROVED') {
     const approval = await createApproval({
       token: `AGENT_APPR_${action.actionId.slice(0, 8)}_${Date.now()}`,
@@ -125,11 +166,11 @@ export async function preflightAndExecuteAgentAction(
       completedAt: timestamp,
     };
 
-    executedActionCache.set(action.actionId, pendingAction);
+    await saveDurableIdempotencyResult('AGENT_ACTION', action.actionId, pendingAction);
     return pendingAction;
   }
 
-  // 6. AG-005 & AG-012: Canonical Service Routing & Invariant Protection
+  // 8. AG-005 & AG-012: Canonical Service Routing & Invariant Protection
   let result: any = null;
   try {
     if (action.tool === 'get_inventory_balance') {
@@ -139,6 +180,17 @@ export async function preflightAndExecuteAgentAction(
         .from(stockBalances)
         .where(locationId ? eq(stockBalances.locationId, locationId) : eq(stockBalances.productId, productId));
       result = { balances: rows };
+    } else if (action.tool === 'get_dashboard_summary') {
+      const allOrders = await db.select().from(orders).limit(50);
+      const totalSales = allOrders.reduce((sum, o) => sum + Number(o.grandTotal || 0), 0);
+      result = { totalOrders: allOrders.length, totalSales, liveStatus: 'HEALTHY' };
+    } else if (action.tool === 'get_low_stock') {
+      const lowRows = await db.select().from(stockBalances).where(sql`${stockBalances.onHand} <= 10`).limit(20);
+      result = { lowStockItems: lowRows };
+    } else if (action.tool === 'get_customer_balance') {
+      const { customerId } = action.input;
+      const [acc] = await db.select().from(polimPothaAccounts).where(eq(polimPothaAccounts.customerId, customerId)).limit(1);
+      result = { account: acc || null };
     } else if (action.tool === 'search_products') {
       const { query } = action.input;
       const rows = await db
@@ -189,7 +241,7 @@ export async function preflightAndExecuteAgentAction(
       result = { executed: true };
     }
 
-    // 7. AG-006: Immutable Audit Attribution
+    // 9. AG-006: Immutable Audit Attribution
     const auditRisk =
       toolDef.riskLevel === 'IRREVERSIBLE'
         ? ('DESTRUCTIVE' as const)
@@ -221,9 +273,12 @@ export async function preflightAndExecuteAgentAction(
       completedAt: new Date().toISOString(),
     };
 
-    executedActionCache.set(action.actionId, completedAction);
+    await saveDurableIdempotencyResult('AGENT_ACTION', action.actionId, completedAction);
     return completedAction;
   } catch (err: any) {
+    if (err instanceof AgentSecurityError) {
+      throw err;
+    }
     const failedAction: AgentAction = {
       ...action,
       riskLevel: toolDef.riskLevel,
@@ -233,6 +288,8 @@ export async function preflightAndExecuteAgentAction(
       error: err.message || 'Execution error',
       completedAt: new Date().toISOString(),
     };
+    await saveDurableIdempotencyResult('AGENT_ACTION', action.actionId, failedAction);
     return failedAction;
   }
 }
+

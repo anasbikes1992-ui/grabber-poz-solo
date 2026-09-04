@@ -62,14 +62,15 @@ export async function processPosCheckout(body: PosCheckoutInput) {
   const channel = body.channel || 'POS';
   const isStorefront = channel === 'STOREFRONT';
 
+  const [defaultBranch] = await db.select().from(branches).limit(1);
+
   // CI-010: Server-side Branch Authorization (Do not trust branchId from browser)
   const userProfile = buildUserBranchProfile({
     userId: body.actorId || '00000000-0000-0000-0000-000000000001',
-    role: body.staffRole || (isStorefront ? 'OWNER' : 'CASHIER'),
-    assignedBranchIds: body.assignedBranchIds,
+    role: isStorefront ? 'CASHIER' : (body.staffRole || 'CASHIER'),
+    assignedBranchIds: isStorefront && defaultBranch ? [defaultBranch.id] : body.assignedBranchIds,
   });
 
-  const [defaultBranch] = await db.select().from(branches).limit(1);
   const branchId = resolveAuthoritativeBranch(
     userProfile,
     body.branchId || body.fulfillmentLocationId,
