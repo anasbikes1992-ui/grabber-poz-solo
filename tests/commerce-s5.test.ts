@@ -42,7 +42,7 @@ describe('storefront seo helpers', () => {
   });
 
   it('resolves site base url from env', () => {
-    process.env.NEXT_PUBLIC_APP_URL = 'https://grabber-business-os.vercel.app/';
-    expect(siteBaseUrl()).toBe('https://grabber-business-os.vercel.app');
+    process.env.NEXT_PUBLIC_APP_URL = 'https://grabber-poz-solo.vercel.app/';
+    expect(siteBaseUrl()).toBe('https://grabber-poz-solo.vercel.app');
   });
 });

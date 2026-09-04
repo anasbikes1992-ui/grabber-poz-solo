@@ -5,7 +5,7 @@
  *
  * Usage:
  *   node scripts/certify-http.mjs
- *   CERTIFY_HTTP_BASE_URL=https://grabber-business-os.vercel.app node scripts/certify-http.mjs
+ *   CERTIFY_HTTP_BASE_URL=https://grabber-poz-solo.vercel.app node scripts/certify-http.mjs
  */
 
 const base = (process.env.CERTIFY_HTTP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');

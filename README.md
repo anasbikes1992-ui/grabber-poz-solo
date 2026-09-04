@@ -12,14 +12,14 @@ Single-business retail OS: POS, storefront, inventory, finance, and automation.
 
 ### Git remotes
 
-Push production changes **only** to `grabber-poz-solo`:
+Production repository: **`grabber-poz-solo`**
 
 ```powershell
-git push poz-solo main
-# or: npm run push:poz-solo
+git push origin main
+# or: git push poz-solo main
 ```
 
-Do **not** push to `origin` (`grabber-business-os`) for this solo deployment — that repo is a legacy/fleet template mirror.
+*(Note: `grabber-business-os` was the legacy repo name and is archived)*
 
 ---
 
