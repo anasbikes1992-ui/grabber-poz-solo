@@ -24,8 +24,13 @@ export function getTerminalId(): string {
   return term;
 }
 
+let inMemorySeq = 0;
+
 export function nextClientSequence(): number {
-  if (typeof window === 'undefined') return 1;
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    inMemorySeq += 1;
+    return inMemorySeq;
+  }
   const cur = parseInt(localStorage.getItem(SEQ_KEY) || '0', 10);
   const next = cur + 1;
   localStorage.setItem(SEQ_KEY, next.toString());

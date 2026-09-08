@@ -101,9 +101,17 @@ export async function processOrderReturn(input: ProcessReturnInput) {
           throw Object.assign(new Error(`Order item ${reqLine.orderItemId} does not belong to order ${orderId}`), { status: 400 });
         }
 
-        const qtyToReturn = Math.max(1, Number(reqLine.quantity) || 1);
+        const rawQty = Number(reqLine.quantity);
+        if (!rawQty || rawQty <= 0 || !Number.isInteger(rawQty)) {
+          throw Object.assign(new Error(`Return quantity must be a positive integer, received: ${reqLine.quantity}`), { status: 400 });
+        }
+        const qtyToReturn = rawQty;
         const previouslyReturned = returnedQtyByItem.get(item.id) || 0;
         const availableToReturn = item.quantity - previouslyReturned;
+
+        if (availableToReturn <= 0) {
+          throw Object.assign(new Error(`Item ${item.id} is already fully returned.`), { status: 400 });
+        }
 
         if (qtyToReturn > availableToReturn) {
           throw Object.assign(
