@@ -1,18 +1,40 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
-import {
-  db,
-  orderItems,
-  orderReturns,
-  orders,
-  journalEntries,
-  journalLines,
-  chartOfAccounts,
-  auditLogs,
-} from '@/db';
+import { desc, eq } from 'drizzle-orm';
+import { db, orderReturns, orderReturnLines, orders } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
-import { ensureDefaultChartOfAccounts } from '@/lib/commerce/ensure-coa';
-import { recordReturn, recordDamage } from '@/lib/inventory/stock-service';
+import { processOrderReturn } from '@/lib/returns/returns-service';
+
+export async function GET(req: Request) {
+  try {
+    const session = await getSession();
+    if (process.env.NODE_ENV === 'production' && !session) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const orderId = searchParams.get('orderId');
+
+    if (orderId) {
+      const returns = await db
+        .select()
+        .from(orderReturns)
+        .where(eq(orderReturns.originalOrderId, orderId))
+        .orderBy(desc(orderReturns.createdAt));
+
+      const returnIds = returns.map((r) => r.id);
+      const lines = returnIds.length > 0
+        ? await db.select().from(orderReturnLines).where(eq(orderReturnLines.returnId, returnIds[0]))
+        : [];
+
+      return NextResponse.json({ success: true, returns, lines });
+    }
+
+    const returns = await db.select().from(orderReturns).orderBy(desc(orderReturns.createdAt)).limit(100);
+    return NextResponse.json({ success: true, returns });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -24,120 +46,18 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { orderId, returnNumber, reason, restockApproved = true, refundAmount, gradingStatus } = body;
-    if (!orderId) return NextResponse.json({ success: false, error: 'orderId required' }, { status: 400 });
-
     const actorId = session && !isDemoUserId(session.userId) ? session.userId : undefined;
 
-    const result = await db.transaction(async (tx) => {
-      const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).limit(1);
-      if (!order) throw new Error('Order not found');
-      const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId));
-
-      const [ret] = await tx
-        .insert(orderReturns)
-        .values({
-          originalOrderId: orderId,
-          returnNumber: returnNumber || `RET-${Date.now().toString().slice(-6)}`,
-          refundAmount: String(Number(refundAmount ?? order.grandTotal).toFixed(2)),
-          restockApproved: Boolean(restockApproved),
-          gradingStatus: gradingStatus || (restockApproved ? 'GRADED_A' : 'RECEIVED'),
-          reason: reason || 'Customer return',
-          approvedBy: actorId || null,
-        })
-        .returning();
-
-      if (order.branchId) {
-        const grade = String(gradingStatus || (restockApproved ? 'GRADED_A' : 'RECEIVED')).toUpperCase();
-        for (const line of items) {
-          if (grade === 'GRADED_A' || (restockApproved && grade !== 'DAMAGED' && grade !== 'GRADED_B')) {
-            await recordReturn(
-              tx,
-              { locationType: 'BRANCH', locationId: order.branchId },
-              {
-                productId: line.productId,
-                variantId: line.variantId,
-                quantity: line.quantity,
-                unitCost: Number(line.unitCost),
-              },
-              {
-                referenceType: 'ORDER_RETURN',
-                referenceId: ret.id,
-                actorId: actorId || null,
-                notes: `Return grading: ${grade}`,
-              },
-            );
-          } else if (grade === 'DAMAGED') {
-            await recordDamage(
-              tx,
-              { locationType: 'BRANCH', locationId: order.branchId },
-              {
-                productId: line.productId,
-                variantId: line.variantId,
-                quantity: line.quantity,
-                unitCost: Number(line.unitCost),
-              },
-              {
-                referenceType: 'ORDER_RETURN',
-                referenceId: ret.id,
-                actorId: actorId || null,
-                notes: 'Return graded damaged',
-              },
-            );
-          }
-        }
-      }
-
-      const refund = Number(refundAmount ?? order.grandTotal);
-      if (refund < 0 || refund > Number(order.grandTotal)) {
-        throw new Error(`Refund amount must be between 0 and order total (${order.grandTotal})`);
-      }
-      const totalCost = items.reduce((s, l) => s + Number(l.unitCost) * l.quantity, 0);
-      await ensureDefaultChartOfAccounts(tx as unknown as typeof db);
-      const resolve = async (code: string) => {
-        const [a] = await tx.select().from(chartOfAccounts).where(eq(chartOfAccounts.code, code)).limit(1);
-        if (!a) throw new Error(`Missing COA ${code}`);
-        return a.id;
-      };
-      const aCash = await resolve('1010');
-      const aRev = await resolve('4000');
-      const aCogs = await resolve('5000');
-      const aInv = await resolve('1200');
-      const [je] = await tx
-        .insert(journalEntries)
-        .values({
-          entryNumber: `JRN-${ret.returnNumber}`,
-          entryDate: new Date(),
-          referenceType: 'ORDER_RETURN',
-          referenceId: ret.id,
-          description: `Return ${ret.returnNumber}`,
-          createdBy: actorId || null,
-        })
-        .returning();
-      await tx.insert(journalLines).values([
-        { journalEntryId: je.id, accountId: aRev, debit: String(refund.toFixed(2)), credit: '0.00', memo: 'Sales reversal' },
-        { journalEntryId: je.id, accountId: aCash, debit: '0.00', credit: String(refund.toFixed(2)), memo: 'Cash refund' },
-        { journalEntryId: je.id, accountId: aInv, debit: String(totalCost.toFixed(2)), credit: '0.00', memo: 'Inventory restored' },
-        { journalEntryId: je.id, accountId: aCogs, debit: '0.00', credit: String(totalCost.toFixed(2)), memo: 'COGS relieved' },
-      ]);
-
-      await tx
-        .update(orders)
-        .set({ orderStatus: 'RETURNED', paymentStatus: 'REFUNDED', updatedAt: new Date() })
-        .where(eq(orders.id, orderId));
-
-      if (actorId) {
-        await tx.insert(auditLogs).values({
-          actorId,
-          action: 'ORDER_RETURN',
-          entity: 'order_returns',
-          entityId: ret.id,
-          riskLevel: 'HIGH_RISK_WRITE',
-          afterState: { returnNumber: ret.returnNumber, refund },
-        });
-      }
-
-      return { return: ret, journalEntryId: je.id };
+    const result = await processOrderReturn({
+      orderId: String(body.orderId || ''),
+      returnNumber: body.returnNumber ? String(body.returnNumber) : undefined,
+      reason: body.reason ? String(body.reason) : undefined,
+      refundDestination: body.refundDestination,
+      restockApproved: body.restockApproved != null ? Boolean(body.restockApproved) : true,
+      gradingStatus: body.gradingStatus,
+      lines: Array.isArray(body.lines) ? body.lines : undefined,
+      refundAmount: body.refundAmount != null ? Number(body.refundAmount) : undefined,
+      actorId,
     });
 
     return NextResponse.json({ success: true, ...result });

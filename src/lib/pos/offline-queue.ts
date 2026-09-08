@@ -1,192 +1,79 @@
 /**
- * Browser IndexedDB queue for offline POS checkouts.
- * Flushes via POST /api/pos/checkout with clientUuid / idempotencyKey.
+ * Offline POS Queue & Client Sequence Helpers.
+ * Fully backed by the persistent Odoo-class IndexedDB offline-engine.ts.
  */
 
-const DB_NAME = 'grabber-pos-offline';
-const STORE = 'checkout_queue';
-const DB_VERSION = 1;
+import {
+  recordOfflineSale,
+  listPendingOfflineTransactions,
+  synchronizeOfflineTransactions,
+} from './offline-engine';
 
-export type QueuedCheckout = {
-  id: string;
-  createdAt: number;
-  payload: Record<string, unknown>;
-  attempts: number;
-  lastError?: string;
-};
+export * from './offline-engine';
 
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
-      reject(new Error('IndexedDB not available'));
-      return;
-    }
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error || new Error('IDB open failed'));
-  });
+const TERMINAL_KEY = 'grabber_pos_terminal_id';
+const SEQ_KEY = 'grabber_pos_local_seq';
+
+export function getTerminalId(): string {
+  if (typeof window === 'undefined') return 'term_server';
+  let term = localStorage.getItem(TERMINAL_KEY);
+  if (!term) {
+    term = `term_${Math.random().toString(36).slice(2, 8)}`;
+    localStorage.setItem(TERMINAL_KEY, term);
+  }
+  return term;
 }
 
-export async function enqueueCheckout(payload: Record<string, unknown>): Promise<string> {
-  const id =
-    (typeof crypto !== 'undefined' && crypto.randomUUID && crypto.randomUUID()) ||
-    `off_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const row: QueuedCheckout = {
-    id,
-    createdAt: Date.now(),
-    payload: {
-      ...payload,
-      clientUuid: payload.clientUuid || id,
-      idempotencyKey: payload.idempotencyKey || `offline_${id}`,
-    },
-    attempts: 0,
-  };
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(row);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-  db.close();
-  return id;
-}
-
-export async function listQueuedCheckouts(): Promise<QueuedCheckout[]> {
-  const db = await openDb();
-  const rows = await new Promise<QueuedCheckout[]>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).getAll();
-    req.onsuccess = () => resolve((req.result as QueuedCheckout[]) || []);
-    req.onerror = () => reject(req.error);
-  });
-  db.close();
-  return rows.sort((a, b) => a.createdAt - b.createdAt);
+export function nextClientSequence(): number {
+  if (typeof window === 'undefined') return 1;
+  const cur = parseInt(localStorage.getItem(SEQ_KEY) || '0', 10);
+  const next = cur + 1;
+  localStorage.setItem(SEQ_KEY, next.toString());
+  return next;
 }
 
 export async function countPendingCheckouts(): Promise<number> {
-  const rows = await listQueuedCheckouts();
-  return rows.length;
+  const pending = await listPendingOfflineTransactions();
+  return pending.length;
 }
 
-export async function removeQueuedCheckout(id: string): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+export async function enqueueCheckout(payload: Record<string, unknown>): Promise<string> {
+  const items = Array.isArray(payload.items) ? (payload.items as any[]) : [];
+  const rec = await recordOfflineSale({
+    id: payload.clientUuid as string | undefined,
+    idempotencyKey: payload.idempotencyKey as string | undefined,
+    deviceId: getTerminalId(),
+    terminalId: getTerminalId(),
+    registerId: payload.registerId as string | undefined,
+    sessionId: payload.sessionId as string | undefined,
+    cashierId: payload.cashierId as string | undefined,
+    items,
+    subtotal: Number(payload.subtotal || 0),
+    discountTotal: Number(payload.discountTotal || 0),
+    taxTotal: Number(payload.taxTotal || 0),
+    grandTotal: Number(payload.grandTotal || 0),
+    paymentMethod: (payload.paymentMethod as any) || 'CASH',
+    payments: payload.payments as any,
+    customerId: payload.customerId as string | undefined,
+    customerName: payload.customerName as string | undefined,
+    customerPhone: payload.customerPhone as string | undefined,
   });
-  db.close();
+  return rec.id;
 }
 
-export async function flushCheckoutQueue(): Promise<{
+export async function flushPendingCheckouts(): Promise<{
   flushed: number;
   failed: number;
   remaining: number;
   errors: string[];
   syncResults: Array<{ offlineId: string; status: string }>;
 }> {
-  const queue = await listQueuedCheckouts();
-  let flushed = 0;
-  let failed = 0;
-  const errors: string[] = [];
-  const syncResults: Array<{ offlineId: string; status: string }> = [];
-
-  const stockMap = new Map<string, number>();
-
-  for (const row of queue) {
-    try {
-      const payload = {
-        ...row.payload,
-        offlineSync: true,
-      };
-      const res = await fetch('/api/pos/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Checkout sync failed');
-
-      const items = (row.payload.items || row.payload.lines || []) as Array<{
-        productId?: string;
-        id?: string;
-        quantity?: number;
-        qty?: number;
-      }>;
-      if (items.length) {
-        const { OfflineSyncEngine } = await import('@/lib/pos/offline-sync');
-        const resolution = await OfflineSyncEngine.processOfflineSale(
-          {
-            offlineId: row.id,
-            terminalId: String(row.payload.terminalId || 'REG-01'),
-            branchId: String(row.payload.branchId || ''),
-            cashierId: String(row.payload.cashierId || ''),
-            clientSequence: Number(row.payload.clientSequence || 0),
-            clientTimestamp: row.createdAt,
-            items: items.map((it) => ({
-              productId: String(it.productId || it.id),
-              quantity: Number(it.quantity ?? it.qty ?? 1),
-              unitPrice: 0,
-              unitCost: 0,
-            })),
-            payment: { method: 'CASH', amount: 0 },
-          },
-          stockMap,
-        );
-        syncResults.push({ offlineId: row.id, status: resolution.status });
-      }
-
-      await removeQueuedCheckout(row.id);
-      flushed += 1;
-    } catch (err: unknown) {
-      failed += 1;
-      errors.push(`${row.id}: ${(err as Error).message}`);
-      const db = await openDb();
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE, 'readwrite');
-        tx.objectStore(STORE).put({
-          ...row,
-          attempts: row.attempts + 1,
-          lastError: (err as Error).message,
-        });
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-      db.close();
-    }
-  }
-
-  const remaining = await countPendingCheckouts();
-  return { flushed, failed, remaining, errors, syncResults };
-}
-
-/** Alias used by POS UI */
-export const flushPendingCheckouts = flushCheckoutQueue;
-
-const TERMINAL_KEY = 'grabber_pos_terminal_id';
-const SEQ_KEY = 'grabber_pos_client_seq';
-
-export function getTerminalId(): string {
-  if (typeof localStorage === 'undefined') return 'REG-01';
-  let id = localStorage.getItem(TERMINAL_KEY);
-  if (!id) {
-    id = `REG-${Math.floor(100 + Math.random() * 900)}`;
-    localStorage.setItem(TERMINAL_KEY, id);
-  }
-  return id;
-}
-
-export function nextClientSequence(): number {
-  if (typeof localStorage === 'undefined') return Date.now();
-  const n = Number(localStorage.getItem(SEQ_KEY) || '0') + 1;
-  localStorage.setItem(SEQ_KEY, String(n));
-  return n;
+  const result = await synchronizeOfflineTransactions('');
+  return {
+    flushed: result.syncedCount,
+    failed: result.failedCount,
+    remaining: result.remainingCount,
+    errors: result.results.filter((r) => r.status === 'FAILED').map((r) => r.error || 'Failed to sync'),
+    syncResults: result.results.map((r) => ({ offlineId: r.id, status: r.status })),
+  };
 }

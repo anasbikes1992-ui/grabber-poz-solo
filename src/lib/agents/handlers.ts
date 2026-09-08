@@ -13,9 +13,9 @@ import {
   polimPothaAccounts,
   customers,
   creativeProjects,
+  quotations,
 } from '@/db';
 import { readConfigJson } from '@/lib/config/business-settings';
-import { listCollection } from '@/lib/db/app-collections';
 import { listAutomationLogs } from '@/lib/automation/rules-store';
 import type { AgentId, AgentResult } from './types';
 
@@ -250,11 +250,10 @@ export async function runLoyaltyAgent(): Promise<AgentResult> {
 }
 
 export async function runWholesaleAgent(): Promise<AgentResult> {
-  type Quote = { id: string; quoteNo?: string; clientName?: string; grandTotal?: number; validUntil?: string; status?: string };
-  const quotes = await listCollection<Quote>('quotations');
-  const open = quotes.filter((q) => q.status !== 'CONVERTED' && q.status !== 'VOID');
-  const today = new Date().toISOString().slice(0, 10);
-  const expiring = open.filter((q) => q.validUntil && q.validUntil <= today);
+  const allQuotes = await db.select().from(quotations).orderBy(desc(quotations.createdAt)).limit(100);
+  const open = allQuotes.filter((q) => q.status !== 'CONVERTED' && q.status !== 'REJECTED');
+  const now = new Date();
+  const expiring = open.filter((q) => q.expiresAt && q.expiresAt <= now);
 
   return {
     agent: 'WHOLESALE',
@@ -262,7 +261,7 @@ export async function runWholesaleAgent(): Promise<AgentResult> {
     recommendations: open.length
       ? open.slice(0, 5).map(
           (q) =>
-            `Follow up ${q.quoteNo || q.id} — ${q.clientName || 'Client'} LKR ${Number(q.grandTotal || 0).toLocaleString('en-LK')}.`,
+            `Follow up ${q.quoteNumber || q.id} — ${q.customerName || 'Client'} LKR ${Number(q.subtotal || 0).toLocaleString('en-LK')}.`,
         )
       : ['No open quotes — prospect top wholesale SKUs for B2B outreach.'],
     metrics: { openQuotes: open.length, expiring: expiring.length },

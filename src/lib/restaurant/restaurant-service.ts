@@ -1,7 +1,33 @@
-import { asc, desc, eq } from 'drizzle-orm';
+import { asc, desc, eq, inArray } from 'drizzle-orm';
 import { db, diningTables, kitchenTickets, branches } from '@/db';
 import { depleteRecipeForProduct } from '@/lib/restaurant/recipe-bom';
 import { checkRecipeLowStock } from '@/lib/restaurant/recipe-low-stock';
+
+export type KdsTicketItem = {
+  productId?: string;
+  name: string;
+  qty: number;
+  notes?: string;
+  station?: 'KITCHEN' | 'GRILL' | 'BAR' | 'DESSERT' | 'PACKING';
+  course?: 'STARTER' | 'MAIN' | 'DESSERT' | 'BEVERAGE';
+  price: number;
+  completed?: boolean;
+};
+
+export type KdsTicket = {
+  id: string;
+  kotNumber: string;
+  tableId?: string | null;
+  tableName?: string;
+  waiterName?: string | null;
+  status: 'OPEN' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'SERVED' | 'CLOSED' | 'CANCELLED';
+  items: KdsTicketItem[];
+  totalAmount: number;
+  createdAt: Date;
+  elapsedMinutes: number;
+  urgency: 'NORMAL' | 'WARNING' | 'CRITICAL';
+  station?: string;
+};
 
 export async function getRestaurantFloorState() {
   const tables = await db
@@ -9,12 +35,14 @@ export async function getRestaurantFloorState() {
     .from(diningTables)
     .where(eq(diningTables.active, true))
     .orderBy(asc(diningTables.sortOrder));
+
   const tickets = await db
     .select()
     .from(kitchenTickets)
-    .where(eq(kitchenTickets.status, 'OPEN'))
+    .where(inArray(kitchenTickets.status, ['OPEN', 'CONFIRMED', 'FIRED', 'PREPARING', 'READY']))
     .orderBy(desc(kitchenTickets.createdAt))
     .limit(50);
+
   const openByTable = new Map(tickets.filter((t) => t.tableId).map((t) => [t.tableId!, t]));
   return {
     tables: tables.map((t) => ({
@@ -26,11 +54,135 @@ export async function getRestaurantFloorState() {
             total: Number(openByTable.get(t.id)!.totalAmount),
             waiter: openByTable.get(t.id)!.waiterName || '',
             ticketId: openByTable.get(t.id)!.id,
+            status: openByTable.get(t.id)!.status,
           }
         : undefined,
     })),
     tickets,
   };
+}
+
+export async function getKdsState(stationFilter = 'ALL') {
+  const tables = await db.select().from(diningTables);
+  const tableMap = new Map(tables.map((t) => [t.id, t.name]));
+
+  const activeTickets = await db
+    .select()
+    .from(kitchenTickets)
+    .where(inArray(kitchenTickets.status, ['OPEN', 'CONFIRMED', 'FIRED', 'PREPARING', 'READY']))
+    .orderBy(asc(kitchenTickets.createdAt))
+    .limit(60);
+
+  const recentCompleted = await db
+    .select()
+    .from(kitchenTickets)
+    .where(eq(kitchenTickets.status, 'SERVED'))
+    .orderBy(desc(kitchenTickets.createdAt))
+    .limit(10);
+
+  const now = Date.now();
+
+  const mapTicket = (t: typeof activeTickets[0]): KdsTicket => {
+    const rawItems = (t.itemsJson || []) as KdsTicketItem[];
+    const items = rawItems.filter((i) => {
+      if (!stationFilter || stationFilter === 'ALL') return true;
+      const itemStation = i.station || 'KITCHEN';
+      return itemStation.toUpperCase() === stationFilter.toUpperCase();
+    });
+
+    const elapsedMs = now - (t.createdAt ? new Date(t.createdAt).getTime() : now);
+    const elapsedMinutes = Math.floor(elapsedMs / 60000);
+    const urgency: 'NORMAL' | 'WARNING' | 'CRITICAL' =
+      elapsedMinutes > 20 ? 'CRITICAL' : elapsedMinutes > 10 ? 'WARNING' : 'NORMAL';
+
+    let normalizedStatus = t.status as KdsTicket['status'];
+    if (t.status === 'FIRED') normalizedStatus = 'PREPARING';
+
+    return {
+      id: t.id,
+      kotNumber: t.kotNumber,
+      tableId: t.tableId,
+      tableName: t.tableId ? tableMap.get(t.tableId) || 'Table' : 'Takeaway / Quick Order',
+      waiterName: t.waiterName,
+      status: normalizedStatus,
+      items,
+      totalAmount: Number(t.totalAmount || 0),
+      createdAt: t.createdAt || new Date(),
+      elapsedMinutes,
+      urgency,
+      station: stationFilter,
+    };
+  };
+
+  return {
+    tickets: activeTickets.map(mapTicket).filter((t) => t.items.length > 0),
+    recentCompleted: recentCompleted.map(mapTicket),
+    metrics: {
+      activeCount: activeTickets.length,
+      criticalCount: activeTickets.filter((t) => {
+        const ms = now - (t.createdAt ? new Date(t.createdAt).getTime() : now);
+        return ms > 20 * 60000;
+      }).length,
+    },
+  };
+}
+
+export async function bumpKdsTicket(ticketId: string) {
+  const [ticket] = await db.select().from(kitchenTickets).where(eq(kitchenTickets.id, ticketId)).limit(1);
+  if (!ticket) throw Object.assign(new Error('Kitchen ticket not found'), { status: 404 });
+
+  let nextStatus: string;
+  if (ticket.status === 'OPEN' || ticket.status === 'CONFIRMED') {
+    nextStatus = 'PREPARING';
+  } else if (ticket.status === 'PREPARING' || ticket.status === 'FIRED') {
+    nextStatus = 'READY';
+  } else if (ticket.status === 'READY') {
+    nextStatus = 'SERVED';
+  } else {
+    nextStatus = 'SERVED';
+  }
+
+  const [updated] = await db
+    .update(kitchenTickets)
+    .set({ status: nextStatus, closedAt: nextStatus === 'SERVED' ? new Date() : null })
+    .where(eq(kitchenTickets.id, ticketId))
+    .returning();
+
+  if (nextStatus === 'SERVED') {
+    const items = (ticket.itemsJson as Array<{ productId?: string; qty: number }>) || [];
+    await db.transaction(async (tx) => {
+      for (const item of items) {
+        if (item.productId) {
+          await depleteRecipeForProduct(tx, item.productId, item.qty || 1, ticket.kotNumber);
+        }
+      }
+    });
+
+    if (ticket.tableId) {
+      await db.update(diningTables).set({ status: 'SERVED' }).where(eq(diningTables.id, ticket.tableId));
+    }
+  } else if (ticket.tableId) {
+    await db.update(diningTables).set({ status: 'ORDERED' }).where(eq(diningTables.id, ticket.tableId));
+  }
+
+  return { ticket: updated, previousStatus: ticket.status, newStatus: nextStatus };
+}
+
+export async function reopenKdsTicket(ticketId: string) {
+  const [ticket] = await db.select().from(kitchenTickets).where(eq(kitchenTickets.id, ticketId)).limit(1);
+  if (!ticket) throw Object.assign(new Error('Kitchen ticket not found'), { status: 404 });
+
+  const [updated] = await db
+    .update(kitchenTickets)
+    .set({ status: 'PREPARING', closedAt: null })
+    .where(eq(kitchenTickets.id, ticketId))
+    .returning();
+
+  if (ticket.tableId) {
+    await db.update(diningTables).set({ status: 'ORDERED' }).where(eq(diningTables.id, ticket.tableId));
+  }
+
+  return { ticket: updated };
 }
 
 export async function handleRestaurantPost(body: Record<string, unknown>) {
@@ -73,7 +225,17 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
   }
 
   if (action === 'create_kot') {
-    const items = (body.items || []) as Array<{ name: string; qty: number; notes?: string; price: number }>;
+    const rawItems = Array.isArray(body.items) ? body.items : [];
+    const items = rawItems.map((i: { name?: string; qty?: number; notes?: string; price?: number; station?: string; course?: string; productId?: string }) => ({
+      productId: i.productId,
+      name: String(i.name || 'Item'),
+      qty: Math.max(1, Number(i.qty || 1)),
+      price: Math.max(0, Number(i.price || 0)),
+      notes: i.notes || undefined,
+      station: i.station || 'KITCHEN',
+      course: i.course || 'MAIN',
+    }));
+
     const total = items.reduce((s, i) => s + Number(i.price) * Number(i.qty), 0);
     const [ticket] = await db
       .insert(kitchenTickets)
@@ -86,10 +248,19 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
         status: 'OPEN',
       })
       .returning();
+
     if (body.tableId) {
       await db.update(diningTables).set({ status: 'ORDERED' }).where(eq(diningTables.id, body.tableId as string));
     }
     return { ticket };
+  }
+
+  if (action === 'bump_kds') {
+    return await bumpKdsTicket(String(body.ticketId));
+  }
+
+  if (action === 'reopen_kds') {
+    return await reopenKdsTicket(String(body.ticketId));
   }
 
   throw Object.assign(new Error('Unknown action'), { status: 400 });
@@ -126,34 +297,15 @@ export async function handleRestaurantPatch(body: Record<string, unknown>) {
     const where = body.ticketId
       ? eq(kitchenTickets.id, body.ticketId as string)
       : eq(kitchenTickets.kotNumber, body.kotNumber as string);
-    const [ticket] = await db.update(kitchenTickets).set({ status: 'FIRED' }).where(where).returning();
+    const [ticket] = await db.update(kitchenTickets).set({ status: 'PREPARING' }).where(where).returning();
     if (ticket?.tableId) {
       await db.update(diningTables).set({ status: 'ORDERED' }).where(eq(diningTables.id, ticket.tableId));
     }
     return { ticket };
   }
 
-  if (body.action === 'mark_served') {
-    const where = body.ticketId
-      ? eq(kitchenTickets.id, body.ticketId as string)
-      : eq(kitchenTickets.kotNumber, body.kotNumber as string);
-    const [ticket] = await db.update(kitchenTickets).set({ status: 'SERVED' }).where(where).returning();
-    if (ticket) {
-      const items = (ticket.itemsJson as Array<{ productId?: string; qty: number }>) || [];
-      await db.transaction(async (tx) => {
-        for (const item of items) {
-          if (item.productId) {
-            await depleteRecipeForProduct(tx, item.productId, item.qty || 1, ticket.kotNumber);
-          }
-        }
-      });
-    }
-    if (ticket?.tableId) {
-      await db.update(diningTables).set({ status: 'SERVED' }).where(eq(diningTables.id, ticket.tableId));
-    }
-    const [branch] = await db.select().from(branches).limit(1);
-    const lowStockAlerts = branch ? await checkRecipeLowStock(db, branch.id).catch(() => []) : [];
-    return { ticket, lowStockAlerts };
+  if (body.action === 'mark_served' || body.action === 'bump') {
+    return await bumpKdsTicket(String(body.ticketId || ''));
   }
 
   throw Object.assign(new Error('Unknown action'), { status: 400 });

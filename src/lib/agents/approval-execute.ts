@@ -139,20 +139,26 @@ export async function executeAgentApproval(
     const { productId, fromBranchId, toBranchId, quantity } = approval.payload as Record<string, unknown>;
     if (productId && quantity && Number(quantity) > 0) {
       const qty = Number(quantity);
+      const fromLoc = fromBranchId ? String(fromBranchId) : '00000000-0000-0000-0000-000000000001';
+      const toLoc = toBranchId ? String(toBranchId) : '00000000-0000-0000-0000-000000000002';
       await db.insert(stockMovements).values({
         productId: String(productId),
-        movementType: 'TRANSFER_OUT',
-        quantity: -qty,
-        fromLocationId: fromBranchId ? String(fromBranchId) : undefined,
-        toLocationId: toBranchId ? String(toBranchId) : undefined,
+        locationType: 'BRANCH',
+        locationId: fromLoc,
+        type: 'TRANSFER_OUT',
+        delta: -qty,
+        referenceType: 'AGENT_APPROVAL',
+        referenceId: approval.id,
         notes: `Agent Approved Transfer: ${approval.id}`,
       });
       await db.insert(stockMovements).values({
         productId: String(productId),
-        movementType: 'TRANSFER_IN',
-        quantity: qty,
-        fromLocationId: fromBranchId ? String(fromBranchId) : undefined,
-        toLocationId: toBranchId ? String(toBranchId) : undefined,
+        locationType: 'BRANCH',
+        locationId: toLoc,
+        type: 'TRANSFER_IN',
+        delta: qty,
+        referenceType: 'AGENT_APPROVAL',
+        referenceId: approval.id,
         notes: `Agent Approved Transfer: ${approval.id}`,
       });
     }

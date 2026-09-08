@@ -46,7 +46,17 @@ const EXPECTED = {
     wholesale_price: `numeric(12,2)`,
     reorder_level: `integer DEFAULT 10 NOT NULL`,
     image_url: `text`,
+    description: `text`,
+    meta_title: `text`,
+    meta_description: `text`,
     is_active: `boolean DEFAULT true NOT NULL`,
+  },
+  serial_numbers: {
+    product_name: `text`,
+    customer_name: `text`,
+    customer_phone: `text`,
+    notes: `text`,
+    registered_by: `uuid`,
   },
   purchase_orders: {
     warehouse_id: `uuid`,

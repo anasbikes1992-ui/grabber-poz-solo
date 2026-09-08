@@ -283,6 +283,9 @@ export const products = pgTable('products', {
   wholesalePrice: numeric('wholesale_price', { precision: 12, scale: 2 }),
   reorderLevel: integer('reorder_level').notNull().default(10),
   imageUrl: text('image_url'),
+  description: text('description'),
+  metaTitle: text('meta_title'),
+  metaDescription: text('meta_description'),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -515,12 +518,37 @@ export const orderReturns = pgTable('order_returns', {
   originalOrderId: uuid('original_order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
   returnNumber: text('return_number').notNull().unique(),
   refundAmount: numeric('refund_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  refundDestination: text('refund_destination').notNull().default('ORIGINAL'), // ORIGINAL, CASH, CARD, BANK_TRANSFER, CUSTOMER_CREDIT, STORE_CREDIT
   restockApproved: boolean('restock_approved').notNull().default(true),
   gradingStatus: text('grading_status'), // RECEIVED, GRADED_A, GRADED_B, DAMAGED
   reason: text('reason'),
   approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
+  journalEntryId: uuid('journal_entry_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const orderReturnLines = pgTable('order_return_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  returnId: uuid('return_id').notNull().references(() => orderReturns.id, { onDelete: 'cascade' }),
+  orderItemId: uuid('order_item_id').notNull().references(() => orderItems.id, { onDelete: 'restrict' }),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'restrict' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  quantity: integer('quantity').notNull().default(1),
+  unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull(),
+  unitDiscount: numeric('unit_discount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  unitTax: numeric('unit_tax', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  unitRefund: numeric('unit_refund', { precision: 12, scale: 2 }).notNull(),
+  unitCost: numeric('unit_cost', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  gradingStatus: text('grading_status').notNull().default('RESTOCKED'), // RESTOCKED, GRADED_A, GRADED_B, DAMAGED, EXPIRED, SCRAP
+  restockedLocationType: locationTypeEnum('restocked_location_type'),
+  restockedLocationId: uuid('restocked_location_id'),
+  serialNumber: text('serial_number'),
+  reason: text('reason'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  returnIdx: index('order_return_lines_return_idx').on(t.returnId),
+  orderItemIdx: index('order_return_lines_item_idx').on(t.orderItemId),
+}));
 
 // ==========================================
 // 8. PURCHASING & TRANSFERS
@@ -944,14 +972,20 @@ export const serialNumbers = pgTable('serial_numbers', {
   serial: text('serial').notNull().unique(),
   productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'restrict' }),
   variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  productName: text('product_name'),
   status: text('status').notNull().default('IN_STOCK'), // IN_STOCK, SOLD, IN_REPAIR, WRITTEN_OFF
   locationType: locationTypeEnum('location_type'),
   locationId: uuid('location_id'),
   orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  customerName: text('customer_name'),
+  customerPhone: text('customer_phone'),
+  notes: text('notes'),
+  registeredBy: uuid('registered_by').references(() => users.id, { onDelete: 'set null' }),
   warrantyExpires: timestamp('warranty_expires', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   productIdx: index('serial_numbers_product_idx').on(t.productId),
+  serialIdx: index('serial_numbers_serial_idx').on(t.serial),
 }));
 
 export const stockLots = pgTable('stock_lots', {
@@ -1087,3 +1121,29 @@ export const tradeInVouchers = pgTable('trade_in_vouchers', {
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const damages = pgTable('damages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  damageNumber: text('damage_number').notNull().unique(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  productName: text('product_name').notNull(),
+  barcode: text('barcode'),
+  locationType: locationTypeEnum('location_type').notNull().default('BRANCH'),
+  locationId: uuid('location_id'),
+  quantity: integer('quantity').notNull().default(1),
+  unitCost: numeric('unit_cost', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalLoss: numeric('total_loss', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  reason: text('reason').notNull().default('DAMAGED_IN_STORE'),
+  remarks: text('remarks'),
+  photoUrl: text('photo_url'),
+  reportedBy: text('reported_by'),
+  status: text('status').notNull().default('PENDING'), // PENDING, APPROVED, REJECTED
+  approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
+  journalEntryId: uuid('journal_entry_id').references(() => journalEntries.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index('damages_status_idx').on(t.status),
+  productIdx: index('damages_product_idx').on(t.productId),
+}));

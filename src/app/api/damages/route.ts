@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { db, branches } from '@/db';
+import { desc, eq } from 'drizzle-orm';
+import { db, damages, branches, products } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
-import { deleteCollectionItem, listCollection, upsertCollectionItem } from '@/lib/db/app-collections';
 import { postDamageWriteOff } from '@/lib/damages/damage-write-off';
 import { recordDamage } from '@/lib/inventory/stock-service';
 
@@ -19,10 +19,10 @@ export async function GET() {
     if (process.env.NODE_ENV === 'production' && !session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
-    const damages = await listCollection<{ id: string } & Record<string, unknown>>('damages');
-    return NextResponse.json({ success: true, damages });
+    const rows = await db.select().from(damages).orderBy(desc(damages.createdAt)).limit(100);
+    return NextResponse.json({ success: true, damages: rows });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: (err as Error).message, damages: [] }, { status: 500 });
   }
 }
 
@@ -40,26 +40,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Product and quantity are required' }, { status: 400 });
     }
 
-    const numQty = Number(body.quantity) || 1;
-    const numCost = Number(body.unitCost) || 0;
-    const payload = {
-      id: `dmg_${Date.now()}_${Math.floor(100 + Math.random() * 900)}`,
-      productId: body.productId ? String(body.productId) : '',
-      productName: String(body.productName).trim(),
-      barcode: body.barcode ? String(body.barcode).trim() : '',
-      quantity: numQty,
-      unitCost: numCost,
-      totalLoss: numQty * numCost,
-      reason: body.reason || 'DAMAGED_IN_STORE',
-      remarks: body.remarks || '',
-      photoUrl: body.photoUrl ? String(body.photoUrl).trim() : '',
-      reportedBy: body.reportedBy || session?.name || 'Store Manager',
-      status: 'PENDING' as const,
-      recordedAt: new Date().toISOString(),
-    };
+    const numQty = Math.max(1, Number(body.quantity) || 1);
+    const numCost = Math.max(0, Number(body.unitCost) || 0);
+    const totalLoss = (numQty * numCost).toFixed(2);
+    const damageNumber = (body.damageNumber as string) || `DMG-${Date.now().toString().slice(-6)}`;
+    const branchId = await resolveBranchId();
 
-    await upsertCollectionItem('damages', payload);
-    return NextResponse.json({ success: true, damage: payload });
+    let productId = body.productId ? String(body.productId) : null;
+    if (productId) {
+      const [prod] = await db.select({ id: products.id }).from(products).where(eq(products.id, productId)).limit(1);
+      if (!prod) productId = null;
+    }
+
+    const [row] = await db
+      .insert(damages)
+      .values({
+        damageNumber,
+        productId,
+        variantId: body.variantId ? String(body.variantId) : null,
+        productName: String(body.productName).trim(),
+        barcode: body.barcode ? String(body.barcode).trim() : null,
+        locationType: 'BRANCH',
+        locationId: branchId,
+        quantity: numQty,
+        unitCost: numCost.toFixed(2),
+        totalLoss,
+        reason: body.reason || 'DAMAGED_IN_STORE',
+        remarks: body.remarks || null,
+        photoUrl: body.photoUrl ? String(body.photoUrl).trim() : null,
+        reportedBy: body.reportedBy || session?.name || 'Store Manager',
+        status: 'PENDING',
+      })
+      .returning();
+
+    return NextResponse.json({ success: true, damage: row });
   } catch (err) {
     const e = err as { message?: string; status?: number };
     return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
@@ -72,7 +86,8 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
-    await deleteCollectionItem('damages', id);
+    
+    await db.delete(damages).where(eq(damages.id, id));
     return NextResponse.json({ success: true });
   } catch (err) {
     const e = err as { message?: string; status?: number };
@@ -92,8 +107,7 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     if (!body.id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 });
 
-    const damages = await listCollection<{ id: string } & Record<string, unknown>>('damages');
-    const existing = damages.find((d) => d.id === body.id);
+    const [existing] = await db.select().from(damages).where(eq(damages.id, body.id)).limit(1);
     if (!existing) return NextResponse.json({ success: false, error: 'Damage record not found' }, { status: 404 });
 
     if (body.action === 'approve') {
@@ -101,23 +115,23 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ success: false, error: 'Already approved' }, { status: 409 });
       }
       const actorId = session && !isDemoUserId(session.userId) ? session.userId : null;
-      const productId = String(existing.productId || '');
-      const qty = Number(existing.quantity) || 1;
+      const qty = existing.quantity;
 
-      if (productId) {
-        const branchId = await resolveBranchId();
+      if (existing.productId) {
+        const branchId = existing.locationId || (await resolveBranchId());
         await db.transaction(async (tx) => {
           await recordDamage(
             tx,
             { locationType: 'BRANCH', locationId: branchId },
             {
-              productId,
+              productId: existing.productId!,
+              variantId: existing.variantId || undefined,
               quantity: qty,
-              unitCost: Number(existing.unitCost) || 0,
+              unitCost: Number(existing.unitCost),
             },
             {
               referenceType: 'DAMAGE',
-              referenceId: String(existing.id),
+              referenceId: existing.id,
               actorId,
               notes: String(existing.reason || 'Damage write-off'),
             },
@@ -126,20 +140,24 @@ export async function PATCH(req: Request) {
       }
 
       const journalEntryId = await postDamageWriteOff({
-        damageId: String(existing.id),
-        productName: String(existing.productName || 'Stock item'),
-        totalLoss: Number(existing.totalLoss || 0),
+        damageId: existing.id,
+        productName: existing.productName,
+        totalLoss: Number(existing.totalLoss),
         actorId,
       });
-      const payload = {
-        ...existing,
-        status: 'APPROVED',
-        approvedAt: new Date().toISOString(),
-        approvedBy: session?.name || 'Manager',
-        journalEntryId,
-      };
-      await upsertCollectionItem('damages', payload);
-      return NextResponse.json({ success: true, damage: payload, journalEntryId });
+
+      const [updated] = await db
+        .update(damages)
+        .set({
+          status: 'APPROVED',
+          approvedBy: actorId,
+          journalEntryId: journalEntryId || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(damages.id, existing.id))
+        .returning();
+
+      return NextResponse.json({ success: true, damage: updated, journalEntryId });
     }
 
     if (body.action === 'update_status') {
@@ -147,15 +165,21 @@ export async function PATCH(req: Request) {
       if (!ALLOWED_STATUSES.includes(status as (typeof ALLOWED_STATUSES)[number])) {
         return NextResponse.json({ success: false, error: 'Invalid status' }, { status: 400 });
       }
-      const payload = { ...existing, status, updatedAt: new Date().toISOString() };
-      await upsertCollectionItem('damages', payload);
-      return NextResponse.json({ success: true, damage: payload });
+      const [updated] = await db
+        .update(damages)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(damages.id, existing.id))
+        .returning();
+      return NextResponse.json({ success: true, damage: updated });
     }
 
     if (body.photoUrl != null) {
-      const payload = { ...existing, photoUrl: String(body.photoUrl).trim(), updatedAt: new Date().toISOString() };
-      await upsertCollectionItem('damages', payload);
-      return NextResponse.json({ success: true, damage: payload });
+      const [updated] = await db
+        .update(damages)
+        .set({ photoUrl: String(body.photoUrl).trim(), updatedAt: new Date() })
+        .where(eq(damages.id, existing.id))
+        .returning();
+      return NextResponse.json({ success: true, damage: updated });
     }
 
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });

@@ -39,7 +39,7 @@ export class SeoAgent {
         metaTitle: products.metaTitle,
         metaDescription: products.metaDescription,
         imageUrl: products.imageUrl,
-        retailPrice: products.retailPrice,
+        salePrice: products.salePrice,
       })
       .from(products)
       .limit(100);
@@ -70,7 +70,7 @@ export class SeoAgent {
           resourceName: p.name,
           url: pUrl,
           description: `Product "${p.name}" has no search meta description configured.`,
-          suggestedFix: `Generate a 140–160 character meta description emphasizing LKR ${Number(p.retailPrice || 0).toLocaleString()} price and delivery.`,
+          suggestedFix: `Generate a 140–160 character meta description emphasizing LKR ${Number(p.salePrice || 0).toLocaleString()} price and delivery.`,
         });
       } else {
         passedChecks++;

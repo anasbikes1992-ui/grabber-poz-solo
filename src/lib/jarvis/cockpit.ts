@@ -67,7 +67,7 @@ export class CockpitAggregator {
         name: products.name,
         onHand: stockBalances.onHand,
         reorderLevel: products.reorderLevel,
-        retailPrice: products.retailPrice,
+        salePrice: products.salePrice,
         costPrice: products.costPrice,
       })
       .from(stockBalances)

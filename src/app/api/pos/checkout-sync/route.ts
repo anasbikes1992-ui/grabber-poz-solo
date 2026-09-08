@@ -25,11 +25,11 @@ export async function POST(req: NextRequest) {
 
       const txId = tx.clientTxId || tx.offlineId || `off_${Date.now()}`;
 
-      // Check if already synced (idempotent lookup)
+      // Check if already synced (idempotent lookup via clientUuid)
       const existing = await db
         .select({ id: orders.id, orderNumber: orders.orderNumber })
         .from(orders)
-        .where(eq(orders.idempotencyKey, txId))
+        .where(eq(orders.clientUuid, txId))
         .limit(1);
 
       if (existing.length > 0) {
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
           unitCost: i.unitCost,
           quantity: i.quantity,
           lineDiscount: i.lineDiscount,
-        }))
+        })),
       );
 
       const orderNumber = `POS-${Date.now().toString().slice(-6)}`;
@@ -72,12 +72,8 @@ export async function POST(req: NextRequest) {
           taxTotal: String(pricing.taxTotal),
           discountTotal: String(pricing.totalDiscount),
           branchId: tx.branchId,
-          idempotencyKey: txId,
-          metadata: {
-            offlineSync: true,
-            offlineTimestamp: tx.offlineTimestamp,
-            registerId: tx.registerId || tx.terminalId,
-          },
+          clientUuid: txId,
+          terminalId: tx.registerId || tx.terminalId,
         })
         .returning();
 
@@ -89,7 +85,9 @@ export async function POST(req: NextRequest) {
           quantity: line.quantity,
           unitPrice: String(line.unitPrice),
           unitCost: String(line.unitCost),
-          totalPrice: String(line.netLineTotal),
+          discountAmount: String(line.lineDiscount || 0),
+          taxAmount: '0.00',
+          lineTotal: String(line.netLineTotal),
         });
 
         // Decrement stock balance
@@ -100,15 +98,20 @@ export async function POST(req: NextRequest) {
           })
           .where(eq(stockBalances.productId, line.productId));
 
-        // Record stock movement
-        await db.insert(stockMovements).values({
-          productId: line.productId,
-          movementType: 'SALE',
-          quantity: -line.quantity,
-          referenceType: 'ORDER',
-          referenceId: newOrder.id,
-          toLocationId: tx.branchId,
-        });
+        // Record stock movement if branch location is known
+        if (tx.branchId) {
+          await db.insert(stockMovements).values({
+            locationType: 'BRANCH',
+            locationId: tx.branchId,
+            productId: line.productId,
+            type: 'SALE',
+            delta: -line.quantity,
+            unitCost: String(line.unitCost),
+            referenceType: 'ORDER',
+            referenceId: newOrder.id,
+            notes: 'Offline POS checkout sync',
+          });
+        }
       }
 
       results.push({
@@ -127,7 +130,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { success: false, error: (err as Error).message },
-      { status: (err as { status?: number }).status || 500 }
+      { status: (err as { status?: number }).status || 500 },
     );
   }
 }
