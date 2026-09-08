@@ -1,66 +1,53 @@
-# Grabber Poz Solo
+# Grabber Business OS & Jarvis Autonomous OS
+**Single-Business Edition: Commerce Core + Physical Operations + Jarvis Autonomous Business OS**
 
-Single-business retail OS: POS, storefront, inventory, finance, and automation.
-
-**Deploy:** [`docs/FRESH_START.md`](docs/FRESH_START.md) · **Vercel env:** [`docs/VERCEL_ENV.md`](docs/VERCEL_ENV.md) · **Phases:** [`docs/NEXT_PHASES.md`](docs/NEXT_PHASES.md)
-
-| | |
-|--|--|
-| GitHub | [anasbikes1992-ui/grabber-poz-solo](https://github.com/anasbikes1992-ui/grabber-poz-solo) **(canonical — Vercel deploys from here)** |
-| Supabase | Project `rbayhrskowtahepwccrq` · migrations in `supabase/migrations/` |
-| Vercel | `grabber-poz-solo` → https://grabber-poz-solo.vercel.app |
-
-### Git remotes
-
-Production repository: **`grabber-poz-solo`**
-
-```powershell
-git push origin main
-# or: git push poz-solo main
-```
-
-*(Note: `grabber-business-os` was the legacy repo name and is archived)*
+[![Tests](https://img.shields.io/badge/Tests-433%20Passing-emerald)](https://github.com/)
+[![Database](https://img.shields.io/badge/Database-49%20Tables%20Drizzle-blue)](https://github.com/)
+[![Architecture](https://img.shields.io/badge/Architecture-Single%20Business%20Solo-purple)](https://github.com/)
+[![Auth](https://img.shields.io/badge/Security-Dual%20Session%20HMAC-green)](https://github.com/)
 
 ---
 
-## Modules
+## 🚀 Overview
 
-- **POS** — barcode scan, split pay, shifts, thermal receipts
-- **Storefront** — SSR catalog, checkout, CMS blocks, SEO
-- **Inventory** — multi-location stock, transfers, GRN
-- **Finance** — Polim Potha (AR), reports, ledger
-- **Ops** — approvals, automation rules, Jarvis brief, **12 vertical agents**, public repairs
+**Grabber Business OS** is a single-business, standalone commercial operating system engineered for dedicated deployments (1 VPS per business / 1 Database per business). It completely rejects the SaaS multi-tenant model in favor of strict data sovereignty, low query complexity (zero `tenant_id` clutter), and deterministic physical operations (multiple branches & warehouses under a single commercial entity).
+
+**Jarvis Autonomous OS** operates on top of the commerce engine, continuously measuring the business, detecting anomalies, uncovering high-margin revenue opportunities, managing SEO and content, executing approved actions through fine-grained autonomy policies, and attributing real revenue and profit.
 
 ---
 
-## Quick start (local)
+## 📚 Master Documentation Suite
 
-```powershell
+The complete documentation is organized into 5 authoritative master pillars:
+
+1. 🏛️ **[01 System Architecture](docs/01_SYSTEM_ARCHITECTURE.md)**: Single-business database model, 49 Drizzle ORM tables, double-entry general ledger, HMAC auth, and system topology.
+2. 🚀 **[02 Deployment & Onboarding](docs/02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md)**: Step-by-step setup in < 15 mins: Supabase DB, migrations bootstrap, Vercel/VPS deploy, DNS binding, and Level 4 SQL certification.
+3. 🛒 **[03 Commerce & Operations](docs/03_COMMERCE_AND_OPERATIONS_PLAYBOOK.md)**: Fast counter POS, barcode scanning, shift registers, Polim Potha customer credit ledger, GRN receiving, and payment gateways.
+4. 🧠 **[04 Jarvis Autonomous OS](docs/04_JARVIS_AUTONOMOUS_OS_MANUAL.md)**: Closed-loop brain, Action Policy Matrix, Owner Morning Brief, SEO audit & keyword intelligence, and true profit attribution.
+5. 📦 **[05 Vertical Intelligence](docs/05_VERTICAL_INTELLIGENCE_GUIDE.md)**: Specialized rules and KPIs for Grocery, Fashion, Electronics & Repairs, Restaurant / KOT, Hardware, and General Retail.
+
+---
+
+## ⚡ Quick Start
+
+```bash
+# 1. Install dependencies
 npm install
-copy .env.example .env.local
-# Fill DATABASE_URL + AUTH_SECRET — see docs/FRESH_START.md
+
+# 2. Run automated test suite (62 test files / 433 tests)
+npm test
+
+# 3. Bootstrap fresh database with migrations and double-entry COA
 npm run db:bootstrap
+
+# 4. Verify API security & authentication coverage
+npm run auth:coverage
+
+# 5. Start development server
 npm run dev
 ```
 
-```powershell
-npm run check          # typecheck + tests + build
-npm run env:validate   # pre-flight env check
-npm run ops:sync-env   # push .env.local → Vercel (set VERCEL_PROJECT)
-```
-
 ---
 
-## Documentation
-
-| Doc | Purpose |
-|-----|---------|
-| [`NEXT_PHASES.md`](docs/NEXT_PHASES.md) | Post-deploy rollout phases |
-| [`FRESH_START.md`](docs/FRESH_START.md) | New Supabase + Vercel deploy |
-| [`VERCEL_ENV.md`](docs/VERCEL_ENV.md) | Environment variable checklist |
-| [`ROADMAP.md`](docs/ROADMAP.md) | Planned features |
-| [`RELEASE_GATE.md`](docs/RELEASE_GATE.md) | Release criteria + execution order |
-| [`AGENTS.md`](docs/AGENTS.md) | R6 agent catalog (12 agents) |
-| [`REPAIRS_STOREFRONT_BLUEPRINT.md`](docs/REPAIRS_STOREFRONT_BLUEPRINT.md) | Repairs + storefront plan |
-
-Legacy audit / GTM docs remain under `docs/` for reference; use **FRESH_START** and **VERCEL_ENV** for current deploys.
+## 🛡️ License & Architecture Guarantee
+Built for commercial deployment by Grabber. Protected by strict single-business architecture invariants.

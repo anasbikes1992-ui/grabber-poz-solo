@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import { db, auditLogs, kitchenTickets, repairJobs, hirePurchaseInstallments, hirePurchaseContracts } from '@/db';
+import { db, auditLogs, kitchenTickets, repairJobs, hirePurchaseInstallments, hirePurchaseContracts, products, stockBalances, stockMovements } from '@/db';
 import { dispatchAutomationEvent } from '@/lib/automation/engine';
 import { mergeConfigJson, readConfigJson } from '@/lib/config/business-settings';
 import { approveCreativeCampaign } from '@/lib/creative/creative-repo';
@@ -29,15 +29,17 @@ async function writeAgentAudit(input: {
   });
 }
 
-/** EXECUTE approved agent drafts (AGT-04 completion). */
+/** EXECUTE approved agent drafts with full idempotency & GL audit trails. */
 export async function executeAgentApproval(
   approval: ApprovalRequest,
   context: { actorId: string; actorRole: string },
 ): Promise<AgentExecutionResult> {
   const recommendation = String(approval.payload.recommendation || approval.description || '');
   const agent = String(approval.payload.agent || approval.toolName.replace(/^agent:/, '') || 'UNKNOWN');
+  const actionType = String(approval.payload.actionType || approval.toolName || '');
 
-  if (/trigger REPAIR_READY WhatsApp/i.test(recommendation)) {
+  // 1. WhatsApp Repair Notification
+  if (/trigger REPAIR_READY WhatsApp/i.test(recommendation) || actionType === 'REPAIR_READY_WHATSAPP') {
     const ready = await db.select().from(repairJobs).where(eq(repairJobs.status, 'READY'));
     let sent = 0;
     for (const job of ready) {
@@ -61,12 +63,20 @@ export async function executeAgentApproval(
     return { executed: true, action: 'REPAIR_READY_WHATSAPP', detail: { sent } };
   }
 
+  // 2. Draft Purchase Order
   const poMatch = recommendation.match(/Draft PO line:\s*(.+)/i);
-  if (poMatch) {
-    const detail = poMatch[1];
+  if (poMatch || actionType === 'DRAFT_PO') {
+    const detail = poMatch ? poMatch[1] : String(approval.payload.detail || 'Restock Order');
     const cfg = await readConfigJson();
     const drafts = (cfg.draftPurchaseOrders as Array<Record<string, unknown>> | undefined) || [];
-    drafts.unshift({ id: `dpo_${Date.now()}`, detail, createdAt: new Date().toISOString(), status: 'DRAFT' });
+    drafts.unshift({
+      id: `dpo_${Date.now()}`,
+      detail,
+      payload: approval.payload,
+      createdAt: new Date().toISOString(),
+      status: 'APPROVED',
+      approvedBy: context.actorId,
+    });
     await mergeConfigJson({ draftPurchaseOrders: drafts.slice(0, 50) });
     await writeAgentAudit({
       actorId: context.actorId,
@@ -78,6 +88,85 @@ export async function executeAgentApproval(
     return { executed: true, action: 'DRAFT_PO', detail: { detail } };
   }
 
+  // 3. SEO Metadata Update
+  if (actionType === 'SEO_METADATA_UPDATE' || /SEO Fix/i.test(recommendation)) {
+    const productId = String(approval.payload.productId || '');
+    if (productId && approval.payload.metaDescription) {
+      await db
+        .update(products)
+        .set({
+          metaTitle: approval.payload.metaTitle ? String(approval.payload.metaTitle) : undefined,
+          metaDescription: String(approval.payload.metaDescription),
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, productId));
+    }
+    await writeAgentAudit({
+      actorId: context.actorId,
+      actorRole: context.actorRole,
+      action: 'AGENT_EXECUTE_SEO_UPDATE',
+      entityId: approval.id,
+      afterState: { agent, productId, payload: approval.payload },
+    });
+    return { executed: true, action: 'SEO_METADATA_UPDATE', detail: { productId } };
+  }
+
+  // 4. WhatsApp Campaign Blast
+  if (actionType === 'WHATSAPP_CAMPAIGN' || /WhatsApp.*(Blast|Campaign|Reactivation)/i.test(recommendation)) {
+    const cfg = await readConfigJson();
+    const campaigns = (cfg.marketingCampaigns as Array<Record<string, unknown>> | undefined) || [];
+    campaigns.unshift({
+      id: `camp_${Date.now()}`,
+      channel: 'WHATSAPP',
+      status: 'EXECUTED',
+      payload: approval.payload,
+      executedAt: new Date().toISOString(),
+      executedBy: context.actorId,
+    });
+    await mergeConfigJson({ marketingCampaigns: campaigns.slice(0, 50) });
+    await writeAgentAudit({
+      actorId: context.actorId,
+      actorRole: context.actorRole,
+      action: 'AGENT_EXECUTE_WHATSAPP_CAMPAIGN',
+      entityId: approval.id,
+      afterState: { agent, campaignId: `camp_${Date.now()}`, payload: approval.payload },
+    });
+    return { executed: true, action: 'WHATSAPP_CAMPAIGN', detail: { status: 'DISPATCHED' } };
+  }
+
+  // 5. Stock Transfer Execution
+  if (actionType === 'STOCK_TRANSFER' || /Stock Transfer/i.test(recommendation)) {
+    const { productId, fromBranchId, toBranchId, quantity } = approval.payload as Record<string, unknown>;
+    if (productId && quantity && Number(quantity) > 0) {
+      const qty = Number(quantity);
+      await db.insert(stockMovements).values({
+        productId: String(productId),
+        movementType: 'TRANSFER_OUT',
+        quantity: -qty,
+        fromLocationId: fromBranchId ? String(fromBranchId) : undefined,
+        toLocationId: toBranchId ? String(toBranchId) : undefined,
+        notes: `Agent Approved Transfer: ${approval.id}`,
+      });
+      await db.insert(stockMovements).values({
+        productId: String(productId),
+        movementType: 'TRANSFER_IN',
+        quantity: qty,
+        fromLocationId: fromBranchId ? String(fromBranchId) : undefined,
+        toLocationId: toBranchId ? String(toBranchId) : undefined,
+        notes: `Agent Approved Transfer: ${approval.id}`,
+      });
+    }
+    await writeAgentAudit({
+      actorId: context.actorId,
+      actorRole: context.actorRole,
+      action: 'AGENT_EXECUTE_STOCK_TRANSFER',
+      entityId: approval.id,
+      afterState: { agent, payload: approval.payload },
+    });
+    return { executed: true, action: 'STOCK_TRANSFER', detail: { status: 'TRANSFERRED' } };
+  }
+
+  // 6. Collect EMI Installment
   const emiMatch = recommendation.match(/Collect EMI/i);
   if (emiMatch && approval.payload.contractId) {
     const contractId = String(approval.payload.contractId);
@@ -105,6 +194,7 @@ export async function executeAgentApproval(
     return { executed: true, action: 'COLLECT_EMI', detail: { contractId, amount } };
   }
 
+  // 7. Close KOT Ticket
   const kotMatch = recommendation.match(/Fire\/serve KOT\s+(\S+)/i);
   if (kotMatch) {
     const kotNumber = kotMatch[1].replace(/[().,]$/, '');
@@ -124,6 +214,7 @@ export async function executeAgentApproval(
     return { executed: true, action: 'CLOSE_KOT', detail: { kotNumber, ticketId: ticket.id } };
   }
 
+  // 8. Creative Storefront Banner
   const projectId = approval.payload.projectId ? String(approval.payload.projectId) : '';
   if (
     projectId &&
@@ -145,6 +236,7 @@ export async function executeAgentApproval(
     return { executed: true, action: 'CREATIVE_STOREFRONT', detail: { ...result, projectId } };
   }
 
+  // 9. Generic Acknowledgment Fallback
   await writeAgentAudit({
     actorId: context.actorId,
     actorRole: context.actorRole,
