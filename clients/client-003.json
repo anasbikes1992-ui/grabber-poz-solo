@@ -1,0 +1,46 @@
+{
+  "clientId": "GRB-003",
+  "clientSlug": "asmobiles",
+  "businessName": "A&S Mobiles",
+  "legalName": "A&S Mobiles & Repair Services",
+  "domain": "asmobiles.grabberpos.com",
+  "vertical": "electronics",
+  "supportedVerticals": ["electronics", "repair"],
+  "currency": "LKR",
+  "timezone": "Asia/Colombo",
+  "locale": "en-LK",
+  "tax": {
+    "defaultRate": 0,
+    "vatRegistered": false
+  },
+  "branches": [
+    {
+      "name": "Borella Repair Center",
+      "code": "AS-BOR",
+      "address": "Borella, Colombo, Sri Lanka",
+      "phone": "+94 77 555 1234"
+    }
+  ],
+  "features": {
+    "pos": true,
+    "offlinePos": true,
+    "storefront": true,
+    "inventory": true,
+    "serialImeiTracking": true,
+    "warrantyManagement": true,
+    "repairJobTracking": true,
+    "technicianAssignments": true,
+    "accounting": true,
+    "loyalty": true,
+    "polimPotha": true,
+    "whatsapp": true,
+    "jarvis": true,
+    "restaurant": false,
+    "hirePurchase": false
+  },
+  "catalogSource": {
+    "type": "mypoz_json",
+    "jsonPath": "D:/AAA GRABBER/A&S Mobiles/mistermobile_mypoz_products.json",
+    "imagesDir": "D:/AAA GRABBER/A&S Mobiles"
+  }
+}

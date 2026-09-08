@@ -1,0 +1,46 @@
+{
+  "clientId": "GRB-002",
+  "clientSlug": "thepartystore",
+  "businessName": "ThePartyStore",
+  "legalName": "The Party Store Sri Lanka",
+  "domain": "thepartystore.grabberpos.com",
+  "vertical": "general-retail",
+  "supportedVerticals": ["general-retail", "packages"],
+  "currency": "LKR",
+  "timezone": "Asia/Colombo",
+  "locale": "en-LK",
+  "tax": {
+    "defaultRate": 0,
+    "vatRegistered": false
+  },
+  "branches": [
+    {
+      "name": "Party Store HQ",
+      "code": "TPS-MAIN",
+      "address": "Colombo, Sri Lanka",
+      "phone": "+94 77 987 6543"
+    }
+  ],
+  "features": {
+    "pos": true,
+    "offlinePos": true,
+    "storefront": true,
+    "inventory": true,
+    "warehouses": true,
+    "quotations": true,
+    "packagesAndKits": true,
+    "accounting": true,
+    "loyalty": true,
+    "polimPotha": true,
+    "whatsapp": true,
+    "jarvis": true,
+    "restaurant": false,
+    "repairs": false,
+    "hirePurchase": false
+  },
+  "catalogSource": {
+    "type": "woocommerce_csv",
+    "csvPath": "D:/AAA GRABBER/ThePartyStore/wc_import_ready.csv",
+    "imagesDir": "D:/AAA GRABBER/ThePartyStore/TPSproduct_images"
+  }
+}

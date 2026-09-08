@@ -1,0 +1,45 @@
+{
+  "clientId": "GRB-001",
+  "clientSlug": "shoppingstation",
+  "businessName": "Shopping Station",
+  "legalName": "Shopping Station (Pvt) Ltd",
+  "domain": "shoppingstation.grabberpos.com",
+  "vertical": "grocery",
+  "supportedVerticals": ["grocery", "fashion", "general-retail"],
+  "currency": "LKR",
+  "timezone": "Asia/Colombo",
+  "locale": "en-LK",
+  "tax": {
+    "defaultRate": 0,
+    "vatRegistered": false
+  },
+  "branches": [
+    {
+      "name": "Main Branch",
+      "code": "SS-MAIN",
+      "address": "Colombo, Sri Lanka",
+      "phone": "+94 77 123 4567"
+    }
+  ],
+  "features": {
+    "pos": true,
+    "offlinePos": true,
+    "storefront": true,
+    "inventory": true,
+    "warehouses": true,
+    "purchasing": true,
+    "accounting": true,
+    "loyalty": true,
+    "polimPotha": true,
+    "whatsapp": true,
+    "jarvis": true,
+    "restaurant": false,
+    "repairs": false,
+    "hirePurchase": false
+  },
+  "catalogSource": {
+    "type": "woocommerce_csv",
+    "csvPath": "D:/AAA GRABBER/Shopping Station/Products data.csv",
+    "imagesDir": "D:/AAA GRABBER/Shopping Station/SSproduct_images"
+  }
+}

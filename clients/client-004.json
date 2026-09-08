@@ -1,0 +1,47 @@
+{
+  "clientId": "GRB-004",
+  "clientSlug": "wowthings",
+  "businessName": "WowThings",
+  "legalName": "WowThings Wholesale & Retail",
+  "domain": "wowthings.grabberpos.com",
+  "vertical": "general-retail",
+  "supportedVerticals": ["general-retail", "wholesale"],
+  "currency": "LKR",
+  "timezone": "Asia/Colombo",
+  "locale": "en-LK",
+  "tax": {
+    "defaultRate": 0,
+    "vatRegistered": false
+  },
+  "branches": [
+    {
+      "name": "Main Wholesale Hub",
+      "code": "WOW-MAIN",
+      "address": "Colombo, Sri Lanka",
+      "phone": "+94 77 444 8888"
+    }
+  ],
+  "features": {
+    "pos": true,
+    "offlinePos": true,
+    "storefront": true,
+    "inventory": true,
+    "warehouses": true,
+    "wholesalePricing": true,
+    "customerGroups": true,
+    "quotations": true,
+    "accounting": true,
+    "loyalty": true,
+    "polimPotha": true,
+    "whatsapp": true,
+    "jarvis": true,
+    "restaurant": false,
+    "repairs": false,
+    "hirePurchase": false
+  },
+  "catalogSource": {
+    "type": "mypoz_csv",
+    "csvPath": "D:/AAA GRABBER/WowThings/products_export_20260829_165801.csv",
+    "imagesDir": "D:/AAA GRABBER/WowThings/wowproduct_images"
+  }
+}

@@ -2,6 +2,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   serverExternalPackages: ['better-sqlite3', 'node-thermal-printer', 'pdf-lib'],
 };

@@ -37,6 +37,7 @@
     "release:gate-agent": "node scripts/release-gate-agent.mjs",
     "release:gate": "node scripts/release-gate.mjs all",
     "client:migrate": "node scripts/migrate-client-catalog.mjs",
+    "client:import": "node scripts/import-client-catalog.mjs",
     "ops:sync-env": "node scripts/sync-vercel-env.mjs",
     "ops:inspect-db": "node scripts/inspect-db-tables.mjs",
     "seed:vertical": "tsx scripts/seed-vertical.ts",
