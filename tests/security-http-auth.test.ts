@@ -76,6 +76,20 @@ describe('security HTTP auth — middleware (garbage cookie)', () => {
     const res = await hit('/api/promotions/evaluate-cart');
     expect(res.status).toBe(200);
   });
+
+  it('allows public company leads, promotions, payments, and identity through middleware in production', async () => {
+    for (const path of [
+      '/api/company/leads',
+      '/api/promotions/public',
+      '/api/payments/methods',
+      '/api/payments/payhere/init',
+      '/api/installation/identity',
+      '/api/ops/health',
+    ]) {
+      const res = await hit(path);
+      expect(res.status, `Public path ${path} should not be blocked with 401`).toBe(200);
+    }
+  });
 });
 
 describe('security HTTP auth — WhatsApp send / seed / cron / PayHere', () => {

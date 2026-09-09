@@ -23,27 +23,6 @@ export function resolveDirectDatabaseUrl(env = process.env) {
   const url = resolveDatabaseUrl(env);
   if (!url) return null;
 
-  if (/db\.[^.]+\.supabase\.co/i.test(url) && !url.includes('pooler')) {
-    return url;
-  }
-
-  try {
-    const parsed = new URL(url.replace(/^postgresql:\/\//, 'https://'));
-    if (parsed.hostname.includes('pooler.supabase.com')) {
-      const user = decodeURIComponent(parsed.username);
-      const ref = user.includes('.') ? user.split('.').slice(1).join('.') : null;
-      if (ref) {
-        const password = decodeURIComponent(parsed.password);
-        return `postgresql://postgres:${encodeURIComponent(password)}@db.${ref}.supabase.co:5432/postgres`;
-      }
-    }
-    if (parsed.hostname.startsWith('db.') && parsed.hostname.endsWith('.supabase.co')) {
-      return url;
-    }
-  } catch {
-    /* ignore */
-  }
-
   return url;
 }
 

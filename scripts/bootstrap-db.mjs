@@ -47,11 +47,15 @@ function run(label, cmd, cmdArgs = []) {
   }
 }
 
-const migrations = [
-  'drizzle/migrations/0000_clever_gateway.sql',
-  'drizzle/migrations/0001_business_os_align.sql',
-  'drizzle/migrations/0002_legacy_column_canonicalization.sql',
-];
+import fs from 'fs';
+import path from 'path';
+
+const migrationsDir = path.resolve('drizzle/migrations');
+const migrations = fs
+  .readdirSync(migrationsDir)
+  .filter((f) => f.endsWith('.sql'))
+  .sort()
+  .map((f) => `drizzle/migrations/${f}`);
 
 for (const file of migrations) {
   run(`Apply ${file}`, 'node', ['scripts/apply-sql-migration.mjs', file]);
