@@ -11,7 +11,8 @@ RUN apk add --no-cache libc6-compat
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+ENV NODE_ENV=development
+RUN npm ci --include=dev
 
 # 3. Builder Stage
 FROM base AS builder
@@ -22,6 +23,11 @@ COPY . .
 # Environment build variables
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/build_db"
+ENV NEXT_PUBLIC_SUPABASE_URL="https://placeholder.supabase.co"
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder"
+ENV AUTH_SECRET="build_time_placeholder_secret_32chars_long_minimum"
+ENV CRON_SECRET="build_time_placeholder_cron_secret"
 
 RUN npm run build
 
