@@ -41,20 +41,22 @@ export default function StaffSettingsPage() {
     try {
       setLoading(true);
       const [staffRes, brRes, whRes] = await Promise.all([
-        fetch('/api/settings/staff'),
+        fetch('/api/settings/staff').catch(() => null),
         fetch('/api/branches').catch(() => null),
         fetch('/api/warehouses').catch(() => null),
       ]);
 
-      const staffData = await staffRes.json();
-      if (staffData.success) setStaff(staffData.staff || []);
+      if (staffRes && staffRes.ok) {
+        const staffData = await staffRes.json();
+        if (staffData.success) setStaff(staffData.staff || []);
+      }
 
-      if (brRes) {
+      if (brRes && brRes.ok) {
         const brData = await brRes.json();
         if (brData.success) setBranches(brData.branches || []);
       }
 
-      if (whRes) {
+      if (whRes && whRes.ok) {
         const whData = await whRes.json();
         if (whData.success) setWarehouses(whData.warehouses || []);
       }

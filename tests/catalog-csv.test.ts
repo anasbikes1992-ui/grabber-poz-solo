@@ -54,4 +54,26 @@ describe('catalog CSV import/export parity', () => {
   it('rejects empty CSV', () => {
     expect(() => assertCsvSize('   ')).toThrow(/empty/i);
   });
+
+  it('handles WooCommerce headers and auto-generates missing SKUs', () => {
+    const wcCsv = `Title,Categories,RegularPrice,Quantity\nOctopus Balloon,Party,450.00,10\nSea Horse Balloon,Party,550.00,15`;
+    const rows = parseProductCsv(wcCsv);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].name).toBe('Octopus Balloon');
+    expect(rows[0].salePrice).toBe(450);
+    expect(rows[0].sku).toBe('GEN-00001');
+    expect(rows[1].sku).toBe('GEN-00002');
+  });
+
+  it('marks duplicate SKUs within the same CSV as COLLISION during validation', async () => {
+    const { validateImportRows } = await import('../src/lib/catalog/product-import');
+    const rows = [
+      { name: 'Octopus Foil Balloon', sku: '8909', costPrice: 0, salePrice: 0, initialStock: 0 },
+      { name: 'Sea Horse Foil Balloons', sku: '8909', costPrice: 0, salePrice: 0, initialStock: 0 },
+    ];
+    const preview = await validateImportRows(rows);
+    expect(preview).toHaveLength(2);
+    expect(preview[1].status).toBe('COLLISION');
+    expect(preview[1].note).toContain('Duplicate SKU in CSV');
+  });
 });

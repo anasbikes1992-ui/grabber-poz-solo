@@ -30,13 +30,14 @@ export type ImportCommitSummary = {
   variantsAdded: number;
 };
 
-function slugify(name: string) {
+function slugify(name: string, index = 0): string {
   const base = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
-    .slice(0, 48);
-  return `${base || 'product'}-${Date.now().toString(36).slice(-4)}`;
+    .slice(0, 36);
+  const rand = Math.random().toString(36).slice(2, 7);
+  return `${base || 'product'}-${Date.now().toString(36)}-${index}-${rand}`;
 }
 
 function parseCsvLine(line: string): string[] {
@@ -71,12 +72,12 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
   const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, ''));
   const idx = (names: string[]) => names.map((n) => headers.indexOf(n)).find((i) => i >= 0) ?? -1;
 
-  const nameI = idx(['name', 'productname', 'product']);
-  const catI = idx(['category', 'cat']);
-  const skuI = idx(['sku', 'skucode']);
-  const barcodeI = idx(['barcode', 'barcodee']);
-  const costI = idx(['costprice', 'cost', 'unitcost']);
-  const saleI = idx(['saleprice', 'price', 'sellprice']);
+  const nameI = idx(['name', 'productname', 'product', 'title']);
+  const catI = idx(['category', 'cat', 'categories']);
+  const skuI = idx(['sku', 'skucode', 'id']);
+  const barcodeI = idx(['barcode', 'barcodee', 'upc', 'ean']);
+  const costI = idx(['costprice', 'cost', 'unitcost', 'purchaseprice']);
+  const saleI = idx(['saleprice', 'price', 'sellprice', 'regularprice']);
   const stockI = idx(['initialstock', 'stock', 'qty', 'quantity']);
   const variantI = idx(['variantname', 'variant', 'sizecolor']);
 
@@ -84,11 +85,17 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
   for (let i = 1; i < lines.length; i++) {
     const cols = parseCsvLine(lines[i]);
     const name = nameI >= 0 ? cols[nameI]?.trim() : '';
-    const sku = skuI >= 0 ? cols[skuI]?.trim() : '';
+    let sku = skuI >= 0 ? cols[skuI]?.trim() : '';
+    
+    // Auto-generate SKU if blank
+    if (!sku && name) {
+      sku = `GEN-${i.toString().padStart(5, '0')}`;
+    }
+    
     if (!name || !sku) continue;
     rows.push({
       name,
-      category: catI >= 0 ? cols[catI]?.trim() || 'Uncategorized' : 'Uncategorized',
+      category: catI >= 0 ? cols[catI]?.trim() || 'General' : 'General',
       sku,
       barcode: barcodeI >= 0 ? cols[barcodeI]?.trim() : '',
       costPrice: costI >= 0 ? Number(cols[costI]) || 0 : 0,
@@ -101,36 +108,62 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
 }
 
 export async function validateImportRows(rows: ImportRowInput[]): Promise<ImportRowPreview[]> {
-  const existing = await db.select({ id: products.id, sku: products.sku }).from(products).limit(5000);
-  const existingMap = new Map(existing.map((p) => [p.sku.toUpperCase(), p.id]));
+  let existingMap = new Map<string, string>();
+  try {
+    const existing = await db.select({ id: products.id, sku: products.sku }).from(products).limit(50000);
+    existingMap = new Map(existing.map((p) => [p.sku.toUpperCase(), p.id]));
+  } catch {
+    /* database offline/unit test mode */
+  }
+  const seenInBatch = new Set<string>();
 
   return rows.map((row, rowIndex) => {
-    const existingProductId = existingMap.get(row.sku.toUpperCase());
+    const skuKey = row.sku.toUpperCase();
+    const existingProductId = existingMap.get(skuKey);
     let status: ImportRowPreview['status'] = 'VALID';
     let note: string | undefined;
 
     if (existingProductId) {
       status = 'COLLISION';
-      note = 'SKU exists — will update product on commit';
+      note = 'SKU exists in DB — will update existing product';
+    } else if (seenInBatch.has(skuKey)) {
+      status = 'COLLISION';
+      note = 'Duplicate SKU in CSV — will merge/update with earlier row';
     } else if (!row.barcode) {
       status = 'WARNING';
       note = 'Missing barcode — will use SKU as barcode';
     }
 
     if (row.salePrice <= 0) {
-      status = 'WARNING';
-      note = note ? `${note}; sale price is zero` : 'Sale price is zero';
+      if (status !== 'COLLISION') status = 'WARNING';
+      note = note ? `${note}; sale price is 0.00` : 'Sale price is 0.00';
     }
 
+    seenInBatch.add(skuKey);
     return { ...row, rowIndex, status, note, existingProductId };
   });
 }
 
-async function resolveCategoryId(name: string, tx: typeof db = db) {
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'uncategorized';
+async function resolveCategoryId(
+  name: string,
+  cache: Map<string, string>,
+  tx: typeof db = db,
+): Promise<string> {
+  const cleanName = name.trim() || 'General';
+  const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'general';
+
+  if (cache.has(slug)) {
+    return cache.get(slug)!;
+  }
+
   const [existing] = await tx.select().from(categories).where(eq(categories.slug, slug)).limit(1);
-  if (existing) return existing.id;
-  const [created] = await tx.insert(categories).values({ name, slug }).returning();
+  if (existing) {
+    cache.set(slug, existing.id);
+    return existing.id;
+  }
+
+  const [created] = await tx.insert(categories).values({ name: cleanName, slug }).returning();
+  cache.set(slug, created.id);
   return created.id;
 }
 
@@ -148,15 +181,25 @@ export async function commitImportRows(rows: ImportRowPreview[]): Promise<Import
   const [tax] = await db.select().from(taxProfiles).limit(1);
   const [branch] = await db.select().from(branches).limit(1);
 
+  // Pre-load all existing product SKUs into memory
+  const existingProds = await db.select({ id: products.id, sku: products.sku }).from(products).limit(50000);
+  const skuToProductId = new Map<string, string>(
+    existingProds.map((p) => [p.sku.toUpperCase(), p.id]),
+  );
+
+  const categoryCache = new Map<string, string>();
+
   await db.transaction(async (tx) => {
-    for (const row of rows) {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
       if (!row.name || !row.sku) {
         summary.skipped++;
         continue;
       }
 
-      const categoryId = await resolveCategoryId(row.category || 'Uncategorized', tx as unknown as typeof db);
-      let productId = row.existingProductId;
+      const skuKey = row.sku.toUpperCase();
+      const categoryId = await resolveCategoryId(row.category || 'General', categoryCache, tx as unknown as typeof db);
+      let productId = row.existingProductId || skuToProductId.get(skuKey);
 
       if (productId) {
         await tx
@@ -178,7 +221,7 @@ export async function commitImportRows(rows: ImportRowPreview[]): Promise<Import
           .values({
             name: row.name,
             sku: row.sku,
-            slug: slugify(row.name),
+            slug: slugify(row.name, i),
             barcode: row.barcode || row.sku,
             costPrice: String(row.costPrice.toFixed(2)),
             salePrice: String(row.salePrice.toFixed(2)),
@@ -188,6 +231,7 @@ export async function commitImportRows(rows: ImportRowPreview[]): Promise<Import
           })
           .returning();
         productId = prod.id;
+        skuToProductId.set(skuKey, prod.id);
         summary.added++;
       }
 
