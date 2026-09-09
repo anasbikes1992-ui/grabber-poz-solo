@@ -1,5 +1,6 @@
 /**
- * Product import — validate → preview → transactional commit.
+ * GRABBER BUSINESS OS — INTELLIGENT MULTI-PLATFORM PRODUCT IMPORTER
+ * Supports WooCommerce, Shopify, MyPoz, POSLK, Excel, and Standard Grabber CSV exports.
  */
 import { and, eq } from 'drizzle-orm';
 import { db, branches, categories, products, productVariants, stockBalances, taxProfiles } from '@/db';
@@ -13,6 +14,10 @@ export type ImportRowInput = {
   salePrice: number;
   initialStock: number;
   variantName?: string;
+  imageUrl?: string;
+  description?: string;
+  reorderLevel?: number;
+  isActive?: boolean;
 };
 
 export type ImportRowPreview = ImportRowInput & {
@@ -40,7 +45,7 @@ function slugify(name: string, index = 0): string {
   return `${base || 'product'}-${Date.now().toString(36)}-${index}-${rand}`;
 }
 
-function parseCsvLine(line: string): string[] {
+function parseCsvLine(line: string, delimiter = ','): string[] {
   const out: string[] = [];
   let cur = '';
   let inQuotes = false;
@@ -50,7 +55,7 @@ function parseCsvLine(line: string): string[] {
       inQuotes = !inQuotes;
       continue;
     }
-    if (ch === ',' && !inQuotes) {
+    if (ch === delimiter && !inQuotes) {
       out.push(cur.trim());
       cur = '';
       continue;
@@ -61,6 +66,12 @@ function parseCsvLine(line: string): string[] {
   return out;
 }
 
+function cleanHeaderKey(h: string): string {
+  return h
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
 export function parseProductCsv(csvText: string): ImportRowInput[] {
   const lines = csvText
     .replace(/^\uFEFF/, '')
@@ -69,41 +80,129 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
     .filter(Boolean);
   if (lines.length < 2) return [];
 
-  const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, ''));
-  const idx = (names: string[]) => names.map((n) => headers.indexOf(n)).find((i) => i >= 0) ?? -1;
+  // Determine separator (tab or comma)
+  const firstLine = lines[0];
+  const tabCount = (firstLine.match(/\t/g) || []).length;
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const delimiter = tabCount > commaCount ? '\t' : ',';
+  const headers = parseCsvLine(firstLine, delimiter).map(cleanHeaderKey);
 
-  const nameI = idx(['name', 'productname', 'product', 'title']);
-  const catI = idx(['category', 'cat', 'categories']);
-  const skuI = idx(['sku', 'skucode', 'id']);
-  const barcodeI = idx(['barcode', 'barcodee', 'upc', 'ean']);
-  const costI = idx(['costprice', 'cost', 'unitcost', 'purchaseprice']);
-  const saleI = idx(['saleprice', 'price', 'sellprice', 'regularprice']);
-  const stockI = idx(['initialstock', 'stock', 'qty', 'quantity']);
-  const variantI = idx(['variantname', 'variant', 'sizecolor']);
+  const idx = (aliases: string[]) => {
+    const cleanAliases = aliases.map(cleanHeaderKey);
+    return headers.findIndex((h) => cleanAliases.includes(h));
+  };
+
+  // Comprehensive multi-platform alias matchers
+  const nameI = idx(['name', 'productname', 'product', 'title', 'posttitle', 'itemname', 'item']);
+  const skuI = idx(['sku', 'skucode', 'itemcode', 'productcode', 'code', 'variantsku']);
+  const idI = idx(['id', 'productid', 'postid', 'itemid']);
+  const barcodeI = idx(['gtinupceanorisbn', 'gtin', 'upc', 'ean', 'isbn', 'barcode', 'barcodee', 'itembarcode', 'barcodevalue']);
+  const regPriceI = idx(['regularprice', 'price', 'retailprice', 'standardprice', 'msrp', 'unitprice']);
+  const salePriceI = idx(['saleprice', 'specialprice', 'sellprice', 'discountedprice', 'promoprice']);
+  const costI = idx(['costprice', 'cost', 'unitcost', 'purchaseprice', 'buyprice', 'supplierprice']);
+  const stockI = idx(['stock', 'initialstock', 'quantity', 'qty', 'stockquantity', 'inventory', 'onhand']);
+  const inStockI = idx(['instock', 'stockstatus', 'availability']);
+  const catI = idx(['categories', 'category', 'productcategory', 'itemcategory', 'cat', 'department', 'dept', 'collection']);
+  const imgI = idx(['images', 'imageurl', 'image', 'featuredimage', 'imagesrc', 'photourl', 'thumbnail']);
+  const descI = idx(['description', 'productdescription', 'bodyhtml', 'details', 'fulltext']);
+  const shortDescI = idx(['shortdescription', 'summary', 'excerpt', 'tagline']);
+  const lowStockI = idx(['lowstockamount', 'reorderlevel', 'minstock', 'minimumquantity', 'reorderpoint']);
+  const pubI = idx(['published', 'isactive', 'status', 'visible', 'active', 'visibilityincatalog']);
+  const variantI = idx(['variantname', 'variant', 'sizecolor', 'size', 'color', 'attributes', 'attribute1value', 'type']);
 
   const rows: ImportRowInput[] = [];
+
   for (let i = 1; i < lines.length; i++) {
-    const cols = parseCsvLine(lines[i]);
+    const cols = parseCsvLine(lines[i], delimiter);
     const name = nameI >= 0 ? cols[nameI]?.trim() : '';
     let sku = skuI >= 0 ? cols[skuI]?.trim() : '';
-    
-    // Auto-generate SKU if blank
-    if (!sku && name) {
-      sku = `GEN-${i.toString().padStart(5, '0')}`;
+    const idVal = idI >= 0 ? cols[idI]?.trim() : '';
+
+    // If SKU is empty, fallback to ID or auto-generated sequence
+    if (!sku) {
+      if (idVal) {
+        sku = `WC-${idVal}`;
+      } else if (name) {
+        sku = `GEN-${i.toString().padStart(5, '0')}`;
+      }
     }
-    
+
     if (!name || !sku) continue;
+
+    // Price Resolution: prefer SalePrice if > 0, else RegularPrice
+    const regPrice = regPriceI >= 0 ? Number(cols[regPriceI]?.replace(/[^0-9.]/g, '')) || 0 : 0;
+    const salePrice = salePriceI >= 0 ? Number(cols[salePriceI]?.replace(/[^0-9.]/g, '')) || 0 : 0;
+    const effectivePrice = salePrice > 0 ? salePrice : regPrice > 0 ? regPrice : 0;
+
+    // Cost Price
+    const costPrice = costI >= 0 ? Number(cols[costI]?.replace(/[^0-9.]/g, '')) || 0 : 0;
+
+    // Stock Quantity Resolution
+    let initialStock = stockI >= 0 ? Number(cols[stockI]?.replace(/[^0-9.-]/g, '')) || 0 : 0;
+    if (initialStock <= 0 && inStockI >= 0) {
+      const inStockVal = cols[inStockI]?.toLowerCase();
+      if (inStockVal === '1' || inStockVal === 'yes' || inStockVal === 'instock') {
+        initialStock = 1; // Mark at least 1 in stock if flag says in stock
+      }
+    }
+
+    // Category Resolution (extract primary if comma-separated or breadcrumb)
+    let category = 'General';
+    if (catI >= 0 && cols[catI]?.trim()) {
+      const rawCat = cols[catI].trim();
+      const firstCat = rawCat.split(/[,>|]/)[0]?.trim();
+      if (firstCat) category = firstCat;
+    }
+
+    // Image URL Resolution (extract first valid URL)
+    let imageUrl: string | undefined;
+    if (imgI >= 0 && cols[imgI]?.trim()) {
+      const rawImgs = cols[imgI].trim();
+      const firstImg = rawImgs.split(/[,|]/)[0]?.trim();
+      if (firstImg && /^https?:\/\//i.test(firstImg)) {
+        imageUrl = firstImg;
+      }
+    }
+
+    // Description Resolution
+    const desc = descI >= 0 ? cols[descI]?.trim() : '';
+    const shortDesc = shortDescI >= 0 ? cols[shortDescI]?.trim() : '';
+    const description = desc || shortDesc || undefined;
+
+    // Reorder Level / Low stock
+    const reorderLevel = lowStockI >= 0 ? Math.max(1, Number(cols[lowStockI]) || 10) : 10;
+
+    // Published / Active status
+    let isActive = true;
+    if (pubI >= 0 && cols[pubI]?.trim()) {
+      const pubVal = cols[pubI].trim().toLowerCase();
+      if (['0', 'no', 'false', 'draft', 'hidden', 'private'].includes(pubVal)) {
+        isActive = false;
+      }
+    }
+
+    // Barcode
+    const barcode = barcodeI >= 0 ? cols[barcodeI]?.trim() : '';
+
+    // Variant
+    const variantName = variantI >= 0 ? cols[variantI]?.trim() : undefined;
+
     rows.push({
       name,
-      category: catI >= 0 ? cols[catI]?.trim() || 'General' : 'General',
+      category,
       sku,
-      barcode: barcodeI >= 0 ? cols[barcodeI]?.trim() : '',
-      costPrice: costI >= 0 ? Number(cols[costI]) || 0 : 0,
-      salePrice: saleI >= 0 ? Number(cols[saleI]) || 0 : 0,
-      initialStock: stockI >= 0 ? Number(cols[stockI]) || 0 : 0,
-      variantName: variantI >= 0 ? cols[variantI]?.trim() : undefined,
+      barcode,
+      costPrice,
+      salePrice: effectivePrice,
+      initialStock: Math.max(0, initialStock),
+      variantName: variantName || undefined,
+      imageUrl,
+      description,
+      reorderLevel,
+      isActive,
     });
   }
+
   return rows;
 }
 
@@ -209,9 +308,12 @@ export async function commitImportRows(rows: ImportRowPreview[]): Promise<Import
             barcode: row.barcode || row.sku,
             costPrice: String(row.costPrice.toFixed(2)),
             salePrice: String(row.salePrice.toFixed(2)),
+            imageUrl: row.imageUrl || undefined,
+            description: row.description || undefined,
+            reorderLevel: row.reorderLevel ?? 10,
             categoryId,
             updatedAt: new Date(),
-            isActive: true,
+            isActive: row.isActive ?? true,
           })
           .where(eq(products.id, productId));
         summary.updated++;
@@ -225,9 +327,12 @@ export async function commitImportRows(rows: ImportRowPreview[]): Promise<Import
             barcode: row.barcode || row.sku,
             costPrice: String(row.costPrice.toFixed(2)),
             salePrice: String(row.salePrice.toFixed(2)),
+            imageUrl: row.imageUrl || null,
+            description: row.description || null,
+            reorderLevel: row.reorderLevel ?? 10,
             taxProfileId: tax?.id || null,
             categoryId,
-            isActive: true,
+            isActive: row.isActive ?? true,
           })
           .returning();
         productId = prod.id;

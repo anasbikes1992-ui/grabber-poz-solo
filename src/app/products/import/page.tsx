@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle, ArrowRight, Download, RefreshCw, Check } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle, ArrowRight, Download, RefreshCw, Check, Image as ImageIcon, Tag, Barcode as BarcodeIcon } from 'lucide-react';
 import Link from 'next/link';
 
 interface ParsedRow {
@@ -13,6 +13,10 @@ interface ParsedRow {
   salePrice: number;
   initialStock: number;
   variantName?: string;
+  imageUrl?: string;
+  description?: string;
+  reorderLevel?: number;
+  isActive?: boolean;
   status: 'VALID' | 'WARNING' | 'COLLISION';
   note?: string;
   rowIndex: number;
@@ -75,7 +79,7 @@ export default function ProductImportPage() {
 
   const handleDownloadTemplate = () => {
     const csvContent =
-      'data:text/csv;charset=utf-8,Name,Category,SKU,Barcode,CostPrice,SalePrice,InitialStock,VariantName\nCotton Casual Shirt,Apparel,CTN-SHT-01,"8901112223334",2500.00,4500.00,20,Size M / White\n';
+      'data:text/csv;charset=utf-8,Name,Category,SKU,Barcode,CostPrice,SalePrice,InitialStock,VariantName,Images,Description\nCotton Casual Shirt,Apparel,CTN-SHT-01,"8901112223334",2500.00,4500.00,20,Size M / White,https://images.unsplash.com/photo-1596755094514-f87e34085b2c,"Premium 100% cotton casual shirt"\n';
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -89,7 +93,7 @@ export default function ProductImportPage() {
   const collisionCount = previewRows.filter((r) => r.status === 'COLLISION').length;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto p-2 sm:p-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -98,13 +102,13 @@ export default function ProductImportPage() {
             </Link>
           </div>
           <h2 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <span>3-Stage Bulk Product Excel Importer</span>
+            <span>Intelligent Multi-Platform Product Importer</span>
             <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-semibold border border-emerald-500/20">
-              Validate → Commit
+              WooCommerce · Shopify · Excel · POS
             </span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Upload CSV with server-side SKU collision detection and transactional commit.
+            Auto-detects 40+ column headers, auto-maps images, descriptions, categories, and handles duplicate SKU upserts.
           </p>
         </div>
 
@@ -157,7 +161,7 @@ export default function ProductImportPage() {
           <div>
             <h3 className="text-base font-bold text-foreground">Upload your Inventory Spreadsheet</h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-md">
-              Upload a UTF-8 <code className="text-primary font-mono">.csv</code> file matching the template columns below.
+              Upload a UTF-8 <code className="text-primary font-mono">.csv</code> file from WooCommerce, Shopify, MyPoz, POSLK, or Excel.
             </p>
           </div>
 
@@ -176,7 +180,7 @@ export default function ProductImportPage() {
             >
               {isValidating ? 'Validating…' : 'Choose CSV File'}
             </label>
-            <p className="text-[11px] text-muted-foreground">Columns: Name, Category, SKU, Barcode, CostPrice, SalePrice, InitialStock, VariantName</p>
+            <p className="text-[11px] text-muted-foreground">Supports: Name/Title, SKU/ID, Barcode/GTIN, Regular/Sale Price, Stock, Categories, Images, Descriptions</p>
           </div>
         </div>
       )}
@@ -191,7 +195,7 @@ export default function ProductImportPage() {
               <div>
                 <p className="font-bold text-foreground">{fileName}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {fileSize} · {previewRows.length} rows · {warningCount} warnings · {collisionCount} SKU updates
+                  {fileSize} · {previewRows.length} rows · {warningCount} warnings · {collisionCount} SKU updates / merges
                 </p>
               </div>
             </div>
@@ -225,9 +229,10 @@ export default function ProductImportPage() {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
-                  <th scope="col" className="pb-2.5 font-medium">Validation</th>
-                  <th scope="col" className="pb-2.5 font-medium">Product Name</th>
-                  <th scope="col" className="pb-2.5 font-medium">SKU</th>
+                  <th scope="col" className="pb-2.5 font-medium">Status</th>
+                  <th scope="col" className="pb-2.5 font-medium">Item</th>
+                  <th scope="col" className="pb-2.5 font-medium">Category</th>
+                  <th scope="col" className="pb-2.5 font-medium">SKU / Barcode</th>
                   <th scope="col" className="pb-2.5 font-medium text-right">Price</th>
                   <th scope="col" className="pb-2.5 font-medium text-right">Stock</th>
                 </tr>
@@ -242,22 +247,63 @@ export default function ProductImportPage() {
                         </span>
                       )}
                       {row.status === 'WARNING' && (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold inline-flex items-center gap-1">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold inline-flex items-center gap-1" title={row.note}>
                           <AlertTriangle className="h-3 w-3" aria-hidden="true" /> Warning
                           {row.note ? <span className="sr-only">: {row.note}</span> : null}
                         </span>
                       )}
                       {row.status === 'COLLISION' && (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold inline-flex items-center gap-1">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold inline-flex items-center gap-1" title={row.note}>
                           <RefreshCw className="h-3 w-3" aria-hidden="true" /> Update
                           {row.note ? <span className="sr-only">: {row.note}</span> : null}
                         </span>
                       )}
                     </td>
-                    <td className="py-2.5 font-semibold">{row.name}</td>
-                    <td className="py-2.5 font-mono text-primary">{row.sku}</td>
-                    <td className="py-2.5 text-right font-mono">{row.salePrice.toFixed(2)}</td>
-                    <td className="py-2.5 text-right">{row.initialStock}</td>
+                    <td className="py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        {row.imageUrl ? (
+                          <img
+                            src={row.imageUrl}
+                            alt=""
+                            className="w-8 h-8 rounded-lg object-cover bg-secondary border border-border/50 shrink-0"
+                            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-secondary/80 border border-border/40 flex items-center justify-center text-muted-foreground shrink-0">
+                            <ImageIcon className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground truncate max-w-xs">{row.name}</p>
+                          {row.description && (
+                            <p className="text-[10px] text-muted-foreground truncate max-w-xs">{row.description.replace(/<[^>]*>?/gm, '')}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-2.5">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-[10px] text-muted-foreground">
+                        <Tag className="w-2.5 h-2.5" />
+                        <span>{row.category}</span>
+                      </span>
+                    </td>
+                    <td className="py-2.5 font-mono">
+                      <div className="text-primary font-bold">{row.sku}</div>
+                      {row.barcode && row.barcode !== row.sku && (
+                        <div className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <BarcodeIcon className="w-2.5 h-2.5" />
+                          <span>{row.barcode}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-2.5 text-right font-mono font-bold text-foreground">
+                      Rs. {row.salePrice.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${row.initialStock > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>
+                        {row.initialStock}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
