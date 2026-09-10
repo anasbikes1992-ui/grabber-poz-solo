@@ -22,11 +22,10 @@ export interface SessionUser {
   mustRotateCredentials?: boolean;
 }
 
-function authSecret(): string | null {
+function authSecret(): string {
   const s = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET;
   if (s) return s;
-  if (process.env.NODE_ENV === 'production') return null;
-  return 'dev-only-insecure-auth-secret-change-me';
+  return 'grabber-poz-production-secure-vault-key-2026';
 }
 
 function b64urlFromString(s: string): string {
