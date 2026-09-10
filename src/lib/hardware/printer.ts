@@ -182,4 +182,64 @@ export class ESCPOSPrinterController {
     bytes.push(0x1d, 0x56, 0x41, 0x00);
     return new Uint8Array(bytes);
   }
+
+  /**
+   * Directly prints raw ESC/POS binary buffer via Web Bluetooth API (SPP / Thermal Printer Service).
+   */
+  public static async printViaBluetooth(buffer: Uint8Array): Promise<{ success: boolean; error?: string }> {
+    if (typeof navigator === 'undefined' || !('bluetooth' in navigator)) {
+      return { success: false, error: 'Web Bluetooth API is not supported in this browser environment.' };
+    }
+    try {
+      const nav = navigator as any;
+      const device = await nav.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', 0xffe0, 0x18f0],
+      });
+      const server = await device.gatt.connect();
+      const services = await server.getPrimaryServices();
+      if (!services.length) throw new Error('No GATT services found on Bluetooth printer.');
+      
+      const chars = await services[0].getCharacteristics();
+      const writeChar = chars.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
+      if (!writeChar) throw new Error('No writable characteristic found on printer.');
+
+      // Chunk in 128-byte segments
+      const chunkSize = 128;
+      for (let i = 0; i < buffer.length; i += chunkSize) {
+        const chunk = buffer.slice(i, i + chunkSize);
+        await writeChar.writeValue(chunk);
+      }
+      return { success: true };
+    } catch (err: unknown) {
+      return { success: false, error: (err as Error).message || 'Bluetooth print failed' };
+    }
+  }
+
+  /**
+   * Directly prints raw ESC/POS binary buffer via WebUSB API.
+   */
+  public static async printViaUSB(buffer: Uint8Array): Promise<{ success: boolean; error?: string }> {
+    if (typeof navigator === 'undefined' || !('usb' in navigator)) {
+      return { success: false, error: 'WebUSB API is not supported in this browser environment.' };
+    }
+    try {
+      const nav = navigator as any;
+      const device = await nav.usb.requestDevice({ filters: [] });
+      await device.open();
+      if (device.configuration === null) await device.selectConfiguration(1);
+      await device.claimInterface(0);
+
+      const endpoint = device.configuration.interfaces[0].alternate.endpoints.find(
+        (e: any) => e.direction === 'out'
+      );
+      if (!endpoint) throw new Error('No OUT endpoint found on USB printer.');
+
+      await device.transferOut(endpoint.endpointNumber, buffer);
+      return { success: true };
+    } catch (err: unknown) {
+      return { success: false, error: (err as Error).message || 'USB print failed' };
+    }
+  }
 }
+

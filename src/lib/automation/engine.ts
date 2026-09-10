@@ -14,7 +14,10 @@ export type AutomationEvent =
   | 'CUSTOMER_CREATED'
   | 'REPAIR_CREATED'
   | 'REPAIR_STATUS_CHANGED'
-  | 'REPAIR_READY';
+  | 'REPAIR_READY'
+  | 'ABANDONED_CART_RECOVER'
+  | 'POST_PURCHASE_REVIEW'
+  | 'APPOINTMENT_REMINDER';
 
 export type AutomationContext = Record<string, unknown>;
 

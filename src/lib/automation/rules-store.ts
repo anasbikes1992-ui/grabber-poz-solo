@@ -10,7 +10,10 @@ export type AutomationRule = {
     | 'CUSTOMER_CREATED'
     | 'REPAIR_CREATED'
     | 'REPAIR_STATUS_CHANGED'
-    | 'REPAIR_READY';
+    | 'REPAIR_READY'
+    | 'ABANDONED_CART_RECOVER'
+    | 'POST_PURCHASE_REVIEW'
+    | 'APPOINTMENT_REMINDER';
   active: boolean;
   condition?: { channel?: string; minTotal?: number };
   action:
@@ -39,6 +42,39 @@ const DEFAULT_RULES: AutomationRule[] = [
       type: 'WHATSAPP_TEXT',
       to: '{{customerPhone}}',
       text: 'Hi {{customerName}}, your order {{orderNumber}} for LKR {{grandTotal}} is confirmed. Thank you!',
+    },
+  },
+  {
+    id: 'auto_abandoned_cart_whatsapp',
+    name: 'Abandoned cart recovery WhatsApp (1hr)',
+    event: 'ABANDONED_CART_RECOVER',
+    active: true,
+    action: {
+      type: 'WHATSAPP_TEXT',
+      to: '{{customerPhone}}',
+      text: 'Hi! You left some items in your cart. Use code COMEBACK5 for 5% off your order: {{restoreUrl}}',
+    },
+  },
+  {
+    id: 'auto_review_invite_whatsapp',
+    name: 'Post-purchase review invite WhatsApp (48hr)',
+    event: 'POST_PURCHASE_REVIEW',
+    active: true,
+    action: {
+      type: 'WHATSAPP_TEXT',
+      to: '{{customerPhone}}',
+      text: 'Hi {{customerName}}! How was your recent order {{orderNumber}}? We would love your feedback: {{reviewUrl}}',
+    },
+  },
+  {
+    id: 'auto_appointment_reminder_whatsapp',
+    name: 'Appointment reminder WhatsApp (24hr)',
+    event: 'APPOINTMENT_REMINDER',
+    active: true,
+    action: {
+      type: 'WHATSAPP_TEXT',
+      to: '{{customerPhone}}',
+      text: 'Reminder: You have an appointment for {{service}} tomorrow at {{time}}. See you soon!',
     },
   },
   {

@@ -28,6 +28,8 @@ export default function BarcodeGeneratorPage() {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [items, setItems] = useState<LabelItem[]>([]);
   const [labelSize, setLabelSize] = useState<'A4_24UP' | 'THERMAL_50X30'>('THERMAL_50X30');
+  const [storeName, setStoreName] = useState('Grabber Store');
+  const [currencySymbol, setCurrencySymbol] = useState('LKR');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -157,6 +159,16 @@ export default function BarcodeGeneratorPage() {
             >
               Load matrix variants
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                filteredCatalog.forEach((c) => addItem(c));
+              }}
+              disabled={loading || filteredCatalog.length === 0}
+              className="px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-bold text-[11px]"
+            >
+              Add all ({filteredCatalog.length})
+            </button>
           </div>
           <div className="max-h-48 overflow-y-auto space-y-1">
             {loading && <p className="text-muted-foreground">Loading catalog…</p>}
@@ -174,6 +186,29 @@ export default function BarcodeGeneratorPage() {
                 <span className="font-mono text-[10px] text-muted-foreground shrink-0">{c.sku}</span>
               </button>
             ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-muted-foreground block mb-1 font-medium text-[11px]">Store Header</label>
+              <input
+                type="text"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                placeholder="e.g. GRABBER RETAIL"
+                className="w-full px-2.5 py-1.5 rounded-xl bg-secondary border border-border text-foreground font-medium text-xs"
+              />
+            </div>
+            <div>
+              <label className="text-muted-foreground block mb-1 font-medium text-[11px]">Currency</label>
+              <input
+                type="text"
+                value={currencySymbol}
+                onChange={(e) => setCurrencySymbol(e.target.value)}
+                placeholder="LKR / USD / EUR"
+                className="w-full px-2.5 py-1.5 rounded-xl bg-secondary border border-border text-foreground font-medium text-xs"
+              />
+            </div>
           </div>
 
           <div>
@@ -224,15 +259,15 @@ export default function BarcodeGeneratorPage() {
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground py-12 text-center">Select products to preview labels.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 print:grid-cols-3 print:gap-2">
               {items.flatMap((item) =>
                 Array.from({ length: item.quantity }).map((_, idx) => (
                   <div
                     key={`${item.id}_${idx}`}
-                    className="p-3 rounded-xl bg-white text-slate-900 border border-slate-300 shadow-sm flex flex-col justify-between items-center text-center text-xs aspect-[5/3]"
+                    className="p-3 rounded-xl bg-white text-slate-900 border border-slate-300 shadow-sm flex flex-col justify-between items-center text-center text-xs aspect-[5/3] break-inside-avoid print:shadow-none print:border-black"
                   >
                     <div className="w-full">
-                      <p className="font-extrabold text-[10px] truncate uppercase tracking-tight">GRABBER RETAIL</p>
+                      <p className="font-extrabold text-[10px] truncate uppercase tracking-tight">{storeName || 'GRABBER RETAIL'}</p>
                       <p className="font-semibold text-[11px] truncate leading-none mt-0.5">{item.name}</p>
                       <p className="text-[9px] text-slate-600 font-medium">{item.variant}</p>
                     </div>
@@ -246,7 +281,7 @@ export default function BarcodeGeneratorPage() {
                     </div>
                     <div className="w-full flex justify-between items-center border-t border-slate-300 pt-1 font-bold text-[11px]">
                       <span className="text-[9px] text-slate-500 font-medium">Inc. VAT</span>
-                      <span className="text-slate-950">LKR {item.price.toFixed(2)}</span>
+                      <span className="text-slate-950">{currencySymbol} {item.price.toFixed(2)}</span>
                     </div>
                   </div>
                 )),

@@ -19,12 +19,38 @@ async function actor() {
   return session!;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const phone = searchParams.get('phone')?.trim();
+    const q = searchParams.get('q')?.trim()?.toLowerCase();
+
+    if (phone) {
+      const [member] = await db.select().from(loyaltyMembers).where(eq(loyaltyMembers.phone, phone)).limit(1);
+      return NextResponse.json({
+        success: true,
+        member: member
+          ? {
+              id: member.id,
+              name: member.name,
+              phone: member.phone,
+              points: member.points,
+              tier: member.tier,
+              totalSpent: Number(member.totalSpent),
+              lastVisit: member.lastVisitAt,
+            }
+          : null,
+      });
+    }
+
     const members = await db.select().from(loyaltyMembers).orderBy(desc(loyaltyMembers.points)).limit(200);
+    const filtered = q
+      ? members.filter((m) => m.name.toLowerCase().includes(q) || m.phone.includes(q))
+      : members;
+
     return NextResponse.json({
       success: true,
-      members: members.map((m) => ({
+      members: filtered.map((m) => ({
         id: m.id,
         name: m.name,
         phone: m.phone,
