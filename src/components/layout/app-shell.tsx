@@ -12,13 +12,17 @@ function isPublicSurface(pathname: string): boolean {
     pathname === '/store' ||
     pathname === '/login' ||
     pathname === '/adminpoz' ||
-    pathname === '/shop/login'
+    pathname === '/shop' ||
+    pathname === '/track' ||
+    pathname === '/collections'
   ) {
     return true;
   }
   if (/^\/products\/[^/]+$/.test(pathname)) return true;
   if (pathname.startsWith('/shop/')) return true;
   if (pathname.startsWith('/categories/')) return true;
+  if (pathname.startsWith('/track/')) return true;
+  if (pathname.startsWith('/collections/')) return true;
   return false;
 }
 

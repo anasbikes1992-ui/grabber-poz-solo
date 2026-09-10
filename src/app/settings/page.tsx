@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Settings, Download, Database, ShieldCheck, CheckCircle2, FileSpreadsheet, Key, CreditCard, Truck, MessageSquare, Sparkles, Check, RefreshCw, Layers, Building2, Warehouse } from 'lucide-react';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
+import { IntegrationHealthBanner } from '@/components/ui/integration-health-banner';
 
 type BusinessProfile = {
   name: string;
@@ -457,6 +458,8 @@ export default function SettingsPage() {
       {/* TAB 2: API Credentials & Integrations Vault */}
       {activeTab === 'INTEGRATIONS' && (
         <form onSubmit={handleSaveIntegrations} className="space-y-4 text-xs">
+          <IntegrationHealthBanner service="all" />
+
           {/* Payment Gateways */}
           <div className="p-5 rounded-2xl glass-card space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-zinc-800">

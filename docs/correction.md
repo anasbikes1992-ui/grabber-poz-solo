@@ -351,7 +351,7 @@ Full SSOT: [`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md). Canvas: Cursor `product-aud
 | AUD-01 | Gate hub/header/routes by `verticalFlags` | P0 | DONE |
 | AUD-02 | Grocery FEFO / lots / near-expiry UI | P0 | DONE |
 | AUD-03 | Category SEO + sitemap expansion | P0 | DONE |
-| AUD-04 | Credential banners (PayHere/WA/FAL/storage) | P0 | TODO |
+| AUD-04 | Credential banners (PayHere/WA/FAL/storage) | P0 | DONE |
 | AUD-05 | Hybrid POS mode switcher | P1 | TODO |
 | AUD-06 | Restaurant seed_floor + TABLE_SERVICE | P1 | TODO |
 | AUD-07 | Polim create/adjust API | P1 | TODO |

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
 import { POS_MODE_LABELS, PRODUCT_ITEM_TYPE_LABELS } from '@/lib/config/product-item-types';
+import { IntegrationHealthBanner } from '@/components/ui/integration-health-banner';
 
 type Milestone = {
   id: string;
@@ -163,6 +164,8 @@ export default function SetupPage() {
           {progress?.presetLabel ? ` · Preset: ${progress.presetLabel}` : ''}
         </p>
       </div>
+
+      <IntegrationHealthBanner service="all" />
 
       <div className="p-4 rounded-2xl glass-card border border-zinc-800 space-y-2">
         <div className="flex items-center justify-between text-xs">

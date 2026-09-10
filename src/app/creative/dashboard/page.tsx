@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { LayoutDashboard, FileText, Video, Megaphone, ArrowRight, Cpu } from 'lucide-react';
+import { IntegrationHealthBanner } from '@/components/ui/integration-health-banner';
 
 type Stats = {
   projects: number;
@@ -32,6 +33,7 @@ export default function CreativeDashboardPage() {
 
   return (
     <div className="space-y-6">
+      <IntegrationHealthBanner service="creative" />
       <div>
         <h2 className="text-xl font-bold flex items-center gap-2">
           <LayoutDashboard className="h-5 w-5 text-indigo-500" /> Dashboard

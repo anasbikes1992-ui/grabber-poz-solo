@@ -36,7 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=location.pathname;var pub=p==='/'||p==='/store'||p==='/login'||p==='/adminpoz'||p.startsWith('/shop/')||p.startsWith('/categories/')||/^\\/products\\/[^/]+$/.test(p);if(pub){document.documentElement.classList.remove('dark');return;}if(localStorage.getItem('grabber_staff_theme')==='light'){document.documentElement.classList.remove('dark');}}catch(e){}})();`,
+            __html: `(function(){try{var p=location.pathname;var pub=p==='/'||p==='/store'||p==='/login'||p==='/adminpoz'||p==='/shop'||p.startsWith('/shop/')||p.startsWith('/categories/')||p.startsWith('/track')||p.startsWith('/collections')||/^\\/products\\/[^/]+$/.test(p);if(pub){document.documentElement.classList.remove('dark');return;}if(localStorage.getItem('grabber_staff_theme')==='light'){document.documentElement.classList.remove('dark');}}catch(e){}})();`,
           }}
         />
       </head>

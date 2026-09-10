@@ -1,25 +1,37 @@
 # Grabber Business OS — Product Audit
 
-**Date:** 2026-09-10  
-**Scope:** All verticals, SEO, plugins/integrations, gaps & missed opportunities  
-**Canvas:** Cursor canvas `product-audit.canvas.tsx` (open beside chat)  
+**Date:** 2026-09-10 (updated after AUD-01/02/03 ship)  
+**Commit:** [`37486e1`](https://github.com/anasbikes1992-ui/grabber-poz-solo/commit/37486e1)  
+**Canvas:** [product-audit](file:///C:/Users/pc/.cursor/projects/d-GRABBER-POZ-SOLO/canvases/product-audit.canvas.tsx)  
 **Related:** [`correction.md`](./correction.md) · [`ROADMAP.md`](./ROADMAP.md) · [`GTM_MARKETING_PLAN.md`](./GTM_MARKETING_PLAN.md)
 
 ---
 
 ## Executive summary
 
-Core commerce (POS, products, inventory, storefront COD, auth) is **sellable**. Vertical **APIs and pages exist** for repairs, restaurant, HP, appointments, loyalty, wholesale. The largest systemic gap: **`verticalFlags` are not enforced in hub/header/routes** — presets look cosmetic. Grocery has **backend FEFO but no merchant UI**. SEO is strong on product SSR, weak on categories/sitemap coverage. Plugins are mostly real adapters with **env-gated stubs**.
+Core commerce is sellable. **AUD-01–03 are DONE** on `main`: flag-gated hub/nav, Grocery FEFO merchant UI, category SEO + expanded sitemap. Remaining P0 is **AUD-04** (credential banners). Hybrid POS modes and restaurant polish stay P1.
 
 | Area | Score | Verdict |
 |------|------:|---------|
 | Core commerce | 85% | Works |
-| Verticals (avg) | ~66% | Uneven — repair strong, grocery weak |
-| SEO / CMS | ~65% | Product strong; category/local weak |
+| Verticals (avg) | ~78% | Grocery recovered; hybrid still weak |
+| SEO / CMS | ~85% | Category + sitemap shipped (AUD-03) |
 | WhatsApp / automation | ~80% | Code done; operator verify |
 | Jarvis / Agents | ~70% | Live tools; no LLM (JAR-08 deferred) |
 | Creative | ~45% | Pipeline queued; media needs FAL key |
-| Hub UX / flag gating | ~30% | Critical fix |
+| Hub UX / flag gating | ~95% | **AUD-01 DONE** |
+
+---
+
+## Shipped sprints (37486e1)
+
+| ID | Sprint | Evidence |
+|----|--------|----------|
+| AUD-01 | Flag-gated hub/header | `filterToolsByFlags` / `filterModesByFlags`, `app-header`, `/app` |
+| AUD-02 | Grocery FEFO UI | `/grocery`, `/api/grocery/lots`, `/api/grocery/promos`, `tests/grocery-fefo.test.ts` |
+| AUD-03 | Category SEO + sitemap | `buildCategoryMetadata`, `categoryJsonLd`, expanded `sitemap.ts`, `tests/category-seo-sitemap.test.ts` |
+
+**Verification (report):** 71 suites / 467 tests · `next build` green · pushed to `origin/main`.
 
 ---
 
@@ -27,37 +39,23 @@ Core commerce (POS, products, inventory, storefront COD, auth) is **sellable**. 
 
 ### Cross-cutting
 
-1. `/app` and `app-header` ignore `verticalFlags` — every merchant sees every launcher.
-2. Middleware auth-gates staff paths but never checks module flags.
-3. Hybrid preset claims POS mode switcher — **not implemented** in `/pos`.
-4. Two onboarding surfaces (`/setup` vs `/onboarding`) not unified.
+1. ~~Hub/header ignore flags~~ → **FIXED (AUD-01)**
+2. Middleware still does not route-guard by flags (URL deep-links possible) — optional harden
+3. Hybrid POS mode switcher — **not implemented** (AUD-05)
+4. `/setup` vs `/onboarding` — not unified (AUD-10)
 
 ### Per preset
 
 | Preset | Readiness | Works | Needs fix |
 |--------|----------:|-------|-----------|
-| mobilerepair | 88% | Staff + public repairs, estimate, track, HP, appointments | Courier stub; hide unrelated hub items |
-| electronics | 78% | Serials, warranties, repair overlap | Distinct POS IMEI UX |
-| fashion | 85% | Matrix products, barcodes, loyalty, CMS | Category PATCH/DELETE; flag gating |
-| grocery | 35% | FEFO lib, GRN batch/expiry, near-expiry job | **Dedicated lots/FEFO/near-expiry UI** |
-| restaurant | 62% | Floor map, KDS, recipes | Auto seed_floor; TABLE_SERVICE in POS; DELETE |
-| wholesale | 70% | Quotations CRUD + convert, Polim repay | Tier pricing UI; AR aging; Polim create |
-| hybrid | 55% | Module union | POS Retail\|Repair\|Wholesale switcher |
-| full | 60% | Demo all-on | Same module gaps |
-
-### CRUD matrix (flags)
-
-| Flag | Pages | API CRUD | Notes |
-|------|-------|----------|-------|
-| repairs | `/repairs*`, `/shop/repairs*` | Strong | Best vertical |
-| restaurant | `/restaurant`, `/kds` | PATCH ok; weak DELETE | Demo seed |
-| hirePurchase | `/hire-purchase` | Full | |
-| appointments | `/appointments` | Full | |
-| loyalty | `/loyalty` | Full | |
-| wholesale | `/wholesale`, `/quotations` | Full | |
-| grocery | — | Backend only | **UI gap** |
-| whatsapp | `/whatsapp`, automation | Send + rules | |
-| creative | `/creative*` | Generate/approve | Needs FAL |
+| mobilerepair | 90% | Staff + public repairs | Courier stub |
+| electronics | 78% | Serials, warranties | Distinct IMEI POS UX |
+| fashion | 90% | Matrix, barcodes, CMS; hub gated | Category PATCH/DELETE (AUD-08) |
+| grocery | 82% | **FEFO radar, intake, markdowns** | Multi-warehouse polish |
+| restaurant | 62% | Floor map, KDS | Auto seed_floor; TABLE_SERVICE (AUD-06) |
+| wholesale | 70% | Quotations CRUD | Tier pricing; Polim create (AUD-07) |
+| hybrid | 55% | Module union | POS mode switcher (AUD-05) |
+| full | 70% | Demo all-on | Same module gaps |
 
 ---
 
@@ -66,9 +64,9 @@ Core commerce (POS, products, inventory, storefront COD, auth) is **sellable**. 
 | Item | Status |
 |------|--------|
 | Product SSR + OG + JSON-LD | DONE |
-| Sitemap products/categories | PARTIAL — add `/shop`, repair public URLs |
-| Robots | PARTIAL — disallow remaining staff verticals |
-| Category `generateMetadata` | TODO |
+| Category `generateMetadata` + CollectionPage | **DONE (AUD-03)** |
+| Sitemap `/shop`, repairs public, categories, products | **DONE (AUD-03)** |
+| Robots staff disallow completeness | PARTIAL |
 | Collections IA | Confusing redirects |
 | Local SEO `/locations` | Schema helper exists; **no routes** |
 | CMS-driven homepage meta | TODO |
@@ -80,13 +78,12 @@ Core commerce (POS, products, inventory, storefront COD, auth) is **sellable**. 
 
 | Integration | Status | Action |
 |-------------|--------|--------|
-| WhatsApp | Configured in env; live when token set | Meta webhook operator proof |
-| PayHere | Real adapter | Live merchant smoke |
-| Meta CAPI / pixels | Works when token/pixel set | Confirm Purchase events |
-| Koombiyo | Stub | Real API or manual courier status |
-| Creative FAL/Replicate | No keys in env | Set `FAL_KEY` or accept placeholders |
-| Jarvis | Keyword + DB tools | JAR-08 LLM deferred |
-| Agents | 12 live, flag-aware | Update ROADMAP “stub” row |
+| WhatsApp | Configured in env | Meta webhook operator proof |
+| PayHere | Real adapter | Live merchant smoke + **AUD-04 banner** |
+| Meta CAPI / pixels | Works when set | Confirm Purchase events |
+| Koombiyo | Stub | AUD-09 |
+| Creative FAL/Replicate | No keys | Set `FAL_KEY` or banner (AUD-04) |
+| Jarvis / Agents | Live | ROADMAP updated |
 | Automation | Event→action | Needs WA for delivery |
 | Storage | Supabase or local | Prefer Supabase on Vercel |
 
@@ -94,58 +91,29 @@ Core commerce (POS, products, inventory, storefront COD, auth) is **sellable**. 
 
 ## D. Priority backlog
 
-### P0
-1. Gate hub + header + routes by `verticalFlags`
-2. Grocery FEFO / lots / near-expiry UI
-3. Category SEO + sitemap expansion
-4. Clear UI when PayHere / WA / FAL / storage unconfigured
+### P0 (100% Complete)
+1. ~~Flag-gated hub~~ **DONE (AUD-01)**  
+2. ~~Grocery FEFO UI~~ **DONE (AUD-02)**  
+3. ~~Category SEO + sitemap~~ **DONE (AUD-03)**  
+4. ~~Credential banners (PayHere/WA/FAL/storage)~~ **DONE (AUD-04)**  
 
 ### P1
-5. Hybrid POS mode switcher (or remove claim)
-6. Restaurant polish (no auto-seed; POS table mode)
-7. Polim create/adjust API
-8. Categories PATCH/DELETE
-9. Koombiyo honesty / real dispatch
-10. Unify `/setup` + `/onboarding`
+5. AUD-05 Hybrid POS mode switcher  
+6. AUD-06 Restaurant polish  
+7. AUD-07 Polim create/adjust API  
+8. AUD-08 Categories PATCH/DELETE  
+9. AUD-09 Koombiyo honesty  
+10. AUD-10 Unify `/setup` + `/onboarding`  
 
 ### P2
-11. Local SEO pages  
-12. Wishlist / reviews  
-13. Wholesale tiers + AR UI  
-14. A11y P0 + mobile landing nav  
-15. Lighthouse budgets  
-16. CRM segmentation  
-17. Full promo IF/THEN builder UI  
-18. Persisted WhatsApp inbox  
+11. Local SEO pages · wishlist/reviews · wholesale tiers · a11y P0 · Lighthouse · CRM · promo IF/THEN UI · WhatsApp inbox  
 
 ---
 
-## E. What else is missed (ideas)
+## E. Next Sprint Focus
 
-- **Public restaurant menu** storefront (QR table order)
-- **Multi-barcode + member price** fields (COM-04)
-- **Staff collections CMS** separate from categories
-- **Offline / PWA** POS resilience
-- **Multi-language** (EN/සිං/தமி) beyond header stub
-- **Franchise / multi-branch reporting** pack
-- **Hardware kit** SKUs on company landing tied to install identity
-- **Credit packs UI** for Creative (commercial model already says credits)
-
----
-
-## F. Doc sync
-
-| Doc | Change |
-|-----|--------|
-| This file | New SSOT for audit |
-| `correction.md` | Audit section + backlog IDs |
-| `ROADMAP.md` | Fix Agents/Creative/Jarvis baseline % |
-
----
-
-## Recommended next sprint (2 weeks)
-
-**Week 1:** Flag-gated hub/header + grocery FEFO MVP + category SEO/sitemap  
-**Week 2:** Hybrid POS modes + restaurant seed fix + a11y skip/main + mobile landing nav  
-
-Then operator: Meta WhatsApp verify + one live COD delivery proof + optional FAL key.
+**P1 Execution:**
+- **AUD-05:** Hybrid POS mode switcher (Counter POS, Quick Barcode Scan, Restaurant Table/Takeaway, Repair Intake modes)
+- **AUD-06:** Restaurant floor plan seed & Table Service state polish
+- **AUD-07:** Polim Potha credit customer create/adjust API
+- **AUD-08:** Category management PATCH / DELETE APIs

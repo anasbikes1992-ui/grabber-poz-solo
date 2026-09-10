@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { MessageSquareText, Send, CheckCheck, ShoppingCart, Truck, BookOpen } from 'lucide-react';
+import { IntegrationHealthBanner } from '@/components/ui/integration-health-banner';
 
 type WhatsAppTemplate = {
   id: string;
