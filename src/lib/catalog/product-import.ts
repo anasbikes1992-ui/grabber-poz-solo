@@ -108,7 +108,7 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
   const shortDescI = idx(['shortdescription', 'summary', 'excerpt', 'tagline']);
   const lowStockI = idx(['lowstockamount', 'reorderlevel', 'minstock', 'minimumquantity', 'reorderpoint']);
   const pubI = idx(['published', 'isactive', 'status', 'visible', 'active', 'visibilityincatalog']);
-  const variantI = idx(['variantname', 'variant', 'sizecolor', 'size', 'color', 'attributes', 'attribute1value', 'type']);
+  const variantI = idx(['variantname', 'variant', 'sizecolor', 'size', 'color', 'attributes', 'attribute1value']);
 
   const rows: ImportRowInput[] = [];
 
@@ -185,7 +185,13 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
     const barcode = barcodeI >= 0 ? cols[barcodeI]?.trim() : '';
 
     // Variant
-    const variantName = variantI >= 0 ? cols[variantI]?.trim() : undefined;
+    let variantName = variantI >= 0 ? cols[variantI]?.trim() : undefined;
+    if (variantName) {
+      const vLower = variantName.toLowerCase();
+      if (['simple', 'variable', 'grouped', 'external', 'default', 'standard', 'base'].includes(vLower)) {
+        variantName = undefined;
+      }
+    }
 
     rows.push({
       name,

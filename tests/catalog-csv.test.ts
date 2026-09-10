@@ -19,11 +19,14 @@ describe('catalog CSV import/export parity', () => {
       'SalePrice',
       'InitialStock',
       'VariantName',
+      'Images',
+      'Description',
     ]);
   });
 
-  it('escapes commas and quotes in CSV fields', () => {
+  it('escapes commas, quotes, and protects long barcodes from Excel corruption', () => {
     expect(escapeCsvField('Hello, "World"')).toBe('"Hello, ""World"""');
+    expect(escapeCsvField('8901234567890', 'Barcode')).toBe('="8901234567890"');
   });
 
   it('round-trips parse and build with matching headers', () => {
@@ -37,6 +40,8 @@ describe('catalog CSV import/export parity', () => {
         SalePrice: '4500.00',
         InitialStock: 20,
         VariantName: 'Size M',
+        Images: 'https://example.com/shirt.jpg',
+        Description: '100% cotton shirt',
       },
     ]);
     const rows = parseProductCsv(csv);
@@ -44,6 +49,7 @@ describe('catalog CSV import/export parity', () => {
     expect(rows[0].name).toBe('Test Shirt');
     expect(rows[0].sku).toBe('TS-01');
     expect(rows[0].variantName).toBe('Size M');
+    expect(rows[0].imageUrl).toBe('https://example.com/shirt.jpg');
   });
 
   it('rejects CSV over size limit', () => {

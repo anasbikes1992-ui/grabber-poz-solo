@@ -8,14 +8,25 @@ export const PRODUCT_CSV_HEADERS = [
   'SalePrice',
   'InitialStock',
   'VariantName',
+  'Images',
+  'Description',
 ] as const;
 
-export const MAX_PRODUCT_CSV_BYTES = 5 * 1024 * 1024; // 5 MB
+export const MAX_PRODUCT_CSV_BYTES = 10 * 1024 * 1024; // 10 MB
 
-export function escapeCsvField(value: string | number | null | undefined): string {
-  const s = value == null ? '' : String(value);
+export function escapeCsvField(value: string | number | null | undefined, key?: string): string {
+  if (value == null) return '';
+  const s = String(value).trim();
+
+  // Protect long numeric barcodes from Excel scientific notation (e.g. 8.90123E+13)
+  if (key === 'Barcode' && /^\d{8,25}$/.test(s)) {
+    return `="${s}"`;
+  }
+
   if (/[",\n\r]/.test(s)) {
-    return `"${s.replace(/"/g, '""')}"`;
+    // Sanitize newlines to prevent broken rows in Excel
+    const sanitized = s.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return `"${sanitized.replace(/"/g, '""')}"`;
   }
   return s;
 }
@@ -23,7 +34,7 @@ export function escapeCsvField(value: string | number | null | undefined): strin
 export function buildProductCsv(rows: Record<(typeof PRODUCT_CSV_HEADERS)[number], string | number>[]): string {
   const header = PRODUCT_CSV_HEADERS.join(',');
   const body = rows.map((row) =>
-    PRODUCT_CSV_HEADERS.map((h) => escapeCsvField(row[h])).join(','),
+    PRODUCT_CSV_HEADERS.map((h) => escapeCsvField(row[h], h)).join(','),
   );
   return [header, ...body].join('\n');
 }

@@ -40,10 +40,25 @@ export async function fetchProductExportRows(): Promise<ProductExportRow[]> {
   const out: ProductExportRow[] = [];
 
   for (const p of rows) {
-    const category = (p.categoryId && catMap.get(p.categoryId)) || 'Uncategorized';
-    const variants = variantsByProduct.get(p.id) || [];
+    const category = (p.categoryId && catMap.get(p.categoryId)) || 'General';
+    const rawVariants = variantsByProduct.get(p.id) || [];
+    // Filter out dummy 'simple' / 'default' variants so they don't corrupt base product SKU
+    const realVariants = rawVariants.filter(
+      (v) =>
+        v.name &&
+        v.name.toLowerCase() !== 'simple' &&
+        v.name.toLowerCase() !== 'default' &&
+        v.name.toLowerCase() !== 'standard' &&
+        v.name !== p.name,
+    );
 
-    if (variants.length === 0) {
+    const cleanDesc = (p.description || '')
+      .replace(/<[^>]*>?/gm, ' ')
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (realVariants.length === 0) {
       out.push({
         Name: p.name,
         Category: category,
@@ -53,11 +68,13 @@ export async function fetchProductExportRows(): Promise<ProductExportRow[]> {
         SalePrice: Number(p.salePrice).toFixed(2),
         InitialStock: stockMap.get(stockKey(p.id, null)) ?? 0,
         VariantName: '',
+        Images: p.imageUrl || '',
+        Description: cleanDesc,
       });
       continue;
     }
 
-    for (const v of variants) {
+    for (const v of realVariants) {
       out.push({
         Name: p.name,
         Category: category,
@@ -67,6 +84,8 @@ export async function fetchProductExportRows(): Promise<ProductExportRow[]> {
         SalePrice: Number(v.salePrice ?? p.salePrice).toFixed(2),
         InitialStock: stockMap.get(stockKey(p.id, v.id)) ?? 0,
         VariantName: v.name,
+        Images: p.imageUrl || '',
+        Description: cleanDesc,
       });
     }
   }
