@@ -15,7 +15,7 @@ export async function dispatchOrderViaKoombiyo(input: DispatchInput) {
   if (!order) throw new Error('Order not found');
 
   const apiKey = process.env.KOOMBIYO_API_KEY;
-  const baseUrl = process.env.KOOMBIYO_API_URL || 'https://api.koombiyo.com';
+  let courierPartner = 'Koombiyo';
   let trackingNumber = `KMB-${Date.now().toString().slice(-8)}`;
   let stub = true;
 
@@ -48,15 +48,17 @@ export async function dispatchOrderViaKoombiyo(input: DispatchInput) {
     }
     trackingNumber = data.trackingNumber || data.id || trackingNumber;
     stub = false;
-  } else if (process.env.NODE_ENV === 'production') {
-    throw new Error('KOOMBIYO_API_KEY required in production');
+  } else {
+    // In-house / standard delivery fallback
+    courierPartner = 'In-House Delivery';
+    trackingNumber = `DEL-${Date.now().toString().slice(-8)}`;
   }
 
   const [existing] = await db.select().from(deliveries).where(eq(deliveries.orderId, input.orderId)).limit(1);
 
   const payload = {
     orderId: input.orderId,
-    courierPartner: 'Koombiyo',
+    courierPartner,
     trackingNumber,
     status: 'IN_TRANSIT' as const,
     recipientName: input.recipientName,

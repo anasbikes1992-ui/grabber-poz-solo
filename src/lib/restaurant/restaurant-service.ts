@@ -189,9 +189,9 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
   const action = (body.action as string) || 'create_table';
 
   if (action === 'seed_floor') {
-    const existing = await db.select().from(diningTables).limit(1);
+    const existing = await db.select().from(diningTables);
     if (existing.length) {
-      return { reused: true };
+      return { reused: true, tables: existing };
     }
     const [branch] = await db.select().from(branches).limit(1);
     const seed = [
@@ -206,7 +206,23 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
       .insert(diningTables)
       .values(seed.map((s) => ({ ...s, branchId: branch?.id || null, status: 'VACANT' })))
       .returning();
-    return { tables: rows };
+    return { tables: rows, reused: false };
+  }
+
+  if (action === 'create_table') {
+    const [branch] = await db.select().from(branches).limit(1);
+    const [table] = await db
+      .insert(diningTables)
+      .values({
+        name: String(body.name || 'New Table'),
+        capacity: Math.max(1, Number(body.capacity || 4)),
+        sortOrder: Math.max(0, Number(body.sortOrder || 1)),
+        branchId: (body.branchId as string) || branch?.id || null,
+        status: (body.status as string) || 'VACANT',
+        active: true,
+      })
+      .returning();
+    return { table };
   }
 
   if (action === 'set_status') {

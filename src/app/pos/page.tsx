@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   Search,
   Barcode,
@@ -17,11 +18,17 @@ import {
   ShieldAlert,
   PauseCircle,
   PlayCircle,
+  UtensilsCrossed,
+  Wrench,
+  FileText,
+  Scan,
+  Store,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { TradeInModal, type TradeInCredit } from '@/components/pos/trade-in-modal';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
 import { BarcodeScannerListener } from '@/lib/hardware/scanner';
+import { fetchVerticalFlags, DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import {
   countPendingCheckouts,
   enqueueCheckout,
@@ -98,6 +105,8 @@ export default function POSPage() {
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [activeHoldId, setActiveHoldId] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<any>(null);
+  const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
+  const [posMode, setPosMode] = useState<'RETAIL' | 'SCANNER'>('RETAIL');
 
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinAction, setPinAction] = useState<{ type: 'DISCOUNT' | 'VOID' | 'CREDIT' | 'OPEN_DRAWER'; payload?: any } | null>(null);
@@ -113,6 +122,8 @@ export default function POSPage() {
   };
 
   useEffect(() => {
+    fetchVerticalFlags().then(setVerticalFlags).catch(() => undefined);
+
     fetch('/api/pos/catalog')
       .then((r) => r.json())
       .then((data) => {
@@ -553,6 +564,72 @@ export default function POSPage() {
 
       {/* Left 7 Cols: Catalog & Barcode Scanner */}
       <div className="lg:col-span-7 flex flex-col space-y-4">
+        {/* POS Mode Switcher Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-xs">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPosMode('RETAIL')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition ${
+                posMode === 'RETAIL'
+                  ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+              }`}
+            >
+              <Store className="h-3.5 w-3.5" />
+              Counter Retail
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPosMode('SCANNER');
+                barcodeRef.current?.focus();
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold transition ${
+                posMode === 'SCANNER'
+                  ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+              }`}
+            >
+              <Scan className="h-3.5 w-3.5" />
+              Quick Scan
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {verticalFlags.restaurant && (
+              <Link
+                href="/restaurant"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-zinc-400 hover:text-amber-300 hover:bg-zinc-800 transition"
+                title="Open Restaurant Table Service Floor Plan"
+              >
+                <UtensilsCrossed className="h-3.5 w-3.5 text-amber-400" />
+                <span>Tables</span>
+              </Link>
+            )}
+            {verticalFlags.repairs && (
+              <Link
+                href="/repairs"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-zinc-400 hover:text-blue-300 hover:bg-zinc-800 transition"
+                title="Open Device Repairs Workbench"
+              >
+                <Wrench className="h-3.5 w-3.5 text-blue-400" />
+                <span>Repairs</span>
+              </Link>
+            )}
+            {verticalFlags.quotations && (
+              <Link
+                href="/quotations"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-zinc-400 hover:text-purple-300 hover:bg-zinc-800 transition"
+                title="Open Quotations & Custom Orders"
+              >
+                <FileText className="h-3.5 w-3.5 text-purple-400" />
+                <span>Quotes</span>
+              </Link>
+            )}
+          </div>
+        </div>
+
         {/* Search & Scanner Bar */}
         <div className="flex gap-2">
           <div className="relative flex-1">
