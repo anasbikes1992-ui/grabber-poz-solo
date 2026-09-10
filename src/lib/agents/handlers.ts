@@ -14,6 +14,7 @@ import {
   customers,
   creativeProjects,
   quotations,
+  stockLots,
 } from '@/db';
 import { readConfigJson } from '@/lib/config/business-settings';
 import { listAutomationLogs } from '@/lib/automation/rules-store';
@@ -338,6 +339,45 @@ export async function runCreativeAgent(): Promise<AgentResult> {
   };
 }
 
+export async function runGroceryAgent(): Promise<AgentResult> {
+  const now = new Date();
+  const fourteenDaysLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+  const lots = await db
+    .select({
+      batchCode: stockLots.batchCode,
+      qty: stockLots.qtyOnHand,
+      expiryDate: stockLots.expiryDate,
+      productName: products.name,
+    })
+    .from(stockLots)
+    .innerJoin(products, eq(products.id, stockLots.productId))
+    .where(
+      and(
+        sql`${stockLots.qtyOnHand} > 0`,
+        sql`${stockLots.expiryDate} IS NOT NULL`,
+        lte(stockLots.expiryDate, fourteenDaysLater),
+      ),
+    )
+    .orderBy(stockLots.expiryDate)
+    .limit(20);
+
+  const expired = lots.filter((l) => l.expiryDate && l.expiryDate < now);
+  const nearExpiry = lots.filter((l) => l.expiryDate && l.expiryDate >= now);
+
+  return {
+    agent: 'GROCERY',
+    summary: `${lots.length} lot(s) requiring FEFO attention (${expired.length} expired, ${nearExpiry.length} expiring in ≤14d).`,
+    recommendations: lots.length
+      ? [
+          ...expired.slice(0, 3).map((l) => `Write off expired batch ${l.batchCode} (${l.productName}, ${l.qty} units).`),
+          ...nearExpiry.slice(0, 3).map((l) => `Markdown promo for batch ${l.batchCode} (${l.productName}, expires in ${Math.ceil((l.expiryDate!.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))}d).`),
+        ]
+      : ['All batch lots healthy — FEFO rotation optimal.'],
+    metrics: { totalNearOrExpired: lots.length, expired: expired.length, nearExpiry: nearExpiry.length },
+  };
+}
+
 const HANDLERS: Record<AgentId, () => Promise<AgentResult>> = {
   SALES: runSalesAgent,
   INVENTORY: runInventoryAgent,
@@ -351,6 +391,7 @@ const HANDLERS: Record<AgentId, () => Promise<AgentResult>> = {
   POLIM: runPolimAgent,
   WHATSAPP: runWhatsappAgent,
   CREATIVE: runCreativeAgent,
+  GROCERY: runGroceryAgent,
 };
 
 export async function executeAgent(id: AgentId): Promise<AgentResult> {

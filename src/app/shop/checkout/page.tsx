@@ -170,6 +170,17 @@ export default function ShopCheckoutPage() {
         return;
       }
 
+      let utmJson: Record<string, string> | undefined;
+      let campaignId: string | undefined;
+      try {
+        const storedUtm = sessionStorage.getItem('grabber_utm');
+        if (storedUtm) utmJson = JSON.parse(storedUtm);
+        const storedCamp = sessionStorage.getItem('grabber_campaign_id');
+        if (storedCamp) campaignId = storedCamp;
+      } catch {
+        /* ignore */
+      }
+
       const res = await fetch('/api/pos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -181,6 +192,8 @@ export default function ShopCheckoutPage() {
           promoCode: promoCode.trim() || undefined,
           clientUuid,
           idempotencyKey: `web_${clientUuid}`,
+          campaignId,
+          utmJson,
           items: cart.map((l) => ({
             productId: l.productId,
             variantId: l.variantId,

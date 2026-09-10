@@ -68,3 +68,69 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: (err as Error).message, items: [] }, { status: 500 });
   }
 }
+
+/** VERT-R06: Guest submits order from table QR -> kitchen ticket */
+export async function POST(req: Request) {
+  if (!hasDatabaseUrl()) {
+    return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 503 });
+  }
+  try {
+    const body = await req.json();
+    const { tableToken, items, guestNotes } = body as {
+      tableToken: string;
+      items: Array<{ name: string; qty: number; price: number; notes?: string }>;
+      guestNotes?: string;
+    };
+
+    if (!tableToken || !Array.isArray(items) || !items.length) {
+      return NextResponse.json({ success: false, error: 'tableToken and items[] are required' }, { status: 400 });
+    }
+
+    const [table] = await db
+      .select()
+      .from(diningTables)
+      .where(eq(diningTables.qrToken, tableToken))
+      .limit(1);
+
+    if (!table) {
+      return NextResponse.json({ success: false, error: 'Invalid or unassigned table QR token' }, { status: 404 });
+    }
+
+    const totalAmount = items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 1), 0);
+    const kotNumber = `KOT-${Date.now().toString().slice(-6)}`;
+
+    const [kot] = await db
+      .insert(kitchenTickets)
+      .values({
+        kotNumber,
+        tableId: table.id,
+        waiterName: 'QR Self-Order',
+        itemsJson: items.map((it) => ({
+          name: it.name,
+          qty: Number(it.qty) || 1,
+          price: Number(it.price) || 0,
+          notes: it.notes || guestNotes || undefined,
+        })),
+        totalAmount: totalAmount.toFixed(2),
+        status: 'OPEN',
+      })
+      .returning();
+
+    // Mark table as seated / ordered
+    await db
+      .update(diningTables)
+      .set({ status: 'ORDERED' })
+      .where(eq(diningTables.id, table.id));
+
+    return NextResponse.json({
+      success: true,
+      kotNumber: kot.kotNumber,
+      tableId: table.id,
+      tableName: table.name,
+      totalAmount,
+      message: 'Order sent directly to the kitchen display!',
+    });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+  }
+}

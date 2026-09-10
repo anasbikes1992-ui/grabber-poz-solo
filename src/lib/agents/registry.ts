@@ -94,6 +94,14 @@ export const AGENT_REGISTRY: AgentDefinition[] = [
     verticalFlag: 'creative',
     href: '/creative/dashboard',
   },
+  {
+    id: 'GROCERY',
+    label: 'Grocery / FEFO Agent',
+    description: 'Expiry radar, near-expiry lots, and markdown promotions',
+    category: 'vertical',
+    verticalFlag: 'grocery',
+    href: '/grocery',
+  },
 ];
 
 export function getAgentDefinition(id: AgentId): AgentDefinition | undefined {

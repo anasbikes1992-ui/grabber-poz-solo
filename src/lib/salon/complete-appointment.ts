@@ -13,6 +13,7 @@ export async function completeAppointmentAndCharge(input: {
   paymentMethod?: string;
   actorId?: string;
   commissionPct?: number | null;
+  attachProducts?: Array<{ productId: string; quantity: number; unitPrice: number; name: string; unitCost?: number }>;
 }) {
   const [appt] = await db.select().from(appointments).where(eq(appointments.id, input.appointmentId)).limit(1);
   if (!appt) throw Object.assign(new Error('Appointment not found'), { status: 404 });
@@ -28,17 +29,26 @@ export async function completeAppointmentAndCharge(input: {
   const [product] = await db.select().from(products).where(eq(products.id, productId)).limit(1);
   const fee = Number(appt.fee || product?.salePrice || 0);
 
+  const checkoutItems = [
+    {
+      productId,
+      quantity: 1,
+      unitPrice: fee,
+      name: product?.name || appt.service,
+      unitCost: Number(product?.costPrice || 0),
+    },
+    ...(input.attachProducts || []).map((p) => ({
+      productId: p.productId,
+      quantity: Number(p.quantity) || 1,
+      unitPrice: Number(p.unitPrice) || 0,
+      name: p.name,
+      unitCost: Number(p.unitCost) || 0,
+    })),
+  ];
+
   const checkout = await processPosCheckout({
     channel: 'POS',
-    items: [
-      {
-        productId,
-        quantity: 1,
-        unitPrice: fee,
-        name: product?.name || appt.service,
-        unitCost: Number(product?.costPrice || 0),
-      },
-    ],
+    items: checkoutItems,
     paymentMethod: input.paymentMethod || 'CASH',
     actorId: input.actorId,
     allowStockUnderrun: true,

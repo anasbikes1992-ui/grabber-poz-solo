@@ -55,6 +55,28 @@ export function StorefrontShell({
     } catch {
       /* ignore */
     }
+
+    // Auto-capture UTM and Campaign parameters for ROAS attribution
+    try {
+      if (typeof window !== 'undefined') {
+        const sp = new URLSearchParams(window.location.search);
+        const utm: Record<string, string> = {};
+        const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+        for (const k of utmKeys) {
+          const v = sp.get(k);
+          if (v) utm[k] = v;
+        }
+        const campId = sp.get('campaign_id') || sp.get('campaignId') || sp.get('utm_campaign');
+        if (Object.keys(utm).length > 0) {
+          sessionStorage.setItem('grabber_utm', JSON.stringify(utm));
+        }
+        if (campId) {
+          sessionStorage.setItem('grabber_campaign_id', campId);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   async function signOut() {

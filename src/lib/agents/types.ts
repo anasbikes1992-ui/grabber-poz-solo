@@ -13,7 +13,8 @@ export type AgentId =
   | 'WHOLESALE'
   | 'POLIM'
   | 'WHATSAPP'
-  | 'CREATIVE';
+  | 'CREATIVE'
+  | 'GROCERY';
 
 export type AgentCategory = 'core' | 'vertical' | 'communication';
 
@@ -59,6 +60,7 @@ export const AGENT_IDS: AgentId[] = [
   'POLIM',
   'WHATSAPP',
   'CREATIVE',
+  'GROCERY',
 ];
 
 export function isAgentId(value: string): value is AgentId {

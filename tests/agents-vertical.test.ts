@@ -5,8 +5,8 @@ import { DEFAULT_VERTICAL_FLAGS } from '../src/lib/config/vertical-flags';
 
 describe('agent registry', () => {
   it('defines all vertical + core agents', () => {
-    expect(AGENT_REGISTRY.length).toBe(12);
-    expect(AGENT_IDS.length).toBe(12);
+    expect(AGENT_REGISTRY.length).toBe(13);
+    expect(AGENT_IDS.length).toBe(13);
   });
 
   it('validates agent ids', () => {
