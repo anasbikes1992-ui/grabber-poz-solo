@@ -74,3 +74,77 @@ export function productJsonLd(input: {
     },
   };
 }
+
+export function categoryDescription(input: {
+  name: string;
+  productCount: number;
+}) {
+  return `Browse our collection of ${input.name}. Discover ${input.productCount} top-rated products with fast delivery and best prices in Sri Lanka.`;
+}
+
+export function buildCategoryMetadata(input: {
+  name: string;
+  slug: string;
+  description?: string;
+  imageUrl?: string | null;
+  productCount?: number;
+}): Metadata {
+  const url = `${siteBaseUrl()}/categories/${input.slug}`;
+  const desc =
+    input.description ||
+    categoryDescription({
+      name: input.name,
+      productCount: input.productCount ?? 0,
+    });
+
+  return {
+    title: `${input.name} Collection | Grabber Store`,
+    description: desc,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${input.name} | Grabber Store`,
+      description: desc,
+      url,
+      type: 'website',
+      images: input.imageUrl ? [{ url: input.imageUrl, alt: input.name }] : undefined,
+    },
+    twitter: {
+      card: input.imageUrl ? 'summary_large_image' : 'summary',
+      title: `${input.name} | Grabber Store`,
+      description: desc,
+      images: input.imageUrl ? [input.imageUrl] : undefined,
+    },
+  };
+}
+
+export function categoryJsonLd(input: {
+  name: string;
+  slug: string;
+  description?: string;
+  products: Array<{
+    name: string;
+    slug: string;
+    salePrice: number;
+    imageUrl?: string | null;
+  }>;
+}) {
+  const url = `${siteBaseUrl()}/categories/${input.slug}`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: input.name,
+    description: input.description || `Browse ${input.name} catalog`,
+    url,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: input.products.length,
+      itemListElement: input.products.map((p, idx) => ({
+        '@type': 'ListItem',
+        position: idx + 1,
+        name: p.name,
+        url: `${siteBaseUrl()}/products/${p.slug}`,
+        image: p.imageUrl || undefined,
+      })),
+    },
+  };
+}

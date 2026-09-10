@@ -22,7 +22,14 @@ import {
   ALL_MERCHANT_TOOLS,
   CATEGORY_TABS,
   OPERATION_MODES,
+  filterToolsByFlags,
+  filterModesByFlags,
 } from '@/lib/hub/merchant-tools';
+import {
+  fetchVerticalFlags,
+  DEFAULT_VERTICAL_FLAGS,
+  type VerticalFlags,
+} from '@/lib/config/vertical-flags';
 
 type Analytics = {
   totalSkus: number;
@@ -38,6 +45,7 @@ export default function MerchantHubPage() {
   const [shopName, setShopName] = useState('Merchant Partner');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
   const [analytics, setAnalytics] = useState<Analytics>({
     totalSkus: 0,
     lowStockCount: 0,
@@ -49,6 +57,8 @@ export default function MerchantHubPage() {
   });
 
   useEffect(() => {
+    fetchVerticalFlags().then(setVerticalFlags);
+
     fetch('/api/auth/session')
       .then((r) => r.json())
       .then((data) => {
@@ -76,20 +86,28 @@ export default function MerchantHubPage() {
       .catch(() => {});
   }, []);
 
+  const activeTools = useMemo(() => {
+    return filterToolsByFlags(ALL_MERCHANT_TOOLS, verticalFlags);
+  }, [verticalFlags]);
+
+  const activeModes = useMemo(() => {
+    return filterModesByFlags(OPERATION_MODES, verticalFlags);
+  }, [verticalFlags]);
+
   const filteredTools = useMemo(() => {
-    return ALL_MERCHANT_TOOLS.filter((tool) => {
+    return activeTools.filter((tool) => {
       const matchesCategory = selectedCategory === 'all' || tool.category === selectedCategory;
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         !q || tool.title.toLowerCase().includes(q) || tool.description.toLowerCase().includes(q);
       return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [activeTools, selectedCategory, searchQuery]);
 
   const getCategoryCount = (category: string) =>
     category === 'all'
-      ? ALL_MERCHANT_TOOLS.length
-      : ALL_MERCHANT_TOOLS.filter((t) => t.category === category).length;
+      ? activeTools.length
+      : activeTools.filter((t) => t.category === category).length;
 
   return (
     <div className="space-y-8">
@@ -139,7 +157,7 @@ export default function MerchantHubPage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {OPERATION_MODES.map((mode) => {
+          {activeModes.map((mode) => {
             const Icon = mode.icon;
             return (
               <Link

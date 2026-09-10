@@ -330,12 +330,34 @@ Staff: `/adminpoz` → `/app` · Shopper: `/` · Jarvis tools: `POST /api/jarvis
 
 ## Next steps (recommended order)
 
-1. **Fresh cloud** — follow [`FRESH_START.md`](./FRESH_START.md): new Supabase + Vercel, `db:bootstrap`, seed, deploy
-2. **Live WhatsApp credentials** on Vercel (`WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`)
-3. **Media pipeline** — `FAL_KEY` / `REPLICATE_API_TOKEN` for real video render
-4. **DB-06** — drop legacy column bridges after verification
-5. **Lighthouse budgets** — product + checkout mobile perf
-6. **R7** — vertical depth + CRM campaigns (deferred)
+1. **Flag-gated hub/header/routes** — presets must hide disabled verticals ([`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md) P0)
+2. **Grocery FEFO / lots UI** — backend exists; merchant surface missing
+3. **Category SEO + sitemap** — `generateMetadata`, `/shop` + repair public URLs
+4. **Live WhatsApp** — Meta webhook verify + COD delivery proof (env already present)
+5. **Media pipeline** — `FAL_KEY` / `REPLICATE_API_TOKEN` for real creative output
+6. **Hybrid POS mode switcher** — or remove claim from presets
+7. **DB-06** — drop legacy column bridges after verification
+8. **A11y P0** — Field adoption, drawers→Modal, mobile landing nav
+9. **R7** — CRM campaigns, wishlist/reviews, local SEO `/locations`
+
+---
+
+## Product audit (2026-09-10)
+
+Full SSOT: [`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md). Canvas: Cursor `product-audit.canvas.tsx`.
+
+| ID | Item | Priority | Status |
+|----|------|----------|--------|
+| AUD-01 | Gate hub/header/routes by `verticalFlags` | P0 | DONE |
+| AUD-02 | Grocery FEFO / lots / near-expiry UI | P0 | DONE |
+| AUD-03 | Category SEO + sitemap expansion | P0 | DONE |
+| AUD-04 | Credential banners (PayHere/WA/FAL/storage) | P0 | TODO |
+| AUD-05 | Hybrid POS mode switcher | P1 | TODO |
+| AUD-06 | Restaurant seed_floor + TABLE_SERVICE | P1 | TODO |
+| AUD-07 | Polim create/adjust API | P1 | TODO |
+| AUD-08 | Categories PATCH/DELETE | P1 | TODO |
+| AUD-09 | Koombiyo honesty / real dispatch | P1 | TODO |
+| AUD-10 | Unify `/setup` + `/onboarding` | P1 | TODO |
 
 ---
 

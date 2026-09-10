@@ -1,4 +1,5 @@
 import type { ElementType } from 'react';
+import type { VerticalFlags } from '@/lib/config/vertical-flags';
 import {
   Zap,
   Clock,
@@ -28,6 +29,7 @@ import {
   Sparkles,
   Settings,
   Store,
+  Apple,
 } from 'lucide-react';
 
 export type ToolCategory = 'pos' | 'inventory' | 'sales' | 'customers' | 'finance';
@@ -41,6 +43,7 @@ export interface ToolItem {
   badge?: string;
   badgeType?: 'success' | 'warning' | 'info' | 'purple';
   category: ToolCategory;
+  flag?: keyof VerticalFlags;
 }
 
 export const OPERATION_MODES = [
@@ -65,6 +68,7 @@ export const OPERATION_MODES = [
     bgGradient: 'from-amber-500/20 to-orange-500/10',
     textGlow: 'text-amber-400',
     badge: 'Table Management',
+    flag: 'restaurant' as keyof VerticalFlags,
   },
   {
     id: 'repair',
@@ -76,6 +80,7 @@ export const OPERATION_MODES = [
     bgGradient: 'from-blue-500/20 to-indigo-500/10',
     textGlow: 'text-blue-400',
     badge: 'Job Sheet Generator',
+    flag: 'repairs' as keyof VerticalFlags,
   },
   {
     id: 'hire_purchase',
@@ -87,6 +92,7 @@ export const OPERATION_MODES = [
     bgGradient: 'from-emerald-500/20 to-cyan-500/10',
     textGlow: 'text-emerald-400',
     badge: 'Micro-Credit',
+    flag: 'hirePurchase' as keyof VerticalFlags,
   },
   {
     id: 'quotations',
@@ -98,6 +104,7 @@ export const OPERATION_MODES = [
     bgGradient: 'from-purple-500/20 to-pink-500/10',
     textGlow: 'text-purple-400',
     badge: 'Proforma Suite',
+    flag: 'wholesale' as keyof VerticalFlags,
   },
   {
     id: 'appointments',
@@ -109,6 +116,7 @@ export const OPERATION_MODES = [
     bgGradient: 'from-cyan-500/20 to-blue-500/10',
     textGlow: 'text-cyan-400',
     badge: 'Booking Hub',
+    flag: 'appointments' as keyof VerticalFlags,
   },
 ] as const;
 
@@ -160,6 +168,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     badge: 'JOB CARDS',
     badgeType: 'info',
     category: 'pos',
+    flag: 'repairs',
   },
   {
     id: 'pos_restaurant',
@@ -170,6 +179,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     badge: 'KOT SYSTEM',
     badgeType: 'warning',
     category: 'pos',
+    flag: 'restaurant',
   },
   {
     id: 'inv_products',
@@ -178,6 +188,17 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     href: '/products',
     icon: Package,
     category: 'inventory',
+  },
+  {
+    id: 'inv_grocery_fefo',
+    title: 'Grocery Lots & FEFO Expiry',
+    description: 'Track batches, manufacturing dates, FEFO picking & near-expiry alerts',
+    href: '/grocery',
+    icon: Apple,
+    badge: 'FEFO / LOTS',
+    badgeType: 'warning',
+    category: 'inventory',
+    flag: 'grocery',
   },
   {
     id: 'inv_damages',
@@ -220,6 +241,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     href: '/warranties',
     icon: ShieldCheck,
     category: 'inventory',
+    flag: 'repairs',
   },
   {
     id: 'sales_quotations',
@@ -230,6 +252,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     badge: 'B2B SUITE',
     badgeType: 'purple',
     category: 'sales',
+    flag: 'wholesale',
   },
   {
     id: 'sales_orders',
@@ -268,6 +291,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     badge: 'AI Active',
     badgeType: 'success',
     category: 'sales',
+    flag: 'whatsapp',
   },
   {
     id: 'sales_social',
@@ -288,6 +312,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     badge: 'R6',
     badgeType: 'purple',
     category: 'sales',
+    flag: 'creative',
   },
   {
     id: 'sales_automation',
@@ -338,6 +363,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     badge: 'BOOKINGS',
     badgeType: 'info',
     category: 'customers',
+    flag: 'appointments',
   },
   {
     id: 'cust_directory',
@@ -362,6 +388,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     href: '/loyalty',
     icon: Award,
     category: 'customers',
+    flag: 'loyalty',
   },
   {
     id: 'fin_hire_purchase',
@@ -372,6 +399,7 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     badge: 'MICRO-CREDIT',
     badgeType: 'success',
     category: 'finance',
+    flag: 'hirePurchase',
   },
   {
     id: 'fin_reports',
@@ -410,6 +438,24 @@ export const ALL_MERCHANT_TOOLS: ToolItem[] = [
     category: 'finance',
   },
 ];
+
+export function filterToolsByFlags(tools: ToolItem[], flags: VerticalFlags): ToolItem[] {
+  return tools.filter((tool) => {
+    if (!tool.flag) return true;
+    return Boolean(flags[tool.flag]);
+  });
+}
+
+export function filterModesByFlags(
+  modes: typeof OPERATION_MODES,
+  flags: VerticalFlags,
+): Array<(typeof OPERATION_MODES)[number]> {
+  return modes.filter((mode) => {
+    const flagKey = (mode as { flag?: keyof VerticalFlags }).flag;
+    if (!flagKey) return true;
+    return Boolean(flags[flagKey]);
+  });
+}
 
 export const CATEGORY_TABS: Array<{ id: string; label: string }> = [
   { id: 'all', label: 'All Modules' },

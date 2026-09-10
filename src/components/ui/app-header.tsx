@@ -35,6 +35,11 @@ import {
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { readLang, t, type Lang } from '@/lib/i18n/translations';
+import {
+  fetchVerticalFlags,
+  DEFAULT_VERTICAL_FLAGS,
+  type VerticalFlags,
+} from '@/lib/config/vertical-flags';
 
 interface SessionUser {
   email: string;
@@ -56,11 +61,14 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<DropdownKey>(null);
   const [lang, setLang] = useState<Lang>('en');
+  const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
     setLang(readLang());
+    fetchVerticalFlags().then(setVerticalFlags);
+
     fetch('/api/auth/session')
       .then((r) => r.json())
       .then((data) => {
@@ -137,6 +145,9 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
 
   const inventoryItems = [
     { href: '/products', label: t('inventory', lang), icon: Package, desc: 'Products, variants & pricing' },
+    ...(verticalFlags.grocery
+      ? [{ href: '/grocery', label: 'Grocery FEFO Lots', icon: Package, desc: 'Batch expiry & lot tracking' }]
+      : []),
     { href: '/settings/warehouses', label: 'Warehouses & Locations', icon: Warehouse, desc: 'Multi-location inventory' },
     { href: '/inventory/transfer', label: 'Stock Transfers', icon: ArrowLeftRight, desc: 'Inter-branch stock dispatch' },
     { href: '/inventory/stock-take', label: 'Stock Take Audit', icon: Package, desc: 'Physical audit & variance' },
@@ -147,16 +158,30 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     { href: '/polim-potha', label: t('creditLedger', lang), icon: BookOpen, desc: 'Customer credit books & aging' },
     { href: '/reports', label: t('reports', lang), icon: BarChart3, desc: 'Daily sales, profit & summary' },
     { href: '/reports/tax', label: 'Tax & VAT Reports', icon: BarChart3, desc: 'Sales tax & liability' },
-    { href: '/quotations', label: 'Quotations & Holds', icon: FileText, desc: 'Pro-forma invoices & reservations' },
+    ...(verticalFlags.wholesale
+      ? [{ href: '/quotations', label: 'Quotations & Holds', icon: FileText, desc: 'Pro-forma invoices & reservations' }]
+      : []),
   ];
 
   const verticalItems = [
-    { href: '/repairs', label: 'Repairs Workbench', icon: Wrench, desc: 'Device tickets, OEM matrix & parts' },
-    { href: '/pos/trade-in', label: 'Trade-in Calculator', icon: Wrench, desc: 'Device valuations & credits' },
-    { href: '/restaurant/kds', label: 'Kitchen Display (KDS)', icon: UtensilsCrossed, desc: 'Chef order queue & tickets' },
-    { href: '/restaurant', label: 'Dining Tables', icon: UtensilsCrossed, desc: 'Restaurant floor plan' },
-    { href: '/creative', label: 'Creative Studio', icon: Sparkles, desc: 'Product PDF catalogs & ads' },
-    { href: '/social', label: 'Social Media Hub', icon: Share2, desc: 'Social channels & catalogs' },
+    ...(verticalFlags.repairs
+      ? [
+          { href: '/repairs', label: 'Repairs Workbench', icon: Wrench, desc: 'Device tickets, OEM matrix & parts' },
+          { href: '/pos/trade-in', label: 'Trade-in Calculator', icon: Wrench, desc: 'Device valuations & credits' },
+        ]
+      : []),
+    ...(verticalFlags.restaurant
+      ? [
+          { href: '/restaurant/kds', label: 'Kitchen Display (KDS)', icon: UtensilsCrossed, desc: 'Chef order queue & tickets' },
+          { href: '/restaurant', label: 'Dining Tables', icon: UtensilsCrossed, desc: 'Restaurant floor plan' },
+        ]
+      : []),
+    ...(verticalFlags.creative
+      ? [{ href: '/creative', label: 'Creative Studio', icon: Sparkles, desc: 'Product PDF catalogs & ads' }]
+      : []),
+    ...(verticalFlags.whatsapp || verticalFlags.creative
+      ? [{ href: '/social', label: 'Social Media Hub', icon: Share2, desc: 'Social channels & catalogs' }]
+      : []),
   ];
 
   const settingsItems = [

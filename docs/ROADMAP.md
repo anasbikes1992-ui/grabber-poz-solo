@@ -34,13 +34,17 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 | Orders | Mostly there | 🟡 |
 | Resellable Solo deploy | ~90% | 🟢 |
 | Migrations | Numbered + bootstrap | 🟢 |
-| Storefront | ~85% | 🟢 |
-| SEO / CMS / Themes | ~65% | 🟡 |
-| WhatsApp / Automation | ~75% | 🟡 |
-| Jarvis | ~55% | 🟡 |
-| Agents | Stub only | 🔴 |
-| Creative Engine | ~30% | 🟡 |
-| Testing | ~50% | 🟡 |
+| Storefront | ~88% | 🟢 |
+| SEO / CMS / Themes | ~85% (Product + Category + Sitemap) | 🟢 |
+| WhatsApp / Automation | ~80% | 🟢 |
+| Jarvis | ~70% | 🟡 |
+| Agents | ~85% (12 live, flag-aware) | 🟢 |
+| Creative Engine | ~45% (queue + approve; media needs FAL) | 🟡 |
+| Vertical flag gating in hub/nav | 100% (AUD-01 dynamic gating) | 🟢 |
+| Grocery FEFO / Expiry Radar | 100% (AUD-02 batch intake + FEFO UI) | 🟢 |
+| Testing | ~65% (467 tests across 71 suites) | 🟢 |
+
+> **Audit 2026-09-10:** Full review in [`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md). Agents are **not** stubs — update supersedes older “Stub only” row.
 
 ---
 
