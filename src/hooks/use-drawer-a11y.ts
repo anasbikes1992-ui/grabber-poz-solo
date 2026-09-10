@@ -9,17 +9,27 @@ const FOCUSABLE =
 export function useDrawerA11y(isOpen: boolean, onClose: () => void) {
   const panelRef = useRef<HTMLElement | null>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const openedOnce = useRef(false);
+
+  onCloseRef.current = onClose;
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      openedOnce.current = false;
+      return;
+    }
 
-    restoreRef.current = document.activeElement as HTMLElement;
     const panel = panelRef.current;
-    const preferred =
-      panel?.querySelector<HTMLElement>('[data-autofocus]') ??
-      panel?.querySelector<HTMLElement>(FOCUSABLE) ??
-      panel;
-    window.requestAnimationFrame(() => preferred?.focus());
+    if (!openedOnce.current) {
+      restoreRef.current = document.activeElement as HTMLElement;
+      openedOnce.current = true;
+      const preferred =
+        panel?.querySelector<HTMLElement>('[data-autofocus]') ??
+        panel?.querySelector<HTMLElement>(FOCUSABLE) ??
+        panel;
+      window.requestAnimationFrame(() => preferred?.focus());
+    }
 
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -27,7 +37,7 @@ export function useDrawerA11y(isOpen: boolean, onClose: () => void) {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !e.isComposing) {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab' || !panel) return;
@@ -50,9 +60,10 @@ export function useDrawerA11y(isOpen: boolean, onClose: () => void) {
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = prevOverflow;
-      restoreRef.current?.focus?.();
+      const target = restoreRef.current;
+      if (target && document.contains(target)) target.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return panelRef;
 }

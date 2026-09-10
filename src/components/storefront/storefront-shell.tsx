@@ -18,7 +18,7 @@ function navLinkClass(active: boolean) {
     'inline-flex min-h-11 cursor-pointer items-center rounded-full px-3 py-1.5 font-medium transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]',
     active
       ? 'bg-[var(--sf-primary)] text-[var(--sf-on-primary)]'
-      : 'text-[var(--sf-primary)] hover:bg-[var(--sf-muted)]',
+      : 'text-[var(--sf-foreground)] hover:bg-[var(--sf-muted)]',
   ].join(' ');
 }
 
@@ -141,7 +141,7 @@ export function StorefrontShell({
           <div className="flex items-center gap-1 sm:gap-2">
             <Link
               href="/shop#catalog"
-              className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-primary)] hover:bg-[var(--sf-muted)] md:hidden"
+              className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-foreground)] hover:bg-[var(--sf-muted)] md:hidden"
               aria-label="Search catalog"
             >
               <Search className="h-5 w-5" />
@@ -150,12 +150,12 @@ export function StorefrontShell({
               <button
                 type="button"
                 onClick={onOpenBag}
-                className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-primary)] hover:bg-[var(--sf-muted)]"
+                className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-foreground)] hover:bg-[var(--sf-muted)]"
                 aria-label={`Shopping bag, ${bagCount} items`}
               >
                 <ShoppingBag className="h-5 w-5" />
                 {bagCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--sf-accent)] px-1 text-[10px] font-bold text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--sf-accent)] px-1 text-[10px] font-bold text-[var(--sf-on-accent)]">
                     {bagCount}
                   </span>
                 )}
@@ -163,12 +163,12 @@ export function StorefrontShell({
             ) : (
               <Link
                 href="/shop#catalog"
-                className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-primary)] hover:bg-[var(--sf-muted)]"
+                className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full text-[var(--sf-foreground)] hover:bg-[var(--sf-muted)]"
                 aria-label={`Shopping bag, ${bagCount} items`}
               >
                 <ShoppingBag className="h-5 w-5" />
                 {bagCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--sf-accent)] px-1 text-[10px] font-bold text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--sf-accent)] px-1 text-[10px] font-bold text-[var(--sf-on-accent)]">
                     {bagCount}
                   </span>
                 )}
@@ -178,7 +178,7 @@ export function StorefrontShell({
               <>
                 <Link
                   href="/shop/account"
-                  className="hidden min-h-11 items-center rounded-full px-3 py-1.5 text-sm font-medium text-[var(--sf-primary)] hover:bg-[var(--sf-muted)] sm:inline-flex"
+                  className="hidden min-h-11 items-center rounded-full px-3 py-1.5 text-sm font-medium text-[var(--sf-foreground)] hover:bg-[var(--sf-muted)] sm:inline-flex"
                 >
                   Hi, {shopper.name.split(' ')[0]}
                 </Link>
@@ -193,7 +193,7 @@ export function StorefrontShell({
             ) : (
               <Link
                 href="/shop/login"
-                className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[var(--sf-accent)] px-4 py-1.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90"
+                className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[var(--sf-accent)] px-4 py-1.5 text-sm font-semibold text-[var(--sf-on-accent)] transition-opacity duration-200 hover:opacity-90"
               >
                 Sign in
               </Link>

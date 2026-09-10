@@ -1,7 +1,7 @@
 /**
  * VERT-M03/M04 — Campaign ROAS from marketing_spend ↔ orders.campaign_id.
  */
-import { eq, sql } from 'drizzle-orm';
+import { inArray, sql } from 'drizzle-orm';
 import { db, marketingSpend, orders, creativeProjects } from '@/db';
 
 export type CampaignRoasRow = {
@@ -60,9 +60,14 @@ export async function computeCampaignRoas(): Promise<{
 
   const creativeTitles = new Map<string, string>();
   if (creativeIds.length) {
-    for (const id of creativeIds.slice(0, 50)) {
-      const [p] = await db.select({ id: creativeProjects.id, title: creativeProjects.title }).from(creativeProjects).where(eq(creativeProjects.id, id)).limit(1);
-      if (p) creativeTitles.set(p.id, p.title);
+    const batchedProjects = await db
+      .select({ id: creativeProjects.id, title: creativeProjects.title })
+      .from(creativeProjects)
+      .where(inArray(creativeProjects.id, creativeIds.slice(0, 50)));
+    for (const p of batchedProjects) {
+      if (p?.id && p?.title) {
+        creativeTitles.set(p.id, p.title);
+      }
     }
   }
 

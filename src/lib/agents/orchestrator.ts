@@ -46,23 +46,35 @@ export async function runAgentTaskDb(task: AgentTask, ctx?: AgentRunContext): Pr
   if (!enabled.includes(task.agent)) {
     return {
       agent: task.agent,
+      status: 'warning',
       summary: `${task.agent} agent is disabled for this store (vertical flag off).`,
       recommendations: ['Enable the module in Settings or vertical flags, then re-run.'],
+      next_actions: ['Go to Settings → Verticals and enable the required vertical flag.'],
     };
   }
 
   const result = await executeAgent(task.agent);
-  await appendAgentLog({ agent: task.agent, summary: result.summary });
+  const enrichedResult: AgentResult = {
+    ...result,
+    status: result.status || (result.recommendations.length > 0 ? 'success' : 'warning'),
+    next_actions:
+      result.next_actions ||
+      (result.recommendations.length > 0
+        ? result.recommendations.slice(0, 3)
+        : ['Review agent metrics and schedule next automated check.']),
+  };
+
+  await appendAgentLog({ agent: task.agent, summary: enrichedResult.summary });
 
   if (ctx?.proposeApprovals !== false && ctx?.userId) {
-    const approvals = await proposeApprovalsFromAgentResult(result, {
+    const approvals = await proposeApprovalsFromAgentResult(enrichedResult, {
       userId: ctx.userId,
       role: ctx.role,
     });
-    if (approvals.length) return { ...result, approvals };
+    if (approvals.length) return { ...enrichedResult, approvals };
   }
 
-  return result;
+  return enrichedResult;
 }
 
 export async function runAllEnabledAgents(ctx?: AgentRunContext): Promise<AgentRunOutcome[]> {
@@ -76,8 +88,13 @@ export async function runAllEnabledAgents(ctx?: AgentRunContext): Promise<AgentR
     } catch (err) {
       results.push({
         agent: id,
+        status: 'error',
         summary: `Agent failed: ${(err as Error).message}`,
         recommendations: ['Check database connection and vertical module data.'],
+        next_actions: [
+          'Verify DATABASE_URL and tenant migrations (0011-0015).',
+          'Check server logs at /api/health and re-run via /approvals.',
+        ],
       });
     }
   }

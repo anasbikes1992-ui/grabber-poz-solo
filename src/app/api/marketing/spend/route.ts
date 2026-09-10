@@ -6,7 +6,7 @@ import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/se
 export async function GET() {
   try {
     const session = await getSession();
-    if (process.env.NODE_ENV === 'production' && !session) {
+    if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
     const rows = await db.select().from(marketingSpend).orderBy(desc(marketingSpend.spentOn)).limit(200);

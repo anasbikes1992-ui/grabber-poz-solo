@@ -16,10 +16,15 @@ async function actor() {
 
 export async function GET() {
   try {
+    await actor();
     const rows = await db.select().from(appointments).orderBy(desc(appointments.startsAt)).limit(100);
     return NextResponse.json({ success: true, appointments: rows });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, appointments: [] }, { status: 500 });
+    const e = err as { message?: string; status?: number };
+    return NextResponse.json(
+      { success: false, error: e.message || 'Unauthorized', appointments: [] },
+      { status: e.status || 401 },
+    );
   }
 }
 

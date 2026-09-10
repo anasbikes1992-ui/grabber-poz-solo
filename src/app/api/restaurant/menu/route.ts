@@ -1,7 +1,31 @@
 import { NextResponse } from 'next/server';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq, inArray, or } from 'drizzle-orm';
 import { db, products, categories, diningTables, kitchenTickets } from '@/db';
 import { hasDatabaseUrl } from '@/lib/db/connection';
+
+/** Simple IP rate limit for public guest POST (in-process; fine for Solo). */
+const guestOrderHits = new Map<string, { count: number; resetAt: number }>();
+const GUEST_ORDER_LIMIT = 20;
+const GUEST_ORDER_WINDOW_MS = 60_000;
+
+function assertGuestOrderRateLimit(req: Request) {
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown';
+  const now = Date.now();
+  const row = guestOrderHits.get(ip);
+  if (!row || now > row.resetAt) {
+    guestOrderHits.set(ip, { count: 1, resetAt: now + GUEST_ORDER_WINDOW_MS });
+    return;
+  }
+  row.count += 1;
+  if (row.count > GUEST_ORDER_LIMIT) {
+    throw Object.assign(new Error('Too many orders from this network — try again shortly'), {
+      status: 429,
+    });
+  }
+}
 
 /** VERT-R06 — Public dining menu (no staff auth). */
 export async function GET(req: Request) {
@@ -75,15 +99,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 503 });
   }
   try {
+    assertGuestOrderRateLimit(req);
+
     const body = await req.json();
     const { tableToken, items, guestNotes } = body as {
       tableToken: string;
-      items: Array<{ name: string; qty: number; price: number; notes?: string }>;
+      items: Array<{ productId: string; qty: number; notes?: string }>;
       guestNotes?: string;
     };
 
     if (!tableToken || !Array.isArray(items) || !items.length) {
       return NextResponse.json({ success: false, error: 'tableToken and items[] are required' }, { status: 400 });
+    }
+
+    const productIds = items.map((it) => String(it.productId || '').trim()).filter(Boolean);
+    if (productIds.length !== items.length) {
+      return NextResponse.json(
+        { success: false, error: 'Each item requires productId (server resolves price/name)' },
+        { status: 400 },
+      );
     }
 
     const [table] = await db
@@ -96,7 +130,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Invalid or unassigned table QR token' }, { status: 404 });
     }
 
-    const totalAmount = items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 1), 0);
+    const catalogRows = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        salePrice: products.salePrice,
+        isActive: products.isActive,
+      })
+      .from(products)
+      .where(and(inArray(products.id, productIds), eq(products.isActive, true)));
+
+    const byId = new Map(catalogRows.map((p) => [p.id, p]));
+    const resolved: Array<{ productId: string; name: string; qty: number; price: number; notes?: string }> = [];
+    for (const it of items) {
+      const pid = String(it.productId);
+      const product = byId.get(pid);
+      if (!product) {
+        return NextResponse.json(
+          { success: false, error: `Unknown or inactive product: ${pid}` },
+          { status: 400 },
+        );
+      }
+      const qty = Math.max(1, Math.min(99, Math.floor(Number(it.qty) || 1)));
+      resolved.push({
+        productId: pid,
+        name: product.name,
+        qty,
+        price: Number(product.salePrice),
+        notes: it.notes || guestNotes || undefined,
+      });
+    }
+
+    const totalAmount = resolved.reduce((sum, it) => sum + it.price * it.qty, 0);
     const kotNumber = `KOT-${Date.now().toString().slice(-6)}`;
 
     const [kot] = await db
@@ -105,18 +170,12 @@ export async function POST(req: Request) {
         kotNumber,
         tableId: table.id,
         waiterName: 'QR Self-Order',
-        itemsJson: items.map((it) => ({
-          name: it.name,
-          qty: Number(it.qty) || 1,
-          price: Number(it.price) || 0,
-          notes: it.notes || guestNotes || undefined,
-        })),
+        itemsJson: resolved,
         totalAmount: totalAmount.toFixed(2),
         status: 'OPEN',
       })
       .returning();
 
-    // Mark table as seated / ordered
     await db
       .update(diningTables)
       .set({ status: 'ORDERED' })
@@ -131,6 +190,7 @@ export async function POST(req: Request) {
       message: 'Order sent directly to the kitchen display!',
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    const status = (err as { status?: number }).status || 500;
+    return NextResponse.json({ success: false, error: (err as Error).message }, { status });
   }
 }

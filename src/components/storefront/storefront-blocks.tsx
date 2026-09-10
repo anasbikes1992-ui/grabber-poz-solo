@@ -33,7 +33,7 @@ function MidBannerBlock({ block }: { block: Extract<StorefrontBlock, { type: 'MI
         {block.ctaHref && block.ctaLabel && (
           <Link
             href={block.ctaHref}
-            className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[var(--sf-accent)] px-5 py-2.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90"
+            className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[var(--sf-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--sf-on-accent)] transition-opacity duration-200 hover:opacity-90"
           >
             {block.ctaLabel}
           </Link>
@@ -112,7 +112,7 @@ export function StorefrontFeaturedSection({
               type="button"
               disabled={item.stock <= 0}
               onClick={() => onAdd(item)}
-              className="mt-4 min-h-11 w-full cursor-pointer rounded-full bg-[var(--sf-accent)] py-2.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-4 min-h-11 w-full cursor-pointer rounded-full bg-[var(--sf-accent)] py-2.5 text-sm font-semibold text-[var(--sf-on-accent)] transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Add to bag
             </button>

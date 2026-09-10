@@ -2,21 +2,50 @@ import type { CSSProperties } from 'react';
 import type { StorefrontTheme } from '@/lib/config/storefront-config.shared';
 import { resolveStorefrontTheme } from '@/lib/storefront/theme-presets';
 
+/** Relative luminance 0–1 for hex (#RGB / #RRGGBB). */
+function hexLuminance(hex: string): number {
+  const raw = hex.replace('#', '').trim();
+  const full =
+    raw.length === 3
+      ? raw
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : raw;
+  if (full.length < 6) return 0.5;
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/** Text color that contrasts with a fill (WCAG-ish heuristic). */
+export function contrastOnColor(fillHex: string): string {
+  return hexLuminance(fillHex) > 0.45 ? '#0A0A0A' : '#FFFFFF';
+}
+
 /** Map CMS theme → storefront CSS custom properties. */
 export function storefrontThemeStyle(theme: StorefrontTheme): CSSProperties {
   const t = resolveStorefrontTheme(theme);
   const repairMuted = t.repairColor ? `${t.repairColor}1A` : 'rgba(15, 118, 110, 0.1)';
+  const fg = t.foregroundColor ?? t.primaryColor;
+  const accent = t.accentColor;
+  const onAccent = contrastOnColor(accent);
+  // Focus ring must be visible on background — never use dark primary on dark bg
+  const ring = t.colorScheme === 'dark' ? accent : fg;
 
   return {
     ['--sf-primary' as string]: t.primaryColor,
     ['--sf-on-primary' as string]: t.onPrimaryColor ?? '#FFFFFF',
     ['--sf-secondary' as string]: t.secondaryColor ?? t.primaryColor,
-    ['--sf-accent' as string]: t.accentColor,
+    ['--sf-accent' as string]: accent,
+    ['--sf-on-accent' as string]: onAccent,
     ['--sf-background' as string]: t.backgroundColor ?? '#FAFAF9',
-    ['--sf-foreground' as string]: t.foregroundColor ?? t.primaryColor,
+    ['--sf-foreground' as string]: fg,
     ['--sf-muted' as string]: t.mutedColor ?? '#E8ECF0',
     ['--sf-border' as string]: t.borderColor ?? '#D6D3D1',
-    ['--sf-ring' as string]: t.primaryColor,
+    ['--sf-ring' as string]: ring,
     ['--sf-repair' as string]: t.repairColor ?? '#0F766E',
     ['--sf-repair-muted' as string]: repairMuted,
     ['--sf-hero-gradient' as string]: t.heroGradient ?? 'none',

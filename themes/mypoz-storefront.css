@@ -1,0 +1,45 @@
+/* MyPoz Storefront — warm stone / gold accent (data-surface=storefront) */
+:root {
+  --background: 40 20% 98%;
+  --foreground: 24 10% 5%;
+  --card: 0 0% 100%;
+  --card-foreground: 24 10% 5%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 24 10% 5%;
+  --primary: 24 10% 10%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 30 6% 30%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 210 16% 93%;
+  --muted-foreground: 24 6% 40%;
+  --accent: 43 74% 33%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 30 6% 82%;
+  --input: 30 6% 82%;
+  --ring: 24 10% 10%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 24 10% 6%;
+  --foreground: 40 20% 96%;
+  --card: 24 8% 10%;
+  --card-foreground: 40 20% 96%;
+  --popover: 24 8% 10%;
+  --popover-foreground: 40 20% 96%;
+  --primary: 43 74% 49%;
+  --primary-foreground: 24 10% 6%;
+  --secondary: 24 6% 18%;
+  --secondary-foreground: 40 20% 96%;
+  --muted: 24 6% 18%;
+  --muted-foreground: 30 8% 65%;
+  --accent: 43 74% 49%;
+  --accent-foreground: 24 10% 6%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 24 6% 18%;
+  --input: 24 6% 18%;
+  --ring: 43 74% 49%;
+}

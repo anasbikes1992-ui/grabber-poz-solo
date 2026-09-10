@@ -44,24 +44,26 @@ vi.mock('@/db', () => {
     });
   };
 
-  return {
-    db: {
-      select: () => ({
-        from: (table: any) => {
-          if (table._name === 'kitchen_tickets') return createQueryChain(fakeTickets);
-          if (table._name === 'dining_tables') return createQueryChain(fakeTables);
-          return createQueryChain([]);
-        },
-      }),
-      update: () => ({
-        set: (vals: any) => ({
-          where: () => ({
-            returning: () => Promise.resolve([{ id: 'ticket-1', ...vals }]),
-          }),
+  const dbMock: any = {
+    select: () => ({
+      from: (table: any) => {
+        if (table._name === 'kitchen_tickets') return createQueryChain(fakeTickets);
+        if (table._name === 'dining_tables') return createQueryChain(fakeTables);
+        return createQueryChain([]);
+      },
+    }),
+    update: () => ({
+      set: (vals: any) => ({
+        where: () => ({
+          returning: () => Promise.resolve([{ id: 'ticket-1', ...vals }]),
         }),
       }),
-      transaction: async (cb: any) => cb({}),
-    },
+    }),
+  };
+  dbMock.transaction = async (cb: any) => cb(dbMock);
+
+  return {
+    db: dbMock,
     kitchenTickets: { _name: 'kitchen_tickets' },
     diningTables: { _name: 'dining_tables' },
     branches: { _name: 'branches' },

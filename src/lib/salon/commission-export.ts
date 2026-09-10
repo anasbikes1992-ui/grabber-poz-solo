@@ -6,8 +6,10 @@ import { db, appointments } from '@/db';
 
 function csvEscape(v: unknown): string {
   const s = String(v ?? '');
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
+  // Neutralize Excel/Sheets formula injection (=, +, -, @, tab, CR)
+  const safeS = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  if (/[",\n]/.test(safeS)) return `"${safeS.replace(/"/g, '""')}"`;
+  return safeS;
 }
 
 export async function exportCommissionCsv(opts: { from?: Date; to?: Date } = {}) {

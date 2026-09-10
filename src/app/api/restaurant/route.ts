@@ -18,10 +18,15 @@ async function actor() {
 
 export async function GET() {
   try {
+    await actor();
     const state = await getRestaurantFloorState();
     return NextResponse.json({ success: true, ...state });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    const e = err as { message?: string; status?: number };
+    return NextResponse.json(
+      { success: false, error: e.message || 'Unauthorized' },
+      { status: e.status || 401 },
+    );
   }
 }
 

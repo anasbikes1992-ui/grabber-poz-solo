@@ -18,6 +18,21 @@ export async function completeAppointmentAndCharge(input: {
   const [appt] = await db.select().from(appointments).where(eq(appointments.id, input.appointmentId)).limit(1);
   if (!appt) throw Object.assign(new Error('Appointment not found'), { status: 404 });
 
+  // Idempotent retry: already completed + charged note → return without re-charging
+  if (appt.status === 'COMPLETED' && (appt.notes || '').includes('Charged ')) {
+    const chargedMatch = (appt.notes || '').match(/Charged\s+(\S+)/);
+    return {
+      appointment: appt,
+      orderNumber: chargedMatch?.[1] || 'EXISTING',
+      grandTotal: Number(appt.fee || 0),
+      order: null,
+      productId: input.productId || null,
+      commissionPct: Number(appt.commissionPct || 0),
+      commissionAmount: Number(appt.commissionAmount || 0),
+      idempotent: true as const,
+    };
+  }
+
   const productId = await resolveServiceProductId(appt.service, input.productId);
   if (!productId) {
     throw Object.assign(
@@ -46,6 +61,7 @@ export async function completeAppointmentAndCharge(input: {
     })),
   ];
 
+  // POS checkout has its own transaction + idempotencyKey — safe to retry
   const checkout = await processPosCheckout({
     channel: 'POS',
     items: checkoutItems,
@@ -55,27 +71,28 @@ export async function completeAppointmentAndCharge(input: {
     idempotencyKey: `appt-complete-${appt.id}`,
   });
 
-  await db.transaction(async (tx) => {
-    await depleteRecipeForProduct(tx, productId, 1, appt.id);
-  });
-
   const { resolveCommissionPct, computeCommissionAmount } = await import('@/lib/salon/commission');
   const commissionPct = resolveCommissionPct(appt.specialist, input.commissionPct);
   const commissionAmount = computeCommissionAmount(fee, commissionPct);
 
-  const [updated] = await db
-    .update(appointments)
-    .set({
-      status: 'COMPLETED',
-      commissionPct: commissionPct.toFixed(2),
-      commissionAmount: commissionAmount.toFixed(2),
-      notes: [appt.notes, `Charged ${checkout.orderNumber}`, `Commission LKR ${commissionAmount.toFixed(2)} (${commissionPct}%)`]
-        .filter(Boolean)
-        .join(' · '),
-      updatedAt: new Date(),
-    })
-    .where(eq(appointments.id, appt.id))
-    .returning();
+  // BOM + COMPLETED status in one transaction so a crash mid-way doesn't leave
+  // "charged but still open" without a recoverable COMPLETED row.
+  const [updated] = await db.transaction(async (tx) => {
+    await depleteRecipeForProduct(tx, productId, 1, appt.id);
+    return tx
+      .update(appointments)
+      .set({
+        status: 'COMPLETED',
+        commissionPct: commissionPct.toFixed(2),
+        commissionAmount: commissionAmount.toFixed(2),
+        notes: [appt.notes, `Charged ${checkout.orderNumber}`, `Commission LKR ${commissionAmount.toFixed(2)} (${commissionPct}%)`]
+          .filter(Boolean)
+          .join(' · '),
+        updatedAt: new Date(),
+      })
+      .where(eq(appointments.id, appt.id))
+      .returning();
+  });
 
   return {
     appointment: updated,

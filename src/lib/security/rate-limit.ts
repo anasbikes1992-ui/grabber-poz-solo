@@ -44,6 +44,7 @@ export const RATE_LIMIT_RULES = [
   { prefix: '/api/jarvis/', limit: 30, windowMs: 60_000 },
   { prefix: '/api/repairs/public', limit: 20, windowMs: 60_000 },
   { prefix: '/api/agents/', limit: 15, windowMs: 60_000 },
+  { prefix: '/api/restaurant/menu', limit: 20, windowMs: 60_000 },
 ] as const;
 
 export function rateLimitResponse(retryAfterSec: number) {

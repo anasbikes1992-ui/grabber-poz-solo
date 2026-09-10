@@ -47,7 +47,7 @@ export async function getRestaurantFloorState() {
   const tickets = await db
     .select()
     .from(kitchenTickets)
-    .where(inArray(kitchenTickets.status, ['OPEN', 'CONFIRMED', 'FIRED', 'PREPARING', 'READY']))
+    .where(inArray(kitchenTickets.status, ['OPEN', 'CONFIRMED', 'FIRED', 'PREPARING', 'READY', 'SETTLING']))
     .orderBy(desc(kitchenTickets.createdAt))
     .limit(50);
 
@@ -77,7 +77,7 @@ export async function getKdsState(stationFilter = 'ALL') {
   const activeTickets = await db
     .select()
     .from(kitchenTickets)
-    .where(inArray(kitchenTickets.status, ['OPEN', 'CONFIRMED', 'FIRED', 'PREPARING', 'READY']))
+    .where(inArray(kitchenTickets.status, ['OPEN', 'CONFIRMED', 'FIRED', 'PREPARING', 'READY', 'SETTLING']))
     .orderBy(asc(kitchenTickets.createdAt))
     .limit(60);
 
@@ -139,6 +139,10 @@ export async function bumpKdsTicket(ticketId: string) {
   const [ticket] = await db.select().from(kitchenTickets).where(eq(kitchenTickets.id, ticketId)).limit(1);
   if (!ticket) throw Object.assign(new Error('Kitchen ticket not found'), { status: 404 });
 
+  if (ticket.status === 'CLOSED' || ticket.status === 'CANCELLED') {
+    throw Object.assign(new Error(`Cannot bump ticket in status ${ticket.status}`), { status: 400 });
+  }
+
   let nextStatus: string;
   if (ticket.status === 'OPEN' || ticket.status === 'CONFIRMED') {
     nextStatus = 'PREPARING';
@@ -146,20 +150,22 @@ export async function bumpKdsTicket(ticketId: string) {
     nextStatus = 'READY';
   } else if (ticket.status === 'READY') {
     nextStatus = 'SERVED';
+  } else if (ticket.status === 'SERVED') {
+    return { ticket, previousStatus: ticket.status, newStatus: ticket.status };
   } else {
-    nextStatus = 'SERVED';
+    throw Object.assign(new Error(`Cannot bump ticket in status ${ticket.status}`), { status: 400 });
   }
 
-  const [updated] = await db
-    .update(kitchenTickets)
-    .set({ status: nextStatus, closedAt: nextStatus === 'SERVED' ? new Date() : null })
-    .where(eq(kitchenTickets.id, ticketId))
-    .returning();
+  const updated = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(kitchenTickets)
+      .set({ status: nextStatus, closedAt: nextStatus === 'SERVED' ? new Date() : null })
+      .where(eq(kitchenTickets.id, ticketId))
+      .returning();
 
-  if (nextStatus === 'SERVED') {
-    const items = (ticket.itemsJson as KdsTicketItem[]) || [];
-    const [branch] = await db.select({ id: branches.id }).from(branches).limit(1);
-    await db.transaction(async (tx) => {
+    if (nextStatus === 'SERVED') {
+      const items = (ticket.itemsJson as KdsTicketItem[]) || [];
+      const [branch] = await tx.select({ id: branches.id }).from(branches).limit(1);
       for (const item of items) {
         if (item.productId) {
           await depleteRecipeForProduct(tx, item.productId, item.qty || 1, ticket.kotNumber);
@@ -171,18 +177,19 @@ export async function bumpKdsTicket(ticketId: string) {
             tx,
             { locationType: 'BRANCH', locationId: branch.id },
             { productId: mod.ingredientProductId, quantity: qty },
-            { referenceType: 'KOT_BOM', referenceId: `${ticket.kotNumber}-mod`, notes: `Modifier ${mod.name}` },
+            { referenceType: 'KOT_BOM', referenceId: `${ticket.kotNumber}-mod`, notes: `modifier ${mod.name}` },
           );
         }
       }
-    });
-
-    if (ticket.tableId) {
-      await db.update(diningTables).set({ status: 'SERVED' }).where(eq(diningTables.id, ticket.tableId));
+      if (ticket.tableId) {
+        await tx.update(diningTables).set({ status: 'SERVED' }).where(eq(diningTables.id, ticket.tableId));
+      }
+    } else if (ticket.tableId) {
+      await tx.update(diningTables).set({ status: 'ORDERED' }).where(eq(diningTables.id, ticket.tableId));
     }
-  } else if (ticket.tableId) {
-    await db.update(diningTables).set({ status: 'ORDERED' }).where(eq(diningTables.id, ticket.tableId));
-  }
+
+    return row;
+  });
 
   return { ticket: updated, previousStatus: ticket.status, newStatus: nextStatus };
 }
@@ -228,7 +235,7 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
           ...s,
           branchId: branch?.id || null,
           status: 'VACANT',
-          qrToken: `t${Date.now().toString(36)}${i}`,
+          qrToken: crypto.randomUUID(),
         })),
       )
       .returning();
@@ -246,6 +253,7 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
         branchId: (body.branchId as string) || branch?.id || null,
         status: (body.status as string) || 'VACANT',
         active: true,
+        qrToken: crypto.randomUUID(),
       })
       .returning();
     return { table };
@@ -314,6 +322,8 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
 
 export async function handleRestaurantPatch(body: Record<string, unknown>) {
   if (body.action === 'update_table') {
+    const tableId = String(body.tableId || '');
+    if (!tableId) throw Object.assign(new Error('tableId required'), { status: 400 });
     const [table] = await db
       .update(diningTables)
       .set({
@@ -322,7 +332,7 @@ export async function handleRestaurantPatch(body: Record<string, unknown>) {
         sortOrder: body.sortOrder != null ? Number(body.sortOrder) : undefined,
         status: body.status as string | undefined,
       })
-      .where(eq(diningTables.id, body.tableId as string))
+      .where(eq(diningTables.id, tableId))
       .returning();
     return { table };
   }
@@ -353,39 +363,64 @@ export async function handleRestaurantPatch(body: Record<string, unknown>) {
           }));
 
     const payments = Array.isArray(body.payments) ? body.payments : undefined;
-    const ordersOut: Array<{ orderNumber?: string; grandTotal?: number; label?: string }> = [];
 
+    // Pre-validate every part resolves to catalog lines before charging any seat
+    type PlannedPart = {
+      index: number;
+      label?: string;
+      paymentMethod: string;
+      checkoutItems: ReturnType<typeof checkoutLinesFromIndexes>;
+    };
+    const planned: PlannedPart[] = [];
     for (let pi = 0; pi < parts.length; pi++) {
       const part = parts[pi];
       const checkoutItems = checkoutLinesFromIndexes(rawItems as any, part.itemIndexes || []);
       if (!checkoutItems.length) continue;
-
-      const paymentMethod =
-        parts.length === 1 && payments?.length
-          ? 'SPLIT'
-          : String(part.paymentMethod || body.paymentMethod || 'CASH');
-
-      const checkout = await processPosCheckout({
-        channel: 'POS',
-        items: checkoutItems,
-        paymentMethod,
-        payments: parts.length === 1 ? payments : undefined,
-        actorId: body.actorId ? String(body.actorId) : undefined,
-        allowStockUnderrun: true,
-        idempotencyKey: `kot-settle-${ticket.kotNumber}-p${pi}`,
-      });
-      ordersOut.push({
-        orderNumber: checkout.orderNumber,
-        grandTotal: checkout.grandTotal,
+      planned.push({
+        index: pi,
         label: part.label,
+        paymentMethod:
+          parts.length === 1 && payments?.length
+            ? 'SPLIT'
+            : String(part.paymentMethod || body.paymentMethod || 'CASH'),
+        checkoutItems,
       });
     }
 
-    if (!ordersOut.length) {
+    if (!planned.length) {
       throw Object.assign(
         new Error('Cannot settle: KOT lines need productId (fire KOT from POS bag with catalog items)'),
         { status: 400 },
       );
+    }
+
+    // Mark in-progress so a mid-loop crash is visible (idempotency keys prevent double orders)
+    await db
+      .update(kitchenTickets)
+      .set({ status: 'SETTLING' })
+      .where(eq(kitchenTickets.id, ticket.id));
+
+    const ordersOut: Array<{ orderNumber?: string; grandTotal?: number; label?: string }> = [];
+    try {
+      for (const part of planned) {
+        const checkout = await processPosCheckout({
+          channel: 'POS',
+          items: part.checkoutItems,
+          paymentMethod: part.paymentMethod,
+          payments: planned.length === 1 ? payments : undefined,
+          actorId: body.actorId ? String(body.actorId) : undefined,
+          allowStockUnderrun: true,
+          idempotencyKey: `kot-settle-${ticket.kotNumber}-p${part.index}`,
+        });
+        ordersOut.push({
+          orderNumber: checkout.orderNumber,
+          grandTotal: checkout.grandTotal,
+          label: part.label,
+        });
+      }
+    } catch (err) {
+      // Leave SETTLING so staff can retry; idempotency keys skip already-paid parts
+      throw err;
     }
 
     const [closed] = await db
@@ -409,10 +444,12 @@ export async function handleRestaurantPatch(body: Record<string, unknown>) {
   }
 
   if (body.action === 'close_kot') {
+    const ticketId = String(body.ticketId || '');
+    if (!ticketId) throw Object.assign(new Error('ticketId required'), { status: 400 });
     const [ticket] = await db
       .update(kitchenTickets)
       .set({ status: 'CLOSED', closedAt: new Date() })
-      .where(eq(kitchenTickets.id, body.ticketId as string))
+      .where(eq(kitchenTickets.id, ticketId))
       .returning();
     if (ticket?.tableId) {
       await db.update(diningTables).set({ status: 'VACANT' }).where(eq(diningTables.id, ticket.tableId));

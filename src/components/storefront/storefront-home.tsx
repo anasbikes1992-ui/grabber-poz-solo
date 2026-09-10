@@ -335,7 +335,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
               >
                 <a
                   href="#catalog"
-                  className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[var(--sf-accent)] px-6 py-3 text-sm font-semibold text-white shadow-md transition-opacity duration-200 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                  className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[var(--sf-accent)] px-6 py-3 text-sm font-semibold text-[var(--sf-on-accent)] shadow-md transition-opacity duration-200 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
                 >
                   {hero?.ctaLabel || 'Browse products'}
                 </a>
@@ -442,7 +442,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search name, SKU, category…"
-                    className="w-full min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] pl-4 pr-10 py-2.5 text-sm shadow-sm outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]/40"
+                    className="w-full min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] pl-4 pr-10 py-2.5 text-sm shadow-sm outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]"
                   />
                   {q ? (
                     <button
@@ -461,7 +461,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                   aria-label="Sort products"
-                  className="min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3.5 py-2.5 text-xs font-semibold text-[var(--sf-foreground)] shadow-sm outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]/40"
+                  className="min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3.5 py-2.5 text-xs font-semibold text-[var(--sf-foreground)] shadow-sm outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]"
                 >
                   <option value="default">Featured / Recommended</option>
                   <option value="price_asc">Price: Low to High</option>
@@ -484,7 +484,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                       onClick={() => setSelectedCategory(cat.name)}
                       className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                         isActive
-                          ? 'bg-[var(--sf-accent)] text-white shadow-md shadow-[var(--sf-accent)]/20 scale-105'
+                          ? 'bg-[var(--sf-accent)] text-[var(--sf-on-accent)] shadow-md shadow-[var(--sf-accent)]/20 scale-105'
                           : 'bg-[var(--sf-surface)] border border-[var(--sf-border)] text-[var(--sf-foreground)] hover:bg-[var(--sf-muted)] hover:border-[var(--sf-accent)]/40'
                       }`}
                     >
@@ -526,7 +526,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                     setQ('');
                     setSelectedCategory('ALL');
                   }}
-                  className="mt-2 inline-flex min-h-9 items-center px-4 py-1.5 rounded-full bg-[var(--sf-accent)] text-xs font-bold text-white shadow-sm"
+                  className="mt-2 inline-flex min-h-9 items-center px-4 py-1.5 rounded-full bg-[var(--sf-accent)] text-xs font-bold text-[var(--sf-on-accent)] shadow-sm"
                 >
                   Clear Filters
                 </button>
@@ -623,7 +623,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                       type="button"
                       disabled={item.stock <= 0}
                       onClick={() => addToCart(item)}
-                      className="w-full min-h-11 cursor-pointer rounded-2xl bg-[var(--sf-accent)] py-2.5 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:opacity-95 transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                      className="w-full min-h-11 cursor-pointer rounded-2xl bg-[var(--sf-accent)] py-2.5 text-xs font-bold text-[var(--sf-on-accent)] shadow-sm transition-all duration-200 hover:opacity-95 transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
                     >
                       {item.stock > 0 ? '+ Add to Bag' : 'Out of Stock'}
                     </button>

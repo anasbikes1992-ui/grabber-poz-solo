@@ -35,8 +35,11 @@ export type AgentTask = {
 
 export type AgentResult = {
   agent: AgentId;
+  status?: 'success' | 'warning' | 'error';
   summary: string;
   recommendations: string[];
+  next_actions?: string[];
+  artifacts?: Array<{ id?: string; path?: string }>;
   metrics?: Record<string, number | string>;
 };
 

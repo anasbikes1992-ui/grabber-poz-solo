@@ -62,14 +62,10 @@ export default function TableQrMenuPage() {
     setSending(true);
     setError(null);
     try {
-      const orderItems = Object.entries(tray).map(([id, qty]) => {
-        const item = items.find((i) => i.id === id)!;
-        return {
-          name: item.name,
-          qty,
-          price: item.salePrice,
-        };
-      });
+      const orderItems = Object.entries(tray).map(([id, qty]) => ({
+        productId: id,
+        qty,
+      }));
 
       const res = await fetch('/api/restaurant/menu', {
         method: 'POST',
@@ -105,8 +101,12 @@ export default function TableQrMenuPage() {
         </p>
 
         {sentKot && (
-          <div className="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-start gap-3">
-            <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-start gap-3"
+          >
+            <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" aria-hidden />
             <div>
               <p className="font-bold text-sm">Order sent to kitchen! (Ticket #{sentKot})</p>
               <p className="text-xs text-emerald-700 mt-0.5">
@@ -142,27 +142,32 @@ export default function TableQrMenuPage() {
                     <>
                       <button
                         type="button"
+                        aria-label={`Decrease quantity of ${item.name}`}
                         onClick={() => updateQty(item.id, -1)}
                         className="h-7 w-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-zinc-700 hover:bg-zinc-100 transition shadow-xs"
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-3 w-3" aria-hidden />
                       </button>
-                      <span className="font-mono font-bold text-xs w-5 text-center">{qty}</span>
+                      <span className="font-mono font-bold text-xs w-5 text-center" aria-live="polite">
+                        {qty}
+                      </span>
                       <button
                         type="button"
+                        aria-label={`Increase quantity of ${item.name}`}
                         onClick={() => updateQty(item.id, 1)}
                         className="h-7 w-7 rounded-lg bg-zinc-900 text-white flex items-center justify-center hover:bg-black transition shadow-xs"
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-3 w-3" aria-hidden />
                       </button>
                     </>
                   ) : (
                     <button
                       type="button"
+                      aria-label={`Add ${item.name} to tray`}
                       onClick={() => updateQty(item.id, 1)}
                       className="px-3 py-1.5 rounded-lg bg-zinc-900 text-white text-xs font-semibold flex items-center gap-1 hover:bg-black transition shadow-xs"
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-3 w-3" aria-hidden />
                       <span>Add</span>
                     </button>
                   )}
@@ -190,7 +195,11 @@ export default function TableQrMenuPage() {
                 LKR {trayTotal.toLocaleString('en-LK')}
               </span>
             </div>
+            <label className="sr-only" htmlFor="dine-table-notes">
+              Table notes
+            </label>
             <input
+              id="dine-table-notes"
               type="text"
               placeholder="Table notes (e.g. extra spicy, no ice)..."
               value={notes}
@@ -200,10 +209,11 @@ export default function TableQrMenuPage() {
             <button
               type="button"
               disabled={sending}
+              aria-busy={sending}
               onClick={() => void handleSendOrder()}
               className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-md disabled:opacity-50"
             >
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-3.5 w-3.5" aria-hidden />
               <span>{sending ? 'Sending to Kitchen...' : `Send Order to Kitchen (LKR ${trayTotal.toLocaleString('en-LK')})`}</span>
             </button>
           </div>

@@ -310,7 +310,7 @@ export default function ShopCheckoutPage() {
       <main className="mx-auto max-w-5xl px-4 py-8">
         {/* Success Confirmation Card */}
         {placedOrder ? (
-          <div className="mx-auto max-w-xl text-center py-10">
+          <div role="status" tabIndex={-1} className="mx-auto max-w-xl text-center py-10 outline-none">
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-glow-em">
               <CheckCircle2 className="h-10 w-10 animate-bounce" />
             </div>
@@ -320,20 +320,20 @@ export default function ShopCheckoutPage() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
               Thank you for your order!
             </h1>
-            <p className="mt-2 text-sm text-zinc-400 max-w-md mx-auto">
+            <p className="mt-2 text-sm text-zinc-300 max-w-md mx-auto">
               We have received your order and our fulfillment team is preparing it for dispatch.
             </p>
 
             <div className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-left space-y-4">
               <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
                 <div>
-                  <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Order Reference</p>
+                  <p className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">Order Reference</p>
                   <p className="font-mono text-lg font-bold text-emerald-400 mt-0.5">{placedOrder.orderNumber}</p>
                 </div>
                 <button
                   type="button"
                   onClick={copyOrderNumber}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 transition-colors cursor-pointer"
                 >
                   <Copy className="h-3.5 w-3.5" />
                   <span>{copied ? 'Copied!' : 'Copy Code'}</span>
@@ -342,11 +342,11 @@ export default function ShopCheckoutPage() {
 
               <div className="grid grid-cols-2 gap-4 text-xs pt-1">
                 <div>
-                  <span className="text-zinc-500 block">Payment Method</span>
+                  <span className="text-zinc-400 block">Payment Method</span>
                   <span className="font-semibold text-zinc-200 mt-0.5 block">{placedOrder.paymentMethod}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 block">Amount Due</span>
+                  <span className="text-zinc-400 block">Amount Due</span>
                   <span className="font-semibold text-zinc-200 mt-0.5 block">LKR {placedOrder.grandTotal.toLocaleString()}</span>
                 </div>
               </div>
@@ -355,37 +355,31 @@ export default function ShopCheckoutPage() {
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href={`/track/${placedOrder.orderNumber}`}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-xs font-bold text-zinc-950 hover:bg-emerald-400 transition-all shadow-glow-em"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-xs font-bold text-zinc-950 hover:bg-emerald-400 transition-all shadow-glow-em cursor-pointer"
               >
                 <span>Live Order Tracking</span>
-                <ExternalLink className="h-4 w-4" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
               <Link
-                href="/shop/account"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-3 text-xs font-bold text-zinc-200 hover:bg-zinc-800 transition-all"
+                href="/shop"
+                className="inline-flex items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 px-6 py-3 text-xs font-bold text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
               >
-                <span>View in My Account</span>
+                Return to Shop
               </Link>
             </div>
           </div>
         ) : (
           <div>
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight text-white">Express Checkout</h1>
-              <p className="text-xs text-zinc-400 mt-1">
-                Review your items and complete your delivery details below.
-              </p>
-            </div>
-
+            {/* Quick Guest vs Login banner */}
             {!shopper && (
-              <div className="mb-6 flex items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-300">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-400 shrink-0" />
-                  <span>Sign in to earn loyalty points and track your order in real time.</span>
+              <div className="mb-6 rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5 text-zinc-300">
+                  <User className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span>Checking out as Guest. Have an account?</span>
                 </div>
                 <Link
                   href="/shop/login?next=/shop/checkout"
-                  className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-zinc-950 hover:bg-amber-400 transition-colors shrink-0"
+                  className="inline-flex items-center gap-1 font-bold text-emerald-400 hover:text-emerald-300 hover:underline"
                 >
                   Sign In
                 </Link>
@@ -404,71 +398,93 @@ export default function ShopCheckoutPage() {
 
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[11px] font-semibold text-zinc-400 block mb-1">
-                        Full Name <span className="text-rose-400">*</span>
+                      <label htmlFor="checkout-name" className="text-[11px] font-semibold text-zinc-300 block mb-1">
+                        Full Name <span className="text-rose-400" aria-hidden="true">*</span>
                       </label>
                       <input
+                        id="checkout-name"
                         type="text"
+                        name="name"
+                        autoComplete="name"
+                        required
+                        aria-required="true"
                         value={contactName}
                         onChange={(e) => setContactName(e.target.value)}
                         placeholder="e.g. John Perera"
-                        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
+                        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-semibold text-zinc-400 block mb-1">
-                        WhatsApp / SMS Phone (for dispatch & courier OTP) <span className="text-rose-400">*</span>
+                      <label htmlFor="checkout-phone" className="text-[11px] font-semibold text-zinc-300 block mb-1">
+                        WhatsApp / SMS Phone (for dispatch & courier OTP){' '}
+                        <span className="text-rose-400" aria-hidden="true">*</span>
                       </label>
                       <input
+                        id="checkout-phone"
                         type="tel"
+                        name="tel"
+                        autoComplete="tel"
+                        required
+                        aria-required="true"
                         value={contactPhone}
                         onChange={(e) => setContactPhone(e.target.value)}
                         placeholder="07XXXXXXXX or +947XXXXXXXX"
-                        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
+                        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none"
                       />
+                      <p id="checkout-phone-hint" className="mt-1 text-[10px] text-zinc-400">
+                        Use 07XXXXXXXX or +947XXXXXXXX
+                      </p>
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-semibold text-zinc-400 block mb-1 flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-zinc-500" /> Delivery Address
+                      <label htmlFor="checkout-address" className="text-[11px] font-semibold text-zinc-300 mb-1 flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-zinc-400" aria-hidden /> Delivery Address
                       </label>
                       <textarea
+                        id="checkout-address"
+                        name="street-address"
+                        autoComplete="street-address"
                         rows={2}
                         value={deliveryAddress}
                         onChange={(e) => setDeliveryAddress(e.target.value)}
                         placeholder="Street address, Apartment / Suite, City..."
-                        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
+                        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-200 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-semibold text-zinc-400 block mb-1">
+                      <label htmlFor="checkout-notes" className="text-[11px] font-semibold text-zinc-300 block mb-1">
                         Delivery Notes (Optional)
                       </label>
                       <input
+                        id="checkout-notes"
                         type="text"
+                        name="delivery-notes"
                         value={deliveryNotes}
                         onChange={(e) => setDeliveryNotes(e.target.value)}
                         placeholder="e.g. Ring bell or leave at security desk"
-                        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
+                        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-200 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* 2. Payment Method */}
-                <div className="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-5 space-y-4">
+                <fieldset className="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-5 space-y-4">
+                  <legend className="sr-only">Payment Method</legend>
                   <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-3">
                     <CreditCard className="h-4 w-4 text-emerald-400" />
                     <h2 className="text-sm font-bold text-white">Payment Method</h2>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label="Payment method">
                     <button
                       type="button"
+                      role="radio"
+                      aria-checked={payMethod === 'COD'}
                       onClick={() => setPayMethod('COD')}
-                      className={`p-4 rounded-xl border text-left flex items-start gap-3 transition-all ${
+                      className={`p-4 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                         payMethod === 'COD'
                           ? 'border-emerald-500 bg-emerald-500/10 text-white shadow-glow-em'
                           : 'border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700'
@@ -479,16 +495,20 @@ export default function ShopCheckoutPage() {
                       </div>
                       <div>
                         <p className="font-bold text-xs text-zinc-200">Cash on Delivery</p>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">Pay in cash upon doorstep delivery</p>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">Pay in cash upon doorstep delivery</p>
                       </div>
                     </button>
 
                     <button
                       type="button"
+                      role="radio"
+                      aria-checked={payMethod === 'PAYHERE'}
+                      disabled={!payhereReady}
+                      aria-disabled={!payhereReady}
                       onClick={() => {
                         if (payhereReady) setPayMethod('PAYHERE');
                       }}
-                      className={`p-4 rounded-xl border text-left flex items-start gap-3 transition-all ${
+                      className={`p-4 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                         payMethod === 'PAYHERE'
                           ? 'border-emerald-500 bg-emerald-500/10 text-white shadow-glow-em'
                           : !payhereReady
@@ -502,25 +522,28 @@ export default function ShopCheckoutPage() {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <p className="font-bold text-xs text-zinc-200">Visa / Mastercard / Frimi</p>
-                          {!payhereReady && <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-500 font-mono">Gateway off</span>}
+                          {!payhereReady && <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">Gateway off</span>}
                         </div>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">Instant secure payment via PayHere</p>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">Instant secure payment via PayHere</p>
                       </div>
                     </button>
                   </div>
-                </div>
+                </fieldset>
 
                 {/* 3. Promo Code */}
                 <div className="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-5 space-y-3">
-                  <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                    <Tag className="h-3.5 w-3.5 text-amber-400" /> Have a Coupon or Voucher Code?
+                  <label htmlFor="checkout-promo" className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                    <Tag className="h-3.5 w-3.5 text-amber-400" aria-hidden /> Have a Coupon or Voucher Code?
                   </label>
                   <div className="flex gap-2">
                     <input
+                      id="checkout-promo"
+                      name="promo-code"
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                       placeholder="e.g. WELCOME500"
-                      className="flex-1 rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs font-mono uppercase text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none"
+                      aria-describedby="checkout-promo-hint"
+                      className="flex-1 rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs font-mono uppercase text-zinc-200 placeholder:text-zinc-400 focus:border-amber-500 focus:outline-none"
                     />
                     <button
                       type="button"
@@ -530,6 +553,9 @@ export default function ShopCheckoutPage() {
                       Apply
                     </button>
                   </div>
+                  <p id="checkout-promo-hint" className="text-[10px] text-zinc-400">
+                    Optional promo or voucher code
+                  </p>
                 </div>
               </div>
 

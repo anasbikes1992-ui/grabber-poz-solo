@@ -83,6 +83,7 @@ node scripts/release-gate.mjs r6 --env-file .env.prod.txt --production
 
 ## Related
 
+- [`AGENT_HARNESS.md`](./AGENT_HARNESS.md) — observation/recovery contracts, action-space rules
 - [`RELEASE_GATE.md`](./RELEASE_GATE.md) — R6 exit criteria
 - [`REPAIRS_STOREFRONT_BLUEPRINT.md`](./REPAIRS_STOREFRONT_BLUEPRINT.md) — repairs + agents plan
 - [`ROADMAP.md`](./ROADMAP.md) — release train
