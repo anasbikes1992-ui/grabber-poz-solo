@@ -49,16 +49,19 @@ fs.writeFileSync(path.join(outDir, `.env.${clientSlug}.production`), envContent)
 const runbook = `# Provision runbook — ${clientName}
 
 1. Create Supabase project in \`ap-southeast-1\`
-2. Apply schema: \`npm run db:bootstrap\` (migrations 0000–0002 + column align)
+2. Apply schema: \`npm run db:bootstrap\` (migrations **0000 → 0012** + column align)
+   - Ensure \`0011_wishlist_reviews.sql\` and \`0012_whatsapp_threads.sql\` applied
 3. Optional RLS: \`npm run db:bootstrap -- --rls\` then \`npm run db:test-rls\`
-4. Copy env from \`.env.${clientSlug}.production\` into Vercel
+4. Copy env from \`.env.${clientSlug}.production\` into Vercel (or \`npm run ops:sync-env\`)
 5. \`npm run env:validate -- --env-file .env.${clientSlug}.production --production\`
-6. \`npm run db\` seed: \`curl -X POST "$NEXT_PUBLIC_APP_URL/api/seed" -H "Content-Type: application/json" -d '{"storeName":"${clientName}","slug":"${clientSlug}"}'\`
+6. Seed: \`curl -X POST "$NEXT_PUBLIC_APP_URL/api/seed" -H "Content-Type: application/json" -d '{"storeName":"${clientName}","slug":"${clientSlug}"}'\`
 7. \`npm run client:certify -- --client "${clientName}" --slug "${clientSlug}" --env .env.${clientSlug}.production\`
-8. Owner first login → rotate TEMP PIN if seeded with TEMP$
-9. Bind domain ${clientDomain} in Vercel + DNS
+8. \`CERTIFY_HTTP_BASE_URL=https://${clientDomain} npm run ops:smoke\`
+9. Owner first login → rotate TEMP PIN if seeded with TEMP$
+10. Bind domain ${clientDomain} in Vercel + DNS
+11. Phase 0 checklist: docs/FULL_PROOF_PLAN.md §5 (WhatsApp, POS smoke, release:gate)
 
-See full guide: docs/FRESH_START.md
+See: docs/PROVISION_NEXT_CLIENT.md · docs/FRESH_START.md
 `;
 
 fs.writeFileSync(path.join(outDir, 'RUNBOOK.md'), runbook);

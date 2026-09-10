@@ -15,12 +15,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/track`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${base}/shop/login`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
     { url: `${base}/shop/checkout`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${base}/locations`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
   ];
 
   try {
-    const [products, categories] = await Promise.all([
+    const { listLocationSlugs } = await import('@/lib/seo/location-pages');
+    const [products, categories, locationSlugs] = await Promise.all([
       listPublishedProductSlugs(),
       listCategorySlugs(),
+      listLocationSlugs().catch(() => [] as string[]),
     ]);
 
     const productRoutes: MetadataRoute.Sitemap = products.map((p) => ({
@@ -37,7 +40,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-    return [...staticRoutes, ...categoryRoutes, ...productRoutes];
+    const locationRoutes: MetadataRoute.Sitemap = locationSlugs.map((slug) => ({
+      url: `${base}/locations/${slug}`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.75,
+    }));
+
+    return [...staticRoutes, ...categoryRoutes, ...productRoutes, ...locationRoutes];
   } catch {
     return staticRoutes;
   }

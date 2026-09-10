@@ -2,6 +2,7 @@ import { asc, desc, eq, inArray } from 'drizzle-orm';
 import { db, diningTables, kitchenTickets, branches } from '@/db';
 import { depleteRecipeForProduct } from '@/lib/restaurant/recipe-bom';
 import { checkRecipeLowStock } from '@/lib/restaurant/recipe-low-stock';
+import { recordAdjustment } from '@/lib/inventory/stock-service';
 
 export type KdsTicketItem = {
   productId?: string;
@@ -12,6 +13,13 @@ export type KdsTicketItem = {
   course?: 'STARTER' | 'MAIN' | 'DESSERT' | 'BEVERAGE';
   price: number;
   completed?: boolean;
+  modifiers?: Array<{
+    id?: string;
+    name: string;
+    priceDelta?: number;
+    ingredientProductId?: string;
+    ingredientQty?: number;
+  }>;
 };
 
 export type KdsTicket = {
@@ -149,11 +157,22 @@ export async function bumpKdsTicket(ticketId: string) {
     .returning();
 
   if (nextStatus === 'SERVED') {
-    const items = (ticket.itemsJson as Array<{ productId?: string; qty: number }>) || [];
+    const items = (ticket.itemsJson as KdsTicketItem[]) || [];
+    const [branch] = await db.select({ id: branches.id }).from(branches).limit(1);
     await db.transaction(async (tx) => {
       for (const item of items) {
         if (item.productId) {
           await depleteRecipeForProduct(tx, item.productId, item.qty || 1, ticket.kotNumber);
+        }
+        for (const mod of item.modifiers || []) {
+          if (!mod.ingredientProductId || !branch) continue;
+          const qty = -Math.max(1, Math.floor((mod.ingredientQty ?? 1) * (item.qty || 1)));
+          await recordAdjustment(
+            tx,
+            { locationType: 'BRANCH', locationId: branch.id },
+            { productId: mod.ingredientProductId, quantity: qty },
+            { referenceType: 'KOT_BOM', referenceId: `${ticket.kotNumber}-mod`, notes: `Modifier ${mod.name}` },
+          );
         }
       }
     });
@@ -204,7 +223,14 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
     ];
     const rows = await db
       .insert(diningTables)
-      .values(seed.map((s) => ({ ...s, branchId: branch?.id || null, status: 'VACANT' })))
+      .values(
+        seed.map((s, i) => ({
+          ...s,
+          branchId: branch?.id || null,
+          status: 'VACANT',
+          qrToken: `t${Date.now().toString(36)}${i}`,
+        })),
+      )
       .returning();
     return { tables: rows, reused: false };
   }
@@ -241,18 +267,9 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
   }
 
   if (action === 'create_kot') {
-    const rawItems = Array.isArray(body.items) ? body.items : [];
-    const items = rawItems.map((i: { name?: string; qty?: number; notes?: string; price?: number; station?: string; course?: string; productId?: string }) => ({
-      productId: i.productId,
-      name: String(i.name || 'Item'),
-      qty: Math.max(1, Number(i.qty || 1)),
-      price: Math.max(0, Number(i.price || 0)),
-      notes: i.notes || undefined,
-      station: i.station || 'KITCHEN',
-      course: i.course || 'MAIN',
-    }));
-
-    const total = items.reduce((s, i) => s + Number(i.price) * Number(i.qty), 0);
+    const { normalizeKotItems, kotLineTotal } = await import('@/lib/restaurant/modifiers');
+    const items = normalizeKotItems(Array.isArray(body.items) ? body.items : []);
+    const total = items.reduce((s, i) => s + kotLineTotal(i), 0);
     const [ticket] = await db
       .insert(kitchenTickets)
       .values({
@@ -269,6 +286,19 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
       await db.update(diningTables).set({ status: 'ORDERED' }).where(eq(diningTables.id, body.tableId as string));
     }
     return { ticket };
+  }
+
+  if (action === 'kitchen_waste') {
+    const { reportKitchenWaste } = await import('@/lib/restaurant/kitchen-waste');
+    if (!body.productId) throw Object.assign(new Error('productId required'), { status: 400 });
+    return await reportKitchenWaste({
+      productId: String(body.productId),
+      quantity: Number(body.quantity || 1),
+      remarks: body.remarks ? String(body.remarks) : undefined,
+      autoApprove: body.autoApprove !== false,
+      actorId: body.actorId ? String(body.actorId) : null,
+      actorName: body.actorName ? String(body.actorName) : 'Kitchen',
+    });
   }
 
   if (action === 'bump_kds') {
@@ -295,6 +325,87 @@ export async function handleRestaurantPatch(body: Record<string, unknown>) {
       .where(eq(diningTables.id, body.tableId as string))
       .returning();
     return { table };
+  }
+
+  if (body.action === 'settle_kot') {
+    const ticketId = String(body.ticketId || '');
+    if (!ticketId) throw Object.assign(new Error('ticketId required'), { status: 400 });
+
+    const [ticket] = await db.select().from(kitchenTickets).where(eq(kitchenTickets.id, ticketId)).limit(1);
+    if (!ticket) throw Object.assign(new Error('Ticket not found'), { status: 404 });
+    if (ticket.status === 'CLOSED') throw Object.assign(new Error('Ticket already closed'), { status: 400 });
+
+    const rawItems = (ticket.itemsJson || []) as KdsTicketItem[];
+    const { processPosCheckout } = await import('@/lib/commerce/pos-checkout-service');
+    const {
+      partitionItemIndexes,
+      checkoutLinesFromIndexes,
+    } = await import('@/lib/restaurant/bill-split');
+
+    const splitCount = body.splitCount != null ? Number(body.splitCount) : 1;
+    const parts =
+      Array.isArray(body.parts) && body.parts.length
+        ? (body.parts as Array<{ itemIndexes: number[]; paymentMethod?: string; label?: string }>)
+        : partitionItemIndexes(rawItems.length, splitCount).map((itemIndexes, i) => ({
+            itemIndexes,
+            paymentMethod: String(body.paymentMethod || 'CASH'),
+            label: splitCount > 1 ? `Seat ${i + 1}` : 'Bill',
+          }));
+
+    const payments = Array.isArray(body.payments) ? body.payments : undefined;
+    const ordersOut: Array<{ orderNumber?: string; grandTotal?: number; label?: string }> = [];
+
+    for (let pi = 0; pi < parts.length; pi++) {
+      const part = parts[pi];
+      const checkoutItems = checkoutLinesFromIndexes(rawItems as any, part.itemIndexes || []);
+      if (!checkoutItems.length) continue;
+
+      const paymentMethod =
+        parts.length === 1 && payments?.length
+          ? 'SPLIT'
+          : String(part.paymentMethod || body.paymentMethod || 'CASH');
+
+      const checkout = await processPosCheckout({
+        channel: 'POS',
+        items: checkoutItems,
+        paymentMethod,
+        payments: parts.length === 1 ? payments : undefined,
+        actorId: body.actorId ? String(body.actorId) : undefined,
+        allowStockUnderrun: true,
+        idempotencyKey: `kot-settle-${ticket.kotNumber}-p${pi}`,
+      });
+      ordersOut.push({
+        orderNumber: checkout.orderNumber,
+        grandTotal: checkout.grandTotal,
+        label: part.label,
+      });
+    }
+
+    if (!ordersOut.length) {
+      throw Object.assign(
+        new Error('Cannot settle: KOT lines need productId (fire KOT from POS bag with catalog items)'),
+        { status: 400 },
+      );
+    }
+
+    const [closed] = await db
+      .update(kitchenTickets)
+      .set({ status: 'CLOSED', closedAt: new Date() })
+      .where(eq(kitchenTickets.id, ticket.id))
+      .returning();
+    if (closed?.tableId) {
+      await db.update(diningTables).set({ status: 'VACANT' }).where(eq(diningTables.id, closed.tableId));
+    }
+
+    const grandTotal = ordersOut.reduce((s, o) => s + Number(o.grandTotal || 0), 0);
+    return {
+      ticket: closed,
+      orders: ordersOut,
+      orderNumber: ordersOut[0]?.orderNumber,
+      grandTotal,
+      splitCount: ordersOut.length,
+      payment: null,
+    };
   }
 
   if (body.action === 'close_kot') {

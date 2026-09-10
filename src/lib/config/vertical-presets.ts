@@ -6,6 +6,7 @@ export type VerticalPresetId =
   | 'fashion'
   | 'grocery'
   | 'restaurant'
+  | 'salon'
   | 'wholesale'
   | 'hybrid'
   | 'full';
@@ -181,7 +182,33 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
     adaptedWorkflows: [
       'Visual table layout grid',
       'Kitchen Display System (KDS)',
-      'Bill splitting and recipe BOM deduction',
+      'Recipe BOM depletion + food-cost % + KOT settle to POS',
+    ],
+  },
+  salon: {
+    id: 'salon',
+    label: 'Salon & Barber',
+    description: 'Appointments, service catalog, consumables, loyalty',
+    natureOfBusiness: 'Salon & Barber',
+    exampleMerchant: 'Hair salon, barbershop, beauty studio',
+    vertical: 'salon',
+    flags: {
+      repairs: false,
+      restaurant: false,
+      hirePurchase: false,
+      appointments: true,
+      loyalty: true,
+      wholesale: false,
+      grocery: false,
+      whatsapp: true,
+      creative: true,
+    },
+    itemTypes: ['SERVICE', 'PHYSICAL'],
+    posModes: ['RETAIL_SALE'],
+    adaptedWorkflows: [
+      'Service catalog: haircut, shave, color, blow-dry',
+      'Complete appointment → POS charge + consumable BOM',
+      'WhatsApp booking reminders',
     ],
   },
   wholesale: {

@@ -287,9 +287,13 @@ export const products = pgTable('products', {
   metaTitle: text('meta_title'),
   metaDescription: text('meta_description'),
   isActive: boolean('is_active').notNull().default(true),
+  /** VERT-C02 — PHYSICAL | SERIALIZED | SERVICE | PART | RAW_INGREDIENT | PREPARED_FOOD | CUSTOM_QUOTE */
+  itemType: text('item_type').notNull().default('PHYSICAL'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  itemTypeIdx: index('products_item_type_idx').on(t.itemType),
+}));
 
 export const productVariants = pgTable('product_variants', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -456,6 +460,9 @@ export const orders = pgTable('orders', {
   trackingToken: text('tracking_token'), // Public order tracker (passwordless)
   terminalId: text('terminal_id'),
   clientSequence: integer('client_sequence'),
+  /** VERT-M02 — marketing campaign / spend row linkage */
+  campaignId: text('campaign_id'),
+  utmJson: jsonb('utm_json').$type<Record<string, string>>().notNull().default({}),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -465,6 +472,7 @@ export const orders = pgTable('orders', {
   createdIdx: index('orders_created_idx').on(t.createdAt),
   customerIdx: index('orders_customer_id_idx').on(t.customerId),
   clientUuidIdx: index('orders_client_uuid_idx').on(t.clientUuid),
+  campaignIdx: index('orders_campaign_id_idx').on(t.campaignId),
 }));
 
 export const orderItems = pgTable('order_items', {
@@ -835,8 +843,12 @@ export const diningTables = pgTable('dining_tables', {
   status: text('status').notNull().default('VACANT'), // VACANT, SEATED, ORDERED, SERVED
   sortOrder: integer('sort_order').notNull().default(0),
   active: boolean('active').notNull().default(true),
+  /** VERT-R06 — public QR /shop/dine/[qrToken] */
+  qrToken: text('qr_token'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  qrTokenIdx: uniqueIndex('dining_tables_qr_token_idx').on(t.qrToken),
+}));
 
 export const kitchenTickets = pgTable('kitchen_tickets', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -900,6 +912,11 @@ export const appointments = pgTable('appointments', {
   startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
   endsAt: timestamp('ends_at', { withTimezone: true }),
   fee: numeric('fee', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  /** VERT-S03 — stylist commission (accrual; payroll export later) */
+  commissionPct: numeric('commission_pct', { precision: 5, scale: 2 }).notNull().default('0.00'),
+  commissionAmount: numeric('commission_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  /** STAFF | PUBLIC | WHATSAPP */
+  source: text('source').default('STAFF'),
   status: text('status').notNull().default('CONFIRMED'), // CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
   notes: text('notes'),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
@@ -1146,4 +1163,83 @@ export const damages = pgTable('damages', {
 }, (t) => ({
   statusIdx: index('damages_status_idx').on(t.status),
   productIdx: index('damages_product_idx').on(t.productId),
+}));
+
+// ==========================================
+// STOREFRONT WISHLIST & REVIEWS (GRW-03)
+// ==========================================
+
+export const wishlists = pgTable('wishlists', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id').notNull().references(() => customers.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  customerProductIdx: uniqueIndex('wishlists_customer_product_idx').on(t.customerId, t.productId),
+  customerIdx: index('wishlists_customer_idx').on(t.customerId),
+}));
+
+export const productReviews = pgTable('product_reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id').notNull().references(() => customers.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  rating: integer('rating').notNull(), // 1–5
+  title: text('title'),
+  body: text('body'),
+  customerName: text('customer_name'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  productIdx: index('product_reviews_product_idx').on(t.productId),
+  customerProductIdx: uniqueIndex('product_reviews_customer_product_idx').on(t.customerId, t.productId),
+}));
+
+// ==========================================
+// WHATSAPP INBOX THREADS (GRW-09)
+// ==========================================
+
+export const whatsappThreads = pgTable('whatsapp_threads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  phone: text('phone').notNull().unique(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  lastMessageAt: timestamp('last_message_at', { withTimezone: true }).notNull().defaultNow(),
+  lastPreview: text('last_preview'),
+  unreadCount: integer('unread_count').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  lastMsgIdx: index('whatsapp_threads_last_msg_idx').on(t.lastMessageAt),
+}));
+
+export const whatsappMessages = pgTable('whatsapp_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  threadId: uuid('thread_id').notNull().references(() => whatsappThreads.id, { onDelete: 'cascade' }),
+  direction: text('direction').notNull(), // IN | OUT
+  body: text('body').notNull(),
+  providerMessageId: text('provider_message_id'),
+  status: text('status').notNull().default('RECEIVED'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  threadIdx: index('whatsapp_messages_thread_idx').on(t.threadId, t.createdAt),
+}));
+
+// ==========================================
+// MARKETING SPEND LEDGER (VERT-M01)
+// ==========================================
+
+export const marketingSpend = pgTable('marketing_spend', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  channel: text('channel').notNull(), // META | GOOGLE | WHATSAPP | OTHER
+  campaignId: text('campaign_id'),
+  campaignName: text('campaign_name'),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  currency: text('currency').notNull().default('LKR'),
+  spentOn: timestamp('spent_on', { withTimezone: true }).notNull().defaultNow(),
+  notes: text('notes'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  channelIdx: index('marketing_spend_channel_idx').on(t.channel),
+  campaignIdx: index('marketing_spend_campaign_idx').on(t.campaignId),
+  spentOnIdx: index('marketing_spend_spent_on_idx').on(t.spentOn),
 }));

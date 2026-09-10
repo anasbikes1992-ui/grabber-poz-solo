@@ -109,6 +109,7 @@ export async function createProduct(body: Record<string, unknown>) {
       taxProfileId: tax?.id || null,
       categoryId,
       isActive: true,
+      itemType: String(body.itemType || 'PHYSICAL').toUpperCase(),
     })
     .returning();
 
@@ -138,6 +139,7 @@ export async function updateProduct(id: string, body: Record<string, unknown>) {
   if (body.imageUrl !== undefined) patch.imageUrl = body.imageUrl || null;
   if (body.description !== undefined) patch.description = body.description || null;
   if (body.isActive != null) patch.isActive = body.isActive;
+  if (body.itemType != null) patch.itemType = String(body.itemType).toUpperCase();
 
   if (body.categoryId !== undefined) {
     patch.categoryId = body.categoryId || null;

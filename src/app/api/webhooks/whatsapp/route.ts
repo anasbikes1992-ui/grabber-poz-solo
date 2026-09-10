@@ -61,6 +61,19 @@ export async function POST(req: Request) {
           detail: { from: m.from, text: m.text.slice(0, 500), inbound: true },
         });
 
+        try {
+          const { appendWhatsAppMessage } = await import('@/lib/whatsapp/thread-store');
+          await appendWhatsAppMessage({
+            phone: m.from,
+            direction: 'IN',
+            body: m.text,
+            providerMessageId: m.messageId,
+            status: 'RECEIVED',
+          });
+        } catch {
+          /* inbox table may not be migrated yet */
+        }
+
         const reply = await handleInboundWhatsAppMessage(m.from, m.text);
         if (reply.handled) {
           autoReplies += reply.sent;

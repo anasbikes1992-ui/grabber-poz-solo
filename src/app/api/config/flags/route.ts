@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db, businessConfig } from '@/db';
 import { getSession } from '@/lib/auth/session';
 import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
+import { DEFAULT_ENGINES, parseEngines, costModelForVertical, type CostModel } from '@/lib/config/cost-engines';
 
 const DEFAULT_FLAGS = {
   repairs: false,
@@ -21,16 +22,18 @@ export async function GET() {
     const rows = await db.select().from(businessConfig).limit(1);
     const cfg = (rows[0]?.configJson as Record<string, unknown> | undefined) || {};
     const flags = { ...DEFAULT_FLAGS, ...((cfg.verticalFlags as Record<string, boolean>) || {}) };
+    const engines = parseEngines(cfg);
     return NextResponse.json({
       success: true,
       flags,
+      engines,
       vertical: rows[0]?.vertical,
       preset: (cfg.verticalPreset as string) || undefined,
       enableCreditSales: rows[0]?.enableCreditSales ?? true,
       enableDelivery: rows[0]?.enableDelivery ?? true,
     });
   } catch {
-    return NextResponse.json({ success: true, flags: DEFAULT_FLAGS, offline: true });
+    return NextResponse.json({ success: true, flags: DEFAULT_FLAGS, engines: DEFAULT_ENGINES, offline: true });
   }
 }
 
@@ -54,14 +57,26 @@ export async function PUT(req: Request) {
     }
 
     const existing = await db.select().from(businessConfig).limit(1);
+    const prev = (existing[0]?.configJson || {}) as Record<string, unknown>;
+    const prevEngines = parseEngines(prev);
+    let engines = { ...prevEngines };
+    if (body.engines) {
+      engines = parseEngines({ engines: { ...prevEngines, ...body.engines } });
+    } else if (body.preset && vertical) {
+      engines = {
+        ...prevEngines,
+        costModel: costModelForVertical(vertical) as CostModel,
+      };
+    }
+
     if (existing[0]) {
-      const prev = (existing[0].configJson || {}) as Record<string, unknown>;
       await db
         .update(businessConfig)
         .set({
           configJson: {
             ...prev,
             verticalFlags: flags,
+            engines,
             ...(body.preset ? { verticalPreset: body.preset } : {}),
           },
           ...(vertical ? { vertical } : {}),
@@ -73,12 +88,21 @@ export async function PUT(req: Request) {
     } else {
       await db.insert(businessConfig).values({
         vertical: vertical || 'multi',
-        configJson: { verticalFlags: flags, ...(body.preset ? { verticalPreset: body.preset } : {}) },
+        configJson: {
+          verticalFlags: flags,
+          engines,
+          ...(body.preset ? { verticalPreset: body.preset } : {}),
+        },
         enableTableService: Boolean(flags.restaurant),
         enableKitchenOrders: Boolean(flags.restaurant),
       });
     }
-    return NextResponse.json({ success: true, flags, vertical: vertical || existing[0]?.vertical });
+    return NextResponse.json({
+      success: true,
+      flags,
+      engines,
+      vertical: vertical || existing[0]?.vertical,
+    });
   } catch (err: unknown) {
     const e = err as { message?: string };
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { ProductPurchasePanel } from '@/components/storefront/product-purchase-panel';
+import { ProductWishlistButton } from '@/components/storefront/product-wishlist-button';
+import { ProductReviews } from '@/components/storefront/product-reviews';
 import { getStorefrontProductBySlug, listPublishedProductSlugs } from '@/lib/storefront/catalog-server';
 import {
   buildProductMetadata,
@@ -128,8 +130,14 @@ export default async function ProductDetailPage({ params }: Props) {
             </ul>
           )}
         </div>
-        <ProductPurchasePanel lines={purchaseLines} />
+        <div className="space-y-4">
+          <ProductPurchasePanel lines={purchaseLines} />
+          <ProductWishlistButton productId={product.id} />
+        </div>
       </main>
+      <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+        <ProductReviews productId={product.id} />
+      </div>
     </div>
   );
 }

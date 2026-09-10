@@ -163,6 +163,7 @@ export default function SetupPage() {
             : `${requiredCompleted}/${requiredTotal} required milestones · ${percent}% ready for go-live`}
           {progress?.presetLabel ? ` · Preset: ${progress.presetLabel}` : ''}
         </p>
+      </div>
       <div className="flex items-center gap-2 p-1 rounded-2xl bg-zinc-900 border border-zinc-800 text-xs">
         <Link href="/setup" className="flex-1 py-2 px-3 rounded-xl font-bold text-center bg-emerald-500 text-zinc-950 shadow-sm">
           1. Vertical Presets & Catalog

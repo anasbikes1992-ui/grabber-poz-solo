@@ -44,6 +44,22 @@ export async function processCreativeRenderJob(payload: CreativeRenderPayload): 
     .where(eq(creativeProjects.id, projectId));
 
   try {
+    const { assertCreativeCreditAvailable } = await import('@/lib/creative/credit-meter');
+    const { hasCreativeMediaPipeline } = await import('@/lib/creative/media-provider');
+    if (hasCreativeMediaPipeline() && !payload.productImageUrl?.startsWith('http')) {
+      await assertCreativeCreditAvailable();
+    }
+  } catch (creditErr) {
+    if ((creditErr as Error).message.includes('exhausted')) {
+      await db
+        .update(creativeJobs)
+        .set({ status: 'FAILED', errorMessage: (creditErr as Error).message.slice(0, 500) })
+        .where(eq(creativeJobs.id, jobId));
+      throw creditErr;
+    }
+  }
+
+  try {
     let outputUrl: string;
     let provider: string;
 
@@ -96,6 +112,15 @@ export async function processCreativeRenderJob(payload: CreativeRenderPayload): 
         title: payload.variantLabel || `Render ${jobId.slice(0, 8)}`,
         tags: payload.renderKind === 'UGC' ? ['ugc', 'video'] : ['video'],
       }).catch(() => undefined);
+    }
+
+    try {
+      const { consumeCreativeCredit } = await import('@/lib/creative/credit-meter');
+      if (provider === 'FAL' || provider === 'REPLICATE') {
+        await consumeCreativeCredit(provider);
+      }
+    } catch (creditErr) {
+      if ((creditErr as Error).message.includes('exhausted')) throw creditErr;
     }
 
     await db

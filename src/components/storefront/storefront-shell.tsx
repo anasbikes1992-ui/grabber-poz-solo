@@ -71,8 +71,14 @@ export function StorefrontShell({
       data-surface="storefront"
       {...storefrontThemeAttrs(cms.theme)}
       style={storefrontThemeStyle(cms.theme)}
-      className="storefront min-h-screen bg-[var(--sf-background)] pb-20 text-[var(--sf-foreground)] md:pb-0"
+      className="storefront min-h-screen bg-[var(--sf-background)] pb-[calc(5rem+env(safe-area-inset-bottom))] text-[var(--sf-foreground)] md:pb-0"
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[var(--sf-primary)] focus:px-4 focus:py-2 focus:text-[var(--sf-on-primary)] focus:outline focus:outline-2 focus:outline-offset-2"
+      >
+        Skip to main content
+      </a>
       <PromotionPopup />
       {announcement?.type === 'ANNOUNCEMENT' && (
         <div className="bg-[var(--sf-primary)] text-center text-xs font-semibold text-[var(--sf-on-primary)] px-4 py-2">
@@ -174,10 +180,10 @@ export function StorefrontShell({
         </div>
       </header>
 
-      <main>{children}</main>
+      <main id="main-content">{children}</main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--sf-border)] bg-[var(--sf-background)]/95 backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--sf-border)] bg-[var(--sf-background)]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
         aria-label="Mobile store navigation"
       >
         <div className={`mx-auto grid max-w-lg gap-1 px-2 py-2 ${showRepairs ? 'grid-cols-4' : 'grid-cols-3'}`}>

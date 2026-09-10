@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db, branches, recipeLines, recipes } from '@/db';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 import { checkRecipeLowStock, listRecipesWithIngredients } from '@/lib/restaurant/recipe-low-stock';
+import { listRecipesWithCost } from '@/lib/restaurant/recipe-cost';
 
 async function actor() {
   let session = await getSession();
@@ -18,12 +19,24 @@ export async function GET(req: Request) {
   try {
     const lowStock = new URL(req.url).searchParams.get('lowStock') === '1';
     const list = await listRecipesWithIngredients(db);
+    const withCost = await listRecipesWithCost(db);
+    const costById = new Map(withCost.map((c) => [c.recipeId, c]));
+    const recipesEnriched = list.map((r) => {
+      const cost = costById.get(r.id);
+      return {
+        ...r,
+        salePrice: cost?.salePrice ?? 0,
+        recipeCost: cost?.recipeCost ?? 0,
+        foodCostPct: cost?.foodCostPct ?? 0,
+        costIngredients: cost?.ingredients ?? [],
+      };
+    });
     let alerts: Awaited<ReturnType<typeof checkRecipeLowStock>> = [];
     if (lowStock) {
       const [branch] = await db.select().from(branches).limit(1);
       if (branch) alerts = await checkRecipeLowStock(db, branch.id);
     }
-    return NextResponse.json({ success: true, recipes: list, lowStockAlerts: alerts });
+    return NextResponse.json({ success: true, recipes: recipesEnriched, lowStockAlerts: alerts });
   } catch (err: unknown) {
     return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
   }

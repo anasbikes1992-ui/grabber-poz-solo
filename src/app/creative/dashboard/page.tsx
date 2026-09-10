@@ -13,6 +13,7 @@ type Stats = {
   assets: number;
   gpuWorker: boolean;
   mediaPipeline: boolean;
+  credits?: { balance: number; used: number; periodLabel?: string };
 };
 
 export default function CreativeDashboardPage() {
@@ -61,7 +62,7 @@ export default function CreativeDashboardPage() {
         <h3 className="font-semibold text-sm flex items-center gap-2">
           <Cpu className="h-4 w-4" /> Render pipeline
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px]">
           <div className="p-3 rounded-xl bg-card border border-border">
             <span className="font-bold">GPU worker</span>
             <p className={`mt-1 ${stats?.gpuWorker ? 'text-emerald-600' : 'text-amber-600'}`}>
@@ -73,6 +74,21 @@ export default function CreativeDashboardPage() {
             <p className={`mt-1 ${stats?.mediaPipeline ? 'text-emerald-600' : 'text-muted-foreground'}`}>
               {stats?.mediaPipeline ? 'Available' : 'Dev placeholder mode'}
             </p>
+          </div>
+          <div className="p-3 rounded-xl bg-card border border-border">
+            <span className="font-bold">Render credits</span>
+            <p className="mt-1 text-foreground">
+              {stats?.credits ? (
+                <>
+                  <span className="text-lg font-bold text-indigo-600">{stats.credits.balance}</span> left ·{' '}
+                  {stats.credits.used} used
+                  {stats.credits.periodLabel ? ` (${stats.credits.periodLabel})` : ''}
+                </>
+              ) : (
+                'Loading…'
+              )}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-1">1 credit per FAL/Replicate image render</p>
           </div>
         </div>
         <p className="text-[10px] text-muted-foreground font-mono">

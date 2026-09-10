@@ -39,6 +39,10 @@ const PUBLIC_API = [
   '/promotions/public',
   '/installation/identity',
   '/company/leads',
+  '/appointments/public',
+  '/restaurant/menu',
+  '/storefront/reviews',
+  '/storefront/wishlist',
 ];
 
 const STAFF_MARKERS = [

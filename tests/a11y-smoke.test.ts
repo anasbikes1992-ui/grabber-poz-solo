@@ -18,6 +18,7 @@ describe('a11y smoke — critical pages', () => {
     expect(src).toMatch(/aria-live=["']polite["']/);
     expect(src).toMatch(/htmlFor=["']pos-search["']/);
     expect(src).toMatch(/htmlFor=["']pos-barcode["']/);
+    expect(src).toMatch(/htmlFor=["']pos-promo-code["']/);
     expect(src).toMatch(/role=["']radio["']/);
   });
 
@@ -34,5 +35,41 @@ describe('a11y smoke — critical pages', () => {
     expect(modalPath).toBeTruthy();
     const src = read(modalPath!);
     expect(src).toMatch(/aria-modal/);
+  });
+
+  it('Storefront shell has skip link and main landmark', () => {
+    const src = read('src/components/storefront/storefront-shell.tsx');
+    expect(src).toMatch(/href=["']#main-content["']/);
+    expect(src).toMatch(/id=["']main-content["']/);
+  });
+
+  it('Company landing has main landmark, mobile nav, Staff Portal', () => {
+    const src = read('src/components/company/CompanyLanding.tsx');
+    expect(src).toMatch(/id=["']main-content["']/);
+    expect(src).toMatch(/landing-mobile-nav/);
+    expect(src).toMatch(/Staff Portal/);
+    expect(src).toMatch(/htmlFor=["']lead-business-name["']/);
+  });
+
+  it('Cart and Jarvis drawers expose dialog semantics', () => {
+    const cart = read('src/components/storefront/CartDrawer.tsx');
+    const jarvis = read('src/components/ai/jarvis-drawer.tsx');
+    expect(cart).toMatch(/role=["']dialog["']/);
+    expect(cart).toMatch(/aria-modal/);
+    expect(jarvis).toMatch(/role=["']dialog["']/);
+    expect(jarvis).toMatch(/aria-modal/);
+  });
+
+  it('robots.ts disallows key staff surfaces', () => {
+    const src = read('src/app/robots.ts');
+    for (const p of ['/grocery', '/restaurant', '/creative', '/approvals', '/whatsapp']) {
+      expect(src).toContain(`'${p}'`);
+    }
+  });
+
+  it('middleware guards /grocery and /onboarding', () => {
+    const src = read('src/middleware.ts');
+    expect(src).toContain("'/grocery'");
+    expect(src).toContain("'/onboarding'");
   });
 });

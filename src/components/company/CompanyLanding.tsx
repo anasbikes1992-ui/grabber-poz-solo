@@ -22,6 +22,8 @@ import {
   Send,
   Loader2,
   Lock,
+  Menu,
+  X,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
@@ -38,6 +40,7 @@ export function CompanyLanding() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [leadError, setLeadError] = useState<string | null>(null);
 
   async function handleLeadSubmit(e: React.FormEvent) {
@@ -96,29 +99,78 @@ export function CompanyLanding() {
           <div className="flex items-center gap-3">
             <Link
               href="/adminpoz"
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-700 bg-slate-900/80 text-xs font-bold text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl border border-slate-700 bg-slate-900/80 text-xs font-bold text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
             >
-              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <Lock className="w-3.5 h-3.5 text-amber-400" aria-hidden />
               <span>Staff Portal</span>
             </Link>
             <Link
               href="/shop"
               className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs font-bold text-amber-400 hover:bg-amber-500/20 transition-colors"
             >
-              <Store className="w-3.5 h-3.5" />
+              <Store className="w-3.5 h-3.5" aria-hidden />
               <span>Storefront Demo</span>
             </Link>
             <a
               href="#contact"
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow-lg shadow-amber-500/20 transition-all transform active:scale-95"
+              className="hidden sm:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow-lg shadow-amber-500/20 transition-all transform active:scale-95"
             >
               <span>Start Your Business</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4" aria-hidden />
             </a>
+            <button
+              type="button"
+              className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200"
+              aria-expanded={mobileNavOpen}
+              aria-controls="landing-mobile-nav"
+              aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setMobileNavOpen((o) => !o)}
+            >
+              {mobileNavOpen ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
+            </button>
           </div>
         </div>
+        {mobileNavOpen && (
+          <nav
+            id="landing-mobile-nav"
+            className="lg:hidden border-t border-slate-800 px-4 py-4 space-y-1 bg-slate-950"
+            aria-label="Mobile page sections"
+          >
+            {[
+              ['#features', 'Features'],
+              ['#polim-potha', 'Polim Potha'],
+              ['#hardware', 'Hardware'],
+              ['#payments', 'Payments'],
+              ['#pricing', 'Pricing'],
+              ['#demos', 'Live Demos'],
+              ['#contact', 'Contact'],
+              ['/shop', 'Storefront Demo'],
+            ].map(([href, label]) =>
+              href.startsWith('#') ? (
+                <a
+                  key={href}
+                  href={href}
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-amber-400"
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  {label}
+                </a>
+              ) : (
+                <Link
+                  key={href}
+                  href={href}
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-amber-400"
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  {label}
+                </Link>
+              ),
+            )}
+          </nav>
+        )}
       </header>
 
+      <main id="main-content">
       {/* Hero Section */}
       <section className="relative pt-20 pb-28 overflow-hidden">
         {/* Ambient background glows */}
@@ -721,8 +773,9 @@ export function CompanyLanding() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1.5">Business / Shop Name *</label>
+                    <label htmlFor="lead-business-name" className="text-xs font-bold text-slate-300 block mb-1.5">Business / Shop Name *</label>
                     <input
+                      id="lead-business-name"
                       type="text"
                       required
                       value={formData.businessName}
@@ -732,8 +785,9 @@ export function CompanyLanding() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1.5">Owner / Contact Name *</label>
+                    <label htmlFor="lead-owner-name" className="text-xs font-bold text-slate-300 block mb-1.5">Owner / Contact Name *</label>
                     <input
+                      id="lead-owner-name"
                       type="text"
                       required
                       value={formData.ownerName}
@@ -746,8 +800,9 @@ export function CompanyLanding() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1.5">Phone / WhatsApp Number *</label>
+                    <label htmlFor="lead-phone" className="text-xs font-bold text-slate-300 block mb-1.5">Phone / WhatsApp Number *</label>
                     <input
+                      id="lead-phone"
                       type="tel"
                       required
                       value={formData.phone}
@@ -757,8 +812,9 @@ export function CompanyLanding() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1.5">Email Address *</label>
+                    <label htmlFor="lead-email" className="text-xs font-bold text-slate-300 block mb-1.5">Email Address *</label>
                     <input
+                      id="lead-email"
                       type="email"
                       required
                       value={formData.email}
@@ -771,8 +827,9 @@ export function CompanyLanding() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1.5">Business Industry</label>
+                    <label htmlFor="lead-industry" className="text-xs font-bold text-slate-300 block mb-1.5">Business Industry</label>
                     <select
+                      id="lead-industry"
                       value={formData.businessType}
                       onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
                       className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -787,8 +844,9 @@ export function CompanyLanding() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1.5">Branch Count</label>
+                    <label htmlFor="lead-branches" className="text-xs font-bold text-slate-300 block mb-1.5">Branch Count</label>
                     <select
+                      id="lead-branches"
                       value={formData.branchCount}
                       onChange={(e) => setFormData({ ...formData, branchCount: e.target.value })}
                       className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -802,8 +860,9 @@ export function CompanyLanding() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">Additional Requirements or Questions</label>
+                  <label htmlFor="lead-message" className="text-xs font-bold text-slate-300 block mb-1.5">Additional Requirements or Questions</label>
                   <textarea
+                    id="lead-message"
                     rows={3}
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -834,6 +893,7 @@ export function CompanyLanding() {
           </div>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-slate-800 py-12 bg-slate-950 text-slate-400 text-xs">

@@ -17,6 +17,19 @@ export async function POST(req: Request) {
       );
     }
 
+    try {
+      const { appendWhatsAppMessage } = await import('@/lib/whatsapp/thread-store');
+      await appendWhatsAppMessage({
+        phone: to || '',
+        direction: 'OUT',
+        body: text || '',
+        providerMessageId: result.success && !result.stub ? result.messageId || null : null,
+        status: result.stub ? 'STUB' : 'SENT',
+      });
+    } catch {
+      /* inbox optional until migration */
+    }
+
     if (result.stub) {
       return NextResponse.json({
         success: true,

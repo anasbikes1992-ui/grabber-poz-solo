@@ -67,6 +67,9 @@ export type CheckoutInput = {
   staffRole?: 'OWNER' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAREHOUSE' | 'ACCOUNTANT' | 'MARKETING';
   /** Offline POS sync — honor sale even when stock would go negative */
   allowStockUnderrun?: boolean;
+  /** VERT-M02 */
+  campaignId?: string;
+  utmJson?: Record<string, string>;
 };
 
 function normalizePayMethod(method: CheckoutPaymentMethod) {
@@ -227,6 +230,8 @@ export async function durableCheckout(input: CheckoutInput) {
         trackingToken: randomBytes(12).toString('hex'),
         terminalId: input.terminalId || null,
         clientSequence: input.clientSequence ?? null,
+        campaignId: input.campaignId || null,
+        utmJson: input.utmJson || {},
         createdBy: input.actorId || null,
       })
       .returning();

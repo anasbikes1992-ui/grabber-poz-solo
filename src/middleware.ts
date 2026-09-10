@@ -24,6 +24,8 @@ const PUBLIC_PREFIXES = [
   '/api/repairs/public',
   '/api/repairs/estimate',
   '/api/repairs/appointments',
+  '/api/appointments/public',
+  '/api/restaurant/menu',
   '/api/orders/track',
   '/api/promotions/evaluate-cart', // storefront checkout
   '/api/promotions/validate',
@@ -35,6 +37,10 @@ const PUBLIC_PREFIXES = [
   '/api/social/feeds/meta-catalog',
   '/track/',
   '/api/cron/',
+  '/locations',
+  '/locations/',
+  '/api/storefront/reviews',
+  '/api/storefront/wishlist',
 ];
 
 /** Crawlable storefront product detail pages (not staff /products admin) */
@@ -86,6 +92,8 @@ const STAFF_PREFIXES = [
   '/inventory/transfer',
   '/reports/tax',
   '/serials',
+  '/grocery',
+  '/onboarding',
 ];
 
 function isPublic(pathname: string) {

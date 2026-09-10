@@ -191,9 +191,10 @@
 }
 
 .storefront .field-input:focus {
-  outline: none;
+  outline: 2px solid var(--sf-ring, #1c1917);
+  outline-offset: 2px;
   border-color: var(--sf-accent);
-  box-shadow: 0 0 0 3px rgba(161, 98, 7, 0.15);
+  box-shadow: 0 0 0 3px rgba(161, 98, 7, 0.35);
 }
 
 .storefront .font-display {

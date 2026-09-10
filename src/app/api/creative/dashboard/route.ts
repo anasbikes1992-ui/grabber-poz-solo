@@ -5,6 +5,7 @@ import { parseCreativeKind } from '@/lib/creative/kinds';
 import { listCreativeLibrary } from '@/lib/creative/asset-library';
 import { hasGpuWorker } from '@/lib/creative/gpu-worker-client';
 import { hasCreativeMediaPipeline } from '@/lib/creative/media-provider';
+import { getCreativeCredits } from '@/lib/creative/credit-meter';
 
 export async function GET() {
   try {
@@ -15,6 +16,7 @@ export async function GET() {
 
     const projects = await listCreativeProjects(100);
     const assets = await listCreativeLibrary(100);
+    const credits = await getCreativeCredits().catch(() => ({ balance: 0, used: 0, periodLabel: '' }));
 
     const counts = { pdf: 0, video: 0, ugc: 0, campaign: 0 };
     for (const p of projects) {
@@ -33,6 +35,7 @@ export async function GET() {
         assets: assets.length,
         gpuWorker: hasGpuWorker(),
         mediaPipeline: hasCreativeMediaPipeline(),
+        credits,
       },
     });
   } catch (err: unknown) {

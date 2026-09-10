@@ -94,6 +94,11 @@ export async function POST(req: Request) {
       allowStockUnderrun: body.allowStockUnderrun,
       shopperCustomerId: isStorefront && shopper ? shopper.customerId : undefined,
       actorId: session && !isDemoUserId(session.userId) ? session.userId : undefined,
+      campaignId: body.campaignId,
+      utmJson: body.utmJson,
+      utmSource: body.utmSource,
+      utmMedium: body.utmMedium,
+      utmCampaign: body.utmCampaign,
     });
 
     return NextResponse.json({ success: true, ...result });

@@ -1,3 +1,7 @@
+/**
+ * Jarvis intent router — v1 is keyword-only (no LLM).
+ * JAR-08 (future): pluggable LLM provider with budget + guardrails; do not add without owner OK.
+ */
 import { eq } from 'drizzle-orm';
 import { db, branches, customers } from '@/db';
 import type { JarvisToolExecutionResult } from './jarvis-types';
@@ -19,9 +23,20 @@ export function matchJarvisIntent(message: string): { toolName: string; args: Re
   }
 
   if (/draft whatsapp|broadcast|message blast|whatsapp draft/.test(q)) {
+    const SEG = ['VIP', 'GOLD', 'SILVER', 'NEW', 'LAPSED', 'ALL'] as const;
+    const found = SEG.find((s) => new RegExp(`\\b${s}\\b`, 'i').test(message));
+    const audience = found || 'ALL';
+    const cleaned = message
+      .replace(/draft whatsapp|broadcast|message blast|whatsapp draft/gi, '')
+      .replace(new RegExp(`\\b(${SEG.join('|')})\\b`, 'gi'), '')
+      .replace(/\b(to|for|segment|customers?|audience)\b/gi, '')
+      .trim();
     return {
       toolName: 'draft_whatsapp_message',
-      args: { audience: 'customers', message: message.slice(0, 280) || 'Hello from Grabber!' },
+      args: {
+        audience,
+        message: (cleaned || message).slice(0, 280) || 'Hello from Grabber!',
+      },
     };
   }
 

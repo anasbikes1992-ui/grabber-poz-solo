@@ -1,119 +1,69 @@
 # Grabber Business OS — Product Audit
 
-**Date:** 2026-09-10 (updated after AUD-01/02/03 ship)  
-**Commit:** [`37486e1`](https://github.com/anasbikes1992-ui/grabber-poz-solo/commit/37486e1)  
-**Canvas:** [product-audit](file:///C:/Users/pc/.cursor/projects/d-GRABBER-POZ-SOLO/canvases/product-audit.canvas.tsx)  
-**Related:** [`correction.md`](./correction.md) · [`ROADMAP.md`](./ROADMAP.md) · [`GTM_MARKETING_PLAN.md`](./GTM_MARKETING_PLAN.md)
+**Updated:** after AUD-01…AUD-10 · **Full-proof plan:** [`FULL_PROOF_PLAN.md`](./FULL_PROOF_PLAN.md)  
+**Canvas:** [full-proof-plan](file:///C:/Users/pc/.cursor/projects/d-GRABBER-POZ-SOLO/canvases/full-proof-plan.canvas.tsx)  
 
 ---
 
-## Executive summary
+## Status: P0 + P1 audit backlog CLOSED
 
-Core commerce is sellable. **AUD-01–03 are DONE** on `main`: flag-gated hub/nav, Grocery FEFO merchant UI, category SEO + expanded sitemap. Remaining P0 is **AUD-04** (credential banners). Hybrid POS modes and restaurant polish stay P1.
+Next execution track is **Phase 0 prove → Phase 1 polish** (see full-proof plan), not more AUD-* IDs.
 
-| Area | Score | Verdict |
-|------|------:|---------|
-| Core commerce | 85% | Works |
-| Verticals (avg) | ~78% | Grocery recovered; hybrid still weak |
-| SEO / CMS | ~85% | Category + sitemap shipped (AUD-03) |
-| WhatsApp / automation | ~80% | Code done; operator verify |
-| Jarvis / Agents | ~70% | Live tools; no LLM (JAR-08 deferred) |
-| Creative | ~45% | Pipeline queued; media needs FAL key |
-| Hub UX / flag gating | ~95% | **AUD-01 DONE** |
+| ID | Item | Status |
+|----|------|--------|
+| AUD-01 | Flag-gated hub/header | DONE |
+| AUD-02 | Grocery FEFO UI | DONE |
+| AUD-03 | Category SEO + sitemap | DONE |
+| AUD-04 | Integration health banners | DONE |
+| AUD-05 | Hybrid POS mode bar | DONE (Retail/Scan + vertical deep-links) |
+| AUD-06 | Restaurant seed/table create | DONE |
+| AUD-07 | Polim POST/PATCH | DONE |
+| AUD-08 | Categories PATCH/DELETE | DONE |
+| AUD-09 | In-house courier fallback | DONE |
+| AUD-10 | Setup ↔ Onboarding tabs | DONE |
 
----
-
-## Shipped sprints (37486e1)
-
-| ID | Sprint | Evidence |
-|----|--------|----------|
-| AUD-01 | Flag-gated hub/header | `filterToolsByFlags` / `filterModesByFlags`, `app-header`, `/app` |
-| AUD-02 | Grocery FEFO UI | `/grocery`, `/api/grocery/lots`, `/api/grocery/promos`, `tests/grocery-fefo.test.ts` |
-| AUD-03 | Category SEO + sitemap | `buildCategoryMetadata`, `categoryJsonLd`, expanded `sitemap.ts`, `tests/category-seo-sitemap.test.ts` |
-
-**Verification (report):** 71 suites / 467 tests · `next build` green · pushed to `origin/main`.
+Also: public surface isolation for `/shop`, `/track`, `/collections` (staff chrome no longer bleeds).
 
 ---
 
-## A. Verticals
+## What to do next
 
-### Cross-cutting
+### A. Operator go-live (highest ROI this week)
 
-1. ~~Hub/header ignore flags~~ → **FIXED (AUD-01)**
-2. Middleware still does not route-guard by flags (URL deep-links possible) — optional harden
-3. Hybrid POS mode switcher — **not implemented** (AUD-05)
-4. `/setup` vs `/onboarding` — not unified (AUD-10)
+1. Rotate owner PIN  
+2. Meta WhatsApp webhook + live COD proof in automation logs  
+3. Smoke: POS sale → return → GRN → grocery lot intake (if grocery flag on)  
+4. Open `/settings` — confirm health banners match env truth  
 
-### Per preset
+### B. Engineering P2 (quality & growth)
 
-| Preset | Readiness | Works | Needs fix |
-|--------|----------:|-------|-----------|
-| mobilerepair | 90% | Staff + public repairs | Courier stub |
-| electronics | 78% | Serials, warranties | Distinct IMEI POS UX |
-| fashion | 90% | Matrix, barcodes, CMS; hub gated | Category PATCH/DELETE (AUD-08) |
-| grocery | 82% | **FEFO radar, intake, markdowns** | Multi-warehouse polish |
-| restaurant | 62% | Floor map, KDS | Auto seed_floor; TABLE_SERVICE (AUD-06) |
-| wholesale | 70% | Quotations CRUD | Tier pricing; Polim create (AUD-07) |
-| hybrid | 55% | Module union | POS mode switcher (AUD-05) |
-| full | 70% | Demo all-on | Same module gaps |
+| Priority | Item | Why |
+|----------|------|-----|
+| P2-1 | A11y: Field + drawers + landing mobile nav | AA + phone traffic |
+| P2-2 | Local SEO `/locations` pages | Unused `local-seo.ts` |
+| P2-3 | True in-POS TABLE_SERVICE (not just link) | Restaurant depth |
+| P2-4 | Wishlist / reviews | Storefront conversion |
+| P2-5 | CRM segments + Jarvis targeting | Marketing loop |
+| P2-6 | Lighthouse product/checkout | Mobile perf claims |
+| P2-7 | DB-06 drop legacy columns | Schema hygiene |
+| P2-8 | FAL key / creative media | Close Creative stub |
 
----
+### C. Commercial
 
-## B. SEO
-
-| Item | Status |
-|------|--------|
-| Product SSR + OG + JSON-LD | DONE |
-| Category `generateMetadata` + CollectionPage | **DONE (AUD-03)** |
-| Sitemap `/shop`, repairs public, categories, products | **DONE (AUD-03)** |
-| Robots staff disallow completeness | PARTIAL |
-| Collections IA | Confusing redirects |
-| Local SEO `/locations` | Schema helper exists; **no routes** |
-| CMS-driven homepage meta | TODO |
-| Marketing pixels | DONE when configured |
+- 3 lighthouse merchants (fashion, phone repair, café)  
+- Package pitch from GTM plan (LKR 125k + 5k/mo)  
+- Case study: unified stock POS + storefront  
 
 ---
 
-## C. Plugins / integrations
+## Suggested decision
 
-| Integration | Status | Action |
-|-------------|--------|--------|
-| WhatsApp | Configured in env | Meta webhook operator proof |
-| PayHere | Real adapter | Live merchant smoke + **AUD-04 banner** |
-| Meta CAPI / pixels | Works when set | Confirm Purchase events |
-| Koombiyo | Stub | AUD-09 |
-| Creative FAL/Replicate | No keys | Set `FAL_KEY` or banner (AUD-04) |
-| Jarvis / Agents | Live | ROADMAP updated |
-| Automation | Event→action | Needs WA for delivery |
-| Storage | Supabase or local | Prefer Supabase on Vercel |
+| If you want… | Do this next |
+|--------------|--------------|
+| **Ship to a paying client** | Operator checklist A |
+| **Product polish** | P2-1 a11y + mobile landing |
+| **Restaurant depth** | P2-3 in-POS table mode |
+| **Marketing SEO** | P2-2 locations pages |
+| **More verticals** | Public dining QR menu / WhatsApp inbox |
 
----
-
-## D. Priority backlog
-
-### P0 (100% Complete)
-1. ~~Flag-gated hub~~ **DONE (AUD-01)**  
-2. ~~Grocery FEFO UI~~ **DONE (AUD-02)**  
-3. ~~Category SEO + sitemap~~ **DONE (AUD-03)**  
-4. ~~Credential banners (PayHere/WA/FAL/storage)~~ **DONE (AUD-04)**  
-
-### P1
-5. AUD-05 Hybrid POS mode switcher  
-6. AUD-06 Restaurant polish  
-7. AUD-07 Polim create/adjust API  
-8. AUD-08 Categories PATCH/DELETE  
-9. AUD-09 Koombiyo honesty  
-10. AUD-10 Unify `/setup` + `/onboarding`  
-
-### P2
-11. Local SEO pages · wishlist/reviews · wholesale tiers · a11y P0 · Lighthouse · CRM · promo IF/THEN UI · WhatsApp inbox  
-
----
-
-## E. Next Sprint Focus
-
-**P1 Execution:**
-- **AUD-05:** Hybrid POS mode switcher (Counter POS, Quick Barcode Scan, Restaurant Table/Takeaway, Repair Intake modes)
-- **AUD-06:** Restaurant floor plan seed & Table Service state polish
-- **AUD-07:** Polim Potha credit customer create/adjust API
-- **AUD-08:** Category management PATCH / DELETE APIs
+P0/P1 audit work is complete — pick one lane above; default recommendation is **Operator go-live + A11y P2-1**.

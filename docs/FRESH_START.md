@@ -17,7 +17,7 @@ Deploy **Grabber Poz Solo** on a new Supabase database and Vercel project. Use n
 | `/pos` | Point of sale |
 | `/shop/checkout` | Shopper checkout |
 
-Schema: `src/db/schema.ts` · Migrations: `drizzle/migrations/0000` → `0002`
+Schema: `src/db/schema.ts` · Migrations: `drizzle/migrations/0000` → **`0012`** (wishlist + WhatsApp threads). Future drop: `0013_drop_legacy_triggers.sql.pending` (DB-06).
 
 ---
 

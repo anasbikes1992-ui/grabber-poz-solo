@@ -58,7 +58,7 @@ Do **not** rebuild POS. Prioritize: **migration reproducibility → storefront p
 | DB-03 | CRITICAL | Resolve `shifts.cashier_id` without interactive push | DONE (in 0002) |
 | DB-04 | HIGH | Legacy column sync triggers (PO, PO lines, tax_rates) | DONE (bridge) |
 | DB-05 | HIGH | `scripts/align-missing-columns.mjs` | DONE |
-| DB-06 | HIGH | Drop legacy columns + triggers after backfill | TODO (S2) |
+| DB-06 | HIGH | Drop legacy columns + triggers after backfill | VALIDATE READY (`db:validate-legacy`); drop = `0013_*.pending` |
 | DB-07 | CRITICAL | Fresh DB: migrate → seed → certify path documented | DONE |
 | DB-08 | HIGH | RLS baseline apply + automated tests | DONE (`db:apply-rls`, `db:test-rls`, `release:gate-r1`) |
 
@@ -175,7 +175,7 @@ Drizzle schema → numbered migrations → db:bootstrap → seed → certify →
 | JAR-05 | Approval Center UI | DONE |
 | JAR-06 | Daily business brief | DONE |
 | JAR-07 | LLM orchestrator (intent → tool) | DONE (keyword intent router + chat API) |
-| JAR-08 | AI provider abstraction | DEFERRED |
+| JAR-08 | AI provider abstraction | DEFERRED (v1 = keyword router; no stub) |
 
 ---
 
@@ -324,21 +324,29 @@ Staff: `/adminpoz` → `/app` · Shopper: `/` · Jarvis tools: `POST /api/jarvis
 | **S9** | Approval Center + Jarvis EXECUTE queue | DONE |
 | **S10** | Daily brief API + HTTP cert script | DONE |
 | S11+ | R6–R7 + repairs storefront | 12 agents, `/shop/repairs`, automations | DONE |
-| R7 vertical depth | Restaurant/repair/loyalty polish (Phase 2 ops) | PARTIAL |
+| R7 vertical depth | Restaurant/repair/loyalty polish (Phase 2 ops) | PARTIAL — see [`VERTICAL_DEPTH_PLAN.md`](./VERTICAL_DEPTH_PLAN.md) |
 
 ---
 
 ## Next steps (recommended order)
 
-1. **Flag-gated hub/header/routes** — presets must hide disabled verticals ([`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md) P0)
-2. **Grocery FEFO / lots UI** — backend exists; merchant surface missing
-3. **Category SEO + sitemap** — `generateMetadata`, `/shop` + repair public URLs
-4. **Live WhatsApp** — Meta webhook verify + COD delivery proof (env already present)
-5. **Media pipeline** — `FAL_KEY` / `REPLICATE_API_TOKEN` for real creative output
-6. **Hybrid POS mode switcher** — or remove claim from presets
-7. **DB-06** — drop legacy column bridges after verification
-8. **A11y P0** — Field adoption, drawers→Modal, mobile landing nav
-9. **R7** — CRM campaigns, wishlist/reviews, local SEO `/locations`
+**Full-proof plan SSOT:** [`FULL_PROOF_PLAN.md`](./FULL_PROOF_PLAN.md) (phases 0–4, FIX/POL/GRW IDs).
+
+### Phase 0 — Prove production
+1. **FIX-01** Add `/grocery` to middleware `STAFF_PREFIXES`
+2. Rotate owner PIN; confirm `/api/integrations/health`
+3. Meta WhatsApp webhook + live COD → automation SUCCESS
+4. Manual commerce smoke (POS → return → GRN ± grocery)
+5. **FIX-03** Retry `release:gate --production`
+
+### Phase 1 — Polish
+6. **POL-01…07** Storefront/landing a11y, drawers→Modal, Field, robots, focus ring
+7. Optional **POL-06** flag-off URL redirect
+
+### Phase 2+ — Growth
+8. **GRW-01** `/locations` · **GRW-02** in-POS TABLE_SERVICE · **GRW-03** wishlist/reviews — **DONE** (apply `0011_wishlist_reviews.sql` on prod)
+9. CRM / Creative FAL / Lighthouse / DB-06 — **Phase 3 DONE**; Phase 4: `ops:smoke`, `db:validate-legacy`, Lighthouse scripts, provision docs
+10. Apply SQL **0011 + 0012** on prod · Lighthouse measure · fleet provision · drop bridges only after 2 weeks (`0013.pending`)
 
 ---
 
@@ -351,13 +359,13 @@ Full SSOT: [`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md). Canvas: Cursor `product-aud
 | AUD-01 | Gate hub/header/routes by `verticalFlags` | P0 | DONE |
 | AUD-02 | Grocery FEFO / lots / near-expiry UI | P0 | DONE |
 | AUD-03 | Category SEO + sitemap expansion | P0 | DONE |
-| AUD-04 | Credential banners (PayHere/WA/FAL/storage) | P0 | DONE |
-| AUD-05 | Hybrid POS mode switcher | P1 | TODO |
-| AUD-06 | Restaurant seed_floor + TABLE_SERVICE | P1 | TODO |
-| AUD-07 | Polim create/adjust API | P1 | TODO |
-| AUD-08 | Categories PATCH/DELETE | P1 | TODO |
-| AUD-09 | Koombiyo honesty / real dispatch | P1 | TODO |
-| AUD-10 | Unify `/setup` + `/onboarding` | P1 | TODO |
+| AUD-04 | Credential banners (PayHere/WA/FAL/storage) | P0 | DONE (`/api/integrations/health` + banners) |
+| AUD-05 | Hybrid POS mode switcher | P1 | DONE (Retail/Scan + flag-gated Tables/Repairs/Quotes links) |
+| AUD-06 | Restaurant seed_floor + TABLE_SERVICE | P1 | DONE (idempotent seed + table create in restaurant-service) |
+| AUD-07 | Polim create/adjust API | P1 | DONE (POST create + PATCH adjust/ledger) |
+| AUD-08 | Categories PATCH/DELETE | P1 | DONE |
+| AUD-09 | Koombiyo honesty / real dispatch | P1 | DONE (In-House `DEL-*` fallback) |
+| AUD-10 | Unify `/setup` + `/onboarding` | P1 | DONE (two-way tab switcher) |
 
 ---
 

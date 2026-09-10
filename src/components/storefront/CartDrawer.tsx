@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { CartEvaluationInput } from '@/lib/commerce/promotions/types';
+import { useDrawerA11y } from '@/hooks/use-drawer-a11y';
 
 export interface CartDrawerItem {
   id: string;
@@ -57,6 +58,7 @@ export function CartDrawer({
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
   const [promoMsg, setPromoMsg] = useState<string | null>(null);
   const [validatingPromo, setValidatingPromo] = useState(false);
+  const panelRef = useDrawerA11y(isOpen, onClose);
 
   const subtotal = items.reduce((sum, item) => sum + Number(item.unitPrice) * item.qty, 0);
   const totalItems = items.reduce((sum, item) => sum + item.qty, 0);
@@ -146,6 +148,10 @@ export function CartDrawer({
           {/* Slide-over panel */}
           <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
             <motion.div
+              ref={panelRef as React.RefObject<HTMLDivElement>}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cart-drawer-title"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -156,10 +162,12 @@ export function CartDrawer({
               <div className="p-6 border-b border-slate-800 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                    <ShoppingBag className="w-5 h-5" />
+                    <ShoppingBag className="w-5 h-5" aria-hidden />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white leading-tight">Your Shopping Bag</h2>
+                    <h2 id="cart-drawer-title" className="text-lg font-bold text-white leading-tight">
+                      Your Shopping Bag
+                    </h2>
                     <p className="text-xs text-slate-400">
                       {totalItems} {totalItems === 1 ? 'item' : 'items'} in your cart
                     </p>
@@ -263,14 +271,19 @@ export function CartDrawer({
                   {/* Promo Code Input */}
                   <form onSubmit={handleApplyPromo} className="flex gap-2">
                     <div className="relative flex-1">
-                      <Tag className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <label htmlFor="cart-promo-code" className="sr-only">
+                        Promo code
+                      </label>
+                      <Tag className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden />
                       <input
+                        id="cart-promo-code"
                         type="text"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                         placeholder="PROMO CODE"
+                        autoComplete="off"
                         disabled={!!appliedCode || validatingPromo}
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white font-mono tracking-wider focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
                       />
                     </div>
                     {appliedCode ? (
@@ -294,6 +307,7 @@ export function CartDrawer({
 
                   {promoMsg && (
                     <div
+                      role="status"
                       className={`text-xs p-2.5 rounded-xl border flex items-center gap-1.5 ${
                         appliedCode
                           ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'

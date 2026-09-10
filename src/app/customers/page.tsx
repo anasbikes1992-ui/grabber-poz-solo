@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Users, Plus, Search, Edit2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
+import { SegmentBlastButton } from '@/components/crm/segment-blast-button';
 
 interface Customer {
   id: string;
@@ -137,19 +138,25 @@ export default function CustomersCRUDPage() {
         </p>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {SEGMENTS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setSegmentFilter(s)}
-            className={`px-3 py-1 rounded-lg text-[10px] font-bold border ${
-              segmentFilter === s ? 'border-emerald-400 text-emerald-400' : 'border-zinc-800 text-zinc-500'
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap gap-2">
+          {SEGMENTS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSegmentFilter(s)}
+              className={`px-3 py-1 rounded-lg text-[10px] font-bold border ${
+                segmentFilter === s ? 'border-emerald-400 text-emerald-400' : 'border-zinc-800 text-zinc-500'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <SegmentBlastButton
+          audience={segmentFilter}
+          countHint={filtered.length}
+        />
       </div>
 
       <div className="relative max-w-md">

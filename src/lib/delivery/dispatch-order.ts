@@ -20,6 +20,7 @@ export async function dispatchOrderViaKoombiyo(input: DispatchInput) {
   let stub = true;
 
   if (apiKey) {
+    const baseUrl = process.env.KOOMBIYO_BASE_URL || 'https://api.koombiyopackage.com/v1';
     const res = await fetchWithRetry(`${baseUrl.replace(/\/$/, '')}/shipments`, {
       method: 'POST',
       headers: {

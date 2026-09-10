@@ -1,6 +1,6 @@
 /**
  * Unified product item taxonomy — maps business nature → catalog + POS behaviour.
- * Stored on products as metadata until schema migration adds item_type column.
+ * Persisted on products.item_type (VERT-C02 / migration 0014).
  */
 
 export type ProductItemType =

@@ -49,6 +49,14 @@ const PRESET_CATALOGS: Partial<Record<VerticalPresetId, CatalogItem[]>> = {
     { sku: 'MENU-LATTE', slug: 'cafe-latte', name: 'Café Latte', sale: '650.00', cost: '180.00', category: 'Beverages' },
     { sku: 'MENU-WAFFLE', slug: 'belgian-waffle', name: 'Belgian Waffle', sale: '950.00', cost: '280.00', category: 'Desserts' },
   ],
+  salon: [
+    { sku: 'SALON-HAIRCUT', slug: 'salon-haircut', name: 'Haircut', sale: '1500.00', cost: '200.00', category: 'Services' },
+    { sku: 'SALON-SHAVE', slug: 'salon-beard-shave', name: 'Beard Shave', sale: '800.00', cost: '100.00', category: 'Services' },
+    { sku: 'SALON-COLOR', slug: 'salon-hair-color', name: 'Hair Color', sale: '5500.00', cost: '1800.00', category: 'Services' },
+    { sku: 'SALON-BLOWDRY', slug: 'salon-blow-dry', name: 'Blow Dry', sale: '1200.00', cost: '150.00', category: 'Services' },
+    { sku: 'SALON-SHAMPOO', slug: 'salon-shampoo-250', name: 'Salon Shampoo 250ml', sale: '1800.00', cost: '900.00', category: 'Retail' },
+    { sku: 'SALON-POMADE', slug: 'salon-pomade', name: 'Barber Pomade', sale: '2200.00', cost: '1100.00', category: 'Retail' },
+  ],
   wholesale: [
     { sku: 'WH-BOLT-M8', slug: 'bolt-m8-box', name: 'M8 Bolt Box (100pc)', sale: '2800.00', cost: '1900.00', category: 'Hardware' },
     { sku: 'WH-CEMENT-50', slug: 'cement-50kg', name: 'Portland Cement 50kg', sale: '3200.00', cost: '2650.00', category: 'Building' },
@@ -123,6 +131,11 @@ async function seedPresetCatalog(presetId: VerticalPresetId, branchId: string, t
         isActive: true,
         taxProfileId: taxProfileId || null,
         categoryId,
+        itemType: item.category === 'Services' || item.category === 'Mains' || item.category === 'Beverages' || item.category === 'Desserts'
+          ? item.category === 'Services'
+            ? 'SERVICE'
+            : 'PREPARED_FOOD'
+          : 'PHYSICAL',
       })
       .onConflictDoNothing()
       .returning()

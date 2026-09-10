@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Sparkles, X, Send, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useDrawerA11y } from '@/hooks/use-drawer-a11y';
 
 interface JarvisDrawerProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
       text: 'Hello! I am Jarvis — grounded on your live database. Ask about today\'s sales, low stock, pending orders, or Polim Potha balances.',
     },
   ]);
+  const panelRef = useDrawerA11y(isOpen, onClose);
 
   const loadBrief = useCallback(async () => {
     try {
@@ -120,22 +122,33 @@ export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-card border-l border-border shadow-2xl z-50 flex flex-col backdrop-blur-xl animate-in slide-in-from-right duration-200">
+    <div
+      ref={panelRef as React.RefObject<HTMLDivElement>}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="jarvis-drawer-title"
+      className="fixed inset-y-0 right-0 w-96 bg-card border-l border-border shadow-2xl z-50 flex flex-col backdrop-blur-xl animate-in slide-in-from-right duration-200"
+    >
       <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/40">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm">
-            <Sparkles className="h-4 w-4 animate-pulse" />
+            <Sparkles className="h-4 w-4 animate-pulse" aria-hidden />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+            <h3 id="jarvis-drawer-title" className="font-semibold text-sm text-foreground flex items-center gap-1.5">
               Jarvis Copilot
               <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Grounded</span>
             </h3>
             <p className="text-[11px] text-muted-foreground">Live DB tools</p>
           </div>
         </div>
-        <button type="button" onClick={onClose} className="h-8 w-8 rounded-lg hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-          <X className="h-4 w-4" />
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close Jarvis"
+          className="h-8 w-8 rounded-lg hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="h-4 w-4" aria-hidden />
         </button>
       </div>
 
@@ -182,16 +195,26 @@ export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
       </div>
 
       <form onSubmit={(e) => void handleSend(e)} className="p-3 border-t border-border bg-card/80 flex items-center gap-2">
+        <label htmlFor="jarvis-chat-input" className="sr-only">
+          Message Jarvis
+        </label>
         <input
+          id="jarvis-chat-input"
+          data-autofocus
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={busy}
           placeholder="Ask about sales, stock, orders..."
-          className="flex-1 px-3 py-2 text-xs rounded-xl bg-secondary/80 border border-border focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+          className="flex-1 px-3 py-2 text-xs rounded-xl bg-secondary/80 border border-border focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
         />
-        <button type="submit" disabled={busy} className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-all active:scale-95 shrink-0 disabled:opacity-50">
-          <Send className="h-3.5 w-3.5" />
+        <button
+          type="submit"
+          disabled={busy}
+          aria-label="Send message"
+          className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-all active:scale-95 shrink-0 disabled:opacity-50"
+        >
+          <Send className="h-3.5 w-3.5" aria-hidden />
         </button>
       </form>
     </div>

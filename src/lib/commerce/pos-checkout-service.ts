@@ -56,6 +56,11 @@ export type PosCheckoutInput = {
   allowStockUnderrun?: boolean;
   shopperCustomerId?: string;
   actorId?: string;
+  campaignId?: string;
+  utmJson?: Record<string, string>;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
 };
 
 export async function processPosCheckout(body: PosCheckoutInput) {
@@ -228,6 +233,13 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     terminalId: body.terminalId,
     clientSequence: body.clientSequence != null ? Number(body.clientSequence) : undefined,
     allowStockUnderrun: Boolean(body.offlineSync || body.allowStockUnderrun),
+    campaignId: body.campaignId || body.utmCampaign || undefined,
+    utmJson: {
+      ...(body.utmJson || {}),
+      ...(body.utmSource ? { utm_source: String(body.utmSource) } : {}),
+      ...(body.utmMedium ? { utm_medium: String(body.utmMedium) } : {}),
+      ...(body.utmCampaign ? { utm_campaign: String(body.utmCampaign) } : {}),
+    },
   });
 
   if (!result.reused && promoRuleId) {

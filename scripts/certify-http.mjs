@@ -16,6 +16,8 @@ const checks = [
   { name: 'robots', path: '/robots.txt', expectStatus: 200, expectBody: 'Disallow: /adminpoz' },
   { name: 'sitemap', path: '/sitemap.xml', expectStatus: 200 },
   { name: 'storefront-public', path: '/api/storefront/public', expectStatus: 200 },
+  { name: 'shop', path: '/shop', expectStatus: 200 },
+  { name: 'locations', path: '/locations', expectStatus: 200 },
   { name: 'shop-checkout', path: '/shop/checkout', expectStatus: 200 },
   { name: 'shop-repairs', path: '/shop/repairs', expectStatus: 200 },
   { name: 'shop-repair-track', path: '/shop/repairs/track', expectStatus: 200 },

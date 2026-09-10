@@ -57,3 +57,28 @@ When rolling out an update (`v1.0.0` $\rightarrow$ `v1.0.1`):
 2. **Automated Certification Run:** Execute `npm run client:certify -- --env .env.production`.
 3. **Reconciliation Check:** Confirm 0 variance across GL, AR, AP, and Inventory balances.
 4. **Fleet Propagation:** Trigger Vercel deploy hooks for remaining client instances.
+
+---
+
+## 5. New client (Solo) — command pack
+
+See [`docs/PROVISION_NEXT_CLIENT.md`](../PROVISION_NEXT_CLIENT.md).
+
+```text
+npm run client:provision -- --client "…" --slug "…" --domain "…"
+npm run db:bootstrap          # 0000→0012
+npm run ops:sync-env
+npm run ops:smoke
+npm run client:certify
+npm run db:validate-legacy    # DB-06 health; do not drop yet
+```
+
+Migrations: through **0012** (wishlist + WhatsApp). Drop bridges only via **0013** pending after 2 weeks stable.
+
+---
+
+## 6. Related
+
+- Phase 0 checklist: [`FULL_PROOF_PLAN.md`](../FULL_PROOF_PLAN.md) §5  
+- Lighthouse: [`LIGHTHOUSE_MOBILE.md`](../LIGHTHOUSE_MOBILE.md)  
+- Legacy bridges: [`LEGACY_MIGRATION_BRIDGE.md`](../LEGACY_MIGRATION_BRIDGE.md)  

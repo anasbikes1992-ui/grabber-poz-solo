@@ -1,0 +1,17 @@
+-- DB-06 planned drop (NOT applied). Run only after:
+-- 1) npm run db:validate-legacy PASS for 2+ weeks
+-- 2) npm run client:certify PASS on staging without needing legacy columns
+-- 3) Owner sign-off in client folder
+--
+-- Renamed from docs that said 0003_* (that slot is pass2_returns_damages).
+
+DROP TRIGGER IF EXISTS trg_sync_purchase_order_legacy ON purchase_orders;
+DROP TRIGGER IF EXISTS trg_sync_purchase_order_line_legacy ON purchase_order_lines;
+DROP TRIGGER IF EXISTS trg_sync_tax_rate_legacy ON tax_rates;
+DROP FUNCTION IF EXISTS sync_purchase_order_legacy_columns();
+DROP FUNCTION IF EXISTS sync_purchase_order_line_legacy_columns();
+DROP FUNCTION IF EXISTS sync_tax_rate_legacy_columns();
+
+-- Optional column drops: separate audited migration later.
+-- Do NOT DROP destination_warehouse_id / total_cost / purchase_order_id / rate
+-- until every fleet DB is confirmed dual-write-free.

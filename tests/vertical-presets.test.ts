@@ -26,6 +26,14 @@ describe('vertical business presets', () => {
     const ids = listVerticalPresets().map((p) => p.id);
     expect(ids).toContain('restaurant');
     expect(ids).toContain('wholesale');
-    expect(ids.length).toBeGreaterThanOrEqual(6);
+    expect(ids).toContain('salon');
+    expect(ids.length).toBeGreaterThanOrEqual(7);
+  });
+
+  it('salon preset enables appointments without restaurant', () => {
+    const s = VERTICAL_PRESETS.salon;
+    expect(s.flags.appointments).toBe(true);
+    expect(s.flags.restaurant).toBe(false);
+    expect(s.flags.loyalty).toBe(true);
   });
 });

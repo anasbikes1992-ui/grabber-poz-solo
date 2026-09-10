@@ -1,7 +1,8 @@
 # GRABBER BUSINESS OS — JARVIS AI COPILOT SPECIFICATION
 **Authorized Typed Tool-Calling Intelligence Layer with Action Risk Tiers**
 
-> **Implementation (S1):** DB-grounded tools in `src/lib/ai/jarvis-db-tools.ts`; session context in `jarvis-context.ts`; API `POST /api/jarvis/chat`. Tracker: [`correction.md`](./correction.md) SEC-01…JAR-08.
+> **Implementation (S1):** DB-grounded tools in `src/lib/ai/jarvis-db-tools.ts`; session context in `jarvis-context.ts`; API `POST /api/jarvis/chat`. Tracker: [`correction.md`](./correction.md) SEC-01…JAR-08.  
+> **v1 runtime:** Keyword router in `jarvis-chat-router.ts` — **no LLM**. JAR-08 (provider abstraction) is deferred until budget + guardrails; do not treat the diagram below as “LLM already shipped.”
 
 ---
 
@@ -24,7 +25,7 @@
                         USER PROMPT
                              │
                              ▼
-                     JARVIS LLM AGENT
+              JARVIS ROUTER (v1 keyword · JAR-08 LLM later)
                              │
                       Tool Selection
                              │
