@@ -141,11 +141,10 @@ export const JARVIS_DB_TOOLS: JarvisToolDefinition[] = [
   },
   {
     name: 'get_low_stock',
-    description: 'Products below reorder level at the main branch.',
+    description: 'Products below reorder level across all branches and warehouses.',
     risk: 'READ',
     execute: async (args: { limit?: number }) => {
       const limit = Math.min(Math.max(args?.limit ?? 10, 1), 50);
-      const [branch] = await db.select().from(branches).limit(1);
       const productRows = await db
         .select({
           id: products.id,
@@ -155,10 +154,13 @@ export const JARVIS_DB_TOOLS: JarvisToolDefinition[] = [
         })
         .from(products)
         .where(eq(products.isActive, true));
-      const stocks = branch
-        ? await db.select().from(stockBalances).where(eq(stockBalances.locationId, branch.id))
-        : [];
-      const stockMap = new Map(stocks.map((s) => [s.productId, s.onHand]));
+
+      const allStocks = await db.select().from(stockBalances);
+      const stockMap = new Map<string, number>();
+      for (const s of allStocks) {
+        stockMap.set(s.productId, (stockMap.get(s.productId) || 0) + (s.onHand || 0));
+      }
+
       const low = productRows
         .map((p) => ({
           name: p.name,
@@ -169,16 +171,16 @@ export const JARVIS_DB_TOOLS: JarvisToolDefinition[] = [
         .filter((p) => p.onHand < p.reorderLevel)
         .sort((a, b) => a.onHand - b.onHand)
         .slice(0, limit);
-      return { branchId: branch?.id ?? null, items: low };
+
+      return { items: low };
     },
   },
   {
     name: 'get_inventory',
-    description: 'On-hand stock for active products at main branch.',
+    description: 'On-hand stock for active products across all store locations.',
     risk: 'READ',
     execute: async (args: { limit?: number }) => {
       const limit = Math.min(Math.max(args?.limit ?? 20, 1), 100);
-      const [branch] = await db.select().from(branches).limit(1);
       const rows = await db
         .select({
           id: products.id,
@@ -189,17 +191,19 @@ export const JARVIS_DB_TOOLS: JarvisToolDefinition[] = [
         .from(products)
         .where(eq(products.isActive, true))
         .limit(limit);
-      const stocks = branch
-        ? await db.select().from(stockBalances).where(eq(stockBalances.locationId, branch.id))
-        : [];
-      const stockMap = new Map(stocks.map((s) => [s.productId, s.onHand]));
+
+      const allStocks = await db.select().from(stockBalances);
+      const stockMap = new Map<string, number>();
+      for (const s of allStocks) {
+        stockMap.set(s.productId, (stockMap.get(s.productId) || 0) + (s.onHand || 0));
+      }
+
       return {
-        branchId: branch?.id ?? null,
         items: rows.map((p) => ({
           sku: p.sku,
           name: p.name,
           onHand: stockMap.get(p.id) ?? 0,
-          salePrice: Number(p.salePrice),
+          salePrice: Number(p.salePrice || 0),
         })),
       };
     },

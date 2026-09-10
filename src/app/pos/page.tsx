@@ -26,11 +26,14 @@ import {
   Award,
   UserCheck,
   Sparkles,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { TradeInModal, type TradeInCredit } from '@/components/pos/trade-in-modal';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
 import { BarcodeScannerListener } from '@/lib/hardware/scanner';
+import { VoiceAssistant } from '@/lib/hardware/voice-assistant';
 import { fetchVerticalFlags, DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import {
   countPendingCheckouts,
@@ -133,6 +136,29 @@ export default function POSPage() {
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [cashTenderInput, setCashTenderInput] = useState<number | ''>('');
+  const [isVoiceSearchActive, setIsVoiceSearchActive] = useState(false);
+
+  const toggleVoiceSearch = () => {
+    if (isVoiceSearchActive) {
+      VoiceAssistant.stopListening();
+      setIsVoiceSearchActive(false);
+      return;
+    }
+    const started = VoiceAssistant.startListening({
+      onStart: () => setIsVoiceSearchActive(true),
+      onEnd: () => setIsVoiceSearchActive(false),
+      onError: () => setIsVoiceSearchActive(false),
+      onResult: (transcript, isFinal) => {
+        setSearch(transcript);
+        if (isFinal) {
+          setIsVoiceSearchActive(false);
+          VoiceAssistant.stopListening();
+          setAnnouncement(`Filtered catalog for "${transcript}".`);
+        }
+      },
+    });
+    if (!started) setIsVoiceSearchActive(false);
+  };
 
   const handleSearchLoyalty = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -770,9 +796,23 @@ export default function POSPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search product name or SKU..."
-              className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground placeholder:text-zinc-500"
+              placeholder={isVoiceSearchActive ? 'Listening... speak product name...' : 'Search product name or SKU...'}
+              className={`w-full pl-9 pr-9 py-2.5 text-sm rounded-xl bg-zinc-900/80 border text-foreground placeholder:text-zinc-500 transition-colors ${
+                isVoiceSearchActive ? 'border-rose-500 bg-rose-950/20' : 'border-zinc-800'
+              }`}
             />
+            <button
+              type="button"
+              onClick={toggleVoiceSearch}
+              title={isVoiceSearchActive ? 'Stop voice listening' : 'Voice product search'}
+              className={`absolute right-2 top-2 h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
+                isVoiceSearchActive
+                  ? 'bg-rose-500 text-white animate-pulse'
+                  : 'text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800'
+              }`}
+            >
+              {isVoiceSearchActive ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+            </button>
           </div>
 
           <form onSubmit={handleBarcodeSubmit} className="relative w-48">

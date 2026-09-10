@@ -10,24 +10,27 @@ import type { JarvisToolExecutionResult } from './jarvis-types';
 export function matchJarvisIntent(message: string): { toolName: string; args: Record<string, unknown> } | null {
   const q = message.toLowerCase().trim();
 
-  if (/draft po|purchase order|restock|supplier order/.test(q)) {
+  // 1. Purchase Orders & Restocking
+  if (/draft po|purchase order|\brestock\b|supplier order|order more stock/.test(q)) {
     return {
       toolName: 'draft_purchase_order',
       args: { supplierId: 'pending-selection', warehouseId: 'pending-selection', items: [] },
     };
   }
 
-  if (/draft promo|promotion|discount campaign|campaign draft/.test(q)) {
-    const name = message.replace(/draft promo|promotion|discount campaign|campaign draft/gi, '').trim() || 'Seasonal promo';
+  // 2. Promotions & Discounts
+  if (/draft promo|promotion|\bpromo\b|discount campaign|campaign draft|create discount/.test(q)) {
+    const name = message.replace(/draft promo|promotion|promo|discount campaign|campaign draft|create discount/gi, '').trim() || 'Seasonal promo';
     return { toolName: 'draft_promotion', args: { name, discountPercent: 10 } };
   }
 
-  if (/draft whatsapp|broadcast|message blast|whatsapp draft/.test(q)) {
+  // 3. WhatsApp Broadcasts
+  if (/draft whatsapp|broadcast|message blast|whatsapp draft|send whatsapp/.test(q)) {
     const SEG = ['VIP', 'GOLD', 'SILVER', 'NEW', 'LAPSED', 'ALL'] as const;
     const found = SEG.find((s) => new RegExp(`\\b${s}\\b`, 'i').test(message));
     const audience = found || 'ALL';
     const cleaned = message
-      .replace(/draft whatsapp|broadcast|message blast|whatsapp draft/gi, '')
+      .replace(/draft whatsapp|broadcast|message blast|whatsapp draft|send whatsapp/gi, '')
       .replace(new RegExp(`\\b(${SEG.join('|')})\\b`, 'gi'), '')
       .replace(/\b(to|for|segment|customers?|audience)\b/gi, '')
       .trim();
@@ -40,44 +43,53 @@ export function matchJarvisIntent(message: string): { toolName: string; args: Re
     };
   }
 
-  if (/draft creative|creative campaign|storefront campaign|hero campaign/.test(q)) {
-    const title = message.replace(/draft creative|creative campaign|storefront campaign|hero campaign/gi, '').trim() || 'Seasonal hero';
+  // 4. Creative Marketing Campaigns
+  if (/draft creative|creative campaign|storefront campaign|hero campaign|banner/.test(q)) {
+    const title = message.replace(/draft creative|creative campaign|storefront campaign|hero campaign|banner/gi, '').trim() || 'Seasonal hero';
     return {
       toolName: 'draft_creative_campaign',
       args: { title, announcement: `New at our store: ${title}` },
     };
   }
 
-  if (/low stock|reorder|stockout/.test(q)) {
+  // 5. Low Stock / Reorder Alerts
+  if (/low.*(stock|item|product|sku)|(stock|item|product|sku).*low|reorder|stockout|out of stock|shortage|almost empty/i.test(q)) {
     return { toolName: 'get_low_stock', args: { limit: 10 } };
   }
 
-  if (/top product|best seller|top sku/.test(q)) {
+  // 6. General Stock & Inventory on Hand
+  if (/\b(inventory|stock on hand|on hand|in stock|stock level|all stock|view stock|check stock|my stock|whats (the |my )?stock|what is (the |my )?stock)\b/i.test(q) || q === 'stock' || q === 'stocks' || q === 'inventory') {
+    return { toolName: 'get_inventory', args: { limit: 15 } };
+  }
+
+  // 7. Top Selling Products
+  if (/top product|best seller|top sku|most sold|popular item|what sells|highest selling/i.test(q)) {
     return { toolName: 'get_top_products', args: { days: 7, limit: 5 } };
   }
 
-  if (/pending order|open order|awaiting fulfillment/.test(q)) {
+  // 8. Pending & Live Orders
+  if (/pending order|open order|awaiting fulfillment|unfulfilled|orders to ship|whats (the |my )?orders|what are (the |my )?orders|check orders|view orders/i.test(q) || q === 'orders' || q === 'order') {
     return { toolName: 'get_pending_orders', args: { limit: 10 } };
   }
 
-  if (/sales trend|revenue trend/.test(q)) {
+  // 9. Sales Trend
+  if (/sales trend|revenue trend|sales chart|growth trend/i.test(q)) {
     return { toolName: 'get_sales_trend', args: { daysBack: 7 } };
   }
 
-  if (/inventory snapshot|stock on hand|on hand/.test(q)) {
-    return { toolName: 'get_inventory', args: { limit: 10 } };
-  }
-
-  if (/search product|find product|lookup sku/.test(q)) {
-    const term = message.replace(/search product|find product|lookup sku/gi, '').trim() || 'shirt';
+  // 10. Product Lookup / Price Check
+  if (/search product|find product|lookup sku|price of|how much is/i.test(q)) {
+    const term = message.replace(/search product|find product|lookup sku|price of|how much is/gi, '').trim() || 'shirt';
     return { toolName: 'search_products', args: { query: term, limit: 5 } };
   }
 
-  if (/sales|revenue|today|performance/.test(q)) {
+  // 11. Sales & Revenue Summary
+  if (/sales|revenue|today'?s? sales|earnings|income|turnover|performance/i.test(q)) {
     return { toolName: 'get_sales_summary', args: { daysBack: 0 } };
   }
 
-  if (/dashboard|daily brief|business brief|how are we/.test(q)) {
+  // 12. Dashboard & Brief
+  if (/dashboard|daily brief|business brief|how are we|overview/i.test(q)) {
     return { toolName: 'get_dashboard_summary', args: {} };
   }
 
@@ -174,9 +186,11 @@ export function formatJarvisReply(result: JarvisToolExecutionResult): string {
   }
 
   if (result.toolName === 'get_inventory') {
-    const items = (data.products || data.items || []) as Array<{ name?: string; onHand?: number; sku?: string }>;
-    if (!items.length) return 'No inventory rows returned.';
-    return items.slice(0, 8).map((p) => `${p.name} (${p.sku}): ${p.onHand ?? 0} on hand`).join('\n');
+    const items = (data.items || data.products || []) as Array<{ name?: string; onHand?: number; sku?: string; salePrice?: number }>;
+    if (!items.length) return 'No active products found in inventory.';
+    const totalUnits = items.reduce((s, i) => s + (i.onHand ?? 0), 0);
+    const list = items.slice(0, 8).map((p) => `• ${p.name} (${p.sku}): ${p.onHand ?? 0} in stock`).join('\n');
+    return `Inventory status (${totalUnits} total units on hand across ${items.length} SKUs):\n${list}`;
   }
 
   if (result.toolName === 'draft_purchase_order' || result.toolName === 'draft_promotion' || result.toolName === 'draft_whatsapp_message' || result.toolName === 'draft_creative_campaign') {

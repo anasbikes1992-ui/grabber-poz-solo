@@ -31,6 +31,7 @@ import {
   Briefcase,
   Share2,
   ExternalLink,
+  Mic,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -507,10 +508,12 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
                   <button
                     type="button"
                     onClick={onToggleJarvis}
-                    className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-950/40 hover:bg-purple-950/60 border border-purple-500/30 text-purple-300 text-xs font-bold cursor-pointer transition active:scale-95"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/40 text-purple-300 text-xs font-bold cursor-pointer transition active:scale-95 shadow-sm"
+                    title="Open Jarvis AI Copilot (Voice & Live DB)"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Jarvis</span>
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="hidden md:inline">Jarvis</span>
+                    <Mic className="w-3 h-3 text-purple-300 ml-0.5" />
                   </button>
                 )}
 

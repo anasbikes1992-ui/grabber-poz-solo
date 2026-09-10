@@ -18,7 +18,27 @@ describe('jarvis intent router', () => {
     expect(matchJarvisIntent('daily business brief')?.toolName).toBe('get_dashboard_summary');
   });
 
-  it('routes inventory snapshot', () => {
+  it('routes inventory queries correctly', () => {
     expect(matchJarvisIntent('inventory snapshot')?.toolName).toBe('get_inventory');
+    expect(matchJarvisIntent('inventory')?.toolName).toBe('get_inventory');
+    expect(matchJarvisIntent('whats my stock')?.toolName).toBe('get_inventory');
+    expect(matchJarvisIntent('stock on hand')?.toolName).toBe('get_inventory');
+  });
+
+  it('routes low stock questions to get_low_stock', () => {
+    expect(matchJarvisIntent('whats low in my stocks')?.toolName).toBe('get_low_stock');
+    expect(matchJarvisIntent('check low stock')?.toolName).toBe('get_low_stock');
+    expect(matchJarvisIntent('reorder alerts')?.toolName).toBe('get_low_stock');
+  });
+
+  it('routes order questions to get_pending_orders', () => {
+    expect(matchJarvisIntent('whats the orders')?.toolName).toBe('get_pending_orders');
+    expect(matchJarvisIntent('orders')?.toolName).toBe('get_pending_orders');
+    expect(matchJarvisIntent('pending orders')?.toolName).toBe('get_pending_orders');
+  });
+
+  it('routes top products questions', () => {
+    expect(matchJarvisIntent('what are top products')?.toolName).toBe('get_top_products');
+    expect(matchJarvisIntent('best sellers')?.toolName).toBe('get_top_products');
   });
 });

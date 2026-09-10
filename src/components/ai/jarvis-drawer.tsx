@@ -1,8 +1,25 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { Sparkles, X, Send, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import {
+  Sparkles,
+  X,
+  Send,
+  AlertTriangle,
+  CheckCircle2,
+  ArrowRight,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Box,
+  TrendingUp,
+  Clock,
+  Users,
+  Tag,
+} from 'lucide-react';
 import { useDrawerA11y } from '@/hooks/use-drawer-a11y';
+import { VoiceAssistant } from '@/lib/hardware/voice-assistant';
 
 interface JarvisDrawerProps {
   isOpen: boolean;
@@ -23,17 +40,37 @@ interface Message {
   status?: 'PENDING' | 'CONFIRMED' | 'REJECTED';
 }
 
+const QUICK_PROMPTS = [
+  { label: '📦 Low Stock', query: 'What is low in my stocks?' },
+  { label: '📊 Total Inventory', query: 'What is my current inventory on hand?' },
+  { label: '💰 Today Sales', query: "How are today's sales and revenue?" },
+  { label: '🚚 Pending Orders', query: 'What are the pending orders?' },
+  { label: '👥 Polim Potha', query: 'Show customer credit and aging balances' },
+  { label: '🔥 Top Products', query: 'What are the top selling products this week?' },
+];
+
 export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'msg_1',
       sender: 'jarvis',
-      text: 'Hello! I am Jarvis — grounded on your live database. Ask about today\'s sales, low stock, pending orders, or Polim Potha balances.',
+      text: "Hello! I am Jarvis — grounded on your live database. Ask about today's sales, low stock, pending orders, or Polim Potha balances.",
     },
   ]);
   const panelRef = useDrawerA11y(isOpen, onClose);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const loadBrief = useCallback(async () => {
     try {
@@ -52,17 +89,19 @@ export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
 
   useEffect(() => {
     if (isOpen) void loadBrief();
+    return () => {
+      VoiceAssistant.stopListening();
+      VoiceAssistant.stopSpeaking();
+    };
   }, [isOpen, loadBrief]);
 
   if (!isOpen) return null;
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim() || busy) return;
+  async function submitQuery(queryText: string) {
+    if (!queryText.trim() || busy) return;
 
-    const userMsg: Message = { id: `msg_${Date.now()}`, sender: 'user', text: input.trim() };
+    const userMsg: Message = { id: `msg_${Date.now()}`, sender: 'user', text: queryText.trim() };
     setMessages((prev) => [...prev, userMsg]);
-    const query = input.trim();
     setInput('');
     setBusy(true);
 
@@ -70,28 +109,70 @@ export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
       const res = await fetch('/api/jarvis/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: query }),
+        body: JSON.stringify({ message: queryText.trim() }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
+      const replyText = data.reply || data.errorMessage || 'No response from database.';
       const jarvisResponse: Message = {
         id: `msg_${Date.now() + 1}`,
         sender: 'jarvis',
-        text: data.reply || data.errorMessage || 'No response.',
+        text: replyText,
         actionRequired: data.status === 'CONFIRMATION_REQUIRED',
         confirmationToken: data.confirmationToken,
         confirmationDetails: data.confirmationDetails,
         status: data.status === 'CONFIRMATION_REQUIRED' ? 'PENDING' : undefined,
       };
       setMessages((prev) => [...prev, jarvisResponse]);
+
+      if (ttsEnabled) {
+        void VoiceAssistant.speak(replyText);
+      }
     } catch (err) {
+      const errMsg = (err as Error).message;
       setMessages((prev) => [
         ...prev,
-        { id: `err_${Date.now()}`, sender: 'jarvis', text: (err as Error).message },
+        { id: `err_${Date.now()}`, sender: 'jarvis', text: errMsg },
       ]);
+      if (ttsEnabled) {
+        void VoiceAssistant.speak(errMsg);
+      }
     } finally {
       setBusy(false);
+    }
+  }
+
+  function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    void submitQuery(input);
+  }
+
+  function toggleVoiceInput() {
+    if (isListening) {
+      VoiceAssistant.stopListening();
+      setIsListening(false);
+      return;
+    }
+
+    const started = VoiceAssistant.startListening({
+      onStart: () => setIsListening(true),
+      onEnd: () => setIsListening(false),
+      onError: (err) => {
+        setIsListening(false);
+      },
+      onResult: (transcript, isFinal) => {
+        setInput(transcript);
+        if (isFinal && transcript.trim()) {
+          setIsListening(false);
+          VoiceAssistant.stopListening();
+          void submitQuery(transcript);
+        }
+      },
+    });
+
+    if (!started) {
+      setIsListening(false);
     }
   }
 
@@ -104,18 +185,22 @@ export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
         body: JSON.stringify({ confirmationToken: token }),
       });
       const data = await res.json();
+      const replyText = data.reply || data.errorMessage || 'Staged action executed.';
       setMessages((prev) =>
         prev.map((m) =>
           m.id === msgId
             ? {
                 ...m,
                 status: data.status === 'EXECUTED' ? 'CONFIRMED' : 'REJECTED',
-                text: data.reply || data.errorMessage || m.text,
+                text: replyText,
                 actionRequired: false,
               }
             : m,
         ),
       );
+      if (ttsEnabled) {
+        void VoiceAssistant.speak(replyText);
+      }
     } finally {
       setBusy(false);
     }
@@ -127,55 +212,75 @@ export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="jarvis-drawer-title"
-      className="fixed inset-y-0 right-0 w-96 bg-card border-l border-border shadow-2xl z-50 flex flex-col backdrop-blur-xl animate-in slide-in-from-right duration-200"
+      className="fixed inset-y-0 right-0 w-96 bg-zinc-950/95 border-l border-zinc-800 shadow-2xl z-50 flex flex-col backdrop-blur-xl animate-in slide-in-from-right duration-200 text-zinc-100"
     >
-      <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/40">
+      {/* Top Header */}
+      <div className="p-4 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/40">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm">
-            <Sparkles className="h-4 w-4 animate-pulse" aria-hidden />
+          <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-zinc-950 shadow-glow-em">
+            <Sparkles className="h-4 w-4" aria-hidden />
           </div>
           <div>
-            <h3 id="jarvis-drawer-title" className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+            <h3 id="jarvis-drawer-title" className="font-bold text-sm text-white flex items-center gap-1.5">
               Jarvis Copilot
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Grounded</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-semibold">
+                Live DB
+              </span>
             </h3>
-            <p className="text-[11px] text-muted-foreground">Live DB tools</p>
+            <p className="text-[11px] text-zinc-400">Autonomous Business Intelligence</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close Jarvis"
-          className="h-8 w-8 rounded-lg hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <X className="h-4 w-4" aria-hidden />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              const next = !ttsEnabled;
+              setTtsEnabled(next);
+              if (!next) VoiceAssistant.stopSpeaking();
+            }}
+            title={ttsEnabled ? 'Mute Voice Responses' : 'Enable Voice Audio Responses'}
+            className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${
+              ttsEnabled ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            {ttsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close Jarvis"
+            className="h-8 w-8 rounded-lg hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
       </div>
 
+      {/* Messages Feed */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
         {messages.map((m) => (
           <div key={m.id} className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}>
             <div
-              className={`p-3 rounded-2xl max-w-[88%] whitespace-pre-wrap ${
+              className={`p-3 rounded-2xl max-w-[90%] whitespace-pre-wrap ${
                 m.sender === 'user'
-                  ? 'bg-primary text-primary-foreground rounded-tr-none shadow-sm'
-                  : 'bg-secondary/70 border border-border text-foreground rounded-tl-none'
+                  ? 'bg-emerald-500 text-zinc-950 font-medium rounded-tr-none shadow-glow-em text-xs'
+                  : 'bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-tl-none text-xs leading-relaxed shadow-sm'
               }`}
             >
-              <p className="text-xs leading-relaxed">{m.text}</p>
+              <p>{m.text}</p>
 
               {m.actionRequired && m.status === 'PENDING' && m.confirmationToken && (
-                <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2">
+                <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400 mb-2">
                     <AlertTriangle className="h-3.5 w-3.5" />
-                    <span>Confirmation required</span>
+                    <span>Confirmation Required</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mb-3">{m.confirmationDetails?.riskSummary}</p>
+                  <p className="text-[11px] text-zinc-400 mb-3">{m.confirmationDetails?.riskSummary}</p>
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => void handleConfirmAction(m.id, m.confirmationToken!)}
-                    className="w-full py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm disabled:opacity-50"
+                    className="w-full py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
                   >
                     <span>Authorize & Execute</span>
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -184,7 +289,7 @@ export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
               )}
 
               {m.status === 'CONFIRMED' && (
-                <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   <span>Executed with audit trail</span>
                 </div>
@@ -192,29 +297,58 @@ export function JarvisDrawer({ isOpen, onClose }: JarvisDrawerProps) {
             </div>
           </div>
         ))}
+        <div ref={chatBottomRef} />
       </div>
 
-      <form onSubmit={(e) => void handleSend(e)} className="p-3 border-t border-border bg-card/80 flex items-center gap-2">
-        <label htmlFor="jarvis-chat-input" className="sr-only">
-          Message Jarvis
-        </label>
+      {/* Quick Prompts Carousel */}
+      <div className="px-3 py-2 border-t border-zinc-900 bg-zinc-950 flex gap-1.5 overflow-x-auto no-scrollbar">
+        {QUICK_PROMPTS.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            disabled={busy}
+            onClick={() => void submitQuery(p.query)}
+            className="px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[11px] text-zinc-300 hover:text-emerald-400 whitespace-nowrap transition-colors shrink-0 disabled:opacity-50"
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Input Bar with Voice Mic */}
+      <form onSubmit={handleSend} className="p-3 border-t border-zinc-800 bg-zinc-950 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={toggleVoiceInput}
+          title={isListening ? 'Stop listening' : 'Speak to Jarvis (Voice Command)'}
+          className={`h-9 w-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${
+            isListening
+              ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-500/30'
+              : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800'
+          }`}
+        >
+          {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </button>
+
         <input
-          id="jarvis-chat-input"
           data-autofocus
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={busy}
-          placeholder="Ask about sales, stock, orders..."
-          className="flex-1 px-3 py-2 text-xs rounded-xl bg-secondary/80 border border-border focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+          placeholder={isListening ? 'Listening... speak your command' : 'Ask about sales, stock, orders...'}
+          className={`flex-1 px-3 py-2 text-xs rounded-xl bg-zinc-900 border text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500 disabled:opacity-50 ${
+            isListening ? 'border-rose-500/80 bg-rose-950/20' : 'border-zinc-800'
+          }`}
         />
+
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || !input.trim()}
           aria-label="Send message"
-          className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-all active:scale-95 shrink-0 disabled:opacity-50"
+          className="h-9 w-9 rounded-xl bg-emerald-500 text-zinc-950 flex items-center justify-center hover:bg-emerald-400 transition-all shadow-glow-em shrink-0 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
         >
-          <Send className="h-3.5 w-3.5" aria-hidden />
+          <Send className="h-4 w-4" aria-hidden />
         </button>
       </form>
     </div>
