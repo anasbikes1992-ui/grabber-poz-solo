@@ -29,6 +29,10 @@ type CatalogItem = {
   stock: number;
   variant?: string;
   taxRate?: number;
+  imageUrl?: string | null;
+  description?: string | null;
+  category?: string;
+  categoryId?: string | null;
 };
 
 type CartLine = CatalogItem & { qty: number; productId: string };
@@ -56,13 +60,13 @@ const gridStagger = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+    transition: { staggerChildren: 0.04, delayChildren: 0.05 },
   },
 };
 
 const gridItem = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as const } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
 export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
@@ -76,6 +80,8 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [shopper, setShopper] = useState<Shopper | null>(null);
   const [q, setQ] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc' | 'name_asc' | 'stock_desc'>('default');
   const [serverHits, setServerHits] = useState<Array<{ id: string; slug: string; name: string; sku: string; barcode: string | null; salePrice: number }>>([]);
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -144,11 +150,25 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
     return () => clearTimeout(timer);
   }, [q]);
 
+  // Derive categories list with counts
+  const categoriesList = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of catalog) {
+      const cat = item.category || 'Uncategorized';
+      counts.set(cat, (counts.get(cat) || 0) + 1);
+    }
+    const list = Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+    return [{ name: 'ALL', count: catalog.length }, ...list];
+  }, [catalog]);
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return catalog;
+    let list: CatalogItem[] = [];
+
     if (needle.length >= 2 && serverHits.length > 0) {
-      return serverHits.map((hit) => {
+      list = serverHits.map((hit) => {
         const inCat = catalog.find((c) => c.slug === hit.slug || c.productId === hit.id);
         if (inCat) return inCat;
         return {
@@ -161,16 +181,40 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
           unitPrice: hit.salePrice,
           stock: 0,
           variant: hit.sku,
+          category: 'Uncategorized',
         } satisfies CatalogItem;
       });
+    } else if (needle) {
+      list = catalog.filter(
+        (p) =>
+          p.name.toLowerCase().includes(needle) ||
+          p.sku.toLowerCase().includes(needle) ||
+          (p.barcode ?? '').toLowerCase().includes(needle) ||
+          (p.category ?? '').toLowerCase().includes(needle),
+      );
+    } else {
+      list = catalog;
     }
-    return catalog.filter(
-      (p) =>
-        p.name.toLowerCase().includes(needle) ||
-        p.sku.toLowerCase().includes(needle) ||
-        (p.barcode ?? '').toLowerCase().includes(needle),
-    );
-  }, [catalog, q, serverHits]);
+
+    // Filter by Category Pill
+    if (selectedCategory !== 'ALL') {
+      list = list.filter((p) => (p.category || 'Uncategorized') === selectedCategory);
+    }
+
+    // Sort
+    const sorted = [...list];
+    if (sortBy === 'price_asc') {
+      sorted.sort((a, b) => Number(a.unitPrice) - Number(b.unitPrice));
+    } else if (sortBy === 'price_desc') {
+      sorted.sort((a, b) => Number(b.unitPrice) - Number(a.unitPrice));
+    } else if (sortBy === 'name_asc') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === 'stock_desc') {
+      sorted.sort((a, b) => b.stock - a.stock);
+    }
+
+    return sorted;
+  }, [catalog, q, serverHits, selectedCategory, sortBy]);
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce((s, l) => s + Number(l.unitPrice) * l.qty, 0);
@@ -379,24 +423,84 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
           }
         />
 
+        {/* MAIN CATALOG SECTION */}
         <section id="catalog" className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="font-display text-2xl font-bold text-[var(--sf-foreground)]">Catalog</h2>
-              <p className="mt-1 text-sm text-[var(--sf-secondary)]">Live stock from your Grabber inventory.</p>
-              {searching && q.trim().length >= 2 && (
-                <p className="mt-1 text-xs text-[var(--sf-secondary)]">Searching catalog…</p>
-              )}
+          <div className="flex flex-col gap-6">
+            {/* Title & Live Search / Sort Bar */}
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div>
+                <h2 className="font-display text-2xl font-bold text-[var(--sf-foreground)]">Store Catalog</h2>
+                <p className="mt-1 text-sm text-[var(--sf-secondary)]">
+                  Live inventory synced from POS · {catalog.length} items available
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:max-w-xl">
+                {/* Search Bar */}
+                <div className="relative flex-1">
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search name, SKU, category…"
+                    className="w-full min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] pl-4 pr-10 py-2.5 text-sm shadow-sm outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]/40"
+                  />
+                  {q ? (
+                    <button
+                      type="button"
+                      onClick={() => setQ('')}
+                      className="absolute right-3 top-3 text-xs font-bold text-[var(--sf-secondary)] hover:text-[var(--sf-foreground)]"
+                      title="Clear search"
+                    >
+                      ✕
+                    </button>
+                  ) : null}
+                </div>
+
+                {/* Sort Dropdown */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  aria-label="Sort products"
+                  className="min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3.5 py-2.5 text-xs font-semibold text-[var(--sf-foreground)] shadow-sm outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]/40"
+                >
+                  <option value="default">Featured / Recommended</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="name_asc">Name: A to Z</option>
+                  <option value="stock_desc">In Stock First</option>
+                </select>
+              </div>
             </div>
-            <label className="block w-full max-w-sm text-sm">
-              <span className="sr-only">Search products</span>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search name, SKU, barcode…"
-                className="w-full min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] px-4 py-2.5 shadow-sm outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]/30"
-              />
-            </label>
+
+            {/* Category Navigation Pills */}
+            {categoriesList.length > 1 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                {categoriesList.map((cat) => {
+                  const isActive = selectedCategory === cat.name;
+                  return (
+                    <button
+                      key={cat.name}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.name)}
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                        isActive
+                          ? 'bg-[var(--sf-accent)] text-white shadow-md shadow-[var(--sf-accent)]/20 scale-105'
+                          : 'bg-[var(--sf-surface)] border border-[var(--sf-border)] text-[var(--sf-foreground)] hover:bg-[var(--sf-muted)] hover:border-[var(--sf-accent)]/40'
+                      }`}
+                    >
+                      <span>{cat.name === 'ALL' ? 'All Products' : cat.name}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-[var(--sf-muted)] text-[var(--sf-secondary)]'
+                        }`}
+                      >
+                        {cat.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {loadErr && (
@@ -405,73 +509,137 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
             </p>
           )}
 
-          <motion.div
-            {...gridMotionProps}
-            className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {filtered.map((item) => (
-              <motion.article
-                key={item.id}
-                variants={reduceMotion ? undefined : gridItem}
-                className="group flex flex-col justify-between rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5 shadow-sm transition-all duration-200 hover:shadow-lg hover:border-[var(--sf-accent)]/40"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="px-2 py-0.5 rounded-md bg-[var(--sf-muted)] text-[var(--sf-secondary)] text-[10px] font-mono font-medium">
-                      {item.variant || item.sku}
-                    </span>
-                    {item.stock > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-500 font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        In Stock ({item.stock})
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                        Sold Out
-                      </span>
-                    )}
+          {/* Product Grid */}
+          {filtered.length === 0 ? (
+            <div className="mt-12 p-12 text-center rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] space-y-3">
+              <div className="w-12 h-12 rounded-full bg-[var(--sf-muted)] mx-auto flex items-center justify-center text-lg">
+                🔍
+              </div>
+              <h3 className="text-base font-bold text-[var(--sf-foreground)]">No matching products found</h3>
+              <p className="text-xs text-[var(--sf-secondary)] max-w-sm mx-auto">
+                We couldn&apos;t find anything matching &quot;{q}&quot; in category &quot;{selectedCategory}&quot;.
+              </p>
+              {(q || selectedCategory !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQ('');
+                    setSelectedCategory('ALL');
+                  }}
+                  className="mt-2 inline-flex min-h-9 items-center px-4 py-1.5 rounded-full bg-[var(--sf-accent)] text-xs font-bold text-white shadow-sm"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <motion.div
+              {...gridMotionProps}
+              className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
+              {filtered.map((item) => (
+                <motion.article
+                  key={item.id}
+                  variants={reduceMotion ? undefined : gridItem}
+                  className="group flex flex-col justify-between rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[var(--sf-accent)]/50 hover:-translate-y-1"
+                >
+                  <div>
+                    {/* Image / Thumbnail Container */}
+                    <div className="relative aspect-square w-full bg-[var(--sf-muted)]/50 overflow-hidden flex items-center justify-center border-b border-[var(--sf-border)]">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center gap-1.5 text-[var(--sf-secondary)] opacity-60">
+                          <span className="text-3xl">🛍️</span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider">
+                            {item.category || 'Product'}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Floating Category Badge */}
+                      {item.category && item.category !== 'Uncategorized' && (
+                        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-[10px] font-bold text-white tracking-wide shadow-sm">
+                          {item.category}
+                        </div>
+                      )}
+
+                      {/* Stock Badge */}
+                      <div className="absolute top-3 right-3">
+                        {item.stock > 3 ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/90 text-white text-[10px] font-bold shadow-sm backdrop-blur">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            In Stock ({item.stock})
+                          </span>
+                        ) : item.stock > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/90 text-white text-[10px] font-bold shadow-sm backdrop-blur">
+                            Low Stock ({item.stock})
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-700/80 text-white text-[10px] font-bold shadow-sm backdrop-blur">
+                            Sold Out
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Product Details */}
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="px-2 py-0.5 rounded-md bg-[var(--sf-muted)] text-[var(--sf-secondary)] text-[10px] font-mono font-medium truncate">
+                          {item.variant || item.sku}
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-sm text-[var(--sf-foreground)] line-clamp-2 min-h-10 group-hover:text-[var(--sf-accent)] transition-colors">
+                        {item.slug ? (
+                          <Link
+                            href={`/products/${item.slug}`}
+                            className="cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                          >
+                            {item.name}
+                          </Link>
+                        ) : (
+                          item.name
+                        )}
+                      </h3>
+
+                      <p className="font-display text-xl font-black text-[var(--sf-accent)]">
+                        {money(Number(item.unitPrice))}
+                      </p>
+                    </div>
                   </div>
 
-                  <h3 className="font-bold text-base text-[var(--sf-foreground)] group-hover:text-[var(--sf-accent)] transition-colors">
-                    {item.slug ? (
+                  {/* Actions */}
+                  <div className="p-4 pt-0 space-y-2">
+                    <button
+                      type="button"
+                      disabled={item.stock <= 0}
+                      onClick={() => addToCart(item)}
+                      className="w-full min-h-11 cursor-pointer rounded-2xl bg-[var(--sf-accent)] py-2.5 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:opacity-95 transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                    >
+                      {item.stock > 0 ? '+ Add to Bag' : 'Out of Stock'}
+                    </button>
+                    {item.slug && (
                       <Link
                         href={`/products/${item.slug}`}
-                        className="cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                        className="block text-center text-xs font-medium text-[var(--sf-secondary)] hover:text-[var(--sf-accent)] hover:underline"
                       >
-                        {item.name}
+                        View Details &rarr;
                       </Link>
-                    ) : (
-                      item.name
                     )}
-                  </h3>
-
-                  <p className="mt-3 font-display text-2xl font-black text-[var(--sf-accent)]">
-                    {money(Number(item.unitPrice))}
-                  </p>
-                </div>
-
-                <div className="mt-5 space-y-2">
-                  <button
-                    type="button"
-                    disabled={item.stock <= 0}
-                    onClick={() => addToCart(item)}
-                    className="w-full min-h-11 cursor-pointer rounded-2xl bg-[var(--sf-accent)] py-2.5 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:opacity-95 transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
-                  >
-                    {item.stock > 0 ? '+ Add to Bag' : 'Out of Stock'}
-                  </button>
-                  {item.slug && (
-                    <Link
-                      href={`/products/${item.slug}`}
-                      className="block text-center text-xs font-medium text-[var(--sf-secondary)] hover:text-[var(--sf-accent)] hover:underline"
-                    >
-                      View Details &rarr;
-                    </Link>
-                  )}
-                </div>
-              </motion.article>
-            ))}
-          </motion.div>
+                  </div>
+                </motion.article>
+              ))}
+            </motion.div>
+          )}
 
           {/* Slide-Over Cart Drawer & Floating Bag Bar */}
           <CartDrawer

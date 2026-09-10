@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { and, eq } from 'drizzle-orm';
-import { db, products, stockBalances, branches, productVariants } from '@/db';
+import { and, eq, inArray } from 'drizzle-orm';
+import { db, products, stockBalances, branches, productVariants, categories } from '@/db';
 import { hasDatabaseUrl } from '@/lib/db/connection';
 
 export async function GET(req: Request) {
@@ -18,22 +18,24 @@ export async function GET(req: Request) {
       branchId = b?.id || null;
     }
 
-    const catalog = await db.select().from(products).where(eq(products.isActive, true)).limit(500);
+    const catalog = await db.select().from(products).where(eq(products.isActive, true)).limit(5000);
     const productIds = catalog.map((p) => p.id);
     const variants =
       productIds.length > 0
         ? await db
             .select()
             .from(productVariants)
-            .where(and(eq(productVariants.active, true)))
+            .where(and(inArray(productVariants.productId, productIds), eq(productVariants.active, true)))
         : [];
     const variantsByProduct = new Map<string, typeof variants>();
     for (const v of variants) {
-      if (!productIds.includes(v.productId)) continue;
       const list = variantsByProduct.get(v.productId) || [];
       list.push(v);
       variantsByProduct.set(v.productId, list);
     }
+
+    const allCats = await db.select().from(categories).limit(500);
+    const catMap = new Map(allCats.map((c) => [c.id, c.name]));
 
     const stocks = branchId
       ? await db.select().from(stockBalances).where(eq(stockBalances.locationId, branchId))
@@ -56,10 +58,15 @@ export async function GET(req: Request) {
       unitCost: number;
       stock: number;
       variant: string;
+      imageUrl?: string | null;
+      description?: string | null;
+      category: string;
+      categoryId?: string | null;
     }> = [];
 
     for (const p of catalog) {
       const pVariants = variantsByProduct.get(p.id) || [];
+      const catName = (p.categoryId && catMap.get(p.categoryId)) || 'Uncategorized';
       if (pVariants.length) {
         for (const v of pVariants) {
           items.push({
@@ -74,6 +81,10 @@ export async function GET(req: Request) {
             unitCost: Number(v.costPrice ?? p.costPrice),
             stock: stockMap.get(stockKey(p.id, v.id)) ?? 0,
             variant: v.name,
+            imageUrl: p.imageUrl,
+            description: p.description,
+            category: catName,
+            categoryId: p.categoryId,
           });
         }
       } else {
@@ -88,6 +99,10 @@ export async function GET(req: Request) {
           unitCost: Number(p.costPrice),
           stock: stockMap.get(stockKey(p.id, null)) ?? 0,
           variant: p.sku,
+          imageUrl: p.imageUrl,
+          description: p.description,
+          category: catName,
+          categoryId: p.categoryId,
         });
       }
     }
