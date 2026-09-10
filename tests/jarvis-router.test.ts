@@ -35,10 +35,19 @@ describe('jarvis intent router', () => {
     expect(matchJarvisIntent('whats the orders')?.toolName).toBe('get_pending_orders');
     expect(matchJarvisIntent('orders')?.toolName).toBe('get_pending_orders');
     expect(matchJarvisIntent('pending orders')?.toolName).toBe('get_pending_orders');
+    expect(matchJarvisIntent('whats pending')?.toolName).toBe('get_pending_orders');
+    expect(matchJarvisIntent('what is pending')?.toolName).toBe('get_pending_orders');
+  });
+
+  it('routes total value of goods and inventory valuation questions', () => {
+    expect(matchJarvisIntent('total value of goods')?.toolName).toBe('get_inventory_value');
+    expect(matchJarvisIntent('what is the value of stock')?.toolName).toBe('get_inventory_value');
+    expect(matchJarvisIntent('inventory worth')?.toolName).toBe('get_inventory_value');
   });
 
   it('routes top products questions', () => {
     expect(matchJarvisIntent('what are top products')?.toolName).toBe('get_top_products');
     expect(matchJarvisIntent('best sellers')?.toolName).toBe('get_top_products');
+    expect(matchJarvisIntent('best sellers auto products')?.toolName).toBe('get_top_products');
   });
 });

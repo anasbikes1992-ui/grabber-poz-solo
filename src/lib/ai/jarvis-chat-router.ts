@@ -57,39 +57,44 @@ export function matchJarvisIntent(message: string): { toolName: string; args: Re
     return { toolName: 'get_low_stock', args: { limit: 10 } };
   }
 
-  // 6. General Stock & Inventory on Hand
-  if (/\b(inventory|stock on hand|on hand|in stock|stock level|all stock|view stock|check stock|my stock|whats (the |my )?stock|what is (the |my )?stock)\b/i.test(q) || q === 'stock' || q === 'stocks' || q === 'inventory') {
+  // 6. Total Value of Goods / Stock Valuation
+  if (/value.*(good|stock|inventory|asset|item)|(good|stock|inventory|asset|item).*value|worth.*(stock|inventory|good)|inventory worth|total worth/i.test(q)) {
+    return { toolName: 'get_inventory_value', args: {} };
+  }
+
+  // 7. General Stock & Inventory on Hand
+  if (/\b(inventory|stock on hand|on hand|in stock|stock level|all stock|view stock|check stock|my stock|whats (the |my )?stock|what is (the |my )?stock|get inventory)\b/i.test(q) || q === 'stock' || q === 'stocks' || q === 'inventory' || q === 'get inventory data') {
     return { toolName: 'get_inventory', args: { limit: 15 } };
   }
 
-  // 7. Top Selling Products
-  if (/top product|best seller|top sku|most sold|popular item|what sells|highest selling/i.test(q)) {
+  // 8. Top Selling Products
+  if (/top product|best seller|top sku|most sold|popular item|what sells|highest selling|best sellers/i.test(q)) {
     return { toolName: 'get_top_products', args: { days: 7, limit: 5 } };
   }
 
-  // 8. Pending & Live Orders
-  if (/pending order|open order|awaiting fulfillment|unfulfilled|orders to ship|whats (the |my )?orders|what are (the |my )?orders|check orders|view orders/i.test(q) || q === 'orders' || q === 'order') {
+  // 9. Pending & Live Orders
+  if (/\b(pending|unfulfilled|open order|awaiting fulfillment|orders to ship|orders pending|whats (the |my )?orders|what are (the |my )?orders|check orders|view orders|whats pending|what is pending|what are pending|pending order)\b/i.test(q) || q === 'orders' || q === 'order' || q === 'pending' || q.includes('pending')) {
     return { toolName: 'get_pending_orders', args: { limit: 10 } };
   }
 
-  // 9. Sales Trend
+  // 10. Sales Trend
   if (/sales trend|revenue trend|sales chart|growth trend/i.test(q)) {
     return { toolName: 'get_sales_trend', args: { daysBack: 7 } };
   }
 
-  // 10. Product Lookup / Price Check
+  // 11. Product Lookup / Price Check
   if (/search product|find product|lookup sku|price of|how much is/i.test(q)) {
     const term = message.replace(/search product|find product|lookup sku|price of|how much is/gi, '').trim() || 'shirt';
     return { toolName: 'search_products', args: { query: term, limit: 5 } };
   }
 
-  // 11. Sales & Revenue Summary
+  // 12. Sales & Revenue Summary
   if (/sales|revenue|today'?s? sales|earnings|income|turnover|performance/i.test(q)) {
     return { toolName: 'get_sales_summary', args: { daysBack: 0 } };
   }
 
-  // 12. Dashboard & Brief
-  if (/dashboard|daily brief|business brief|how are we|overview/i.test(q)) {
+  // 13. Dashboard & Brief
+  if (/dashboard|daily brief|business brief|how are we|overview|summary/i.test(q)) {
     return { toolName: 'get_dashboard_summary', args: {} };
   }
 
@@ -183,6 +188,15 @@ export function formatJarvisReply(result: JarvisToolExecutionResult): string {
     const points = (data.series || []) as Array<{ date?: string; revenue?: number }>;
     if (!points.length) return 'No sales trend data for this window.';
     return `Trend: ${points.map((p) => `${p.date}: ${money(Number(p.revenue || 0))}`).join(' · ')}`;
+  }
+
+  if (result.toolName === 'get_inventory_value') {
+    const retail = Number(data.totalRetailValue || 0);
+    const cost = Number(data.totalCostValue || 0);
+    const units = Number(data.totalUnits || 0);
+    const skus = Number(data.totalSkus || 0);
+    const margin = retail > 0 ? (((retail - cost) / retail) * 100).toFixed(1) : '0';
+    return `Inventory Valuation Report:\n• Total retail value: ${money(retail)}\n• Total cost basis: ${money(cost)}\n• Projected gross margin: ${margin}%\n• Stock: ${units} total units across ${skus} active SKUs.`;
   }
 
   if (result.toolName === 'get_inventory') {

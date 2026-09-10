@@ -45,7 +45,7 @@ function MidBannerBlock({ block }: { block: Extract<StorefrontBlock, { type: 'MI
 
 function VerticalPromoBlock({ block }: { block: Extract<StorefrontBlock, { type: 'VERTICAL_PROMO' }> }) {
   return (
-    <section className="border-y border-[var(--sf-border)] bg-white/70">
+    <section className="border-y border-[var(--sf-border)] bg-[var(--sf-surface)]/80 backdrop-blur-md">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-[1fr_auto] sm:items-center sm:px-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-accent)]">{block.vertical}</p>
@@ -54,7 +54,7 @@ function VerticalPromoBlock({ block }: { block: Extract<StorefrontBlock, { type:
         </div>
         <Link
           href={block.href}
-          className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-[var(--sf-repair)] bg-[var(--sf-repair-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--sf-repair)] transition-colors duration-200 hover:bg-white"
+          className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-[var(--sf-repair)] bg-[var(--sf-repair-muted)] px-5 py-2.5 text-sm font-semibold text-[var(--sf-repair)] transition-colors duration-200 hover:bg-[var(--sf-surface)]"
         >
           <Wrench className="h-4 w-4" aria-hidden />
           Learn more
@@ -103,7 +103,7 @@ export function StorefrontFeaturedSection({
         {picks.map((item) => (
           <article
             key={item.id}
-            className="rounded-3xl border border-[var(--sf-border)] bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
+            className="rounded-3xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] p-5 shadow-sm backdrop-blur transition-all duration-300 hover:shadow-lg hover:border-[var(--sf-accent)]/50"
           >
             <h3 className="font-semibold text-[var(--sf-foreground)]">{item.name}</h3>
             <p className="mt-1 text-xs text-[var(--sf-secondary)]">{item.variant}</p>
@@ -112,7 +112,7 @@ export function StorefrontFeaturedSection({
               type="button"
               disabled={item.stock <= 0}
               onClick={() => onAdd(item)}
-              className="mt-4 min-h-11 w-full cursor-pointer rounded-full bg-[var(--sf-primary)] py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-4 min-h-11 w-full cursor-pointer rounded-full bg-[var(--sf-accent)] py-2.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Add to bag
             </button>

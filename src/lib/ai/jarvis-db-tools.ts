@@ -209,6 +209,47 @@ export const JARVIS_DB_TOOLS: JarvisToolDefinition[] = [
     },
   },
   {
+    name: 'get_inventory_value',
+    description: 'Total retail value and cost basis of all inventory currently on hand across all locations.',
+    risk: 'READ',
+    execute: async () => {
+      const rows = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          sku: products.sku,
+          salePrice: products.salePrice,
+          costPrice: products.costPrice,
+        })
+        .from(products)
+        .where(eq(products.isActive, true));
+
+      const allStocks = await db.select().from(stockBalances);
+      const stockMap = new Map<string, number>();
+      for (const s of allStocks) {
+        stockMap.set(s.productId, (stockMap.get(s.productId) || 0) + (s.onHand || 0));
+      }
+
+      let totalRetailValue = 0;
+      let totalCostValue = 0;
+      let totalUnits = 0;
+
+      for (const p of rows) {
+        const onHand = stockMap.get(p.id) ?? 0;
+        totalUnits += onHand;
+        totalRetailValue += onHand * Number(p.salePrice || 0);
+        totalCostValue += onHand * Number(p.costPrice || 0);
+      }
+
+      return {
+        totalUnits,
+        totalSkus: rows.length,
+        totalRetailValue,
+        totalCostValue,
+      };
+    },
+  },
+  {
     name: 'get_pending_orders',
     description: 'Orders not yet delivered or cancelled.',
     risk: 'READ',
