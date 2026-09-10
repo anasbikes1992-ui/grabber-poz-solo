@@ -63,6 +63,8 @@ export async function listProductsWithVariants() {
         cost: Number(p.costPrice),
         stock: stockMap.get(stockKey(p.id, null)) ?? 0,
         tax: 'STANDARD_VAT (18%)',
+        imageUrl: p.imageUrl,
+        description: p.description,
         isActive: p.isActive,
         variants,
         variantCount: variants.length,
@@ -102,6 +104,8 @@ export async function createProduct(body: Record<string, unknown>) {
       barcode: (body.barcode as string) || null,
       salePrice: Number(body.price ?? body.salePrice ?? 0).toFixed(2),
       costPrice: Number(body.cost ?? body.costPrice ?? 0).toFixed(2),
+      imageUrl: (body.imageUrl as string) || null,
+      description: (body.description as string) || null,
       taxProfileId: tax?.id || null,
       categoryId,
       isActive: true,
@@ -131,6 +135,8 @@ export async function updateProduct(id: string, body: Record<string, unknown>) {
   if (body.barcode != null) patch.barcode = body.barcode;
   if (body.price != null) patch.salePrice = Number(body.price).toFixed(2);
   if (body.cost != null) patch.costPrice = Number(body.cost).toFixed(2);
+  if (body.imageUrl !== undefined) patch.imageUrl = body.imageUrl || null;
+  if (body.description !== undefined) patch.description = body.description || null;
   if (body.isActive != null) patch.isActive = body.isActive;
 
   const [prod] = await db.update(products).set(patch).where(eq(products.id, id)).returning();
