@@ -3,6 +3,20 @@
 
 ---
 
+## Security: never bake secrets into Docker build ARG
+
+Coolify logs printed live secrets when they were injected as build `ARG`s (incident 2026-09-11).
+
+| Do | Don't |
+|----|-------|
+| Runtime env in Coolify for `AUTH_SECRET`, WhatsApp tokens, DB URLs | Put real secrets as Dockerfile `ARG` / build-time env |
+| Match repo `Dockerfile` placeholders for `npm run build` | Paste production tokens into Coolify “Build arguments” |
+| Rotate any secret that appeared in a deploy log | Commit or share raw Coolify logs |
+
+See [`DEPLOY_INCIDENT_COOLIFY_2026-09-11.md`](./DEPLOY_INCIDENT_COOLIFY_2026-09-11.md).
+
+---
+
 ## 1. Overview of the 4 Client Installations
 
 On your Contabo VPS, **Coolify** manages 4 isolated client stacks. Each client has their own Application container and their own private PostgreSQL database.

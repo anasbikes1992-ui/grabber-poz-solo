@@ -4,6 +4,13 @@ Welcome to the official documentation for **Grabber Solo / Grabber Business OS (
 
 ---
 
+| **[Full Proof Plan](./FULL_PROOF_PLAN.md)** | Phases 0–4 + operator checklist | Production proof track |
+| **[Vertical Depth](./VERTICAL_DEPTH_PLAN.md)** | Restaurant / salon / ROAS waves A–C | Vertical money paths |
+| **[Coolify incident 2026-09-11](./DEPLOY_INCIDENT_COOLIFY_2026-09-11.md)** | Contabo build failure + secret leak | Must-read before Coolify redeploy |
+| **[docs/archive](./archive/README.md)** | Superseded snapshots | Do not use for runbooks |
+
+---
+
 ## 🏛️ 1. Architecture & Domain Engine Guides
 
 | Document | Title & Focus | Scope & Highlights |

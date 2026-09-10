@@ -23,6 +23,9 @@ import {
   FileText,
   Scan,
   Store,
+  Award,
+  UserCheck,
+  Sparkles,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { TradeInModal, type TradeInCredit } from '@/components/pos/trade-in-modal';
@@ -37,6 +40,16 @@ import {
   nextClientSequence,
 } from '@/lib/pos/offline-queue';
 import { TableServicePanel } from '@/components/restaurant/table-service-panel';
+import { convertFromLkr, formatCurrency, type CurrencyCode } from '@/lib/currency/fx-rates';
+
+export interface LoyaltyMember {
+  id: string;
+  name: string;
+  phone: string;
+  points: number;
+  tier: 'SILVER' | 'GOLD' | 'PLATINUM';
+  totalSpent?: number;
+}
 
 interface CartItem {
   id: string;
@@ -108,12 +121,50 @@ export default function POSPage() {
   const [completedOrder, setCompletedOrder] = useState<any>(null);
   const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
   const [posMode, setPosMode] = useState<'RETAIL' | 'SCANNER' | 'TABLES'>('RETAIL');
+  const [touristCurrency, setTouristCurrency] = useState<CurrencyCode>('LKR');
+  const [loyaltyMember, setLoyaltyMember] = useState<LoyaltyMember | null>(null);
+  const [loyaltyPhoneQuery, setLoyaltyPhoneQuery] = useState('');
+  const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState<number>(0);
+  const [isSearchingLoyalty, setIsSearchingLoyalty] = useState(false);
+  const [loyaltyMessage, setLoyaltyMessage] = useState('');
 
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinAction, setPinAction] = useState<{ type: 'DISCOUNT' | 'VOID' | 'CREDIT' | 'OPEN_DRAWER'; payload?: any } | null>(null);
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [cashTenderInput, setCashTenderInput] = useState<number | ''>('');
+
+  const handleSearchLoyalty = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const q = loyaltyPhoneQuery.trim();
+    if (!q) return;
+    setIsSearchingLoyalty(true);
+    setLoyaltyMessage('');
+    try {
+      const res = await fetch(`/api/loyalty?phone=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (data.success && data.member) {
+        setLoyaltyMember(data.member);
+        setLoyaltyPointsToRedeem(0);
+        setAnnouncement(`Loyalty member ${data.member.name} attached (${data.member.points} pts available).`);
+      } else {
+        // Fallback search by q
+        const res2 = await fetch(`/api/loyalty?q=${encodeURIComponent(q)}`);
+        const data2 = await res2.json();
+        if (data2.success && data2.members?.length > 0) {
+          setLoyaltyMember(data2.members[0]);
+          setLoyaltyPointsToRedeem(0);
+          setAnnouncement(`Loyalty member ${data2.members[0].name} attached (${data2.members[0].points} pts).`);
+        } else {
+          setLoyaltyMessage('No loyalty member found for phone/name.');
+        }
+      }
+    } catch {
+      setLoyaltyMessage('Loyalty lookup failed');
+    } finally {
+      setIsSearchingLoyalty(false);
+    }
+  };
 
   const requestOpenDrawer = () => {
     setPinAction({ type: 'OPEN_DRAWER' });
@@ -209,7 +260,8 @@ export default function POSPage() {
   const grossSubtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   const discountAmount = (grossSubtotal * discountPercent) / 100;
   const tradeInDeduction = tradeInCredit?.creditAmount ?? 0;
-  const netSubtotal = Math.max(0, grossSubtotal - discountAmount - tradeInDeduction);
+  const loyaltyDeduction = Math.min(loyaltyPointsToRedeem, Math.max(0, grossSubtotal - discountAmount - tradeInDeduction));
+  const netSubtotal = Math.max(0, grossSubtotal - discountAmount - tradeInDeduction - loyaltyDeduction);
   const taxTotal = Math.round(netSubtotal * 0.18 * 100) / 100;
   const grandTotal = netSubtotal + taxTotal;
 
@@ -532,13 +584,40 @@ export default function POSPage() {
         /* optional hardware */
       }
 
+      if (loyaltyMember) {
+        if (loyaltyPointsToRedeem > 0) {
+          fetch('/api/loyalty', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'redeem',
+              memberId: loyaltyMember.id,
+              points: loyaltyPointsToRedeem,
+              orderId: data.order?.orderNumber || orderNumber,
+            }),
+          }).catch(() => undefined);
+        }
+        fetch('/api/loyalty', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'earn',
+            memberId: loyaltyMember.id,
+            amountLkr: grandTotal,
+            orderId: data.order?.orderNumber || orderNumber,
+          }),
+        }).catch(() => undefined);
+      }
+
       setCompletedOrder(orderData);
       setIsPaymentModalOpen(false);
       setCart([]);
       setDiscountPercent(0);
       setTradeInCredit(null);
       setPromoCode('');
-      setPromoCode('');
+      setLoyaltyMember(null);
+      setLoyaltyPointsToRedeem(0);
+      setLoyaltyPhoneQuery('');
       if (activeHoldId) {
         await fetch(`/api/pos/holds?id=${encodeURIComponent(activeHoldId)}`, { method: 'DELETE' });
         setActiveHoldId(null);
@@ -640,6 +719,24 @@ export default function POSPage() {
               <FileText className="h-3.5 w-3.5 text-purple-400" />
               <span>Quotes</span>
             </Link>
+
+            <div className="flex items-center gap-0.5 bg-zinc-900/90 p-0.5 rounded-xl border border-zinc-800 text-[10px] ml-1">
+              {(['LKR', 'USD', 'EUR', 'GBP'] as CurrencyCode[]).map((cur) => (
+                <button
+                  key={cur}
+                  type="button"
+                  onClick={() => setTouristCurrency(cur)}
+                  className={`px-1.5 py-0.5 rounded-lg font-mono font-bold transition ${
+                    touristCurrency === cur
+                      ? 'bg-emerald-500 text-zinc-950 shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title={`Switch POS currency to ${cur}`}
+                >
+                  {cur}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -882,6 +979,91 @@ export default function POSPage() {
             </div>
           </div>
 
+          {/* Loyalty Rewards Earn & Burn */}
+          <div className="py-1.5 px-2 rounded-lg bg-zinc-900/80 border border-zinc-800 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-zinc-300 flex items-center gap-1">
+                <Award className="h-3.5 w-3.5 text-amber-400" /> Customer Loyalty
+              </span>
+              {loyaltyMember && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoyaltyMember(null);
+                    setLoyaltyPointsToRedeem(0);
+                    setLoyaltyPhoneQuery('');
+                  }}
+                  className="text-[10px] text-zinc-400 hover:text-rose-400 underline"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+
+            {!loyaltyMember ? (
+              <div className="flex gap-1">
+                <input
+                  type="text"
+                  placeholder="Phone or Name..."
+                  value={loyaltyPhoneQuery}
+                  onChange={(e) => setLoyaltyPhoneQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSearchLoyalty();
+                    }
+                  }}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-[11px] text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSearchLoyalty()}
+                  disabled={isSearchingLoyalty || !loyaltyPhoneQuery.trim()}
+                  className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded text-[11px] font-medium disabled:opacity-50"
+                >
+                  {isSearchingLoyalty ? '...' : 'Find'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-zinc-200 truncate max-w-[120px]">{loyaltyMember.name}</span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    {loyaltyMember.tier} · {loyaltyMember.points} pts
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  {loyaltyPointsToRedeem > 0 ? (
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" /> Using {loyaltyPointsToRedeem} pts (-LKR {loyaltyPointsToRedeem})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setLoyaltyPointsToRedeem(0)}
+                        className="text-[10px] text-zinc-400 hover:text-zinc-200 underline"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={loyaltyMember.points <= 0}
+                      onClick={() => {
+                        const maxRedeem = Math.min(loyaltyMember.points, Math.floor(Math.max(0, grossSubtotal - discountAmount - tradeInDeduction)));
+                        setLoyaltyPointsToRedeem(maxRedeem);
+                      }}
+                      className="w-full py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded text-[10px] font-bold flex items-center justify-center gap-1 disabled:opacity-40"
+                    >
+                      <Sparkles className="h-3 w-3" /> Redeem {Math.min(loyaltyMember.points, Math.floor(Math.max(0, grossSubtotal - discountAmount - tradeInDeduction)))} pts
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-between text-muted-foreground">
             <span>Gross Subtotal</span>
             <span>LKR {grossSubtotal.toFixed(2)}</span>
@@ -891,6 +1073,13 @@ export default function POSPage() {
             <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
               <span>Discount ({discountPercent}%)</span>
               <span>- LKR {discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+
+          {loyaltyDeduction > 0 && (
+            <div className="flex justify-between text-amber-400 font-medium text-xs">
+              <span>Loyalty Points Burn</span>
+              <span>- LKR {loyaltyDeduction.toFixed(2)}</span>
             </div>
           )}
 
@@ -914,8 +1103,15 @@ export default function POSPage() {
             <span>LKR {taxTotal.toFixed(2)}</span>
           </div>
 
-          <div className="flex justify-between text-sm font-bold text-foreground pt-1 border-t border-white/10">
-            <span>Grand Total</span>
+          <div className="flex justify-between items-baseline text-sm font-bold text-foreground pt-1 border-t border-white/10">
+            <div>
+              <span>Grand Total</span>
+              {touristCurrency !== 'LKR' && (
+                <p className="text-[11px] font-mono text-emerald-400 font-semibold">
+                  ≈ {formatCurrency(convertFromLkr(grandTotal, touristCurrency), touristCurrency)}
+                </p>
+              )}
+            </div>
             <span className="text-emerald-400 text-base tabular-nums">LKR {grandTotal.toFixed(2)}</span>
           </div>
 
@@ -1239,25 +1435,52 @@ export default function POSPage() {
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setCompletedOrder(null)}
-                className="flex-1 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold"
-              >
-                New Sale
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  window.print();
-                  setCompletedOrder(null);
-                }}
-                className="flex-1 min-h-11 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-400 cursor-pointer btn-press"
-              >
-                <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>Print Bill</span>
-              </button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCompletedOrder(null)}
+                  className="flex-1 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs"
+                >
+                  New Sale
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      // Generate standard ESC/POS binary receipt
+                      const receiptBuf = ESCPOSPrinterController.generateReceiptBuffer({
+                        storeName: 'Grabber Store',
+                        branchName: 'Main Register',
+                        billNumber: completedOrder.orderNumber || 'SALE-001',
+                        cashierName: 'Staff Cashier',
+                        date: new Date().toLocaleDateString('en-LK'),
+                        items: completedOrder.items.map((it: any) => ({
+                          name: it.name,
+                          qty: it.quantity,
+                          unitPrice: it.unitPrice,
+                          totalPrice: it.unitPrice * it.quantity,
+                        })),
+                        subtotal: completedOrder.grossSubtotal,
+                        vatAmount: completedOrder.taxTotal,
+                        grandTotal: completedOrder.grandTotal,
+                        tenderMethod: completedOrder.tender,
+                        amountPaid: completedOrder.amountPaid || completedOrder.grandTotal,
+                        changeDue: completedOrder.changeDue || 0,
+                      });
+                      console.info(`Generated ${receiptBuf.byteLength} bytes ESC/POS thermal buffer`);
+                    } catch (e) {
+                      console.warn('ESC/POS generator warning:', e);
+                    }
+                    window.print();
+                    setCompletedOrder(null);
+                  }}
+                  className="flex-1 min-h-11 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-400 cursor-pointer btn-press"
+                >
+                  <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Print Receipt (80mm)</span>
+                </button>
+              </div>
             </div>
           </>
         )}

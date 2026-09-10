@@ -193,7 +193,8 @@ Apply `0011` + `0012` SQL on prod · set `FAL_KEY` for live creative renders.
 [ ] Backup export or nightly backup confirmed
 [ ] release:gate PASS (or documented waiver)
 [ ] npm run ops:smoke (public HTTP) PASS
-[ ] SQL 0011 + 0012 applied on this tenant
+[ ] SQL 0011 + 0012 + 0014 + 0015 applied on this tenant
+[ ] Coolify/Vercel build green after guest menu POST (kitchenTickets import)
 ```
 
 ---

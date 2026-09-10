@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { and, eq, or } from 'drizzle-orm';
-import { db, products, categories, diningTables } from '@/db';
+import { db, products, categories, diningTables, kitchenTickets } from '@/db';
 import { hasDatabaseUrl } from '@/lib/db/connection';
 
 /** VERT-R06 — Public dining menu (no staff auth). */
