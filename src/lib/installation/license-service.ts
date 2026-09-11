@@ -8,7 +8,12 @@ import { createHmac } from 'crypto';
 import type { InstallationLicense, LicenseEdition, LicenseStatus } from './types';
 
 function getLicenseSigningKey(): string {
-  return process.env.LICENSE_SIGNING_KEY || process.env.AUTH_SECRET || 'grabber-installation-integrity-key-default';
+  const key = process.env.LICENSE_SIGNING_KEY || process.env.AUTH_SECRET;
+  if (key) return key;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('LICENSE_SIGNING_KEY or AUTH_SECRET required in production');
+  }
+  return 'grabber-installation-integrity-key-default';
 }
 
 /**

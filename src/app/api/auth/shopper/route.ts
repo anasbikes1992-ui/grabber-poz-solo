@@ -118,13 +118,16 @@ export async function POST(req: Request) {
   }
 }
 
+/** Anonymous visitors get 200 + `customer: null` — browsing the storefront is not an auth failure. */
+const ANONYMOUS_SESSION = { success: true, authenticated: false, customer: null, orders: [], repairs: [] };
+
 export async function GET() {
   const session = await getCustomerSession();
-  if (!session) return NextResponse.json({ success: false, authenticated: false }, { status: 401 });
+  if (!session) return NextResponse.json(ANONYMOUS_SESSION);
 
   try {
     const [cust] = await db.select().from(customers).where(eq(customers.id, session.customerId)).limit(1);
-    if (!cust) return NextResponse.json({ success: false, authenticated: false }, { status: 401 });
+    if (!cust) return NextResponse.json(ANONYMOUS_SESSION);
 
     const rawPhone = cust.phone || session.phone || '';
     const cleanPhone = rawPhone.startsWith('email:') ? '' : rawPhone;

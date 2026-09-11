@@ -29,11 +29,15 @@ export function contrastOnColor(fillHex: string): string {
 export function storefrontThemeStyle(theme: StorefrontTheme): CSSProperties {
   const t = resolveStorefrontTheme(theme);
   const repairMuted = t.repairColor ? `${t.repairColor}1A` : 'rgba(15, 118, 110, 0.1)';
+  const isDark = t.colorScheme === 'dark';
   const fg = t.foregroundColor ?? t.primaryColor;
   const accent = t.accentColor;
   const onAccent = contrastOnColor(accent);
   // Focus ring must be visible on background — never use dark primary on dark bg
-  const ring = t.colorScheme === 'dark' ? accent : fg;
+  const ring = isDark ? accent : fg;
+  // Text/icon color for translucent --sf-surface panels. On dark schemes the
+  // surface sits over a dark background, so primary (a fill color) is unreadable.
+  const onSurface = isDark ? (t.foregroundColor ?? '#F5F5F4') : fg;
 
   return {
     ['--sf-primary' as string]: t.primaryColor,
@@ -49,8 +53,9 @@ export function storefrontThemeStyle(theme: StorefrontTheme): CSSProperties {
     ['--sf-repair' as string]: t.repairColor ?? '#0F766E',
     ['--sf-repair-muted' as string]: repairMuted,
     ['--sf-hero-gradient' as string]: t.heroGradient ?? 'none',
-    ['--sf-surface' as string]: t.colorScheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
-    ['--sf-surface-border' as string]: t.colorScheme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)',
+    ['--sf-surface' as string]: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
+    ['--sf-surface-border' as string]: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)',
+    ['--sf-on-surface' as string]: onSurface,
     ['--store-primary' as string]: t.primaryColor,
     ['--sf-font-display' as string]: t.fontFamily.split(',')[0]?.trim() || 'Rubik',
     ['--sf-font-body' as string]: t.fontFamily.split(',')[1]?.trim() || 'Nunito Sans',

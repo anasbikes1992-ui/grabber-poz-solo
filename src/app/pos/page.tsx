@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -106,6 +106,14 @@ const FALLBACK_CATALOG: CatalogItem[] = [
 ];
 
 export default function POSPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading terminal…</div>}>
+      <POSTerminal />
+    </Suspense>
+  );
+}
+
+function POSTerminal() {
   const barcodeRef = useRef<HTMLInputElement>(null);
   const clientUuidRef = useRef(
     typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cuid_${Date.now()}`
@@ -323,6 +331,10 @@ export default function POSPage() {
   const grandTotal = netSubtotal + taxTotal;
 
   const addToCart = (item: CatalogItem) => {
+    if (Number(item.stock) <= 0) {
+      setAnnouncement(`${item.name} is out of stock and cannot be added to the sale.`);
+      return;
+    }
     setAnnouncement(`${item.name}, ${item.variant}, LKR ${item.unitPrice.toFixed(2)}, added to sale.`);
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
@@ -398,10 +410,20 @@ export default function POSPage() {
     setIsPinModalOpen(true);
   };
 
-  const handleVerifyPin = (e: React.FormEvent) => {
+  const handleVerifyPin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Default Manager PIN is 1234
-    if (enteredPin === '1234') {
+    setPinError(false);
+    try {
+      const res = await fetch('/api/pos/supervisor-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: enteredPin }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        setPinError(true);
+        return;
+      }
       if (pinAction?.type === 'DISCOUNT') {
         setDiscountPercent(pinAction.payload);
       } else if (pinAction?.type === 'VOID') {
@@ -414,11 +436,13 @@ export default function POSPage() {
         } catch {
           /* optional hardware */
         }
-        setAnnouncement('Cash drawer pulse sent. Opened by Manager (PIN 1234).');
+        setAnnouncement(
+          `Cash drawer pulse sent. Opened by ${data.supervisor?.name || 'supervisor'}.`,
+        );
       }
       setIsPinModalOpen(false);
       setPinAction(null);
-    } else {
+    } catch {
       setPinError(true);
     }
   };
@@ -869,22 +893,31 @@ export default function POSPage() {
 
         {/* Product Catalog Grid */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">
-          {catalog.filter((i) => i.name.toLowerCase().includes(search.toLowerCase())).map((item) => (
+          {catalog.filter((i) => i.name.toLowerCase().includes(search.toLowerCase())).map((item) => {
+            const outOfStock = Number(item.stock) <= 0;
+            return (
             <button
               key={item.id}
               type="button"
               onClick={() => addToCart(item)}
-              className="p-3.5 rounded-2xl glass-card glass-card-hover text-left flex flex-col justify-between group"
+              disabled={outOfStock}
+              aria-disabled={outOfStock}
+              title={outOfStock ? `${item.name} is out of stock` : undefined}
+              className={`p-3.5 rounded-2xl glass-card text-left flex flex-col justify-between group ${
+                outOfStock ? 'opacity-45 cursor-not-allowed' : 'glass-card-hover'
+              }`}
             >
               <div>
                 <span
                   className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
-                    item.stock < 15
-                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                      : 'bg-zinc-800 text-zinc-400'
+                    outOfStock
+                      ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                      : item.stock < 15
+                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                        : 'bg-zinc-800 text-zinc-400'
                   }`}
                 >
-                  Stock: {item.stock}
+                  {outOfStock ? 'Out of stock' : `Stock: ${item.stock}`}
                 </span>
                 <h3 className="font-semibold text-xs text-foreground mt-2 group-hover:text-emerald-400 transition-colors duration-200">
                   {item.name}
@@ -896,14 +929,17 @@ export default function POSPage() {
                   LKR {item.unitPrice.toFixed(2)}
                 </span>
                 <span
-                  className="h-8 w-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold text-sm"
+                  className={`h-8 w-8 rounded-lg flex items-center justify-center font-bold text-sm ${
+                    outOfStock ? 'bg-zinc-800 text-zinc-500' : 'bg-emerald-500/15 text-emerald-400'
+                  }`}
                   aria-hidden="true"
                 >
                   +
                 </span>
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 

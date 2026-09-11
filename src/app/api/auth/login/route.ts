@@ -49,8 +49,10 @@ export async function POST(req: Request) {
       user = rows.find((u) => u.active) || rows[0];
     }
 
-    // Universal Demo & Dev bootstrap: allow demo PIN 1234 for instant zero-friction stakeholder evaluation
-    if (pin === '1234') {
+    // Dev-only bootstrap — never mint sessions from PIN alone in production
+    const allowDemoPin =
+      process.env.NODE_ENV !== 'production' && process.env.ALLOW_DEMO_PIN !== '0';
+    if (allowDemoPin && pin === '1234') {
       const demoRole = normalizedRole || (user ? (user.role as SessionRole) : 'OWNER');
       const demoEmail = user?.email || cleanEmail || `${demoRole.toLowerCase()}@store.local`;
       const demoName = user?.name || `Demo ${demoRole}`;

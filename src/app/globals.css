@@ -95,6 +95,9 @@
     --sf-muted: #e8ecf0;
     --sf-border: #d6d3d1;
     --sf-ring: #1c1917;
+    --sf-surface: rgba(255, 255, 255, 0.85);
+    --sf-surface-border: rgba(255, 255, 255, 0.7);
+    --sf-on-surface: #0c0a09;
   }
 
 @media (prefers-reduced-motion: reduce) {
@@ -172,6 +175,9 @@
   --sf-border: #d6d3d1;
   --sf-destructive: #dc2626;
   --sf-ring: #1c1917;
+  --sf-surface: rgba(255, 255, 255, 0.85);
+  --sf-surface-border: rgba(255, 255, 255, 0.7);
+  --sf-on-surface: #0c0a09;
   --sf-repair: #0f766e;
   --sf-repair-muted: rgba(15, 118, 110, 0.1);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);

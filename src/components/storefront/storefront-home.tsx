@@ -352,7 +352,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                     href={waOrder}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-6 py-3 text-sm font-semibold text-[var(--sf-primary)] transition-colors duration-200 hover:opacity-90"
+                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-6 py-3 text-sm font-semibold text-[var(--sf-on-surface)] transition-colors duration-200 hover:opacity-90"
                   >
                     WhatsApp order
                   </a>
@@ -360,7 +360,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                 {!shopper && (
                   <Link
                     href="/shop/login"
-                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-6 py-3 text-sm font-semibold text-[var(--sf-primary)] transition-colors duration-200 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                    className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-6 py-3 text-sm font-semibold text-[var(--sf-on-surface)] transition-colors duration-200 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
                   >
                     Create account
                   </Link>
@@ -379,14 +379,14 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                   {totals.itemCount} item(s)
                 </span>
               </div>
-              <p className="mt-2 font-display text-3xl font-bold text-[var(--sf-primary)]">{money(totals.subtotal)}</p>
+              <p className="mt-2 font-display text-3xl font-bold text-[var(--sf-on-surface)]">{money(totals.subtotal)}</p>
               <p className="mt-1 text-xs text-[var(--sf-secondary)]">Live prices & inventory synced</p>
 
               <div className="mt-5 grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setCartDrawerOpen(true)}
-                  className="w-full min-h-11 cursor-pointer rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] py-2.5 text-xs font-bold text-[var(--sf-primary)] hover:bg-[var(--sf-muted)] transition-colors"
+                  className="w-full min-h-11 cursor-pointer rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] py-2.5 text-xs font-bold text-[var(--sf-on-surface)] hover:bg-[var(--sf-muted)] transition-colors"
                 >
                   View Bag
                 </button>
@@ -394,7 +394,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                   type="button"
                   disabled={busy || cart.length === 0}
                   onClick={() => void checkout()}
-                  className="w-full min-h-11 cursor-pointer rounded-full bg-[var(--sf-primary)] py-2.5 text-xs font-bold text-white transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full min-h-11 cursor-pointer rounded-full bg-[var(--sf-primary)] py-2.5 text-xs font-bold text-[var(--sf-on-primary)] transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {busy ? 'Loading…' : shopper ? 'Checkout' : 'Sign in'}
                 </button>

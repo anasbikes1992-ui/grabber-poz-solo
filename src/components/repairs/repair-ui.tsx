@@ -40,7 +40,7 @@ export function RepairServiceCard({ service }: { service: RepairServiceDefinitio
       whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="group flex h-full flex-col rounded-3xl border border-[var(--sf-border)] bg-white/80 p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
+      className="group flex h-full flex-col rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--sf-repair-muted)] text-[var(--sf-repair)]">
@@ -62,7 +62,7 @@ export function RepairServiceCard({ service }: { service: RepairServiceDefinitio
       </p>
       <Link
         href={`/shop/repairs/request?service=${service.slug}`}
-        className="mt-4 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-[var(--sf-border)] bg-white px-4 text-sm font-semibold text-[var(--sf-primary)] transition-colors duration-200 hover:border-[var(--sf-accent)] hover:text-[var(--sf-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+        className="mt-4 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-4 text-sm font-semibold text-[var(--sf-on-surface)] transition-colors duration-200 hover:border-[var(--sf-accent)] hover:text-[var(--sf-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
       >
         Start request
       </Link>

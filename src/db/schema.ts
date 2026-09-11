@@ -471,7 +471,7 @@ export const orders = pgTable('orders', {
   channelStatusIdx: index('orders_channel_status_idx').on(t.channel, t.orderStatus),
   createdIdx: index('orders_created_idx').on(t.createdAt),
   customerIdx: index('orders_customer_id_idx').on(t.customerId),
-  clientUuidIdx: index('orders_client_uuid_idx').on(t.clientUuid),
+  clientUuidIdx: uniqueIndex('orders_client_uuid_idx').on(t.clientUuid),
   campaignIdx: index('orders_campaign_id_idx').on(t.campaignId),
 }));
 
@@ -860,7 +860,7 @@ export const kitchenTickets = pgTable('kitchen_tickets', {
     .notNull()
     .default([]),
   totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
-  status: text('status').notNull().default('OPEN'), // OPEN, FIRED, SERVED, CLOSED, VOID
+  status: text('status').notNull().default('OPEN'), // OPEN, FIRED, PREPARING, READY, SERVED, SETTLING, CLOSED, VOID
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   closedAt: timestamp('closed_at', { withTimezone: true }),
 }, (t) => ({

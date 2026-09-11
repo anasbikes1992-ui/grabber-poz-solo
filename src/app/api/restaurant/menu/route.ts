@@ -136,9 +136,16 @@ export async function POST(req: Request) {
         name: products.name,
         salePrice: products.salePrice,
         isActive: products.isActive,
+        itemType: products.itemType,
       })
       .from(products)
-      .where(and(inArray(products.id, productIds), eq(products.isActive, true)));
+      .where(
+        and(
+          inArray(products.id, productIds),
+          eq(products.isActive, true),
+          inArray(products.itemType, ['PREPARED_FOOD', 'SERVICE']),
+        ),
+      );
 
     const byId = new Map(catalogRows.map((p) => [p.id, p]));
     const resolved: Array<{ productId: string; name: string; qty: number; price: number; notes?: string }> = [];
@@ -147,7 +154,7 @@ export async function POST(req: Request) {
       const product = byId.get(pid);
       if (!product) {
         return NextResponse.json(
-          { success: false, error: `Unknown or inactive product: ${pid}` },
+          { success: false, error: `Unknown, inactive, or non-menu product: ${pid}` },
           { status: 400 },
         );
       }
@@ -162,7 +169,7 @@ export async function POST(req: Request) {
     }
 
     const totalAmount = resolved.reduce((sum, it) => sum + it.price * it.qty, 0);
-    const kotNumber = `KOT-${Date.now().toString().slice(-6)}`;
+    const kotNumber = `KOT-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
 
     const [kot] = await db
       .insert(kitchenTickets)

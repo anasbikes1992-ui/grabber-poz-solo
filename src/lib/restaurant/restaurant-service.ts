@@ -28,7 +28,7 @@ export type KdsTicket = {
   tableId?: string | null;
   tableName?: string;
   waiterName?: string | null;
-  status: 'OPEN' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'SERVED' | 'CLOSED' | 'CANCELLED';
+  status: 'OPEN' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'SERVED' | 'SETTLING' | 'CLOSED' | 'CANCELLED';
   items: KdsTicketItem[];
   totalAmount: number;
   createdAt: Date;
@@ -281,7 +281,9 @@ export async function handleRestaurantPost(body: Record<string, unknown>) {
     const [ticket] = await db
       .insert(kitchenTickets)
       .values({
-        kotNumber: (body.kotNumber as string) || `KOT-${Date.now().toString().slice(-4)}`,
+        kotNumber:
+          (body.kotNumber as string) ||
+          `KOT-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`,
         tableId: (body.tableId as string) || null,
         waiterName: (body.waiterName as string) || 'Waiter',
         itemsJson: items,

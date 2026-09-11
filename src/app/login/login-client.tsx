@@ -14,6 +14,9 @@ const ROLES = [
   { id: 'MARKETING', name: 'Creative Producer', desc: 'AI video campaigns, store builder & social media assets', badge: 'STUDIO' },
 ];
 
+/** Demo PIN affordances are dev-only — the production build must never advertise a shared PIN. */
+const SHOW_DEMO_AFFORDANCES = process.env.NODE_ENV !== 'production';
+
 export default function LoginClient() {
   const router = useRouter();
   const search = useSearchParams();
@@ -80,7 +83,9 @@ export default function LoginClient() {
           {mustRotate ? 'Rotate Temporary PIN' : 'Staff Access Gate'}
         </h1>
         <p className="text-xs text-muted-foreground max-w-sm">
-          Session cookie auth with hashed PIN. Dev demo accepts PIN 1234 without DB users.
+          {SHOW_DEMO_AFFORDANCES
+            ? 'Session cookie auth with hashed PIN. Dev demo accepts PIN 1234 without DB users.'
+            : 'Session cookie auth with hashed PIN. Use your assigned staff credentials.'}
         </p>
       </div>
 
@@ -118,7 +123,7 @@ export default function LoginClient() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label htmlFor="staff-email" className="text-xs font-semibold text-foreground">
-              Email (optional for demo)
+              {SHOW_DEMO_AFFORDANCES ? 'Email (optional for demo)' : 'Email'}
             </label>
             <span className="text-[10px] font-mono text-muted-foreground">
               Default: {selectedRole.toLowerCase()}@store.local
@@ -140,13 +145,15 @@ export default function LoginClient() {
               <KeyRound className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
               <span>{mustRotate ? 'Current PIN' : 'Staff Security PIN'}</span>
             </label>
-            <button
-              type="button"
-              onClick={() => setPin('1234')}
-              className="text-[11px] font-mono font-bold text-amber-400 hover:underline cursor-pointer"
-            >
-              Fill Demo PIN (1234)
-            </button>
+            {SHOW_DEMO_AFFORDANCES && (
+              <button
+                type="button"
+                onClick={() => setPin('1234')}
+                className="text-[11px] font-mono font-bold text-amber-400 hover:underline cursor-pointer"
+              >
+                Fill Demo PIN (1234)
+              </button>
+            )}
           </div>
           <input
             id="staff-pin"
