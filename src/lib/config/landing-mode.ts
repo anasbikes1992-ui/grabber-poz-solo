@@ -1,10 +1,12 @@
 /**
  * Root `/` landing switch for single-tenant fleet installs.
  *
- * - company  → Grabber marketing site (CompanyLanding) — grabberpoz.com / demo sales
- * - storefront → Client online shop (StorefrontHome) — each merchant domain
+ * - company  → Grabber marketing site (CompanyLanding) — grabberpoz.com apex only
+ * - storefront → Client online shop (StorefrontHome) — every merchant subdomain,
+ *   including demo.grabberpoz.com (the demo is a merchant storefront too)
  *
- * Coolify: set LANDING_MODE per app. Host list is the fallback when unset.
+ * Coolify: set LANDING_MODE per app. Host list is the fallback when unset —
+ * the demo app serves grabberpoz.com + demo.grabberpoz.com and relies on it.
  */
 
 export type LandingMode = 'company' | 'storefront';
@@ -12,7 +14,6 @@ export type LandingMode = 'company' | 'storefront';
 const DEFAULT_COMPANY_HOSTS = [
   'grabberpoz.com',
   'www.grabberpoz.com',
-  'demo.grabberpoz.com',
   'grabber-poz-solo.vercel.app',
   'localhost',
   '127.0.0.1',

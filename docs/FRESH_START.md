@@ -75,14 +75,26 @@ fresh-provision-only step, not a redeploy step.
 
 ## Phase 3 — Deploy the app
 
-Coolify's own git integration builds and deploys on push (see the Coolify
-playbook) — there is no separate CI deploy step. `.github/workflows/fleet-deploy.yml`
-runs typecheck + tests as a pre-deploy gate only.
+Deploy **only from `main`**. Two build paths exist (see the Coolify playbook):
+Coolify builds the Dockerfile from `main` on push, or a tenant runs the GHCR
+image `ghcr.io/anasbikes1992-ui/grabber-poz-solo:sha-<short>` that
+`.github/workflows/fleet-deploy.yml` builds from `main` after tests pass.
+`dev` is for integration only and never deploys.
 
 Post-deploy:
 
 - `GET /api/health` → `{"db":"connected"}`
-- Seed once, authenticated (never unauthenticated, in any environment):
+- Create the first owner — on an empty production DB no HTTP route can create
+  a user, so do it in the app container:
+
+```bash
+node scripts/staff-credentials.mjs create-owner --email owner@my-store.lk --name "My Store Owner"
+```
+
+  It prints a one-time PIN stored as `TEMP$…`; the owner must rotate it on
+  first login at `/adminpoz`. (On an existing DB that still has seeded `1234`
+  PINs, run `node scripts/staff-credentials.mjs rotate-weak-pins` instead.)
+- Seed once, authenticated as that owner (never unauthenticated, in any environment):
 
 ```bash
 # after logging in as OWNER at /adminpoz and carrying that session cookie

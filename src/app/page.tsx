@@ -47,5 +47,9 @@ export default async function HomePage() {
     return <StorefrontHome cms={cms} />;
   }
 
-  return <CompanyLanding />;
+  // Company landing (grabberpoz.com) points its "Storefront Demo" / "Staff Portal"
+  // links at the demo merchant subdomain rather than the apex. Non-public env,
+  // read at request time — not inlined at build.
+  const demoUrl = (process.env.COMPANY_DEMO_URL ?? 'https://demo.grabberpoz.com').replace(/\/$/, '');
+  return <CompanyLanding demoUrl={demoUrl} />;
 }

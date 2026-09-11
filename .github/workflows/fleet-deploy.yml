@@ -1,17 +1,19 @@
-name: CI — Typecheck & Test
+name: CI — Test & Build Image
 
-# Coolify deploys via its own git integration (see docs/COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md)
-# — this workflow is a pre-deploy gate only, not a deploy trigger. It used to
-# also run a "fleet-migration" job that installed drizzle-orm/pg/postgres,
-# then ran `node scripts/audit_parser.js || true` (that file does not exist in
-# this repo) against two clients (urban-trendz, colombo-supermarket) that
-# appear nowhere else in the codebase, and unconditionally printed "Migration
-# successfully committed" regardless of whether anything ran. It built and
-# pushed no image despite the "Fleet Orchestration" name. Removed rather than
-# fixed: migrations run per-tenant, inside that tenant's own container
-# (`node scripts/bootstrap-db.mjs`, see the Coolify playbook) — the database
-# is never reachable from outside its Docker network, so a GitHub Actions
-# runner could not reach it even with real credentials.
+# Deployments come from `main` only.
+# - test-and-validate: runs on pushes to main/dev and PRs into main/dev.
+# - build-and-push:    runs only for `main` (push or manual dispatch on main) and
+#   publishes ghcr.io/<owner>/<repo>:sha-<short> (+ :main). GHCR-based tenants
+#   pin a sha- tag and are promoted manually in Coolify; no image is ever
+#   built from `dev` or any other branch.
+# Coolify apps that build the Dockerfile themselves track `main` via Coolify's
+# own git integration — this workflow does not trigger those deploys.
+#
+# History: this file used to run a "fleet-migration" job that executed
+# `node scripts/audit_parser.js || true` (the file does not exist) and then
+# unconditionally printed success. Migrations run per-tenant inside the tenant
+# container (`node scripts/bootstrap-db.mjs`) — tenant databases are never
+# reachable from a GitHub runner.
 
 on:
   push:
@@ -21,6 +23,8 @@ on:
   pull_request:
     branches:
       - main
+      - dev
+  workflow_dispatch:
 
 jobs:
   test-and-validate:
@@ -48,3 +52,48 @@ jobs:
           AUTH_SECRET: 'unit-test-auth-secret-key-32chars-min!!'
           CRON_SECRET: 'cron-secret-test-value'
         run: npm test
+
+  build-and-push:
+    name: Build & Push Image (main only)
+    needs: test-and-validate
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=main
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Only a fleet-wide, non-secret client value belongs here. Tenant
+          # config and secrets are runtime env in Coolify, never build args.
+          build-args: |
+            NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

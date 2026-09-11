@@ -60,8 +60,11 @@ fs.writeFileSync(path.join(outDir, `.env.${clientSlug}.production`), envContent)
 const runbook = `# Provision runbook — ${clientName}
 
 1. In Coolify: create a private Postgres resource \`grabber-db-${clientSlug}\`
-   (not published to the host) and an Application from the repo Dockerfile,
-   both on the same Coolify project/network.
+   (not published to the host) and an Application — either the repo
+   Dockerfile on branch \`main\`, or the GHCR image
+   \`ghcr.io/anasbikes1992-ui/grabber-poz-solo:sha-<short>\` built from \`main\`.
+   Never deploy from \`dev\` or any other branch. Both resources on the same
+   Coolify project/network.
 2. Paste \`.env.${clientSlug}.production\` into the Application's **runtime**
    env (not build env — see the warning in that file).
 3. Deploy the app once so the container exists, then run inside it:
@@ -77,19 +80,26 @@ const runbook = `# Provision runbook — ${clientName}
 5. \`npm run env:validate -- --env-file .env.${clientSlug}.production --production\`
 6. In Coolify, add domain \`${clientDomain}\`, enable Let's Encrypt, and add
    the merchant's own custom domain alongside it if they have one.
-7. Seed (staff session required — \`/api/seed\` is never open, in any
-   environment): log in as the seeded OWNER via \`/adminpoz\`, or from a
-   script carrying that session's cookie, then
+7. First owner — no HTTP route can create a user on an empty production DB.
+   Inside the app container:
+   \`node scripts/staff-credentials.mjs create-owner --email <owner email> --name "<owner name>"\`
+   → prints a one-time \`TEMP$\` PIN; the owner logs in at
+   \`https://${clientDomain}/adminpoz\` and must rotate it.
+   Seed (staff session required — \`/api/seed\` is never open, in any
+   environment): with that owner's session (browser, or a script carrying
+   its cookie), then
    \`POST https://${clientDomain}/api/seed {"storeName":"${clientName}","slug":"${clientSlug}"}\`.
    The response's \`generatedPins\` field has each staff role's PIN — hand
    these to the owner once; they are not shown again and are not \`1234\`.
 8. \`npm run client:certify -- --client "${clientName}" --slug "${clientSlug}" --env .env.${clientSlug}.production\`
 9. \`CERTIFY_HTTP_BASE_URL=https://${clientDomain} npm run ops:smoke\`
-10. Add a host crontab entry hitting
-    \`https://${clientDomain}/api/cron/process-jobs\` with the
-    \`CRON_SECRET\` bearer token every 1-2 minutes — nothing else triggers
-    the job queue (WhatsApp sends, webhook retries, stock automations).
-11. Add a nightly \`pg_dump\` backup for \`grabber-db-${clientSlug}\`.
+10. Coolify app → Scheduled Tasks, every 2 minutes (\`*/2 * * * *\`) — keeps
+    \`CRON_SECRET\` in Coolify env instead of a host crontab file:
+    \`node -e "fetch('http://127.0.0.1:3000/api/cron/process-jobs',{headers:{authorization:'Bearer '+process.env.CRON_SECRET}}).then(r=>process.exit(r.ok?0:1))"\`
+    Nothing else triggers the job queue (WhatsApp sends, webhook retries,
+    stock automations).
+11. Coolify database → Backups: daily \`0 2 * * *\` to the S3 destination,
+    retention 14 days; run Backup Now once and test a restore.
 12. Phase 0 checklist: docs/FULL_PROOF_PLAN.md §5 (WhatsApp, POS smoke, release:gate)
 
 See: docs/COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md · docs/PROVISION_NEXT_CLIENT.md
