@@ -3,12 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { AppHeader } from '@/components/ui/app-header';
 import { applyStaffTheme, readStaffTheme } from '@/lib/theme/staff-theme';
+
+/** Staff chrome — not loaded on public/storefront routes */
+const AppHeader = dynamic(
+  () => import('@/components/ui/app-header').then((m) => m.AppHeader),
+  { ssr: true },
+);
 
 const JarvisDrawer = dynamic(
   () => import('@/components/ai/jarvis-drawer').then((m) => m.JarvisDrawer),
-  { ssr: false }
+  { ssr: false },
 );
 
 function isPublicSurface(pathname: string): boolean {
@@ -19,7 +24,9 @@ function isPublicSurface(pathname: string): boolean {
     pathname === '/adminpoz' ||
     pathname === '/shop' ||
     pathname === '/track' ||
-    pathname === '/collections'
+    pathname === '/collections' ||
+    pathname === '/pricing' ||
+    pathname === '/locations'
   ) {
     return true;
   }
@@ -28,6 +35,8 @@ function isPublicSurface(pathname: string): boolean {
   if (pathname.startsWith('/categories/')) return true;
   if (pathname.startsWith('/track/')) return true;
   if (pathname.startsWith('/collections/')) return true;
+  if (pathname.startsWith('/locations/')) return true;
+  if (pathname.startsWith('/pricing/')) return true;
   return false;
 }
 

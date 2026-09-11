@@ -9,9 +9,8 @@ import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { storefrontThemeStyle, storefrontThemeAttrs, whatsappHref } from '@/lib/storefront/theme-vars';
+import { useShopperSession } from '@/hooks/use-shopper-session';
 import { PromotionPopup } from './PromotionPopup';
-
-type Shopper = { id: string; name: string; phone: string | null; email: string | null };
 
 function navLinkClass(active: boolean) {
   return [
@@ -34,18 +33,13 @@ export function StorefrontShell({
   onOpenBag?: () => void;
 }) {
   const pathname = usePathname();
-  const [shopper, setShopper] = useState<Shopper | null>(null);
+  const { shopper, signOut } = useShopperSession();
   const [bagCount, setBagCount] = useState(0);
 
   const announcement = blocksForSlot(cms.blocks, 'TOP').find((b) => b.type === 'ANNOUNCEMENT');
   const waLink = whatsappHref(cms.theme.whatsappNumber, 'Hi, I have a question about your store.');
 
   useEffect(() => {
-    void (async () => {
-      const res = await fetch('/api/auth/shopper');
-      const data = (await res.json()) as { authenticated?: boolean; customer?: Shopper };
-      setShopper(data.authenticated && data.customer ? data.customer : null);
-    })();
     try {
       const raw = localStorage.getItem('grabber_store_bag');
       if (raw) {
@@ -78,11 +72,6 @@ export function StorefrontShell({
       /* ignore */
     }
   }, []);
-
-  async function signOut() {
-    await fetch('/api/auth/shopper', { method: 'DELETE' });
-    setShopper(null);
-  }
 
   const isProducts = pathname === '/' || pathname.startsWith('/products') || pathname.startsWith('/categories');
   const isRepairs = pathname.startsWith('/shop/repairs');

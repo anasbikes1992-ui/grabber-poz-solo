@@ -5,6 +5,14 @@ const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   serverExternalPackages: ['better-sqlite3', 'node-thermal-printer', 'pdf-lib'],
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.supabase.co', pathname: '/**' },
+      { protocol: 'https', hostname: '**.supabase.in', pathname: '/**' },
+      { protocol: 'http', hostname: 'localhost', pathname: '/**' },
+      { protocol: 'https', hostname: '**.grabberpoz.com', pathname: '/**' },
+    ],
+  },
 };
 
 const sentryEnabled = Boolean(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN);
