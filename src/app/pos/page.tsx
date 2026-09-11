@@ -30,14 +30,32 @@ import {
   Sparkles,
   Mic,
   MicOff,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { Modal } from '@/components/ui/modal';
-import { TradeInModal, type TradeInCredit } from '@/components/pos/trade-in-modal';
-import { ReturnExchangeModal, type ExchangeCredit } from '@/components/pos/return-exchange-modal';
+import type { TradeInCredit } from '@/components/pos/trade-in-modal';
+import type { ExchangeCredit } from '@/components/pos/return-exchange-modal';
+
+const TradeInModal = dynamic(
+  () => import('@/components/pos/trade-in-modal').then((m) => m.TradeInModal),
+  { ssr: false }
+);
+const ReturnExchangeModal = dynamic(
+  () => import('@/components/pos/return-exchange-modal').then((m) => m.ReturnExchangeModal),
+  { ssr: false }
+);
+const TableServicePanel = dynamic(
+  () => import('@/components/restaurant/table-service-panel').then((m) => m.TableServicePanel),
+  { ssr: false }
+);
+
 import { ThermalReceipt } from '@/components/pos/thermal-receipt';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
 import { BarcodeScannerListener } from '@/lib/hardware/scanner';
 import { VoiceAssistant } from '@/lib/hardware/voice-assistant';
+import { SoundEffects } from '@/lib/hardware/sound-effects';
 import { fetchVerticalFlags, DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import {
   RECEIPT_PAPER_PRESETS,
@@ -54,7 +72,6 @@ import {
   getTerminalId,
   nextClientSequence,
 } from '@/lib/pos/offline-queue';
-import { TableServicePanel } from '@/components/restaurant/table-service-panel';
 import { convertFromLkr, formatCurrency, type CurrencyCode } from '@/lib/currency/fx-rates';
 
 export interface LoyaltyMember {
@@ -162,6 +179,14 @@ function POSTerminal() {
   const [pinError, setPinError] = useState(false);
   const [cashTenderInput, setCashTenderInput] = useState<number | ''>('');
   const [isVoiceSearchActive, setIsVoiceSearchActive] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const toggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    SoundEffects.setSoundEnabled(next);
+    if (next) SoundEffects.playScanSuccess();
+  };
 
   const toggleVoiceSearch = () => {
     if (isVoiceSearchActive) {
@@ -301,6 +326,7 @@ function POSTerminal() {
       if (found) {
         addToCart(found);
       } else {
+        SoundEffects.playScanError();
         setAnnouncement(`Unknown barcode ${code}`);
       }
     });
@@ -332,9 +358,11 @@ function POSTerminal() {
 
   const addToCart = (item: CatalogItem) => {
     if (Number(item.stock) <= 0) {
+      SoundEffects.playScanError();
       setAnnouncement(`${item.name} is out of stock and cannot be added to the sale.`);
       return;
     }
+    SoundEffects.playScanSuccess();
     setAnnouncement(`${item.name}, ${item.variant}, LKR ${item.unitPrice.toFixed(2)}, added to sale.`);
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
@@ -386,6 +414,7 @@ function POSTerminal() {
     if (found) {
       addToCart(found);
     } else {
+      SoundEffects.playScanError();
       setAnnouncement(code ? `No product found for barcode ${code}.` : 'Enter a barcode to scan.');
     }
     setBarcodeInput('');
@@ -421,16 +450,20 @@ function POSTerminal() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
+        SoundEffects.playScanError();
         setPinError(true);
         return;
       }
       if (pinAction?.type === 'DISCOUNT') {
+        SoundEffects.playScanSuccess();
         setDiscountPercent(pinAction.payload);
       } else if (pinAction?.type === 'VOID') {
+        SoundEffects.playScanSuccess();
         setCart([]);
         setDiscountPercent(0);
         setActiveHoldId(null);
       } else if (pinAction?.type === 'OPEN_DRAWER') {
+        SoundEffects.playDrawerPulse();
         try {
           ESCPOSPrinterController.openCashDrawerPulse();
         } catch {
@@ -443,6 +476,7 @@ function POSTerminal() {
       setIsPinModalOpen(false);
       setPinAction(null);
     } catch {
+      SoundEffects.playScanError();
       setPinError(true);
     }
   };
@@ -691,6 +725,7 @@ function POSTerminal() {
         }).catch(() => undefined);
       }
 
+      SoundEffects.playPaymentSuccess();
       setCompletedOrder(finalCompletedOrder);
       setIsPaymentModalOpen(false);
       setCart([]);
@@ -709,6 +744,7 @@ function POSTerminal() {
         typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cuid_${Date.now()}`;
       setAnnouncement(`Sale completed. Total LKR ${grandTotal.toFixed(2)}. Tender ${selectedTender}.`);
     } catch (err: unknown) {
+      SoundEffects.playScanError();
       const msg = (err as Error).message || 'Checkout failed';
       setCheckoutError(msg);
       setAnnouncement(msg);
@@ -819,6 +855,20 @@ function POSTerminal() {
                 </button>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={toggleSound}
+              className={`p-1.5 rounded-xl border transition ml-1 ${
+                soundEnabled
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300'
+              }`}
+              title={soundEnabled ? 'Mute POS sounds' : 'Enable POS sounds'}
+              aria-label={soundEnabled ? 'Mute POS sounds' : 'Enable POS sounds'}
+            >
+              {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+            </button>
           </div>
         </div>
 

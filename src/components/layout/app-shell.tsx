@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { AppHeader } from '@/components/ui/app-header';
-import { JarvisDrawer } from '@/components/ai/jarvis-drawer';
 import { applyStaffTheme, readStaffTheme } from '@/lib/theme/staff-theme';
+
+const JarvisDrawer = dynamic(
+  () => import('@/components/ai/jarvis-drawer').then((m) => m.JarvisDrawer),
+  { ssr: false }
+);
 
 function isPublicSurface(pathname: string): boolean {
   if (
