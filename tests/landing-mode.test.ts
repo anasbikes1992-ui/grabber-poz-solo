@@ -32,4 +32,15 @@ describe('resolveLandingMode', () => {
     expect(resolveLandingMode('shoppingstation.grabberpoz.com')).toBe('storefront');
     expect(resolveLandingMode('wowthings.lk')).toBe('storefront');
   });
+
+  it('treats demo.grabberpoz.com as a merchant storefront, not the company site', () => {
+    delete process.env.LANDING_MODE;
+    delete process.env.NEXT_PUBLIC_LANDING_MODE;
+    delete process.env.COMPANY_LANDING_HOSTS;
+    delete process.env.NEXT_PUBLIC_COMPANY_LANDING_HOSTS;
+    expect(resolveLandingMode('demo.grabberpoz.com')).toBe('storefront');
+    expect(resolveLandingMode('demo.grabberpoz.com:443')).toBe('storefront');
+    expect(resolveLandingMode('grabberpoz.com')).toBe('company');
+    expect(resolveLandingMode('thepartystore.grabberpoz.com')).toBe('storefront');
+  });
 });
