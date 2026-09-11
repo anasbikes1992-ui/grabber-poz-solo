@@ -4,7 +4,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
-  serverExternalPackages: ['better-sqlite3', 'node-thermal-printer', 'pdf-lib'],
+  serverExternalPackages: ['pdf-lib'],
 };
 
 const sentryEnabled = Boolean(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN);

@@ -251,12 +251,21 @@ faster (smaller context).
    structural-discovery section above for why the original approach failed
    silently and how it was caught).
 
-**Not yet done**: 2.4 (drop `node-thermal-printer`/`better-sqlite3` dead
-deps from `package.json` + `next.config.mjs`'s `serverExternalPackages`),
-2.5 (the drizzle-kit journal only tracks migrations 0000-0002 against 17
-files on disk — `drizzle-kit generate`/`migrate` would compute a wrong diff;
-`bootstrap-db.mjs` itself is unaffected since it bypasses drizzle-kit
-entirely and globs `.sql` files directly, now proven to work end-to-end).
+**2.4 — done.** Removed `node-thermal-printer`, `better-sqlite3`, and
+`@types/better-sqlite3` from `package.json` (confirmed zero imports anywhere
+in `src`/`scripts`/`tests` first) and dropped them from `next.config.mjs`'s
+`serverExternalPackages` (kept `pdf-lib`, which genuinely is used). Removes
+the native-build toolchain requirement. `npm install` cleanly removed 7
+packages; `npm audit`'s 8 vulnerabilities (7 moderate, 1 high) were unchanged
+by this — none came from the removed deps, still needs separate triage.
+Re-verified typecheck/test(526)/build all green, then a full Docker image
+build succeeded.
+
+**Not yet done**: 2.5 (the drizzle-kit journal only tracks migrations 0000-0002
+against 17 files on disk — `drizzle-kit generate`/`migrate` would compute a
+wrong diff; `bootstrap-db.mjs` itself is unaffected since it bypasses
+drizzle-kit entirely and globs `.sql` files directly, now proven to work
+end-to-end — low urgency).
 
 ## Verified (Phase 2, cumulative with Phase 0/1 gates)
 - `npm run typecheck` / `npm test` (526/526) / `npm run build` all re-run
