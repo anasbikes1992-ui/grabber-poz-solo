@@ -1,4 +1,17 @@
-name: Fleet Orchestration & Multi-Client Database Migration Pipeline
+name: CI — Typecheck & Test
+
+# Coolify deploys via its own git integration (see docs/COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md)
+# — this workflow is a pre-deploy gate only, not a deploy trigger. It used to
+# also run a "fleet-migration" job that installed drizzle-orm/pg/postgres,
+# then ran `node scripts/audit_parser.js || true` (that file does not exist in
+# this repo) against two clients (urban-trendz, colombo-supermarket) that
+# appear nowhere else in the codebase, and unconditionally printed "Migration
+# successfully committed" regardless of whether anything ran. It built and
+# pushed no image despite the "Fleet Orchestration" name. Removed rather than
+# fixed: migrations run per-tenant, inside that tenant's own container
+# (`node scripts/bootstrap-db.mjs`, see the Coolify playbook) — the database
+# is never reachable from outside its Docker network, so a GitHub Actions
+# runner could not reach it even with real credentials.
 
 on:
   push:
@@ -8,12 +21,6 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      target_client:
-        description: 'Target specific client ID or "ALL"'
-        required: true
-        default: 'ALL'
 
 jobs:
   test-and-validate:
@@ -29,7 +36,7 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci
 
       - name: TypeScript Static Typecheck
         run: npm run typecheck
@@ -41,42 +48,3 @@ jobs:
           AUTH_SECRET: 'unit-test-auth-secret-key-32chars-min!!'
           CRON_SECRET: 'cron-secret-test-value'
         run: npm test
-
-  fleet-migration:
-    name: Multi-Client Fleet Schema Migration
-    needs: test-and-validate
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        client:
-          - id: 'urban-trendz'
-            db_secret_name: 'CLIENT_DB_URBAN_TRENDZ'
-            domain: 'store.urbantrendz.lk'
-          - id: 'colombo-supermarket'
-            db_secret_name: 'CLIENT_DB_COLOMBO_SUPER'
-            domain: 'pos.colombosuper.lk'
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Drizzle & Database Drivers
-        run: npm install --legacy-peer-deps drizzle-orm pg postgres dotenv
-
-      - name: Execute Idempotent Schema Migration for ${{ matrix.client.id }}
-        env:
-          DATABASE_URL: ${{ secrets[matrix.client.db_secret_name] }}
-        run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "Secret for ${{ matrix.client.id }} not set in GitHub repository secrets. Skipping remote run."
-            exit 0
-          fi
-          echo "Executing idempotent database migration for client: ${{ matrix.client.id }}"
-          node scripts/audit_parser.js || true
-          echo "Migration successfully committed for ${{ matrix.client.id }} at ${{ matrix.client.domain }}"
