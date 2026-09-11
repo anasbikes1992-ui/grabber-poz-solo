@@ -153,7 +153,8 @@ Nothing else triggers WhatsApp sends, webhook retries, or stock automations.
 3. For each merchant app: set the image tag to the same `sha-<short>` → **Redeploy**.
 4. Migrations must be additive (expand → deploy → contract later); run
    `node scripts/bootstrap-db.mjs` in each tenant container after redeploy.
-5. `dev` is for integration only — nothing deploys from it. Merging into `main` is the release.
+5. `dev` never reaches Coolify — it auto-deploys only to the Vercel dev environment
+   ([`DEV_DEPLOY_VERCEL.md`](./DEV_DEPLOY_VERCEL.md)). Merging into `main` is the release.
 
 ---
 

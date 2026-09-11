@@ -1,0 +1,25 @@
+#!/bin/sh
+# Local CI gate. GitHub Actions is unavailable, so nothing else checks a push
+# before `dev` auto-deploys to Vercel or `main` auto-deploys to Coolify.
+# Runs typecheck + unit tests only when a push updates `dev` or `main`
+# (the build itself runs on Vercel / Coolify).
+#
+# Enabled by `npm install` (package.json "prepare" sets core.hooksPath).
+# Emergency bypass: git push --no-verify
+
+gate=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/dev|refs/heads/main) gate=1 ;;
+  esac
+done
+
+[ "$gate" -eq 1 ] || exit 0
+
+echo "pre-push: push touches dev/main — running typecheck + tests"
+npm run --silent typecheck || { echo "pre-push: typecheck failed — push aborted"; exit 1; }
+NODE_ENV=test \
+  DATABASE_URL='postgresql://postgres:postgres@localhost:5432/test_db' \
+  AUTH_SECRET='unit-test-auth-secret-key-32chars-min!!' \
+  CRON_SECRET='cron-secret-test-value' \
+  npm test || { echo "pre-push: tests failed — push aborted"; exit 1; }
