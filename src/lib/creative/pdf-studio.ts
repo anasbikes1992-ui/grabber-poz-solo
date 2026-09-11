@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { eq, inArray, and } from 'drizzle-orm';
 import { db, products, businessProfile } from '@/db';
+import { getStoreName } from '@/lib/config/app-url';
 import type { BrandBrain } from '@/lib/creative/brand-brain';
 import type { PdfTemplateKind } from './pdf-templates';
 export * from './pdf-templates';
@@ -44,7 +45,7 @@ function mapProduct(p: typeof products.$inferSelect): ProductRow {
 
 async function readMerchantName(): Promise<string> {
   const [bp] = await db.select().from(businessProfile).limit(1);
-  return bp?.name || process.env.NEXT_PUBLIC_STORE_NAME || 'Grabber Store';
+  return bp?.name || getStoreName();
 }
 
 function hexToRgb(hex: string) {

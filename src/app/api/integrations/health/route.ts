@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, businessConfig } from '@/db';
 import { getSession } from '@/lib/auth/session';
+import { getSupabaseUrl } from '@/lib/config/app-url';
 
 export type IntegrationServiceId = 'payhere' | 'whatsapp' | 'creative' | 'storage' | 'gemini' | 'koombiyo';
 
@@ -74,9 +75,7 @@ export async function GET() {
     };
 
     // 4. Storage Provider (Supabase vs Local)
-    const hasSupabaseStorage = Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
-    );
+    const hasSupabaseStorage = Boolean(getSupabaseUrl() && process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     const storage: IntegrationHealthItem = {
       id: 'storage',
@@ -87,7 +86,7 @@ export async function GET() {
       fallbackDescription: hasSupabaseStorage
         ? 'Supabase Cloud Object Storage active (S3-compatible bucket).'
         : 'Local filesystem storage active. For multi-instance Vercel deployments, configure Supabase Storage.',
-      setupGuide: 'Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+      setupGuide: 'Set SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY.',
     };
 
     // 5. Gemini AI Engine (Jarvis)

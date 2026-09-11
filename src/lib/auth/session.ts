@@ -38,6 +38,12 @@ export function hashPin(pin: string): string {
   return `scrypt$${salt}$${hash}`;
 }
 
+/** 6-digit PIN — never a shared guessable default like '1234'. */
+export function generateRandomPin(): string {
+  const n = randomBytes(4).readUInt32BE(0) % 900000;
+  return String(100000 + n);
+}
+
 export function verifyPin(pin: string, stored: string | null | undefined): boolean {
   if (!stored) return false;
   if (stored.startsWith('TEMP$')) {

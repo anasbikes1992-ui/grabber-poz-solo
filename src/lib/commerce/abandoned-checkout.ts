@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto';
 import { and, eq } from 'drizzle-orm';
 import { abandonedCarts } from '@/db/schema';
+import { getAppUrl } from '@/lib/config/app-url';
 import { enqueueJob } from '@/lib/jobs/outbox';
 
 export type CartLine = {
@@ -14,7 +15,7 @@ export type CartLine = {
 const ABANDON_DELAY_MS = 30 * 60 * 1000;
 
 export function buildRecoveryUrl(token: string) {
-  const base = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const base = getAppUrl().replace(/\/$/, '');
   return `${base}/shop/checkout?recover=${encodeURIComponent(token)}`;
 }
 

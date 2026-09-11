@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
+import { getConfiguredAppUrl } from '@/lib/config/app-url';
 
 export function siteBaseUrl(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL || process.env.CERTIFY_HTTP_BASE_URL;
+  const fromEnv = getConfiguredAppUrl() || process.env.CERTIFY_HTTP_BASE_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, '');
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return 'http://localhost:3000';

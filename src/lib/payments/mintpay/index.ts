@@ -3,6 +3,7 @@
  * Implements PaymentGateway for Mintpay (Sri Lanka)
  */
 
+import { getAppUrl } from '@/lib/config/app-url';
 import type { PaymentGateway } from '../payment-gateway';
 import type { PaymentGatewayCapabilities } from '../payment-capabilities';
 import { CAPABILITIES_MINTPAY } from '../payment-capabilities';
@@ -44,7 +45,7 @@ export class MintpayGateway implements PaymentGateway {
     }
 
     const cfg = getMintpayConfig();
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const appUrl = getAppUrl().replace(/\/$/, '');
     const baseUrl =
       cfg.env === 'live' ? 'https://checkout.mintpay.lk' : 'https://sandbox-checkout.mintpay.lk';
 

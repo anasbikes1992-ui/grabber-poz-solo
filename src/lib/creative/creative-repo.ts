@@ -1,5 +1,6 @@
 import { desc, eq } from 'drizzle-orm';
 import { db, creativeJobs, creativeProjects, customers } from '@/db';
+import { getStoreUrl } from '@/lib/config/app-url';
 import { readStorefrontConfig, writeStorefrontConfig } from '@/lib/config/storefront-config';
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp';
 import { enqueueJob } from '@/lib/jobs/outbox';
@@ -98,7 +99,7 @@ async function broadcastCreativeToCustomers(input: {
 }) {
   const seg = String(input.audience || 'ALL').trim().toUpperCase();
   const limit = input.limit ?? 50;
-  const shopUrl = process.env.NEXT_PUBLIC_STORE_URL || process.env.NEXT_PUBLIC_SITE_URL || '';
+  const shopUrl = getStoreUrl();
   const message = `${input.heroTitle}\n\n${input.announcement}${shopUrl ? `\n\nShop: ${shopUrl}/products` : ''}`.trim();
 
   const targets =

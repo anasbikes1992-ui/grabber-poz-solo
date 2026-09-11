@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { getAppUrl } from '@/lib/config/app-url';
 import { getPayHereConfig, isPayHereConfigured, type PayHereConfig } from '@/lib/payments/lkr-provider';
 
 export { getPayHereConfig, isPayHereConfigured, type PayHereConfig };
@@ -39,7 +40,7 @@ export function generatePayHereCheckoutPayload(input: PayHerePayloadInput, confi
     .digest('hex')
     .toUpperCase();
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const appUrl = getAppUrl().replace(/\/$/, '');
   const checkoutUrl =
     cfg.mode === 'sandbox'
       ? 'https://sandbox.payhere.lk/pay/checkout'
@@ -92,7 +93,8 @@ export async function executePayHereRefund(params: PayHereRefundParams): Promise
 }> {
   const appId = params.appId || process.env.PAYHERE_APP_ID;
   const appSecret = params.appSecret || process.env.PAYHERE_APP_SECRET;
-  const mode = params.mode || (process.env.PAYHERE_MODE === 'sandbox' ? 'sandbox' : 'live');
+  // Default to sandbox — live must be explicit per tenant, never assumed.
+  const mode = params.mode || (process.env.PAYHERE_MODE === 'live' ? 'live' : 'sandbox');
 
   if (!appId || !appSecret) {
     return {

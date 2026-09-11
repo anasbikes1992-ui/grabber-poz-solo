@@ -4,18 +4,21 @@ import { decryptBackupData, verifyRestoredDatabaseIntegrity, type EncryptedBacku
 
 export async function POST(req: Request) {
   try {
+    // Unconditional — this route replays a full dataset into the database.
+    // Never gate this behind NODE_ENV; a non-production boot must not open it.
     const session = await getSession();
-    if (process.env.NODE_ENV === 'production') {
-      if (!session || session.role !== 'OWNER') {
-        return NextResponse.json(
-          { success: false, error: 'Forbidden: Only business OWNER can perform disaster recovery restores' },
-          { status: 403 },
-        );
-      }
+    if (!session || session.role !== 'OWNER') {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: Only business OWNER can perform disaster recovery restores' },
+        { status: 403 },
+      );
     }
 
     const body = await req.json();
-    const encryptionKey = req.headers.get('x-backup-key') || process.env.BACKUP_ENCRYPTION_KEY || process.env.AUTH_SECRET;
+    // Server-configured key only. A caller-supplied header must never be able
+    // to choose its own decryption key, and the session-signing secret must
+    // never double as a backup key.
+    const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
 
     let payload: any;
     if (body.format === 'GRABBER_BACKUP_V1' && body.algorithm === 'aes-256-gcm') {

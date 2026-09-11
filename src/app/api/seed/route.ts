@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
+import { assertCanMutateCommerce, generateRandomPin, getSession } from '@/lib/auth/session';
+import { getStoreName } from '@/lib/config/app-url';
 import { runDynamicSeed } from '@/lib/setup/dynamic-seed';
 import { runDatabaseSeed } from '@/lib/setup/seed-service';
 import { VERTICAL_PRESETS, type VerticalPresetId } from '@/lib/config/vertical-presets';
@@ -13,33 +14,40 @@ function resolvePreset(body: Record<string, unknown>): VerticalPresetId {
 
 export async function POST(req: Request) {
   try {
-    const session = await getSession();
-    if (process.env.NODE_ENV === 'production') {
-      assertCanMutateCommerce(session);
-      if (session && session.role !== 'OWNER' && session.role !== 'ADMIN') {
-        return NextResponse.json({ success: false, error: 'OWNER required to seed' }, { status: 403 });
-      }
+    // Unconditional — this route seeds/overwrites catalogs, users, and settings.
+    // Never gate this behind NODE_ENV; a non-production boot must not open it.
+    const rawSession = await getSession();
+    const session = assertCanMutateCommerce(rawSession);
+    if (session.role !== 'OWNER' && session.role !== 'ADMIN') {
+      return NextResponse.json({ success: false, error: 'OWNER required to seed' }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
-    const storeName = body.storeName || process.env.NEXT_PUBLIC_STORE_NAME || 'Grabber Solo Store';
+    const storeName = body.storeName || getStoreName();
     const preset = resolvePreset(body);
+    // Never default to a guessable PIN — generate one and hand it back once.
+    const ownerPin = body.ownerPin || generateRandomPin();
 
     if (body.legacy === true) {
       const result = await runDatabaseSeed({
         storeName,
         ownerEmail: body.ownerEmail || `owner@${(body.slug || 'solo').toLowerCase()}.local`,
-        ownerPin: body.ownerPin || '1234',
+        ownerPin,
         slug: body.slug || 'solo',
         sessionUserId: session?.userId,
       });
-      return NextResponse.json({ success: true, seeded: result });
+      return NextResponse.json({
+        success: true,
+        seeded: result,
+        generatedPins: result.generatedPins,
+        note: 'Staff PINs are generated per-role and returned once here. Store them now; rotate on first login.',
+      });
     }
 
     const result = await runDynamicSeed({
       storeName,
       ownerEmail: body.ownerEmail || `owner@${(body.slug || 'solo').toLowerCase()}.local`,
-      ownerPin: body.ownerPin || '1234',
+      ownerPin,
       slug: body.slug || 'solo',
       sessionUserId: session?.userId,
       preset,
@@ -51,6 +59,8 @@ export async function POST(req: Request) {
       preset,
       mobilerepair: result.mobilerepair,
       catalogCount: result.catalogCount,
+      generatedPins: result.generatedPins,
+      note: 'Staff PINs are generated per-role and returned once here. Store them now; rotate on first login.',
     });
   } catch (err: unknown) {
     const e = err as { message?: string };
