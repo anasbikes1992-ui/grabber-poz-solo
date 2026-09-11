@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Search,
   Barcode,
@@ -20,6 +21,7 @@ import {
   PlayCircle,
   UtensilsCrossed,
   Wrench,
+  RotateCcw,
   FileText,
   Scan,
   Store,
@@ -31,6 +33,7 @@ import {
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { TradeInModal, type TradeInCredit } from '@/components/pos/trade-in-modal';
+import { ReturnExchangeModal, type ExchangeCredit } from '@/components/pos/return-exchange-modal';
 import { ThermalReceipt } from '@/components/pos/thermal-receipt';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
 import { BarcodeScannerListener } from '@/lib/hardware/scanner';
@@ -124,9 +127,13 @@ export default function POSPage() {
   const [selectedTender, setSelectedTender] = useState<'CASH' | 'CARD' | 'CREDIT' | 'SPLIT'>('CASH');
   const [splitCash, setSplitCash] = useState(0);
   const [splitCard, setSplitCard] = useState(0);
+  const searchParams = useSearchParams();
+  const urlMode = searchParams.get('mode');
   const [promoCode, setPromoCode] = useState('');
   const [tradeInCredit, setTradeInCredit] = useState<TradeInCredit | null>(null);
   const [isTradeInModalOpen, setIsTradeInModalOpen] = useState(false);
+  const [exchangeCredit, setExchangeCredit] = useState<ExchangeCredit | null>(null);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [heldSales, setHeldSales] = useState<HeldSale[]>([]);
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [activeHoldId, setActiveHoldId] = useState<string | null>(null);
@@ -294,11 +301,24 @@ export default function POSPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalog]);
 
+  const isElectronicsOrRepairs =
+    urlMode === 'electronics' ||
+    urlMode === 'mobilerepair' ||
+    urlMode === 'repair' ||
+    verticalFlags.repairs;
+
   const grossSubtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   const discountAmount = (grossSubtotal * discountPercent) / 100;
   const tradeInDeduction = tradeInCredit?.creditAmount ?? 0;
-  const loyaltyDeduction = Math.min(loyaltyPointsToRedeem, Math.max(0, grossSubtotal - discountAmount - tradeInDeduction));
-  const netSubtotal = Math.max(0, grossSubtotal - discountAmount - tradeInDeduction - loyaltyDeduction);
+  const exchangeDeduction = exchangeCredit?.creditAmount ?? 0;
+  const loyaltyDeduction = Math.min(
+    loyaltyPointsToRedeem,
+    Math.max(0, grossSubtotal - discountAmount - tradeInDeduction - exchangeDeduction)
+  );
+  const netSubtotal = Math.max(
+    0,
+    grossSubtotal - discountAmount - tradeInDeduction - exchangeDeduction - loyaltyDeduction
+  );
   const taxTotal = Math.round(netSubtotal * 0.18 * 100) / 100;
   const grandTotal = netSubtotal + taxTotal;
 
@@ -585,6 +605,8 @@ export default function POSPage() {
         grossSubtotal,
         discountAmount,
         discountPercent,
+        tradeInCredit: tradeInCredit || undefined,
+        exchangeCredit: exchangeCredit || undefined,
         taxTotal,
         grandTotal,
         tender: selectedTender,
@@ -1140,13 +1162,32 @@ export default function POSPage() {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => setIsTradeInModalOpen(true)}
-            className="w-full min-h-9 rounded-lg border border-zinc-700 text-[11px] font-bold text-muted-foreground hover:bg-zinc-900"
-          >
-            {tradeInCredit ? 'Change trade-in' : 'Apply trade-in / buyback'}
-          </button>
+          {exchangeCredit && (
+            <div className="flex justify-between text-blue-400 font-medium text-xs">
+              <span>Exchange Credit ({exchangeCredit.returnNumber})</span>
+              <span>- LKR {exchangeDeduction.toFixed(2)}</span>
+            </div>
+          )}
+
+          {isElectronicsOrRepairs ? (
+            <button
+              type="button"
+              onClick={() => setIsTradeInModalOpen(true)}
+              className="w-full min-h-9 rounded-lg border border-zinc-700 text-[11px] font-bold text-muted-foreground hover:bg-zinc-900 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Wrench className="h-3.5 w-3.5 text-amber-400" />
+              <span>{tradeInCredit ? 'Change trade-in' : 'Apply trade-in / buyback'}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsReturnModalOpen(true)}
+              className="w-full min-h-9 rounded-lg border border-zinc-700 text-[11px] font-bold text-muted-foreground hover:bg-zinc-900 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-blue-400" />
+              <span>{exchangeCredit ? `Exchange Credit (${exchangeCredit.returnNumber})` : 'Process Return / Exchange'}</span>
+            </button>
+          )}
 
           <div className="flex justify-between text-muted-foreground">
             <span>VAT (18%)</span>
@@ -1551,6 +1592,16 @@ export default function POSPage() {
         />
       )}
 
+      <ReturnExchangeModal
+        isOpen={isReturnModalOpen}
+        onClose={() => setIsReturnModalOpen(false)}
+        branchId={branchId}
+        onApplied={(credit) => {
+          setExchangeCredit(credit);
+          setAnnouncement(`Exchange credit LKR ${credit.creditAmount.toLocaleString()} applied from bill ${credit.originalOrderNumber}.`);
+        }}
+      />
+
       {/* Thermal receipt — width follows selected paper preset */}
       <ThermalReceipt
         widthMm={receiptPreset(receiptPaper).widthMm}
@@ -1571,6 +1622,8 @@ export default function POSPage() {
                 grossSubtotal: completedOrder.grossSubtotal,
                 discountPercent: completedOrder.discountPercent,
                 discountAmount: completedOrder.discountAmount,
+                tradeInCredit: completedOrder.tradeInCredit,
+                exchangeCredit: completedOrder.exchangeCredit,
                 taxTotal: completedOrder.taxTotal,
                 grandTotal: completedOrder.grandTotal,
                 tender: completedOrder.tender,

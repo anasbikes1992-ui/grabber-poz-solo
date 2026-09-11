@@ -173,9 +173,11 @@ export default function BarcodeGeneratorPage() {
   const LabelFace = ({
     item,
     forPrint,
+    isLast,
   }: {
     item: (typeof flatLabels)[0];
     forPrint?: boolean;
+    isLast?: boolean;
   }) => (
     <div
       className={
@@ -193,8 +195,12 @@ export default function BarcodeGeneratorPage() {
         padding: size.heightMm < 28 ? '1mm 1.5mm' : '1.5mm 2mm',
         boxSizing: 'border-box',
         overflow: 'hidden',
+        pageBreakInside: 'avoid',
+        breakInside: 'avoid',
         ...(forPrint && !size.isA4
-          ? { pageBreakAfter: 'always' as const, breakAfter: 'page' as const }
+          ? !isLast
+            ? { pageBreakAfter: 'always' as const, breakAfter: 'page' as const }
+            : { pageBreakAfter: 'avoid' as const, breakAfter: 'avoid' as const }
           : {}),
       }}
     >
@@ -532,14 +538,14 @@ export default function BarcodeGeneratorPage() {
                 boxSizing: 'border-box',
               }}
             >
-              {flatLabels.map((item) => (
-                <LabelFace key={item.labelKey} item={item} forPrint />
+              {flatLabels.map((item, idx) => (
+                <LabelFace key={item.labelKey} item={item} forPrint isLast={idx === flatLabels.length - 1} />
               ))}
             </div>
           ) : (
             <div>
-              {flatLabels.map((item) => (
-                <LabelFace key={item.labelKey} item={item} forPrint />
+              {flatLabels.map((item, idx) => (
+                <LabelFace key={item.labelKey} item={item} forPrint isLast={idx === flatLabels.length - 1} />
               ))}
             </div>
           )}

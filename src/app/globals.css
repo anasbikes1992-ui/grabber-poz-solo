@@ -306,6 +306,20 @@
 
   /* Do NOT hide .mesh-bg — it is on the AppShell root and would blank all prints */
 
+  @page {
+    margin: 0 !important;
+    size: auto;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
   main#main-content {
     padding: 0 !important;
     margin: 0 !important;
@@ -335,6 +349,10 @@
     font-family: 'Courier New', Courier, monospace !important;
     box-shadow: none !important;
     border: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
     z-index: 99999 !important;
   }
 
@@ -358,12 +376,14 @@
     padding: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
     z-index: 99999 !important;
   }
 
   .label-thermal-roll {
-    page-break-after: always !important;
-    break-after: page !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     margin: 0 !important;
@@ -373,6 +393,16 @@
     color: #000000 !important;
     border: none !important;
     box-shadow: none !important;
+  }
+
+  .label-thermal-roll:not(:last-child) {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .label-thermal-roll:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   .label-a4-cell {

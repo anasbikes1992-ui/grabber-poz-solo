@@ -22,6 +22,8 @@ export interface ThermalReceiptData {
   grossSubtotal: number;
   discountPercent?: number;
   discountAmount?: number;
+  tradeInCredit?: { deviceModel: string; creditAmount: number };
+  exchangeCredit?: { returnNumber: string; creditAmount: number };
   taxTotal: number;
   grandTotal: number;
   tender: string;
@@ -140,6 +142,20 @@ export function ThermalReceipt({
           <div className="flex justify-between">
             <span>Discount {data.discountPercent ? `(${data.discountPercent}%)` : ''}</span>
             <span>- LKR {data.discountAmount?.toFixed(2)}</span>
+          </div>
+        )}
+
+        {Boolean(data.tradeInCredit && data.tradeInCredit.creditAmount > 0) && (
+          <div className="flex justify-between">
+            <span>Trade-in ({data.tradeInCredit?.deviceModel})</span>
+            <span>- LKR {data.tradeInCredit?.creditAmount.toFixed(2)}</span>
+          </div>
+        )}
+
+        {Boolean(data.exchangeCredit && data.exchangeCredit.creditAmount > 0) && (
+          <div className="flex justify-between">
+            <span>Exchange Credit ({data.exchangeCredit?.returnNumber})</span>
+            <span>- LKR {data.exchangeCredit?.creditAmount.toFixed(2)}</span>
           </div>
         )}
 
