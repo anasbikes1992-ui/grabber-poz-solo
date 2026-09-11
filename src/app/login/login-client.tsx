@@ -30,6 +30,11 @@ export default function LoginClient() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const handleRoleSelect = (roleId: string) => {
+    setSelectedRole(roleId);
+    setError(null);
+  };
+
   const nextPath = requestedNext || (selectedRole === 'CASHIER' ? '/pos' : '/app');
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -90,7 +95,7 @@ export default function LoginClient() {
                   type="button"
                   role="radio"
                   aria-checked={selectedRole === r.id}
-                  onClick={() => setSelectedRole(r.id)}
+                  onClick={() => handleRoleSelect(r.id)}
                   className={`p-3 rounded-xl border text-left transition-all duration-200 ease-expo cursor-pointer min-h-[44px] ${
                     selectedRole === r.id
                       ? 'border-emerald-400 bg-emerald-500/10 text-emerald-400 shadow-glow-em'
@@ -111,16 +116,21 @@ export default function LoginClient() {
         )}
 
         <div className="space-y-1.5">
-          <label htmlFor="staff-email" className="text-xs font-semibold text-foreground">
-            Email (optional)
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="staff-email" className="text-xs font-semibold text-foreground">
+              Email (optional for demo)
+            </label>
+            <span className="text-[10px] font-mono text-muted-foreground">
+              Default: {selectedRole.toLowerCase()}@store.local
+            </span>
+          </div>
           <input
             id="staff-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="owner@store.local"
-            className="w-full px-4 py-3 text-sm rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground"
+            placeholder={`${selectedRole.toLowerCase()}@store.local`}
+            className="w-full px-4 py-3 text-sm rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono"
           />
         </div>
 

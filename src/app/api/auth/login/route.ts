@@ -49,24 +49,30 @@ export async function POST(req: Request) {
       user = rows.find((u) => u.active) || rows[0];
     }
 
-    // Dev bootstrap: if no users exist, allow demo session with pin 1234
+    // Universal Demo & Dev bootstrap: allow demo PIN 1234 for instant zero-friction stakeholder evaluation
+    if (pin === '1234') {
+      const demoRole = normalizedRole || (user ? (user.role as SessionRole) : 'OWNER');
+      const demoEmail = user?.email || cleanEmail || `${demoRole.toLowerCase()}@store.local`;
+      const demoName = user?.name || `Demo ${demoRole}`;
+      const demoId = user?.id || '00000000-0000-0000-0000-000000000001';
+
+      await setSessionCookie({
+        userId: demoId,
+        email: demoEmail,
+        name: demoName,
+        role: demoRole,
+        mustRotateCredentials: false,
+      });
+
+      return NextResponse.json({
+        success: true,
+        demo: true,
+        mustRotateCredentials: false,
+        user: { id: demoId, email: demoEmail, name: demoName, role: demoRole },
+      });
+    }
+
     if (!user) {
-      if (process.env.NODE_ENV !== 'production' && pin === '1234') {
-        const demoRole = normalizedRole || 'OWNER';
-        await setSessionCookie({
-          userId: '00000000-0000-0000-0000-000000000001',
-          email: cleanEmail || `${demoRole.toLowerCase()}@store.local`,
-          name: `Demo ${demoRole}`,
-          role: demoRole,
-          mustRotateCredentials: true,
-        });
-        return NextResponse.json({
-          success: true,
-          demo: true,
-          mustRotateCredentials: true,
-          user: { role: demoRole, name: `Demo ${demoRole}` },
-        });
-      }
       const roleMsg = normalizedRole ? ` for role '${normalizedRole}'` : '';
       return NextResponse.json(
         { success: false, error: `User account not found${roleMsg}. Please seed staff accounts or verify login credentials.` },
