@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
-import { CompanyLanding } from '@/components/company/CompanyLanding';
-import { StorefrontHome } from '@/components/storefront/storefront-home';
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import { resolveLandingMode } from '@/lib/config/landing-mode';
 
@@ -42,8 +40,12 @@ export default async function HomePage() {
   const h = await headers();
   const mode = resolveLandingMode(h.get('host') || h.get('x-forwarded-host'));
 
+  // Dynamic import so only one landing graph ships per mode
   if (mode === 'storefront') {
-    const cms = await readStorefrontConfig();
+    const [{ StorefrontHome }, cms] = await Promise.all([
+      import('@/components/storefront/storefront-home'),
+      readStorefrontConfig(),
+    ]);
     return <StorefrontHome cms={cms} />;
   }
 
@@ -51,5 +53,6 @@ export default async function HomePage() {
   // links at the demo merchant subdomain rather than the apex. Non-public env,
   // read at request time — not inlined at build.
   const demoUrl = (process.env.COMPANY_DEMO_URL ?? 'https://demo.grabberpoz.com').replace(/\/$/, '');
+  const { CompanyLanding } = await import('@/components/company/CompanyLanding');
   return <CompanyLanding demoUrl={demoUrl} />;
 }

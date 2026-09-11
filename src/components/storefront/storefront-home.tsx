@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { StorefrontShell } from '@/components/storefront/storefront-shell';
 import {
@@ -13,6 +14,7 @@ import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { blocksForSlot } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { whatsappHref } from '@/lib/storefront/theme-vars';
+import { useShopperSession } from '@/hooks/use-shopper-session';
 import { CartDrawer } from '@/components/storefront/CartDrawer';
 import { CartFloatingBar } from '@/components/storefront/CartFloatingBar';
 
@@ -36,8 +38,6 @@ type CatalogItem = {
 };
 
 type CartLine = CatalogItem & { qty: number; productId: string };
-
-type Shopper = { id: string; name: string; phone: string | null; email: string | null };
 
 function money(n: number) {
   return `LKR ${n.toLocaleString('en-LK', { maximumFractionDigits: 0 })}`;
@@ -78,7 +78,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   const [branchId, setBranchId] = useState<string | null>(null);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
-  const [shopper, setShopper] = useState<Shopper | null>(null);
+  const { shopper, refresh: refreshSession } = useShopperSession();
   const [q, setQ] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc' | 'name_asc' | 'stock_desc'>('default');
@@ -96,12 +96,6 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
     ? {}
     : { initial: 'hidden' as const, animate: 'show' as const, variants: gridStagger };
 
-  const refreshSession = useCallback(async () => {
-    const res = await fetch('/api/auth/shopper');
-    const data = (await res.json()) as { authenticated?: boolean; customer?: Shopper };
-    setShopper(data.authenticated && data.customer ? data.customer : null);
-  }, []);
-
   useEffect(() => {
     void (async () => {
       try {
@@ -109,7 +103,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
           fetch('/api/health'),
           fetch('/api/pos/catalog'),
           fetch('/api/storefront/public'),
-          refreshSession(),
+          refreshSession(false),
         ]);
         const pub = (await pubRes.json()) as { verticalFlags?: VerticalFlags };
         if (pub.verticalFlags) setVerticalFlags({ ...DEFAULT_VERTICAL_FLAGS, ...pub.verticalFlags });
@@ -547,13 +541,13 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                     {/* Image / Thumbnail Container */}
                     <div className="relative aspect-square w-full bg-[var(--sf-muted)]/50 overflow-hidden flex items-center justify-center border-b border-[var(--sf-border)]">
                       {item.imageUrl ? (
-                        <img
+                        <Image
                           src={item.imageUrl}
                           alt={item.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          unoptimized
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center gap-1.5 text-[var(--sf-secondary)] opacity-60">

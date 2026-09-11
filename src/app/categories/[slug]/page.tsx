@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getCategoryWithProducts } from '@/lib/storefront/catalog-server';
@@ -76,11 +77,14 @@ export default async function CategoryPage({ params }: Props) {
             >
               <div>
                 {p.imageUrl ? (
-                  <div className="aspect-square w-full mb-4 overflow-hidden rounded-xl bg-slate-100 flex items-center justify-center">
-                    <img
+                  <div className="relative aspect-square w-full mb-4 overflow-hidden rounded-xl bg-slate-100">
+                    <Image
                       src={p.imageUrl}
                       alt={p.name}
-                      className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover transition duration-300 group-hover:scale-105"
+                      unoptimized
                     />
                   </div>
                 ) : (

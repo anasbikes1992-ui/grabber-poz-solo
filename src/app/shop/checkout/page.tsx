@@ -432,6 +432,7 @@ export default function ShopCheckoutPage() {
                         value={contactPhone}
                         onChange={(e) => setContactPhone(e.target.value)}
                         placeholder="07XXXXXXXX or +947XXXXXXXX"
+                        aria-describedby="checkout-phone-hint"
                         className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-xs text-zinc-200 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none"
                       />
                       <p id="checkout-phone-hint" className="mt-1 text-[10px] text-zinc-400">
