@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { TradeInModal, type TradeInCredit } from '@/components/pos/trade-in-modal';
+import { ThermalReceipt } from '@/components/pos/thermal-receipt';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
 import { BarcodeScannerListener } from '@/lib/hardware/scanner';
 import { VoiceAssistant } from '@/lib/hardware/voice-assistant';
@@ -566,14 +567,31 @@ export default function POSPage() {
 
       const effectivePaid = selectedTender === 'CASH' ? Number(cashTenderInput || grandTotal) : grandTotal;
       const effectiveChange = Math.max(0, effectivePaid - grandTotal);
+      const earnedLoyalty = loyaltyMember ? Math.floor(grandTotal / 100) : 0;
+
+      const finalCompletedOrder = {
+        orderNumber: data.order?.orderNumber || orderNumber,
+        items: [...cart],
+        grossSubtotal,
+        discountAmount,
+        discountPercent,
+        taxTotal,
+        grandTotal,
+        tender: selectedTender,
+        amountPaid: effectivePaid,
+        changeDue: effectiveChange,
+        loyaltyEarned: earnedLoyalty,
+        timestamp: new Date(),
+      };
 
       try {
+        // Optional hardware raw buffer generation for physical WebUSB/Bluetooth devices
         ESCPOSPrinterController.generateReceiptBuffer({
           storeName: 'Grabber Store',
           branchName: 'Main Counter',
           billNumber: data.order?.orderNumber || orderNumber,
           cashierName: 'Cashier',
-          date: new Date().toLocaleString(),
+          date: new Date().toLocaleString('en-LK'),
           items: cart.map((c) => ({
             name: c.name,
             qty: c.quantity,
@@ -586,28 +604,10 @@ export default function POSPage() {
           tenderMethod: selectedTender,
           amountPaid: effectivePaid,
           changeDue: effectiveChange,
-        });
-        ESCPOSPrinterController.printBrowserReceipt({
-          storeName: 'Grabber Store',
-          branchName: 'Main',
-          billNumber: orderNumber,
-          cashierName: 'Cashier',
-          date: new Date().toLocaleString(),
-          items: cart.map((c) => ({
-            name: c.name,
-            qty: c.quantity,
-            unitPrice: c.unitPrice,
-            totalPrice: c.unitPrice * c.quantity,
-          })),
-          subtotal: grossSubtotal,
-          vatAmount: taxTotal,
-          grandTotal,
-          tenderMethod: selectedTender,
-          amountPaid: effectivePaid,
-          changeDue: effectiveChange,
+          loyaltyPointsEarned: earnedLoyalty,
         });
       } catch {
-        /* optional hardware */
+        /* optional hardware fallback */
       }
 
       if (loyaltyMember) {
@@ -635,7 +635,7 @@ export default function POSPage() {
         }).catch(() => undefined);
       }
 
-      setCompletedOrder(orderData);
+      setCompletedOrder(finalCompletedOrder);
       setIsPaymentModalOpen(false);
       setCart([]);
       setDiscountPercent(0);
@@ -1487,35 +1487,9 @@ export default function POSPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    try {
-                      // Generate standard ESC/POS binary receipt
-                      const receiptBuf = ESCPOSPrinterController.generateReceiptBuffer({
-                        storeName: 'Grabber Store',
-                        branchName: 'Main Register',
-                        billNumber: completedOrder.orderNumber || 'SALE-001',
-                        cashierName: 'Staff Cashier',
-                        date: new Date().toLocaleDateString('en-LK'),
-                        items: completedOrder.items.map((it: any) => ({
-                          name: it.name,
-                          qty: it.quantity,
-                          unitPrice: it.unitPrice,
-                          totalPrice: it.unitPrice * it.quantity,
-                        })),
-                        subtotal: completedOrder.grossSubtotal,
-                        vatAmount: completedOrder.taxTotal,
-                        grandTotal: completedOrder.grandTotal,
-                        tenderMethod: completedOrder.tender,
-                        amountPaid: completedOrder.amountPaid || completedOrder.grandTotal,
-                        changeDue: completedOrder.changeDue || 0,
-                      });
-                      console.info(`Generated ${receiptBuf.byteLength} bytes ESC/POS thermal buffer`);
-                    } catch (e) {
-                      console.warn('ESC/POS generator warning:', e);
-                    }
                     window.print();
-                    setCompletedOrder(null);
                   }}
-                  className="flex-1 min-h-11 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-400 cursor-pointer btn-press"
+                  className="flex-1 min-h-11 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-400 cursor-pointer btn-press shadow-lg shadow-emerald-500/20"
                 >
                   <Printer className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Print Receipt (80mm)</span>
@@ -1537,6 +1511,36 @@ export default function POSPage() {
           }}
         />
       )}
+
+      {/* 80mm / 58mm Thermal Receipt Printable View (Isolated on Print) */}
+      <ThermalReceipt
+        data={
+          completedOrder
+            ? {
+                orderNumber: completedOrder.orderNumber,
+                storeName: 'Grabber Store',
+                storeAddress: 'Main Counter, Colombo',
+                storePhone: '+94 11 234 5678',
+                vatRegNumber: 'VAT-10029384-7000',
+                items: completedOrder.items.map((it: CartItem) => ({
+                  name: it.name,
+                  quantity: it.quantity,
+                  unitPrice: it.unitPrice,
+                  lineTotal: it.unitPrice * it.quantity,
+                })),
+                grossSubtotal: completedOrder.grossSubtotal,
+                discountPercent: completedOrder.discountPercent,
+                discountAmount: completedOrder.discountAmount,
+                taxTotal: completedOrder.taxTotal,
+                grandTotal: completedOrder.grandTotal,
+                tender: completedOrder.tender,
+                amountPaid: completedOrder.amountPaid,
+                changeDue: completedOrder.changeDue,
+                loyaltyEarned: completedOrder.loyaltyEarned,
+              }
+            : null
+        }
+      />
     </div>
   );
 }

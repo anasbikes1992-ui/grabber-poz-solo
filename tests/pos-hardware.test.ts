@@ -39,4 +39,28 @@ describe('POS Hardware Abstraction Layer (HAL)', () => {
     expect(result.success).toBe(true);
     expect(['BUFFER_SIMULATION', 'BROWSER_DIALOG']).toContain(result.method);
   });
+
+  it('generates binary ESC/POS thermal buffers for 80mm printers with VAT and line items', async () => {
+    const { ESCPOSPrinterController } = await import('@/lib/hardware/printer');
+    const buffer = ESCPOSPrinterController.generateReceiptBuffer({
+      storeName: 'Grabber Flagship',
+      branchName: 'Colombo 03',
+      billNumber: 'POS-00981',
+      cashierName: 'Cashier 01',
+      date: '2026-09-11 14:00',
+      items: [
+        { name: 'Casual Linen Shirt', qty: 1, unitPrice: 4500, totalPrice: 4500 },
+      ],
+      subtotal: 4500,
+      vatAmount: 810,
+      grandTotal: 5310,
+      tenderMethod: 'CASH',
+      amountPaid: 6000,
+      changeDue: 690,
+      loyaltyPointsEarned: 53,
+    });
+    expect(buffer).toBeInstanceOf(Uint8Array);
+    expect(buffer.byteLength).toBeGreaterThan(50);
+  });
 });
+

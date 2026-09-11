@@ -17,6 +17,8 @@ import {
   Phone,
   Sparkles,
   AlertCircle,
+  ArrowRight,
+  User,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
