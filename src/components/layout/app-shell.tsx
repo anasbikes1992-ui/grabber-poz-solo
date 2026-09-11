@@ -42,6 +42,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const bare = isPublicSurface(pathname);
 
   useEffect(() => {
+    // Root `/` metadata comes from server (company vs storefront landing) — don't overwrite
+    if (pathname === '/') return;
     document.title = `${titleFromPath(pathname)} · Grabber Business OS`;
   }, [pathname]);
 

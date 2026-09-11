@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { CompanyLanding } from '@/components/company/CompanyLanding';
+import { StorefrontHome } from '@/components/storefront/storefront-home';
+import { readStorefrontConfig } from '@/lib/config/storefront-config';
+import { resolveLandingMode } from '@/lib/config/landing-mode';
 
-export const metadata: Metadata = {
+const COMPANY_METADATA: Metadata = {
   title: 'Grabber POZ | The All-in-One Retail & Commerce OS for Sri Lanka',
   description:
     'Run your shop counter, touch POS, barcodes, inventory, customer credit (Polim Potha), online store, and Sri Lankan payment gateways from one connected standalone system.',
@@ -22,6 +26,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
+const STOREFRONT_METADATA: Metadata = {
+  title: 'Online Store | Grabber Commerce',
+  description:
+    'Browse our live inventory catalog, add items to bag, and order online with fast delivery.',
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const h = await headers();
+  const mode = resolveLandingMode(h.get('host') || h.get('x-forwarded-host'));
+  return mode === 'storefront' ? STOREFRONT_METADATA : COMPANY_METADATA;
+}
+
+export default async function HomePage() {
+  const h = await headers();
+  const mode = resolveLandingMode(h.get('host') || h.get('x-forwarded-host'));
+
+  if (mode === 'storefront') {
+    const cms = await readStorefrontConfig();
+    return <StorefrontHome cms={cms} />;
+  }
+
   return <CompanyLanding />;
 }

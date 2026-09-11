@@ -33,6 +33,7 @@ Solo multi-vertical **commerce OS** on **Next.js App Router** + **Drizzle → Po
 | Agents | `docs/AGENTS.md`, `src/lib/agents/*` |
 | Print | `docs/PRINT_THERMAL.md`, `globals.css` print, `src/lib/print/*` |
 | Ops readiness | `docs/PRODUCTION_READY.md` |
+| Root `/` landing | `src/lib/config/landing-mode.ts` — `LANDING_MODE=company\|storefront` |
 | ORM | **Drizzle only** (`POSTGRES_PRISMA_URL` is connection alias, not Prisma ORM) |
 
 If a fact is in two places, **prefer schema + service layer over UI copy**.
@@ -75,15 +76,25 @@ Think “delight + integrity under load,” not feature sprawl.
 
 ---
 
-## GAN live eval (2026-09-11)
+## GAN live eval
 
+### Pass 1 — 2026-09-11 pre-deploy
 Target: production Vercel. **FAIL 6.9/10** (threshold 7.0).
+Critical: public demo PIN minted OWNER without DB. Also: invisible dark CTAs, theme drift menu vs home, sold-out catalog, POS allowed stock 0.
 
-Critical: public demo PIN minted OWNER. Also: invisible dark CTAs, theme drift menu vs home, zero in-stock SKUs, POS allowed stock 0.
+### Pass 2 — 2026-09-11 post-push (`0b59032` on `main`)
+Code integrity checklist **10/10 OK** (demo gate, supervisor-pin, license throw, menu filters, unique `client_uuid`, `--sf-on-surface`, shopper anon 200).
 
-Remediations landed in this session: auth gate, supervisor-pin API, theme tokens + shell CMS wiring, POS stock gate, shopper anon 200, menu itemType + kot uniqueness, license key, client_uuid unique migration.
+Live probes:
+- `/adminpoz` — demo copy + Fill Demo PIN **gone** ✓
+- `POST /api/auth/login` with unknown email + `1234` → **401** (no synthetic demo user) ✓
+- `POST` with role OWNER + `1234` (no email) → **200 real seed user** `owner@store.local` — not `demo:true`, but **weak seed PIN still opens OWNER** ⚠
+- `/shop` + `/shop/menu` — same dark theme ✓; CTA contrast improved ✓
+- Catalog / dining menu — **empty** (“0 items” / “seed restaurant preset”) — conversion still blocked
+- `/api/health` — `db:connected`, `sentry:off`
+- Shopper GET anonymous → **200** ✓
 
-**Re-eval after deploy** expected to clear C1 and most polish scores; C4 (empty stock) remains data/ops.
+**Verdict:** eng hardening **landed**; remaining gap is **ops/data** (rotate seed PINs, seed stock + restaurant menu, Sentry on, apply migration `0016` on DB).
 
 ---
 

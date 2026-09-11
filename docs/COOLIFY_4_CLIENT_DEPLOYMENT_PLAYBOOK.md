@@ -17,6 +17,17 @@ See [`DEPLOY_INCIDENT_COOLIFY_2026-09-11.md`](./DEPLOY_INCIDENT_COOLIFY_2026-09-
 
 ---
 
+## 0. Landing pages (company vs client)
+
+| Instance | Domain | Coolify env | `/` shows |
+|----------|--------|-------------|-----------|
+| **HQ / sales** | `grabberpoz.com`, `demo.grabberpoz.com` | `LANDING_MODE=company` (or omit — hosts are allowlisted) | Marketing site (CompanyLanding) |
+| **Clients** | `shoppingstation.…`, etc. | **`LANDING_MODE=storefront`** | Online shop (same as `/shop`) |
+
+Staff portal stays at `/adminpoz`. Company site still links to `/shop` for storefront demos.
+
+---
+
 ## 1. Overview of the 4 Client Installations
 
 On your Contabo VPS, **Coolify** manages 4 isolated client stacks. Each client has their own Application container and their own private PostgreSQL database.
@@ -77,6 +88,7 @@ In Coolify UI:
 - **Environment Variables:**
   ```env
   NODE_ENV=production
+  LANDING_MODE=storefront
   DATABASE_URL=postgres://postgres:<password>@grabber-db-01:5432/shoppingstation_db
   AUTH_SECRET=generate_random_32_chars_secret_here
   CRON_SECRET=generate_random_cron_secret_here
@@ -88,6 +100,7 @@ In Coolify UI:
 - **Environment Variables:**
   ```env
   NODE_ENV=production
+  LANDING_MODE=storefront
   DATABASE_URL=postgres://postgres:<password>@grabber-db-02:5432/thepartystore_db
   AUTH_SECRET=generate_random_32_chars_secret_here
   CRON_SECRET=generate_random_cron_secret_here
@@ -99,6 +112,7 @@ In Coolify UI:
 - **Environment Variables:**
   ```env
   NODE_ENV=production
+  LANDING_MODE=storefront
   DATABASE_URL=postgres://postgres:<password>@grabber-db-03:5432/asmobiles_db
   AUTH_SECRET=generate_random_32_chars_secret_here
   CRON_SECRET=generate_random_cron_secret_here
@@ -110,6 +124,7 @@ In Coolify UI:
 - **Environment Variables:**
   ```env
   NODE_ENV=production
+  LANDING_MODE=storefront
   DATABASE_URL=postgres://postgres:<password>@grabber-db-04:5432/wowthings_db
   AUTH_SECRET=generate_random_32_chars_secret_here
   CRON_SECRET=generate_random_cron_secret_here
