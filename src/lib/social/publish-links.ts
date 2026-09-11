@@ -1,3 +1,4 @@
+import { getStoreUrl } from '@/lib/config/app-url';
 import type { SocialChannelId, SocialChannelsConfig } from '@/lib/social/channels';
 import { profileUrlForChannel } from '@/lib/social/channels';
 
@@ -16,7 +17,7 @@ export function buildPublishPresets(input: {
   mediaUrl?: string;
   ctaText?: string;
 }): PublishPreset[] {
-  const shopUrl = process.env.NEXT_PUBLIC_STORE_URL || process.env.NEXT_PUBLIC_APP_URL || '';
+  const shopUrl = getStoreUrl();
   const cta = input.ctaText || `Shop now: ${shopUrl}/products`;
   const caption = `${input.campaignTitle}\n\n${cta}`.trim();
 

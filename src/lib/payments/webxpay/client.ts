@@ -1,4 +1,5 @@
 import { getWebXPayConfig, isWebXPayConfigured, type WebXPayConfig } from '@/lib/payments/lkr-provider';
+import { getAppUrl } from '@/lib/config/app-url';
 
 export { getWebXPayConfig, isWebXPayConfigured, type WebXPayConfig };
 
@@ -20,7 +21,7 @@ export function generateWebXPayPayload(input: WebXPayPayloadInput, config?: WebX
 
   const amount = Number(input.amount).toFixed(2);
   const orderId = String(input.orderNumber).trim();
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const appUrl = getAppUrl().replace(/\/$/, '');
 
   const checkoutUrl =
     cfg.env === 'live'

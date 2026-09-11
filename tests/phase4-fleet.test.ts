@@ -8,10 +8,10 @@ function read(rel: string) {
 }
 
 describe('Phase 4 fleet & hygiene', () => {
-  it('provision docs and runbook mention 0012', () => {
+  it('provision docs and runbook mention the current migration range', () => {
     expect(fs.existsSync(path.join(root, 'docs/PROVISION_NEXT_CLIENT.md'))).toBe(true);
-    expect(read('scripts/provision-client.mjs')).toContain('0012');
-    expect(read('docs/FRESH_START.md')).toContain('0012');
+    expect(read('scripts/provision-client.mjs')).toContain('0016');
+    expect(read('docs/FRESH_START.md')).toContain('0016');
   });
 
   it('DB-06 validate script and pending 0013 exist', () => {

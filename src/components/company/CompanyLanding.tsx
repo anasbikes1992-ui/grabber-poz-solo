@@ -27,7 +27,8 @@ import {
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
-export function CompanyLanding() {
+/** `demoUrl`: origin of the demo merchant (e.g. https://demo.grabberpoz.com). Empty = same origin. */
+export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
   // Lead Capture Form State
   const [formData, setFormData] = useState({
     businessName: '',
@@ -98,14 +99,14 @@ export function CompanyLanding() {
 
           <div className="flex items-center gap-3">
             <Link
-              href="/adminpoz"
+              href={`${demoUrl}/adminpoz`}
               className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl border border-slate-700 bg-slate-900/80 text-xs font-bold text-slate-200 hover:bg-slate-800 hover:text-white transition-colors"
             >
               <Lock className="w-3.5 h-3.5 text-amber-400" aria-hidden />
               <span>Staff Portal</span>
             </Link>
             <Link
-              href="/shop"
+              href={`${demoUrl}/shop`}
               className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs font-bold text-amber-400 hover:bg-amber-500/20 transition-colors"
             >
               <Store className="w-3.5 h-3.5" aria-hidden />
@@ -200,14 +201,14 @@ export function CompanyLanding() {
               <ArrowRight className="w-5 h-5" />
             </a>
             <Link
-              href="/adminpoz"
+              href={`${demoUrl}/adminpoz`}
               className="px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold text-base transition-all flex items-center gap-2"
             >
               <Monitor className="w-5 h-5 text-amber-400" />
               <span>Try Live Cashier POS</span>
             </Link>
             <Link
-              href="/shop"
+              href={`${demoUrl}/shop`}
               className="px-8 py-4 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-amber-500/30 text-amber-300 font-bold text-base transition-all flex items-center gap-2"
             >
               <Store className="w-5 h-5 text-amber-400" />
@@ -699,7 +700,7 @@ export function CompanyLanding() {
                 Experience what your shoppers see: browse sample catalog, test promo codes, add to bag, and simulate checkout.
               </p>
               <Link
-                href="/shop"
+                href={`${demoUrl}/shop`}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-colors"
               >
                 <span>Open Storefront Demo</span>
@@ -716,7 +717,7 @@ export function CompanyLanding() {
                 Test the staff counter POS: select cashier role, enter PIN, scan barcodes, and ring up sales.
               </p>
               <Link
-                href="/adminpoz"
+                href={`${demoUrl}/adminpoz`}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-colors"
               >
                 <span>Launch Cashier POS</span>
@@ -755,7 +756,7 @@ export function CompanyLanding() {
                 </p>
                 <div className="pt-4">
                   <Link
-                    href="/shop"
+                    href={`${demoUrl}/shop`}
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm"
                   >
                     <span>Explore Storefront Demo in the meantime</span>
@@ -904,8 +905,8 @@ export function CompanyLanding() {
           </div>
 
           <div className="flex flex-wrap items-center gap-6">
-            <Link href="/shop" className="hover:text-white transition-colors">Storefront Demo</Link>
-            <Link href="/adminpoz" className="hover:text-white transition-colors">Staff Portal</Link>
+            <Link href={`${demoUrl}/shop`} className="hover:text-white transition-colors">Storefront Demo</Link>
+            <Link href={`${demoUrl}/adminpoz`} className="hover:text-white transition-colors">Staff Portal</Link>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             <a href="#contact" className="hover:text-white transition-colors">Contact Sales</a>

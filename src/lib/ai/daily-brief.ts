@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { db, orders, stockBalances, products } from '@/db';
+import { getStoreName } from '@/lib/config/app-url';
 import { readBusinessProfile } from '@/lib/config/business-settings';
 
 export type DailyBrief = {
@@ -40,7 +41,7 @@ export async function buildDailyBrief(): Promise<DailyBrief> {
   const count = Number(ordersToday?.count || 0);
 
   return {
-    storeName: profile?.name || process.env.NEXT_PUBLIC_STORE_NAME || 'Grabber Store',
+    storeName: profile?.name || getStoreName(),
     date: new Date().toISOString().slice(0, 10),
     salesToday: sales,
     ordersToday: count,

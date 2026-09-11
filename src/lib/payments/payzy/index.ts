@@ -3,6 +3,7 @@
  * Implements PaymentGateway for Payzy (Sri Lanka)
  */
 
+import { getAppUrl } from '@/lib/config/app-url';
 import type { PaymentGateway } from '../payment-gateway';
 import type { PaymentGatewayCapabilities } from '../payment-capabilities';
 import { CAPABILITIES_PAYZY } from '../payment-capabilities';
@@ -44,7 +45,7 @@ export class PayzyGateway implements PaymentGateway {
     }
 
     const cfg = getPayzyConfig();
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const appUrl = getAppUrl().replace(/\/$/, '');
     const baseUrl =
       cfg.env === 'live' ? 'https://checkout.payzy.lk' : 'https://sandbox-checkout.payzy.lk';
 

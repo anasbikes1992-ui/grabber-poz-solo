@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, products, businessProfile } from '@/db';
 import { getSession } from '@/lib/auth/session';
+import { getStoreName, getStoreUrl } from '@/lib/config/app-url';
 
 /** Meta / Facebook catalog feed (RSS-style XML) from live products. */
 export async function GET() {
@@ -12,8 +13,8 @@ export async function GET() {
     }
 
     const [bp] = await db.select().from(businessProfile).limit(1);
-    const storeName = bp?.name || process.env.NEXT_PUBLIC_STORE_NAME || 'Grabber Store';
-    const baseUrl = process.env.NEXT_PUBLIC_STORE_URL || process.env.NEXT_PUBLIC_APP_URL || '';
+    const storeName = bp?.name || getStoreName();
+    const baseUrl = getStoreUrl();
     const catalog = await db.select().from(products).where(eq(products.isActive, true)).limit(500);
 
     const items = catalog

@@ -164,6 +164,32 @@ export async function runEnvironmentValidation() {
     console.log(`  ℹ CRON_SECRET:              Not set (required with --production)`);
   }
 
+  const masterKey = (process.env.MASTER_ENCRYPTION_KEY || '').trim();
+  if (isProduction && !masterKey) {
+    p0Errors.push(
+      'MASTER_ENCRYPTION_KEY is required in production. Without it, stored secrets (API tokens, ' +
+        'webhook keys) fall back to a fixed, publicly-known derived key.',
+    );
+    console.log(`  ✗ MASTER_ENCRYPTION_KEY:    MISSING (CRITICAL in production)`);
+  } else if (isProduction && masterKey.length < 32) {
+    p0Errors.push('MASTER_ENCRYPTION_KEY must be at least 32 characters in production.');
+    console.log(`  ✗ MASTER_ENCRYPTION_KEY:    TOO SHORT (<32 chars)`);
+  } else if (masterKey) {
+    console.log(`  ✓ MASTER_ENCRYPTION_KEY:    CONFIGURED (${maskSecret(masterKey)})`);
+  } else {
+    p1Warnings.push('MASTER_ENCRYPTION_KEY is not set. Do not deploy without a strong random key.');
+    console.log(`  ⚠ MASTER_ENCRYPTION_KEY:    NOT SET`);
+  }
+
+  // Uniqueness across tenants can't be verified from a single process — this
+  // validator only runs against one instance's env at a time. Flag the risk
+  // so an operator provisioning multiple tenants from the same template
+  // remembers to generate a fresh secret per tenant rather than copy-pasting.
+  if (isProduction && authSecret && masterKey && authSecret === masterKey) {
+    p0Errors.push('AUTH_SECRET and MASTER_ENCRYPTION_KEY must not be the same value.');
+    console.log(`  ✗ Secret reuse:             AUTH_SECRET === MASTER_ENCRYPTION_KEY (FORBIDDEN)`);
+  }
+
   console.log(`\n[P1] STORAGE & SUPABASE CLIENT LAYER`);
   const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const sbAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -180,7 +206,7 @@ export async function runEnvironmentValidation() {
   console.log(`\n[P1] EXTERNAL COMMERCE & LOGISTICS INTEGRATIONS`);
 
   if (process.env.PAYHERE_MERCHANT_ID && process.env.PAYHERE_SECRET) {
-    const mode = process.env.PAYHERE_MODE || 'live';
+    const mode = process.env.PAYHERE_MODE || 'sandbox';
     console.log(
       `  ✓ PayHere Gateway:          ACTIVE (Merchant: ${maskSecret(process.env.PAYHERE_MERCHANT_ID)}, Mode: ${mode})`
     );

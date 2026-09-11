@@ -3,6 +3,7 @@
  * Implements PaymentGateway for Koko Buy Now Pay Later (Sri Lanka)
  */
 
+import { getAppUrl } from '@/lib/config/app-url';
 import type { PaymentGateway } from '../payment-gateway';
 import type { PaymentGatewayCapabilities } from '../payment-capabilities';
 import { CAPABILITIES_KOKO } from '../payment-capabilities';
@@ -44,7 +45,7 @@ export class KokoGateway implements PaymentGateway {
     }
 
     const cfg = getKokoConfig();
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const appUrl = getAppUrl().replace(/\/$/, '');
     const baseUrl =
       cfg.env === 'live' ? 'https://checkout.kokopay.com' : 'https://staging-checkout.kokopay.com';
 

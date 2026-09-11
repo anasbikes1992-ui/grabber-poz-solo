@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db, creativeJobs, creativeProjects } from '@/db';
 import { readBrandBrain } from '@/lib/creative/brand-brain';
+import { getAppUrl } from '@/lib/config/app-url';
 import { generatePdfDocument, type PdfTemplateKind } from '@/lib/creative/pdf-studio';
 import { saveCreativeAsset } from '@/lib/creative/asset-library';
 
@@ -22,7 +23,7 @@ export async function processCreativePdfJob(payload: CreativePdfPayload): Promis
   if (!jobId || !projectId) throw new Error('Creative PDF job missing jobId or projectId');
 
   const brand = await readBrandBrain();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || '';
+  const baseUrl = getAppUrl();
 
   await db
     .update(creativeJobs)

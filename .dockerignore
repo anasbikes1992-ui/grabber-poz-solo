@@ -1,0 +1,40 @@
+# Never let secrets, VCS history, or dev/business artifacts into the build
+# context — the Dockerfile does `COPY . .` in the builder stage, so anything
+# not excluded here lands in an image layer.
+
+.git
+.gitignore
+node_modules
+.next
+out
+dist
+coverage
+
+# Environment files — real secrets must never enter a build layer.
+.env
+.env.*
+!.env.example
+
+# Business / operational artifacts — not needed to build the app, and some
+# carry client data (catalogs, credentials).
+excel
+reports
+postman
+docs
+clients
+creative-engine
+design-system
+themes
+supabase
+src/graphify-out
+
+# Editor/OS noise
+.DS_Store
+*.log
+.vscode
+.idea
+
+# Build metadata not needed inside the image
+*.tsbuildinfo
+next-env.d.ts
+.vercel

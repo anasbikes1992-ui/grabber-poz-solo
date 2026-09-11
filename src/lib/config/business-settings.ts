@@ -3,6 +3,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { db, businessConfig, businessProfile, hasDatabaseUrl } from '@/db';
+import { getStoreName } from '@/lib/config/app-url';
 
 export type MarketingConfig = {
   metaPixelId?: string;
@@ -118,7 +119,7 @@ export async function upsertBusinessProfile(input: {
   const [created] = await db
     .insert(businessProfile)
     .values({
-      name: input.name || process.env.NEXT_PUBLIC_STORE_NAME || 'Grabber Business OS',
+      name: input.name || getStoreName(),
       currency: input.currency || 'LKR',
       timezone: input.timezone || 'Asia/Colombo',
       ...input,
