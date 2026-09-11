@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { COOKIE_NAME, CUSTOMER_COOKIE_NAME, isStaffMiddlewareOptional } from '@/lib/auth/session-constants';
 import { decodeSessionEdge } from '@/lib/auth/session-edge';
+import { isRouteAllowedForRole } from '@/lib/auth/rbac-rules';
 import { checkPathRateLimit, clientIpFromHeaders } from '@/lib/security/rate-limit';
 
 /** Public marketing / storefront / auth / webhooks */
-const PUBLIC_EXACT = new Set(['/', '/store', '/shop', '/shop/login', '/adminpoz', '/login']);
+const PUBLIC_EXACT = new Set(['/', '/store', '/shop', '/shop/login', '/adminpoz', '/login', '/unauthorized']);
 const PUBLIC_PREFIXES = [
   '/shop/',
   '/categories/',
@@ -164,6 +165,16 @@ export async function middleware(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Server-side API RBAC check for sensitive staff endpoints
+    const strippedApi = pathname.replace(/^\/api/, '');
+    if (!isRouteAllowedForRole(session.role, strippedApi)) {
+      return NextResponse.json(
+        { success: false, error: `Forbidden: role '${session.role}' is not authorized for this resource` },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.next();
   }
 
@@ -174,6 +185,15 @@ export async function middleware(req: NextRequest) {
       const url = req.nextUrl.clone();
       url.pathname = '/adminpoz';
       url.searchParams.set('next', pathname);
+      return NextResponse.redirect(url);
+    }
+
+    // Server-side page RBAC check
+    if (!isRouteAllowedForRole(session.role, pathname)) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/unauthorized';
+      url.searchParams.set('from', pathname);
+      url.searchParams.set('role', session.role);
       return NextResponse.redirect(url);
     }
   }

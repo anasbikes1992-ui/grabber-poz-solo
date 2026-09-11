@@ -19,35 +19,59 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'PIN required (min 4 digits)' }, { status: 400 });
     }
 
+    // Normalize role string (e.g. 'CREATIVE' -> 'MARKETING')
+    const normalizedRole: SessionRole | undefined = role
+      ? role.toUpperCase() === 'CREATIVE'
+        ? 'MARKETING'
+        : (role.toUpperCase() as SessionRole)
+      : undefined;
+
     // Prefer email lookup; fallback to first active user matching role
     let user;
-    if (email) {
-      const [row] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const cleanEmail = email?.trim()?.toLowerCase();
+
+    if (cleanEmail) {
+      const [row] = await db.select().from(users).where(eq(users.email, cleanEmail)).limit(1);
       user = row;
-    } else if (role) {
-      const rows = await db.select().from(users).where(eq(users.role, role as SessionRole)).limit(5);
+
+      // Strict role enforcement: reject role claim mismatch
+      if (user && normalizedRole && user.role !== normalizedRole) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Role mismatch: account '${cleanEmail}' is registered as '${user.role}', but '${role}' was requested.`,
+          },
+          { status: 401 }
+        );
+      }
+    } else if (normalizedRole) {
+      const rows = await db.select().from(users).where(eq(users.role, normalizedRole)).limit(10);
       user = rows.find((u) => u.active) || rows[0];
     }
 
-    // Dev bootstrap: if no users exist, allow demo OWNER with pin 1234 and create temp user is NOT done here —
-    // require seeded users. In development without DB user, accept demo session.
+    // Dev bootstrap: if no users exist, allow demo session with pin 1234
     if (!user) {
       if (process.env.NODE_ENV !== 'production' && pin === '1234') {
+        const demoRole = normalizedRole || 'OWNER';
         await setSessionCookie({
           userId: '00000000-0000-0000-0000-000000000001',
-          email: email || 'owner@localhost',
-          name: 'Demo Owner',
-          role: (role as SessionRole) || 'OWNER',
+          email: cleanEmail || `${demoRole.toLowerCase()}@store.local`,
+          name: `Demo ${demoRole}`,
+          role: demoRole,
           mustRotateCredentials: true,
         });
         return NextResponse.json({
           success: true,
           demo: true,
           mustRotateCredentials: true,
-          user: { role: role || 'OWNER', name: 'Demo Owner' },
+          user: { role: demoRole, name: `Demo ${demoRole}` },
         });
       }
-      return NextResponse.json({ success: false, error: 'User not found. Seed an OWNER account.' }, { status: 401 });
+      const roleMsg = normalizedRole ? ` for role '${normalizedRole}'` : '';
+      return NextResponse.json(
+        { success: false, error: `User account not found${roleMsg}. Please seed staff accounts or verify login credentials.` },
+        { status: 401 }
+      );
     }
 
     if (!user.active) {

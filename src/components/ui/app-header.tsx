@@ -41,6 +41,8 @@ import {
   DEFAULT_VERTICAL_FLAGS,
   type VerticalFlags,
 } from '@/lib/config/vertical-flags';
+import { isRouteAllowedForRole } from '@/lib/auth/rbac-rules';
+import type { SessionRole } from '@/lib/auth/session-edge';
 
 interface SessionUser {
   email: string;
@@ -192,11 +194,19 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     { href: '/settings/installation', label: 'Cloud & License', icon: Briefcase, desc: 'Dedicated host & status' },
   ];
 
-  const isCommerceActive = commerceItems.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
-  const isInventoryActive = inventoryItems.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
-  const isFinanceActive = financeItems.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
-  const isVerticalsActive = verticalItems.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
-  const isSettingsActive = settingsItems.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const userRole: SessionRole = (user?.role as SessionRole) || 'OWNER';
+
+  const allowedCommerce = commerceItems.filter((i) => i.external || isRouteAllowedForRole(userRole, i.href));
+  const allowedInventory = inventoryItems.filter((i) => isRouteAllowedForRole(userRole, i.href));
+  const allowedFinance = financeItems.filter((i) => isRouteAllowedForRole(userRole, i.href));
+  const allowedVerticals = verticalItems.filter((i) => isRouteAllowedForRole(userRole, i.href));
+  const allowedSettings = settingsItems.filter((i) => isRouteAllowedForRole(userRole, i.href));
+
+  const isCommerceActive = allowedCommerce.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const isInventoryActive = allowedInventory.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const isFinanceActive = allowedFinance.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const isVerticalsActive = allowedVerticals.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
+  const isSettingsActive = allowedSettings.some((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
 
   return (
     <>
@@ -219,7 +229,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
               <Menu className="w-5 h-5" />
             </button>
 
-            <Link href="/app" className="flex items-center gap-2 group transition active:scale-95">
+            <Link href={isRouteAllowedForRole(userRole, '/app') ? '/app' : '/pos'} className="flex items-center gap-2 group transition active:scale-95">
               <BrandLogo size="sm" showTagline={false} />
             </Link>
 
@@ -236,266 +246,278 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
             aria-label="Staff Navigation"
           >
             {/* Quick Action: Counter POS */}
-            <Link
-              href="/pos"
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer mr-1 ${
-                pathname === '/pos'
-                  ? 'bg-emerald-400 text-zinc-950 shadow-emerald-500/30'
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-emerald-500/20'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>{t('counterPos', lang)}</span>
-            </Link>
+            {isRouteAllowedForRole(userRole, '/pos') && (
+              <Link
+                href="/pos"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer mr-1 ${
+                  pathname === '/pos'
+                    ? 'bg-emerald-400 text-zinc-950 shadow-emerald-500/30'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-emerald-500/20'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span>{t('counterPos', lang)}</span>
+              </Link>
+            )}
 
             {/* Dropdown: Commerce */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => toggleDropdown('commerce')}
-                aria-haspopup="true"
-                aria-expanded={openDropdown === 'commerce'}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                  isCommerceActive || openDropdown === 'commerce'
-                    ? 'bg-secondary text-foreground border border-border'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                }`}
-              >
-                <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Commerce</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'commerce' ? 'rotate-180' : ''}`} />
-              </button>
+            {allowedCommerce.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown('commerce')}
+                  aria-haspopup="true"
+                  aria-expanded={openDropdown === 'commerce'}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                    isCommerceActive || openDropdown === 'commerce'
+                      ? 'bg-secondary text-foreground border border-border'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`}
+                >
+                  <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Commerce</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'commerce' ? 'rotate-180' : ''}`} />
+                </button>
 
-              {openDropdown === 'commerce' && (
-                <div className="absolute top-full left-0 mt-1.5 w-60 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
-                    Commerce & Customers
-                  </div>
-                  {commerceItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        target={item.external ? '_blank' : undefined}
-                        onClick={() => setOpenDropdown(null)}
-                        className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
-                          active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
-                        }`}
-                      >
-                        <div className="p-1 rounded-lg bg-card border border-border text-emerald-400 mt-0.5">
-                          <Icon className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold leading-tight flex items-center gap-1">
-                            {item.label}
-                            {item.external && <ExternalLink className="w-2.5 h-2.5 text-muted-foreground" />}
+                {openDropdown === 'commerce' && (
+                  <div className="absolute top-full left-0 mt-1.5 w-60 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
+                      Commerce & Customers
+                    </div>
+                    {allowedCommerce.map((item) => {
+                      const Icon = item.icon;
+                      const active = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          target={item.external ? '_blank' : undefined}
+                          onClick={() => setOpenDropdown(null)}
+                          className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
+                            active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <div className="p-1 rounded-lg bg-card border border-border text-emerald-400 mt-0.5">
+                            <Icon className="w-3.5 h-3.5" />
                           </div>
-                          <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                          <div>
+                            <div className="text-xs font-bold leading-tight flex items-center gap-1">
+                              {item.label}
+                              {item.external && <ExternalLink className="w-2.5 h-2.5 text-muted-foreground" />}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Dropdown: Inventory */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => toggleDropdown('inventory')}
-                aria-haspopup="true"
-                aria-expanded={openDropdown === 'inventory'}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                  isInventoryActive || openDropdown === 'inventory'
-                    ? 'bg-secondary text-foreground border border-border'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                }`}
-              >
-                <Package className="w-3.5 h-3.5 text-teal-400" />
-                <span>Inventory</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'inventory' ? 'rotate-180' : ''}`} />
-              </button>
+            {allowedInventory.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown('inventory')}
+                  aria-haspopup="true"
+                  aria-expanded={openDropdown === 'inventory'}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                    isInventoryActive || openDropdown === 'inventory'
+                      ? 'bg-secondary text-foreground border border-border'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`}
+                >
+                  <Package className="w-3.5 h-3.5 text-teal-400" />
+                  <span>Inventory</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'inventory' ? 'rotate-180' : ''}`} />
+                </button>
 
-              {openDropdown === 'inventory' && (
-                <div className="absolute top-full left-0 mt-1.5 w-64 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
-                    Multi-Warehouse & Stock
+                {openDropdown === 'inventory' && (
+                  <div className="absolute top-full left-0 mt-1.5 w-64 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
+                      Multi-Warehouse & Stock
+                    </div>
+                    {allowedInventory.map((item) => {
+                      const Icon = item.icon;
+                      const active = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setOpenDropdown(null)}
+                          className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
+                            active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <div className="p-1 rounded-lg bg-card border border-border text-teal-400 mt-0.5">
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold leading-tight">{item.label}</div>
+                            <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
-                  {inventoryItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setOpenDropdown(null)}
-                        className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
-                          active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
-                        }`}
-                      >
-                        <div className="p-1 rounded-lg bg-card border border-border text-teal-400 mt-0.5">
-                          <Icon className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold leading-tight">{item.label}</div>
-                          <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Dropdown: Finance */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => toggleDropdown('finance')}
-                aria-haspopup="true"
-                aria-expanded={openDropdown === 'finance'}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                  isFinanceActive || openDropdown === 'finance'
-                    ? 'bg-secondary text-foreground border border-border'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                }`}
-              >
-                <BookOpen className="w-3.5 h-3.5 text-purple-400" />
-                <span>Finance</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'finance' ? 'rotate-180' : ''}`} />
-              </button>
+            {allowedFinance.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown('finance')}
+                  aria-haspopup="true"
+                  aria-expanded={openDropdown === 'finance'}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                    isFinanceActive || openDropdown === 'finance'
+                      ? 'bg-secondary text-foreground border border-border'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Finance</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'finance' ? 'rotate-180' : ''}`} />
+                </button>
 
-              {openDropdown === 'finance' && (
-                <div className="absolute top-full left-0 mt-1.5 w-64 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
-                    Ledger, AR & Reports
+                {openDropdown === 'finance' && (
+                  <div className="absolute top-full left-0 mt-1.5 w-64 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
+                      Ledger, AR & Reports
+                    </div>
+                    {allowedFinance.map((item) => {
+                      const Icon = item.icon;
+                      const active = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setOpenDropdown(null)}
+                          className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
+                            active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <div className="p-1 rounded-lg bg-card border border-border text-purple-400 mt-0.5">
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold leading-tight">{item.label}</div>
+                            <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
-                  {financeItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setOpenDropdown(null)}
-                        className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
-                          active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
-                        }`}
-                      >
-                        <div className="p-1 rounded-lg bg-card border border-border text-purple-400 mt-0.5">
-                          <Icon className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold leading-tight">{item.label}</div>
-                          <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Dropdown: Verticals */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => toggleDropdown('verticals')}
-                aria-haspopup="true"
-                aria-expanded={openDropdown === 'verticals'}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                  isVerticalsActive || openDropdown === 'verticals'
-                    ? 'bg-secondary text-foreground border border-border'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                }`}
-              >
-                <Briefcase className="w-3.5 h-3.5 text-amber-400" />
-                <span>Verticals</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'verticals' ? 'rotate-180' : ''}`} />
-              </button>
+            {allowedVerticals.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown('verticals')}
+                  aria-haspopup="true"
+                  aria-expanded={openDropdown === 'verticals'}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                    isVerticalsActive || openDropdown === 'verticals'
+                      ? 'bg-secondary text-foreground border border-border'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`}
+                >
+                  <Briefcase className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Verticals</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'verticals' ? 'rotate-180' : ''}`} />
+                </button>
 
-              {openDropdown === 'verticals' && (
-                <div className="absolute top-full left-0 mt-1.5 w-68 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
-                    Industry Special Modules
+                {openDropdown === 'verticals' && (
+                  <div className="absolute top-full left-0 mt-1.5 w-68 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
+                      Industry Special Modules
+                    </div>
+                    {allowedVerticals.map((item) => {
+                      const Icon = item.icon;
+                      const active = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setOpenDropdown(null)}
+                          className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
+                            active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <div className="p-1 rounded-lg bg-card border border-border text-amber-400 mt-0.5">
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold leading-tight">{item.label}</div>
+                            <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
-                  {verticalItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setOpenDropdown(null)}
-                        className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
-                          active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
-                        }`}
-                      >
-                        <div className="p-1 rounded-lg bg-card border border-border text-amber-400 mt-0.5">
-                          <Icon className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold leading-tight">{item.label}</div>
-                          <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Dropdown: Settings & Hub */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => toggleDropdown('settings')}
-                aria-haspopup="true"
-                aria-expanded={openDropdown === 'settings'}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
-                  isSettingsActive || openDropdown === 'settings'
-                    ? 'bg-secondary text-foreground border border-border'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                }`}
-              >
-                <Settings className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Settings</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'settings' ? 'rotate-180' : ''}`} />
-              </button>
+            {allowedSettings.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown('settings')}
+                  aria-haspopup="true"
+                  aria-expanded={openDropdown === 'settings'}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                    isSettingsActive || openDropdown === 'settings'
+                      ? 'bg-secondary text-foreground border border-border'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                  }`}
+                >
+                  <Settings className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Settings</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'settings' ? 'rotate-180' : ''}`} />
+                </button>
 
-              {openDropdown === 'settings' && (
-                <div className="absolute top-full right-0 mt-1.5 w-60 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
-                    System & Operations
+                {openDropdown === 'settings' && (
+                  <div className="absolute top-full right-0 mt-1.5 w-60 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
+                      System & Operations
+                    </div>
+                    {allowedSettings.map((item) => {
+                      const Icon = item.icon;
+                      const active = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setOpenDropdown(null)}
+                          className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
+                            active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
+                          }`}
+                        >
+                          <div className="p-1 rounded-lg bg-card border border-border text-zinc-400 mt-0.5">
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold leading-tight">{item.label}</div>
+                            <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
-                  {settingsItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setOpenDropdown(null)}
-                        className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl transition cursor-pointer ${
-                          active ? 'bg-secondary text-foreground font-semibold' : 'text-foreground hover:bg-secondary/60'
-                        }`}
-                      >
-                        <div className="p-1 rounded-lg bg-card border border-border text-zinc-400 mt-0.5">
-                          <Icon className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold leading-tight">{item.label}</div>
-                          <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* User Controls & Session Status */}
@@ -624,130 +646,140 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
               {/* Categorized Modules */}
               <div className="space-y-4 text-xs">
                 {/* Commerce */}
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <ShoppingBag className="w-3 h-3 text-emerald-400" />
-                    Commerce & Sales
+                {allowedCommerce.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <ShoppingBag className="w-3 h-3 text-emerald-400" />
+                      Commerce & Sales
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {allowedCommerce.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          target={item.external ? '_blank' : undefined}
+                          onClick={() => setMobileDrawerOpen(false)}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
+                            pathname === item.href
+                              ? 'bg-secondary text-foreground font-bold border-border'
+                              : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                          }`}
+                        >
+                          <item.icon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {commerceItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        target={item.external ? '_blank' : undefined}
-                        onClick={() => setMobileDrawerOpen(false)}
-                        className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
-                          pathname === item.href
-                            ? 'bg-secondary text-foreground font-bold border-border'
-                            : 'bg-card text-muted-foreground border-border hover:text-foreground'
-                        }`}
-                      >
-                        <item.icon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+                )}
 
                 {/* Inventory */}
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <Package className="w-3 h-3 text-teal-400" />
-                    Multi-Warehouse & Stock
+                {allowedInventory.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Package className="w-3 h-3 text-teal-400" />
+                      Multi-Warehouse & Stock
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {allowedInventory.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileDrawerOpen(false)}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
+                            pathname === item.href
+                              ? 'bg-secondary text-foreground font-bold border-border'
+                              : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                          }`}
+                        >
+                          <item.icon className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {inventoryItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileDrawerOpen(false)}
-                        className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
-                          pathname === item.href
-                            ? 'bg-secondary text-foreground font-bold border-border'
-                            : 'bg-card text-muted-foreground border-border hover:text-foreground'
-                        }`}
-                      >
-                        <item.icon className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+                )}
 
                 {/* Finance */}
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <BookOpen className="w-3 h-3 text-purple-400" />
-                    Ledger & Finance
+                {allowedFinance.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <BookOpen className="w-3 h-3 text-purple-400" />
+                      Ledger & Finance
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {allowedFinance.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileDrawerOpen(false)}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
+                            pathname === item.href
+                              ? 'bg-secondary text-foreground font-bold border-border'
+                              : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                          }`}
+                        >
+                          <item.icon className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {financeItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileDrawerOpen(false)}
-                        className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
-                          pathname === item.href
-                            ? 'bg-secondary text-foreground font-bold border-border'
-                            : 'bg-card text-muted-foreground border-border hover:text-foreground'
-                        }`}
-                      >
-                        <item.icon className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+                )}
 
                 {/* Verticals */}
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <Briefcase className="w-3 h-3 text-amber-400" />
-                    Industry Special Modules
+                {allowedVerticals.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Briefcase className="w-3 h-3 text-amber-400" />
+                      Industry Special Modules
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {allowedVerticals.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileDrawerOpen(false)}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
+                            pathname === item.href
+                              ? 'bg-secondary text-foreground font-bold border-border'
+                              : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                          }`}
+                        >
+                          <item.icon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {verticalItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileDrawerOpen(false)}
-                        className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
-                          pathname === item.href
-                            ? 'bg-secondary text-foreground font-bold border-border'
-                            : 'bg-card text-muted-foreground border-border hover:text-foreground'
-                        }`}
-                      >
-                        <item.icon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+                )}
 
                 {/* System Settings */}
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <Settings className="w-3 h-3 text-zinc-400" />
-                    System & Operations
+                {allowedSettings.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Settings className="w-3 h-3 text-zinc-400" />
+                      System & Operations
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {allowedSettings.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileDrawerOpen(false)}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
+                            pathname === item.href
+                              ? 'bg-secondary text-foreground font-bold border-border'
+                              : 'bg-card text-muted-foreground border-border hover:text-foreground'
+                          }`}
+                        >
+                          <item.icon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {settingsItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileDrawerOpen(false)}
-                        className={`p-2.5 rounded-xl border flex items-center gap-2 transition cursor-pointer ${
-                          pathname === item.href
-                            ? 'bg-secondary text-foreground font-bold border-border'
-                            : 'bg-card text-muted-foreground border-border hover:text-foreground'
-                        }`}
-                      >
-                        <item.icon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Sign out */}
