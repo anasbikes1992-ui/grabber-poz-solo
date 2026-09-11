@@ -267,11 +267,14 @@
 }
 
 /* ==========================================================================
-   PRINT ENGINE OPTIMIZATIONS (Thermal Receipts & Barcode Labels)
+   PRINT ENGINE — thermal receipts & barcode labels
+   IMPORTANT: never display:none a root wrapper that contains printables
+   (e.g. .mesh-bg on AppShell) — that blanks the entire print job.
    ========================================================================== */
 
 @media print {
-  html, body {
+  html,
+  body {
     background: #ffffff !important;
     color: #000000 !important;
     margin: 0 !important;
@@ -279,42 +282,44 @@
     min-height: auto !important;
     height: auto !important;
     overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Universal hide for non-printable page chrome */
+  /* Hide staff chrome only — NOT the shell root that wraps printables */
   header,
   nav,
   aside,
   footer,
-  button,
   .no-print,
-  .print\:hidden,
-  [data-no-print="true"],
-  .mesh-bg,
-  #jarvis-drawer {
+  [data-no-print='true'],
+  #jarvis-drawer,
+  [data-jarvis-drawer],
+  a[href='#main-content'] {
     display: none !important;
   }
 
-  /* Thermal Receipt Mode */
-  body:has(#printable-thermal-receipt) {
-    width: 72mm !important;
-    margin: 0 !important;
-    padding: 0 !important;
+  /* Keep Tailwind print:hidden utility working without nuking ancestors */
+  .print\:hidden {
+    display: none !important;
   }
 
-  body:has(#printable-thermal-receipt) main,
-  body:has(#printable-thermal-receipt) > div {
+  /* Do NOT hide .mesh-bg — it is on the AppShell root and would blank all prints */
+
+  main#main-content {
     padding: 0 !important;
     margin: 0 !important;
-    max-width: 100% !important;
+    max-width: none !important;
+    width: 100% !important;
   }
 
-  body:has(#printable-thermal-receipt) * {
+  /* ——— Thermal receipt ——— */
+  body.print-mode-receipt * {
     visibility: hidden;
   }
 
-  body:has(#printable-thermal-receipt) #printable-thermal-receipt,
-  body:has(#printable-thermal-receipt) #printable-thermal-receipt * {
+  body.print-mode-receipt #printable-thermal-receipt,
+  body.print-mode-receipt #printable-thermal-receipt * {
     visibility: visible !important;
   }
 
@@ -323,26 +328,23 @@
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
-    width: 72mm !important;
-    max-width: 72mm !important;
     margin: 0 !important;
-    padding: 2mm 1mm !important;
+    padding: 2mm 1.5mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     font-family: 'Courier New', Courier, monospace !important;
-    font-size: 11px !important;
-    line-height: 1.2 !important;
     box-shadow: none !important;
     border: none !important;
+    z-index: 99999 !important;
   }
 
-  /* Barcode Sticker Sheet Mode */
-  body:has(#printable-barcode-sheet) * {
+  /* ——— Barcode labels ——— */
+  body.print-mode-labels * {
     visibility: hidden;
   }
 
-  body:has(#printable-barcode-sheet) #printable-barcode-sheet,
-  body:has(#printable-barcode-sheet) #printable-barcode-sheet * {
+  body.print-mode-labels #printable-barcode-sheet,
+  body.print-mode-labels #printable-barcode-sheet * {
     visibility: visible !important;
   }
 
@@ -356,19 +358,15 @@
     padding: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
+    z-index: 99999 !important;
   }
 
-  .label-thermal-50x30 {
-    width: 50mm !important;
-    height: 30mm !important;
-    max-width: 50mm !important;
-    max-height: 30mm !important;
+  .label-thermal-roll {
     page-break-after: always !important;
     break-after: page !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     margin: 0 !important;
-    padding: 1.5mm 2mm !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
     background: #ffffff !important;
@@ -377,7 +375,7 @@
     box-shadow: none !important;
   }
 
-  .label-a4-24up {
+  .label-a4-cell {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     box-sizing: border-box !important;

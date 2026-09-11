@@ -1,8 +1,18 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { Barcode, Printer, Plus, Minus, Search, Layers, RefreshCw } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Barcode, Printer, Plus, Minus, Search, Layers } from 'lucide-react';
 import { BarcodeSVG } from '@/components/common/barcode-svg';
+import {
+  LABEL_PAPER_PRESETS,
+  type LabelPaperId,
+  readCustomLabelMm,
+  readLabelPaperId,
+  resolveLabelSize,
+  writeCustomLabelMm,
+  writeLabelPaperId,
+} from '@/lib/print/paper-sizes';
+import { runPrintJob } from '@/lib/print/run-print-job';
 
 type CatalogItem = {
   id: string;
@@ -28,11 +38,17 @@ type LabelItem = {
 export default function BarcodeGeneratorPage() {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [items, setItems] = useState<LabelItem[]>([]);
-  const [labelSize, setLabelSize] = useState<'A4_24UP' | 'THERMAL_50X30'>('THERMAL_50X30');
+  const [labelSize, setLabelSize] = useState<LabelPaperId>('THERMAL_50X30');
+  const [customMm, setCustomMm] = useState({ widthMm: 50, heightMm: 30 });
   const [storeName, setStoreName] = useState('Grabber Store');
   const [currencySymbol, setCurrencySymbol] = useState('LKR');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLabelSize(readLabelPaperId());
+    setCustomMm(readCustomLabelMm());
+  }, []);
 
   useEffect(() => {
     fetch('/api/pos/catalog')
@@ -41,6 +57,11 @@ export default function BarcodeGeneratorPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const size = useMemo(
+    () => resolveLabelSize(labelSize, customMm),
+    [labelSize, customMm],
+  );
 
   const filteredCatalog = catalog.filter(
     (c) =>
@@ -109,13 +130,36 @@ export default function BarcodeGeneratorPage() {
     });
   }, [catalog]);
 
+  const handlePaperChange = (id: LabelPaperId) => {
+    setLabelSize(id);
+    writeLabelPaperId(id);
+  };
+
+  const handleCustomChange = (patch: Partial<{ widthMm: number; heightMm: number }>) => {
+    setCustomMm((prev) => {
+      const next = {
+        widthMm: patch.widthMm ?? prev.widthMm,
+        heightMm: patch.heightMm ?? prev.heightMm,
+      };
+      writeCustomLabelMm(next.widthMm, next.heightMm);
+      return next;
+    });
+  };
+
   const handlePrint = () => {
-    window.print();
+    if (!items.length) return;
+    if (size.isA4) {
+      runPrintJob('labels', { pageSize: 'A4', margin: '6mm 5mm' });
+    } else {
+      runPrintJob('labels', {
+        pageSize: `${size.widthMm}mm ${size.heightMm}mm`,
+        margin: '0',
+      });
+    }
   };
 
   const totalStickers = items.reduce((sum, i) => sum + i.quantity, 0);
 
-  // Flatten items by quantity for printing & preview
   const flatLabels = items.flatMap((item) =>
     Array.from({ length: item.quantity }).map((_, idx) => ({
       ...item,
@@ -123,19 +167,86 @@ export default function BarcodeGeneratorPage() {
     })),
   );
 
+  const barcodeHeight = Math.max(14, Math.min(28, Math.round(size.heightMm * 0.35)));
+  const barcodeWidth = size.widthMm < 45 ? 1.0 : size.widthMm < 55 ? 1.1 : 1.25;
+
+  const LabelFace = ({
+    item,
+    forPrint,
+  }: {
+    item: (typeof flatLabels)[0];
+    forPrint?: boolean;
+  }) => (
+    <div
+      className={
+        forPrint
+          ? size.isA4
+            ? 'label-a4-cell flex flex-col justify-between items-center text-center font-sans border border-black/80'
+            : 'label-thermal-roll flex flex-col justify-between items-center text-center font-sans'
+          : 'flex flex-col justify-between items-center text-center font-sans bg-white text-black border border-slate-300 shadow-sm rounded-lg'
+      }
+      style={{
+        width: size.isA4 ? '100%' : `${size.widthMm}mm`,
+        height: `${size.heightMm}mm`,
+        maxWidth: size.isA4 ? undefined : `${size.widthMm}mm`,
+        maxHeight: `${size.heightMm}mm`,
+        padding: size.heightMm < 28 ? '1mm 1.5mm' : '1.5mm 2mm',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        ...(forPrint && !size.isA4
+          ? { pageBreakAfter: 'always' as const, breakAfter: 'page' as const }
+          : {}),
+      }}
+    >
+      <div className="w-full text-center">
+        <div
+          className="font-extrabold tracking-tight uppercase truncate leading-none"
+          style={{ fontSize: size.heightMm < 28 ? '7px' : '8px' }}
+        >
+          {storeName || 'GRABBER RETAIL'}
+        </div>
+        <div
+          className="font-bold leading-tight truncate mt-0.5"
+          style={{ fontSize: size.heightMm < 28 ? '8.5px' : '9.5px' }}
+        >
+          {item.name}
+        </div>
+        <div className="text-gray-700 leading-none truncate" style={{ fontSize: '7.5px' }}>
+          {item.variant !== 'Standard' ? `${item.variant} · ` : ''}
+          {item.sku}
+        </div>
+      </div>
+
+      <div className="w-full flex flex-col items-center justify-center my-0.5">
+        <BarcodeSVG
+          value={item.barcode || item.sku}
+          format="CODE128"
+          height={barcodeHeight}
+          width={barcodeWidth}
+          displayValue={false}
+          className="mx-auto"
+        />
+        <span
+          className="font-mono font-bold tracking-wider leading-none mt-0.5"
+          style={{ fontSize: '7.5px' }}
+        >
+          {item.barcode || item.sku}
+        </span>
+      </div>
+
+      <div className="w-full flex justify-between items-baseline border-t border-black pt-0.5 leading-none">
+        <span className="uppercase font-semibold text-gray-700" style={{ fontSize: '7px' }}>
+          Incl. VAT
+        </span>
+        <span className="font-extrabold" style={{ fontSize: size.heightMm < 28 ? '9px' : '10px' }}>
+          {currencySymbol} {item.price.toFixed(2)}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      {/* Dynamic Print Page Size Styles */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: ${labelSize === 'THERMAL_50X30' ? '50mm 30mm' : 'A4 portrait'};
-            margin: ${labelSize === 'THERMAL_50X30' ? '0' : '8mm 6mm'};
-          }
-        }
-      `}</style>
-
-      {/* Screen-only Header */}
       <div className="no-print print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
@@ -143,7 +254,8 @@ export default function BarcodeGeneratorPage() {
             <span>Barcode & Price Sticker Designer</span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Batch generate and print 50mm x 30mm thermal rolls or 24-up A4 label sheets with sharp Code128 barcodes.
+            Batch print thermal rolls or A4 sheets. Choose a preset or custom mm size — Chrome: turn off
+            &quot;Headers and footers&quot; in print → More settings.
           </p>
         </div>
 
@@ -164,14 +276,14 @@ export default function BarcodeGeneratorPage() {
             className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer btn-press"
           >
             <Printer className="h-3.5 w-3.5" />
-            <span>Print {totalStickers} Label{totalStickers !== 1 ? 's' : ''}</span>
+            <span>
+              Print {totalStickers} Label{totalStickers !== 1 ? 's' : ''}
+            </span>
           </button>
         </div>
       </div>
 
-      {/* Screen Layout: Controls & Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 no-print print:hidden">
-        {/* Left Column: Catalog & Config */}
         <div className="lg:col-span-4 p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4 text-xs">
           <h3 className="font-bold text-sm text-foreground flex items-center justify-between">
             <span>Add Products</span>
@@ -226,7 +338,9 @@ export default function BarcodeGeneratorPage() {
                   <p className="font-semibold truncate text-foreground group-hover:text-emerald-400 transition">
                     {c.name}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">{c.variant || 'Standard'} · {c.sku}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {c.variant || 'Standard'} · {c.sku}
+                  </p>
                 </div>
                 <span className="font-mono text-[10px] font-bold text-foreground shrink-0">
                   {currencySymbol} {c.unitPrice.toFixed(0)}
@@ -238,8 +352,11 @@ export default function BarcodeGeneratorPage() {
           <div className="border-t border-border/60 pt-3 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-muted-foreground block mb-1 font-medium text-[11px]">Store Header</label>
+                <label className="text-muted-foreground block mb-1 font-medium text-[11px]" htmlFor="bc-store">
+                  Store Header
+                </label>
                 <input
+                  id="bc-store"
                   type="text"
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
@@ -248,8 +365,11 @@ export default function BarcodeGeneratorPage() {
                 />
               </div>
               <div>
-                <label className="text-muted-foreground block mb-1 font-medium text-[11px]">Currency</label>
+                <label className="text-muted-foreground block mb-1 font-medium text-[11px]" htmlFor="bc-currency">
+                  Currency
+                </label>
                 <input
+                  id="bc-currency"
                   type="text"
                   value={currencySymbol}
                   onChange={(e) => setCurrencySymbol(e.target.value)}
@@ -260,16 +380,65 @@ export default function BarcodeGeneratorPage() {
             </div>
 
             <div>
-              <label className="text-muted-foreground block mb-1 font-medium">Sticker Paper Format</label>
+              <label className="text-muted-foreground block mb-1 font-medium" htmlFor="bc-paper">
+                Label / paper size
+              </label>
               <select
+                id="bc-paper"
                 value={labelSize}
-                onChange={(e) => setLabelSize(e.target.value as 'A4_24UP' | 'THERMAL_50X30')}
+                onChange={(e) => handlePaperChange(e.target.value as LabelPaperId)}
                 className="w-full px-3 py-2 rounded-xl bg-secondary border border-border text-foreground font-medium outline-none focus:ring-2 focus:ring-emerald-500"
               >
-                <option value="THERMAL_50X30">Thermal Roll Sticker (50mm x 30mm) — 1 label / page</option>
-                <option value="A4_24UP">Standard A4 Sheet (24 Labels / Page — 3 x 8 Grid)</option>
+                {LABEL_PAPER_PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
               </select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {LABEL_PAPER_PRESETS.find((p) => p.id === labelSize)?.description}
+              </p>
             </div>
+
+            {labelSize === 'CUSTOM' && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-muted-foreground block mb-1 font-medium text-[11px]" htmlFor="bc-w">
+                    Width (mm)
+                  </label>
+                  <input
+                    id="bc-w"
+                    type="number"
+                    min={20}
+                    max={120}
+                    step={1}
+                    value={customMm.widthMm}
+                    onChange={(e) => handleCustomChange({ widthMm: Number(e.target.value) })}
+                    className="w-full px-2.5 py-1.5 rounded-xl bg-secondary border border-border text-foreground font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-muted-foreground block mb-1 font-medium text-[11px]" htmlFor="bc-h">
+                    Height (mm)
+                  </label>
+                  <input
+                    id="bc-h"
+                    type="number"
+                    min={15}
+                    max={100}
+                    step={1}
+                    value={customMm.heightMm}
+                    onChange={(e) => handleCustomChange({ heightMm: Number(e.target.value) })}
+                    className="w-full px-2.5 py-1.5 rounded-xl bg-secondary border border-border text-foreground font-mono text-xs"
+                  />
+                </div>
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground rounded-lg bg-secondary/60 px-2.5 py-2">
+              Active size: <strong className="text-foreground font-mono">{size.widthMm}×{size.heightMm}mm</strong>
+              {size.isA4 ? ` · ${size.cols} cols / A4` : ' · 1 label / page (roll)'}
+            </p>
           </div>
 
           <div className="border-t border-border/60 pt-3 space-y-2">
@@ -305,6 +474,7 @@ export default function BarcodeGeneratorPage() {
                     <div className="flex items-center bg-card rounded-lg border border-border p-0.5">
                       <button
                         type="button"
+                        aria-label={`Decrease copies of ${item.name}`}
                         onClick={() => updateQuantity(item.id, -1)}
                         className="h-5 w-5 rounded flex items-center justify-center hover:bg-secondary text-foreground"
                       >
@@ -313,6 +483,7 @@ export default function BarcodeGeneratorPage() {
                       <span className="w-7 text-center font-bold text-foreground">{item.quantity}</span>
                       <button
                         type="button"
+                        aria-label={`Increase copies of ${item.name}`}
                         onClick={() => updateQuantity(item.id, 1)}
                         className="h-5 w-5 rounded flex items-center justify-center hover:bg-secondary text-foreground"
                       >
@@ -326,12 +497,11 @@ export default function BarcodeGeneratorPage() {
           </div>
         </div>
 
-        {/* Right Column: Interactive Preview */}
         <div className="lg:col-span-8 p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-sm text-foreground">Print Preview Layout</h3>
-            <span className="text-xs text-muted-foreground">
-              Format: {labelSize === 'THERMAL_50X30' ? '50mm × 30mm Roll' : 'A4 (3×8 Grid)'}
+            <span className="text-xs text-muted-foreground font-mono">
+              {size.widthMm}×{size.heightMm}mm
             </span>
           </div>
 
@@ -339,168 +509,37 @@ export default function BarcodeGeneratorPage() {
             <div className="text-center py-20 border-2 border-dashed border-border/60 rounded-xl space-y-2">
               <Barcode className="h-8 w-8 text-muted-foreground/50 mx-auto" />
               <p className="text-sm text-muted-foreground">No labels selected.</p>
-              <p className="text-xs text-muted-foreground/70">
-                Search and add items from the catalog on the left to view the live print preview.
-              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[620px] overflow-y-auto p-2 bg-zinc-950/40 rounded-xl border border-border/40">
+            <div className="flex flex-wrap gap-3 max-h-[620px] overflow-y-auto p-3 bg-zinc-950/40 rounded-xl border border-border/40 content-start">
               {flatLabels.map((item) => (
-                <div
-                  key={item.labelKey}
-                  className="p-2.5 rounded-lg bg-white text-black border border-slate-300 shadow-sm flex flex-col justify-between items-center text-center aspect-[50/30] select-none"
-                >
-                  <div className="w-full">
-                    <p className="font-bold text-[9px] truncate uppercase tracking-tight text-slate-800 leading-none">
-                      {storeName || 'GRABBER RETAIL'}
-                    </p>
-                    <p className="font-bold text-[10px] truncate leading-tight mt-0.5 text-black">
-                      {item.name}
-                    </p>
-                    <p className="text-[8px] text-slate-600 truncate leading-none">
-                      {item.variant} · {item.sku}
-                    </p>
-                  </div>
-
-                  <div className="my-0.5 flex flex-col items-center w-full justify-center">
-                    <BarcodeSVG
-                      value={item.barcode || item.sku}
-                      format="CODE128"
-                      height={20}
-                      width={1.2}
-                      displayValue={false}
-                      className="mx-auto"
-                    />
-                    <span className="font-mono text-[8px] font-bold text-slate-900 tracking-wider leading-none mt-0.5">
-                      {item.barcode || item.sku}
-                    </span>
-                  </div>
-
-                  <div className="w-full flex justify-between items-center border-t border-slate-200 pt-0.5 font-bold text-[10px] leading-none">
-                    <span className="text-[7.5px] text-slate-500 uppercase font-medium">Inc. VAT</span>
-                    <span className="text-black font-extrabold">{currencySymbol} {item.price.toFixed(2)}</span>
-                  </div>
-                </div>
+                <LabelFace key={item.labelKey} item={item} />
               ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* =========================================================================
-          PRINT-ONLY RENDER CONTAINER (Isolated from page chrome)
-          ========================================================================= */}
       {items.length > 0 && (
         <div id="printable-barcode-sheet" className="hidden print:block">
-          {labelSize === 'THERMAL_50X30' ? (
-            /* Thermal Continuous Roll: 1 label per page, exactly 50mm x 30mm */
-            <div className="space-y-0">
-              {flatLabels.map((item) => (
-                <div
-                  key={item.labelKey}
-                  className="label-thermal-50x30 flex flex-col justify-between items-center text-center font-sans"
-                  style={{
-                    width: '50mm',
-                    height: '30mm',
-                    maxWidth: '50mm',
-                    maxHeight: '30mm',
-                    padding: '1.2mm 2mm',
-                    boxSizing: 'border-box',
-                    pageBreakAfter: 'always',
-                    breakAfter: 'page',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div className="w-full text-center">
-                    <div className="font-extrabold text-[8px] tracking-tight uppercase truncate leading-none">
-                      {storeName || 'GRABBER RETAIL'}
-                    </div>
-                    <div className="font-bold text-[9.5px] leading-tight truncate mt-0.5">
-                      {item.name}
-                    </div>
-                    <div className="text-[7.5px] text-gray-700 leading-none truncate">
-                      {item.variant !== 'Standard' ? `${item.variant} · ` : ''}{item.sku}
-                    </div>
-                  </div>
-
-                  <div className="w-full flex flex-col items-center justify-center my-0.5">
-                    <BarcodeSVG
-                      value={item.barcode || item.sku}
-                      format="CODE128"
-                      height={18}
-                      width={1.1}
-                      displayValue={false}
-                      className="mx-auto"
-                    />
-                    <span className="font-mono text-[7.5px] font-bold tracking-wider leading-none mt-0.5">
-                      {item.barcode || item.sku}
-                    </span>
-                  </div>
-
-                  <div className="w-full flex justify-between items-baseline border-t border-black pt-0.5 leading-none">
-                    <span className="text-[7px] uppercase font-semibold text-gray-700">Incl. VAT</span>
-                    <span className="font-extrabold text-[10px]">
-                      {currencySymbol} {item.price.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            /* A4 Sheet 24-up: 3 columns x 8 rows per sheet */
+          {size.isA4 ? (
             <div
-              className="grid grid-cols-3 gap-2"
+              className="grid gap-1.5"
               style={{
-                width: '190mm',
+                gridTemplateColumns: `repeat(${size.cols}, 1fr)`,
+                width: '200mm',
                 margin: '0 auto',
                 boxSizing: 'border-box',
               }}
             >
               {flatLabels.map((item) => (
-                <div
-                  key={item.labelKey}
-                  className="label-a4-24up p-2 border border-black/80 flex flex-col justify-between items-center text-center font-sans"
-                  style={{
-                    height: '33.5mm',
-                    maxHeight: '33.5mm',
-                    boxSizing: 'border-box',
-                    breakInside: 'avoid',
-                    pageBreakInside: 'avoid',
-                  }}
-                >
-                  <div className="w-full">
-                    <div className="font-extrabold text-[8.5px] uppercase truncate leading-none">
-                      {storeName || 'GRABBER RETAIL'}
-                    </div>
-                    <div className="font-bold text-[10px] truncate leading-tight mt-0.5">
-                      {item.name}
-                    </div>
-                    <div className="text-[8px] text-gray-700 leading-none truncate">
-                      {item.variant !== 'Standard' ? `${item.variant} · ` : ''}{item.sku}
-                    </div>
-                  </div>
-
-                  <div className="w-full flex flex-col items-center justify-center my-0.5">
-                    <BarcodeSVG
-                      value={item.barcode || item.sku}
-                      format="CODE128"
-                      height={20}
-                      width={1.2}
-                      displayValue={false}
-                      className="mx-auto"
-                    />
-                    <span className="font-mono text-[8px] font-bold tracking-wider leading-none mt-0.5">
-                      {item.barcode || item.sku}
-                    </span>
-                  </div>
-
-                  <div className="w-full flex justify-between items-baseline border-t border-black pt-0.5 leading-none">
-                    <span className="text-[7.5px] uppercase font-semibold text-gray-700">Incl. VAT</span>
-                    <span className="font-extrabold text-[10.5px]">
-                      {currencySymbol} {item.price.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+                <LabelFace key={item.labelKey} item={item} forPrint />
+              ))}
+            </div>
+          ) : (
+            <div>
+              {flatLabels.map((item) => (
+                <LabelFace key={item.labelKey} item={item} forPrint />
               ))}
             </div>
           )}

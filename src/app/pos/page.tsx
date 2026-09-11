@@ -37,6 +37,14 @@ import { BarcodeScannerListener } from '@/lib/hardware/scanner';
 import { VoiceAssistant } from '@/lib/hardware/voice-assistant';
 import { fetchVerticalFlags, DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import {
+  RECEIPT_PAPER_PRESETS,
+  type ReceiptPaperId,
+  readReceiptPaperId,
+  receiptPreset,
+  writeReceiptPaperId,
+} from '@/lib/print/paper-sizes';
+import { runPrintJob } from '@/lib/print/run-print-job';
+import {
   countPendingCheckouts,
   enqueueCheckout,
   flushPendingCheckouts,
@@ -123,6 +131,7 @@ export default function POSPage() {
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [activeHoldId, setActiveHoldId] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<any>(null);
+  const [receiptPaper, setReceiptPaper] = useState<ReceiptPaperId>('THERMAL_80');
   const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
   const [posMode, setPosMode] = useState<'RETAIL' | 'SCANNER' | 'TABLES'>('RETAIL');
   const [touristCurrency, setTouristCurrency] = useState<CurrencyCode>('LKR');
@@ -202,6 +211,7 @@ export default function POSPage() {
 
   useEffect(() => {
     fetchVerticalFlags().then(setVerticalFlags).catch(() => undefined);
+    setReceiptPaper(readReceiptPaperId());
 
     fetch('/api/pos/catalog')
       .then((r) => r.json())
@@ -1476,6 +1486,31 @@ export default function POSPage() {
             </div>
 
             <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="pos-receipt-paper" className="text-[10px] font-semibold text-muted-foreground">
+                  Receipt paper size
+                </label>
+                <select
+                  id="pos-receipt-paper"
+                  value={receiptPaper}
+                  onChange={(e) => {
+                    const id = e.target.value as ReceiptPaperId;
+                    setReceiptPaper(id);
+                    writeReceiptPaperId(id);
+                  }}
+                  className="w-full rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  {RECEIPT_PAPER_PRESETS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-muted-foreground">
+                  {receiptPreset(receiptPaper).description}. In Chrome print dialog: More settings → uncheck Headers
+                  and footers; set Margins to None.
+                </p>
+              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -1487,12 +1522,16 @@ export default function POSPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    window.print();
+                    const preset = receiptPreset(receiptPaper);
+                    runPrintJob('receipt', {
+                      pageSize: `${preset.widthMm}mm auto`,
+                      margin: '0',
+                    });
                   }}
                   className="flex-1 min-h-11 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-400 cursor-pointer btn-press shadow-lg shadow-emerald-500/20"
                 >
                   <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Print Receipt (80mm)</span>
+                  <span>Print Receipt ({receiptPreset(receiptPaper).widthMm}mm)</span>
                 </button>
               </div>
             </div>
@@ -1512,8 +1551,9 @@ export default function POSPage() {
         />
       )}
 
-      {/* 80mm / 58mm Thermal Receipt Printable View (Isolated on Print) */}
+      {/* Thermal receipt — width follows selected paper preset */}
       <ThermalReceipt
+        widthMm={receiptPreset(receiptPaper).widthMm}
         data={
           completedOrder
             ? {

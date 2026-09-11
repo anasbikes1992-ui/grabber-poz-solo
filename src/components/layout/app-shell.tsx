@@ -69,7 +69,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         Skip to main content
       </a>
 
-      <AppHeader onToggleJarvis={() => setIsJarvisOpen((v) => !v)} />
+      <div data-no-print="true">
+        <AppHeader onToggleJarvis={() => setIsJarvisOpen((v) => !v)} />
+      </div>
 
       <main
         id="main-content"
@@ -79,7 +81,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <JarvisDrawer isOpen={isJarvisOpen} onClose={() => setIsJarvisOpen(false)} />
+      <div data-no-print="true">
+        <JarvisDrawer isOpen={isJarvisOpen} onClose={() => setIsJarvisOpen(false)} />
+      </div>
     </div>
   );
 }
