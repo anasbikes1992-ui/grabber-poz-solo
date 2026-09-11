@@ -22,11 +22,21 @@ END $$;
 DROP POLICY IF EXISTS staff_read_orders ON public.orders;
 DROP POLICY IF EXISTS staff_read_products ON public.products;
 
--- Revoke direct table access from Supabase API roles
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM authenticated;
-
-GRANT USAGE ON SCHEMA public TO anon;
-GRANT USAGE ON SCHEMA public TO authenticated;
+-- Revoke direct table access from Supabase API roles. Guarded: `anon` /
+-- `authenticated` only exist on Supabase-hosted Postgres — a vanilla
+-- self-hosted instance (Coolify, plain postgres:16-alpine) has neither, and
+-- unconditional REVOKE/GRANT against a nonexistent role hard-fails the whole
+-- script there.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon';
+    EXECUTE 'REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon';
+    EXECUTE 'GRANT USAGE ON SCHEMA public TO anon';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated';
+    EXECUTE 'REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM authenticated';
+    EXECUTE 'GRANT USAGE ON SCHEMA public TO authenticated';
+  END IF;
+END $$;

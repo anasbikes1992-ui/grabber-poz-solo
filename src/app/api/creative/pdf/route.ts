@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
+import { getAppUrl } from '@/lib/config/app-url';
 import { createCreativeProject, queueCreativePdf } from '@/lib/creative/creative-repo';
 import { generateAndCachePdf } from '@/lib/creative/creative-pdf-processor';
 import type { PdfTemplateKind } from '@/lib/creative/pdf-studio';
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     await generateAndCachePdf(payload);
     await queueCreativePdf(payload).catch(() => undefined);
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+    const baseUrl = getAppUrl();
     const downloadUrl = `${baseUrl}/api/creative/pdf/download?projectId=${project.id}`;
 
     return NextResponse.json({

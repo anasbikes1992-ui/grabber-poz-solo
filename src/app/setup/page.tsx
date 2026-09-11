@@ -79,7 +79,10 @@ export default function SetupPage() {
       const res = await fetch('/api/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preset: target, storeName: process.env.NEXT_PUBLIC_STORE_NAME || 'Grabber Solo Store' }),
+        // storeName intentionally omitted — NEXT_PUBLIC_STORE_NAME is build-time
+        // inlined and would be wrong for every tenant sharing this image. Let
+        // the server default from its own runtime STORE_NAME/NEXT_PUBLIC_STORE_NAME.
+        body: JSON.stringify({ preset: target }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Seed failed');

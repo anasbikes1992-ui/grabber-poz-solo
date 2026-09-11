@@ -3,6 +3,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { assertCanMutateCommerce, requireStaffSession } from '@/lib/auth/session';
+import { getAppUrl, getSupabaseUrl } from '@/lib/config/app-url';
 import {
   createMediaAssetRecord,
   deleteMediaAssetRecord,
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     const ext = originalFilename.split('.').pop() || 'png';
     const uniqueName = `${randomUUID()}.${ext}`;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = getSupabaseUrl();
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     let publicUrl = '';
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
       await mkdir(uploadsDir, { recursive: true });
       const dest = path.join(uploadsDir, uniqueName);
       await writeFile(dest, Buffer.from(await file.arrayBuffer()));
-      const base = process.env.NEXT_PUBLIC_APP_URL || '';
+      const base = getAppUrl();
       publicUrl = `${base}/uploads/${uniqueName}`;
       provider = 'local';
     }

@@ -36,7 +36,8 @@ export function getPayHereConfig(): PayHereConfig {
   return {
     merchantId: process.env.PAYHERE_MERCHANT_ID?.trim() || '',
     secret: process.env.PAYHERE_SECRET?.trim() || '',
-    mode: process.env.PAYHERE_MODE?.trim() || 'live',
+    // Default to sandbox — live must be explicit per tenant, never assumed.
+    mode: process.env.PAYHERE_MODE?.trim() || 'sandbox',
   };
 }
 

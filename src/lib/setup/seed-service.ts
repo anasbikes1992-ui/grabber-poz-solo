@@ -20,7 +20,7 @@ import {
   users,
   warehouses,
 } from '@/db/schema';
-import { hashPin, isDemoUserId } from '@/lib/auth/session';
+import { generateRandomPin, hashPin, isDemoUserId } from '@/lib/auth/session';
 import { REQUIRED_COA } from '@/lib/commerce/ensure-coa';
 
 export type SeedInput = {
@@ -42,6 +42,8 @@ export type SeedResult = {
   purchaseOrder: { id: string; poNumber: string } | null;
   customer: { id: string; name: string } | null;
   note: string;
+  /** Generated once at seed time — hand these to staff out-of-band. Never persisted here. */
+  generatedPins: Record<string, string>;
 };
 
 export async function runDatabaseSeed(input: SeedInput): Promise<SeedResult> {
@@ -98,21 +100,23 @@ export async function runDatabaseSeed(input: SeedInput): Promise<SeedResult> {
       await tx.insert(warehouses).values({ branchId, name: 'Main Warehouse', code: 'WH-MAIN' }).onConflictDoNothing();
     }
 
-    // Seed all 6 official staff role profiles
+    // Seed all 6 official staff role profiles — each gets its own random PIN,
+    // never a shared guessable default. Returned once in generatedPins.
     const defaultStaffUsers: Array<{
       email: string;
       name: string;
       role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAREHOUSE' | 'ACCOUNTANT' | 'MARKETING';
       pin: string;
     }> = [
-      { email: input.ownerEmail || 'owner@store.local', name: 'Business Owner', role: 'OWNER', pin: input.ownerPin || '1234' },
-      { email: 'manager@store.local', name: 'Store Manager', role: 'MANAGER', pin: '1234' },
-      { email: 'cashier@store.local', name: 'Counter Cashier', role: 'CASHIER', pin: '1234' },
-      { email: 'staff@poz.lk', name: 'Counter Cashier (Alt)', role: 'CASHIER', pin: '1234' },
-      { email: 'warehouse@store.local', name: 'Warehouse Lead', role: 'WAREHOUSE', pin: '1234' },
-      { email: 'accountant@store.local', name: 'Senior Accountant', role: 'ACCOUNTANT', pin: '1234' },
-      { email: 'creative@store.local', name: 'Creative Producer', role: 'MARKETING', pin: '1234' },
+      { email: input.ownerEmail || 'owner@store.local', name: 'Business Owner', role: 'OWNER', pin: input.ownerPin || generateRandomPin() },
+      { email: 'manager@store.local', name: 'Store Manager', role: 'MANAGER', pin: generateRandomPin() },
+      { email: 'cashier@store.local', name: 'Counter Cashier', role: 'CASHIER', pin: generateRandomPin() },
+      { email: 'staff@poz.lk', name: 'Counter Cashier (Alt)', role: 'CASHIER', pin: generateRandomPin() },
+      { email: 'warehouse@store.local', name: 'Warehouse Lead', role: 'WAREHOUSE', pin: generateRandomPin() },
+      { email: 'accountant@store.local', name: 'Senior Accountant', role: 'ACCOUNTANT', pin: generateRandomPin() },
+      { email: 'creative@store.local', name: 'Creative Producer', role: 'MARKETING', pin: generateRandomPin() },
     ];
+    const generatedPins: Record<string, string> = {};
 
     let ownerUser: typeof users.$inferSelect | undefined;
     for (const u of defaultStaffUsers) {
@@ -128,6 +132,12 @@ export async function runDatabaseSeed(input: SeedInput): Promise<SeedResult> {
         .onConflictDoNothing()
         .returning()
         .catch(async () => tx.select().from(users).where(eq(users.email, u.email)).limit(1));
+
+      // Only report the PIN when this call actually created the row — a
+      // conflict means an existing account with its own PIN was left alone.
+      if (inserted) {
+        generatedPins[u.email] = u.pin;
+      }
 
       if (u.role === 'OWNER') {
         ownerUser = inserted || (await tx.select().from(users).where(eq(users.email, u.email)).limit(1))[0];
@@ -418,7 +428,11 @@ export async function runDatabaseSeed(input: SeedInput): Promise<SeedResult> {
     {
       const phone = '+94771234567';
       let [cust] = await tx.select().from(customers).where(eq(customers.phone, phone)).limit(1);
-      const shopperPasswordHash = hashPin('1234');
+      // Never a guessable fixed password — this row is a real, loggable-in
+      // customer account, not a NODE_ENV-gated dev shortcut.
+      const demoShopperPassword = generateRandomPin();
+      const shopperPasswordHash = hashPin(demoShopperPassword);
+      const isNewShopper = !cust;
       if (!cust) {
         [cust] = await tx
           .insert(customers)
@@ -454,6 +468,9 @@ export async function runDatabaseSeed(input: SeedInput): Promise<SeedResult> {
           });
         }
         demoCustomer = { id: cust.id, name: cust.name };
+        if (isNewShopper) {
+          generatedPins[`demo-shopper:${phone}`] = demoShopperPassword;
+        }
       }
     }
 
@@ -500,6 +517,7 @@ export async function runDatabaseSeed(input: SeedInput): Promise<SeedResult> {
       purchaseOrder: demoPo,
       customer: demoCustomer,
       note: isDemoUserId(input.sessionUserId || '') ? 'demo-session' : 'ok',
+      generatedPins,
     };
   });
 }

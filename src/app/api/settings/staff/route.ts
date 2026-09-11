@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, users, userAssignments, branches, warehouses, auditLogs } from '@/db';
-import { assertCanMutateCommerce, getSession, hashPin } from '@/lib/auth/session';
+import { assertCanMutateCommerce, generateRandomPin, getSession, hashPin } from '@/lib/auth/session';
 
 async function requireManagerOrOwner() {
   let session = await getSession();
@@ -74,7 +74,10 @@ export async function POST(req: Request) {
     const name = String(body.name || '').trim();
     const email = String(body.email || '').trim().toLowerCase();
     const role = (body.role || 'CASHIER') as 'OWNER' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAREHOUSE' | 'ACCOUNTANT' | 'MARKETING';
-    const pin = body.pin ? String(body.pin).trim() : '1234';
+    // Never a shared guessable default — generate one and hand it back once
+    // if the caller didn't set one. TEMP$ forces a rotation on first login.
+    const callerSuppliedPin = body.pin ? String(body.pin).trim() : null;
+    const pin = callerSuppliedPin || generateRandomPin();
     const branchId = body.branchId || null;
     const warehouseId = body.warehouseId || null;
 
@@ -99,7 +102,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: `User with email '${email}' already exists` }, { status: 409 });
     }
 
-    const hashedPin = hashPin(pin);
+    // If the caller didn't supply a PIN, store it as a temporary credential
+    // (TEMP$) so the new hire is forced to set their own on first login,
+    // matching the same mechanism used by onboarding.
+    const hashedPin = callerSuppliedPin ? hashPin(pin) : `TEMP$${pin}`;
 
     const [createdUser] = await db
       .insert(users)
@@ -141,6 +147,8 @@ export async function POST(req: Request) {
         warehouseId,
         active: createdUser.active,
       },
+      // Only present when the caller didn't supply a PIN — surface it once.
+      generatedPin: callerSuppliedPin ? undefined : pin,
     }, { status: 201 });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };

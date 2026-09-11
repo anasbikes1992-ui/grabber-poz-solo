@@ -1,5 +1,6 @@
 import { desc, eq } from 'drizzle-orm';
 import { db, customers, hasDatabaseUrl, orders, repairJobs } from '@/db';
+import { getConfiguredAppUrl, getStoreName } from '@/lib/config/app-url';
 import { isWhatsAppConfigured, normalizeWhatsAppTo, sendWhatsAppText } from '@/lib/integrations/whatsapp';
 import { listWhatsAppTemplates, renderTemplate } from '@/lib/whatsapp/templates';
 
@@ -50,12 +51,12 @@ export function parseInboundIntent(text: string): InboundIntent {
 }
 
 function storeName() {
-  return process.env.NEXT_PUBLIC_STORE_NAME?.trim() || 'Grabber';
+  return getStoreName();
 }
 
 function appUrl() {
   return (
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    getConfiguredAppUrl()?.trim() ||
     process.env.CERTIFY_HTTP_BASE_URL?.trim() ||
     'https://grabber-poz-solo.vercel.app'
   ).replace(/\/$/, '');

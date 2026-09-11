@@ -3,6 +3,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
+import { getAppUrl, getSupabaseUrl } from '@/lib/config/app-url';
 
 /**
  * Storage upload — writes to local public/uploads when Supabase is not configured.
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Max 8MB' }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = getSupabaseUrl();
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (supabaseUrl && serviceKey) {
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
     const filename = `${randomUUID()}.${ext}`;
     const dest = path.join(uploadsDir, filename);
     await writeFile(dest, Buffer.from(await file.arrayBuffer()));
-    const base = process.env.NEXT_PUBLIC_APP_URL || '';
+    const base = getAppUrl();
     const url = `${base}/uploads/${filename}`;
     return NextResponse.json({
       success: true,

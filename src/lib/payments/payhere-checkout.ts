@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { getAppUrl } from '@/lib/config/app-url';
 import { getPayHereConfig, isPayHereConfigured } from '@/lib/payments/lkr-provider';
 
 export type PayHereCheckoutInput = {
@@ -29,7 +30,7 @@ export function buildPayHereCheckoutPayload(input: PayHereCheckoutInput) {
     .digest('hex')
     .toUpperCase();
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const appUrl = getAppUrl().replace(/\/$/, '');
   const checkoutUrl =
     mode === 'sandbox' ? 'https://sandbox.payhere.lk/pay/checkout' : 'https://www.payhere.lk/pay/checkout';
 

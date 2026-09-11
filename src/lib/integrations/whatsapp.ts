@@ -9,7 +9,9 @@ function trimEnv(value: string | undefined): string | undefined {
 export function resolveWhatsAppConfig() {
   const token = trimEnv(process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN);
   const phoneId = trimEnv(process.env.WHATSAPP_PHONE_ID || process.env.WHATSAPP_PHONE_NUMBER_ID);
-  const verifyToken = trimEnv(process.env.WHATSAPP_VERIFY_TOKEN) || 'grabber_dev_verify';
+  // No fallback — a guessable default here would let anyone complete Meta's
+  // webhook handshake for a tenant that hasn't configured WhatsApp yet.
+  const verifyToken = trimEnv(process.env.WHATSAPP_VERIFY_TOKEN);
   const appSecret = trimEnv(process.env.WHATSAPP_APP_SECRET);
   const apiVersion = trimEnv(process.env.WHATSAPP_API_VERSION) || 'v21.0';
   return { token, phoneId, verifyToken, appSecret, apiVersion };
