@@ -45,6 +45,27 @@ function getDbInternal(): Db {
   return drizzleDb;
 }
 
+/**
+ * Force-close the current connection and drop the cached client, so the next
+ * call to `db` builds a fresh one instead of reusing a wedged connection.
+ *
+ * Production incidents 2026-09-12: with max:1, a connection that goes stale
+ * (Supabase-side drop, dead socket the client hasn't noticed, a hung
+ * statement) blocks every future request forever — nothing ever frees the
+ * one slot, so a server-side statement_timeout doesn't help once the socket
+ * itself is the problem, not a running query. Call this after a query
+ * doesn't complete within a bounded wait (see /api/health) to self-heal
+ * without a manual container restart. `timeout: 0` closes immediately
+ * rather than waiting for in-flight queries to finish gracefully — the
+ * whole point is that they won't.
+ */
+export function resetDbConnection(): void {
+  const stale = client;
+  client = undefined;
+  drizzleDb = undefined;
+  stale?.end({ timeout: 0 }).catch(() => {});
+}
+
 /** Lazy Drizzle client — avoids localhost fallback during Vercel build. */
 export const db = new Proxy({} as Db, {
   get(_target, prop, receiver) {
