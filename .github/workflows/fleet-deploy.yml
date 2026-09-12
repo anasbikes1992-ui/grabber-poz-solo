@@ -8,6 +8,9 @@ name: CI — Test & Build Image
 #   built from `dev` or any other branch.
 # Coolify apps that build the Dockerfile themselves track `main` via Coolify's
 # own git integration — this workflow does not trigger those deploys.
+# The `dev` branch deploys to the Vercel dev environment through Vercel's own
+# GitHub integration (vercel.json, docs/DEV_DEPLOY_VERCEL.md) — not from here.
+# While Actions is unavailable, .githooks/pre-push is the only test gate.
 #
 # History: this file used to run a "fleet-migration" job that executed
 # `node scripts/audit_parser.js || true` (the file does not exist) and then

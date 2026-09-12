@@ -79,7 +79,9 @@ Deploy **only from `main`**. Two build paths exist (see the Coolify playbook):
 Coolify builds the Dockerfile from `main` on push, or a tenant runs the GHCR
 image `ghcr.io/anasbikes1992-ui/grabber-poz-solo:sha-<short>` that
 `.github/workflows/fleet-deploy.yml` builds from `main` after tests pass.
-`dev` is for integration only and never deploys.
+`dev` never deploys to a tenant; it auto-deploys only to the Vercel dev
+environment on a separate Supabase dev database — see
+[`DEV_DEPLOY_VERCEL.md`](./DEV_DEPLOY_VERCEL.md).
 
 Post-deploy:
 

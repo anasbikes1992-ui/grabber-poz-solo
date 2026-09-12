@@ -38,3 +38,5 @@ src/graphify-out
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+vercel.json
+.githooks
