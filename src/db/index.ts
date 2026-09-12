@@ -25,6 +25,20 @@ function getDbInternal(): Db {
     connect_timeout: 10,
     prepare: false,
     ssl: isSupabase ? 'require' : undefined,
+    // Production incident 2026-09-12: with max:1 on the Supabase pooler, a
+    // single query that hangs (pooler-side stall, dead backend, etc.) blocks
+    // every subsequent request forever — including /api/health — since
+    // nothing ever frees the one connection slot. postgres.js runs
+    // `connection` entries as SET commands right after connecting, so these
+    // apply once per physical connection and survive pgbouncer transaction
+    // pooling (unlike a startup-packet parameter, which some poolers drop).
+    // Bounding both keeps a stuck statement or an accidentally-open
+    // transaction from taking the whole app down until someone notices and
+    // restarts the container.
+    connection: {
+      statement_timeout: 10_000,
+      idle_in_transaction_session_timeout: 10_000,
+    },
   });
 
   drizzleDb = drizzle(client, { schema });
