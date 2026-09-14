@@ -1005,6 +1005,25 @@ export const serialNumbers = pgTable('serial_numbers', {
   serialIdx: index('serial_numbers_serial_idx').on(t.serial),
 }));
 
+export const warrantyClaims = pgTable('warranty_claims', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  claimNumber: text('claim_number').notNull().unique(),
+  serialId: uuid('serial_id').notNull().references(() => serialNumbers.id, { onDelete: 'restrict' }),
+  customerName: text('customer_name').notNull(),
+  customerPhone: text('customer_phone'),
+  issueDescription: text('issue_description').notNull(),
+  status: text('status').notNull().default('SUBMITTED'),
+  resolution: text('resolution'),
+  repairJobId: uuid('repair_job_id').references(() => repairJobs.id, { onDelete: 'set null' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  resolvedBy: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  serialIdx: index('warranty_claims_serial_idx').on(t.serialId),
+  statusIdx: index('warranty_claims_status_idx').on(t.status),
+}));
+
 export const stockLots = pgTable('stock_lots', {
   id: uuid('id').primaryKey().defaultRandom(),
   batchCode: text('batch_code').notNull(),

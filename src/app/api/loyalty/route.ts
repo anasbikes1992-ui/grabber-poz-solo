@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { db, loyaltyMembers, loyaltyTransactions } from '@/db';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 
@@ -73,37 +73,48 @@ export async function POST(req: Request) {
     const action = body.action || 'upsert_member';
 
     if (action === 'earn' || action === 'redeem') {
-      const [member] = await db.select().from(loyaltyMembers).where(eq(loyaltyMembers.id, body.memberId)).limit(1);
+      const memberId = String(body.memberId || '').trim();
+      if (!memberId) throw new Error('memberId is required');
+      const [member] = await db.select().from(loyaltyMembers).where(eq(loyaltyMembers.id, memberId)).limit(1);
       if (!member) throw new Error('Member not found');
-      const delta =
-        action === 'earn'
-          ? Math.floor(Number(body.amountLkr || 0) / 100)
-          : -Math.abs(Number(body.points || 0));
+      if (!member.active) throw new Error('Loyalty member is inactive');
+      const amountLkr = Number(body.amountLkr);
+      const requestedPoints = Number(body.points);
+      const delta = action === 'earn' ? Math.floor(amountLkr / 100) : -Math.abs(requestedPoints);
+      if (action === 'earn' && (!Number.isFinite(amountLkr) || amountLkr <= 0 || delta <= 0)) {
+        throw new Error('amountLkr must earn at least one point');
+      }
+      if (action === 'redeem' && (!Number.isInteger(requestedPoints) || requestedPoints <= 0)) {
+        throw new Error('points must be a positive integer');
+      }
       if (action === 'redeem' && member.points + delta < 0) throw new Error('Insufficient points');
       const balanceAfter = member.points + delta;
       const totalSpent =
-        action === 'earn' ? Number(member.totalSpent) + Number(body.amountLkr || 0) : Number(member.totalSpent);
+        action === 'earn' ? Number(member.totalSpent) + amountLkr : Number(member.totalSpent);
 
-      await db.insert(loyaltyTransactions).values({
-        memberId: member.id,
-        type: action === 'earn' ? 'EARN' : 'REDEEM',
-        pointsDelta: delta,
-        balanceAfter,
-        orderId: body.orderId || null,
-        notes: body.notes || null,
-      });
-
-      const [updated] = await db
-        .update(loyaltyMembers)
-        .set({
-          points: balanceAfter,
+      const updated = await db.transaction(async (tx) => {
+        const [changed] = await tx.update(loyaltyMembers).set({
+          points: sql`${loyaltyMembers.points} + ${delta}`,
           totalSpent: totalSpent.toFixed(2),
           tier: tierForSpend(totalSpent),
           lastVisitAt: new Date(),
           updatedAt: new Date(),
-        })
-        .where(eq(loyaltyMembers.id, member.id))
-        .returning();
+        }).where(
+          action === 'redeem'
+            ? sql`${eq(loyaltyMembers.id, member.id)} AND ${loyaltyMembers.points} >= ${Math.abs(delta)}`
+            : eq(loyaltyMembers.id, member.id),
+        ).returning();
+        if (!changed) throw new Error('Points changed or insufficient points; retry the operation');
+        await tx.insert(loyaltyTransactions).values({
+          memberId: member.id,
+          type: action === 'earn' ? 'EARN' : 'REDEEM',
+          pointsDelta: delta,
+          balanceAfter: changed.points,
+          orderId: body.orderId || null,
+          notes: body.notes || null,
+        });
+        return changed;
+      });
 
       return NextResponse.json({ success: true, member: updated });
     }

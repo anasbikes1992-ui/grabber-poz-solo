@@ -2,7 +2,7 @@
  * Onboarding milestones — live progress detection for /setup guided flow.
  */
 import { sql, eq } from 'drizzle-orm';
-import { db, businessConfig, products, orders, hasDatabaseUrl } from '@/db';
+import { db, businessConfig, products, orders, branches, users, hasDatabaseUrl } from '@/db';
 import { readConfigJson, readBusinessProfile, readIntegrationsPublic } from '@/lib/config/business-settings';
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import { listAutomationRules } from '@/lib/automation/rules-store';
@@ -33,6 +33,8 @@ export type OnboardingProgress = {
   seeded: boolean;
   seededPreset: string | null;
   dbConnected: boolean;
+  completedAt: string | null;
+  goLiveReady: boolean;
 };
 
 async function isDbConnected(): Promise<boolean> {
@@ -57,6 +59,8 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
 
   let productCount = 0;
   let orderCount = 0;
+  let branchCount = 0;
+  let ownerReady = false;
   let profileName = '';
   if (dbConnected) {
     try {
@@ -64,6 +68,10 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       productCount = Number(pc?.c ?? 0);
       const [oc] = await db.select({ c: sql<number>`count(*)::int` }).from(orders);
       orderCount = Number(oc?.c ?? 0);
+      const [bc] = await db.select({ c: sql<number>`count(*)::int` }).from(branches);
+      branchCount = Number(bc?.c ?? 0);
+      const ownerRows = await db.select({ hashedPin: users.hashedPin }).from(users).where(eq(users.role, 'OWNER')).limit(10);
+      ownerReady = ownerRows.some((u) => Boolean(u.hashedPin && !u.hashedPin.startsWith('TEMP$')));
       const profile = await readBusinessProfile();
       profileName = profile?.name?.trim() || '';
     } catch {
@@ -155,6 +163,16 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       action: 'link',
     },
     {
+      id: 'operations',
+      title: 'Operational bootstrap',
+      description: branchCount > 0 && ownerReady ? 'A branch exists and the owner credential is rotated.' : 'Create a branch and rotate the temporary owner credential.',
+      href: '/settings/staff',
+      done: branchCount > 0 && ownerReady,
+      required: true,
+      order: 5,
+      action: 'link',
+    },
+    {
       id: 'integrations',
       title: 'WhatsApp & payments',
       description: whatsappConfigured
@@ -163,7 +181,7 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       href: '/whatsapp',
       done: whatsappConfigured,
       required: false,
-      order: 5,
+      order: 6,
       action: 'link',
     },
     {
@@ -175,7 +193,7 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       href: '/store/builder',
       done: storefrontCustomized,
       required: false,
-      order: 6,
+      order: 7,
       action: 'link',
     },
     {
@@ -187,7 +205,7 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       href: '/settings/automation',
       done: automationConfigured,
       required: false,
-      order: 7,
+      order: 8,
       action: 'link',
     },
     {
@@ -197,7 +215,7 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       href: '/pos',
       done: orderCount > 0,
       required: false,
-      order: 8,
+      order: 9,
       action: 'link',
     },
   ];
@@ -206,6 +224,9 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
   const completed = milestones.filter((m) => m.done).length;
   const requiredCompleted = required.filter((m) => m.done).length;
   const next = milestones.find((m) => m.required && !m.done) || milestones.find((m) => !m.done);
+
+  const completedAt = (config.onboardingCompletedAt as string) || null;
+  const goLiveReady = dbConnected && requiredCompleted === required.length;
 
   return {
     milestones,
@@ -220,7 +241,20 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
     seeded: productCount > 0,
     seededPreset,
     dbConnected,
+    completedAt,
+    goLiveReady,
   };
+}
+
+export async function completeOnboarding() {
+  const progress = await getOnboardingProgress();
+  if (!progress.goLiveReady) {
+    throw Object.assign(new Error(`Required onboarding milestones incomplete: ${progress.requiredTotal - progress.requiredCompleted} remaining`), { status: 409 });
+  }
+  const { mergeConfigJson } = await import('@/lib/config/business-settings');
+  const completedAt = new Date().toISOString();
+  await mergeConfigJson({ onboardingCompletedAt: completedAt });
+  return { ...progress, completedAt, goLiveReady: true };
 }
 
 /** Persist onboarding markers after seed or preset apply. */

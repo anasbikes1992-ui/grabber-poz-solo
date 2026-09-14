@@ -168,6 +168,14 @@ Building on the certified M3-M6 foundation (118/118 M3 assertions, 15/15 M5 asse
 
 ## Verification Plan
 
+### P1 Operations Completion (2026-09-15)
+
+- Loyalty earn/redeem now validates inputs and commits the member balance plus immutable transaction ledger atomically.
+- Warranty claims now have relational persistence, active-warranty expiry checks, staff-controlled status transitions, resolution text, and optional repair-job linkage.
+- Onboarding completion is server-gated by database, preset, catalog, business profile, branch, and rotated OWNER credential readiness; completion is persisted in `business_config`.
+- Delivery dispatch is idempotent for active shipments and delivery status transitions are validated before synchronizing the order fulfillment status.
+- Remaining P1/P2 scope: multi-provider courier adapters and proof-of-delivery/RTO workflows; these are not represented as complete by this slice.
+
 ### Automated Tests
 ```powershell
 # 1. TypeCheck

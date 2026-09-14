@@ -41,6 +41,8 @@ type ProgressPayload = {
   seeded?: boolean;
   seededPreset?: string | null;
   dbConnected?: boolean;
+  completedAt?: string | null;
+  goLiveReady?: boolean;
 };
 
 export default function SetupPage() {
@@ -52,6 +54,7 @@ export default function SetupPage() {
   const [presetMsg, setPresetMsg] = useState<string | null>(null);
   const [applyingPreset, setApplyingPreset] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<VerticalPresetId>('fashion');
+  const [completing, setCompleting] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -144,6 +147,22 @@ export default function SetupPage() {
     }
   }
 
+  async function completeSetup() {
+    setCompleting(true);
+    setPresetMsg(null);
+    try {
+      const res = await fetch('/api/setup/progress', { method: 'POST' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Required milestones are incomplete');
+      setPresetMsg('Onboarding complete. This installation is ready for the release smoke test.');
+      await refresh();
+    } catch (err) {
+      setPresetMsg((err as Error).message);
+    } finally {
+      setCompleting(false);
+    }
+  }
+
   const milestones = progress?.milestones ?? [];
   const percent = progress?.percent ?? 0;
   const requiredCompleted = progress?.requiredCompleted ?? 0;
@@ -195,6 +214,14 @@ export default function SetupPage() {
             Next: {milestones.find((m) => m.id === nextId)?.title ?? nextId}
           </p>
         )}
+        <button
+          type="button"
+          onClick={() => void completeSetup()}
+          disabled={completing || !progress?.goLiveReady || Boolean(progress?.completedAt)}
+          className="w-full min-h-11 rounded-xl bg-emerald-500 text-zinc-950 text-xs font-bold disabled:opacity-50"
+        >
+          {progress?.completedAt ? 'Onboarding completed' : completing ? 'Completing onboarding…' : 'Complete onboarding'}
+        </button>
       </div>
 
       {seedMsg && (
