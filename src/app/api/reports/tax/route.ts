@@ -16,9 +16,12 @@ export async function GET(req: Request) {
     const month = searchParams.get('month') || new Date().toISOString().slice(0, 7);
     const format = searchParams.get('format');
 
-    const [y, m] = month.split('-').map(Number);
-    const start = new Date(y, m - 1, 1);
-    const end = new Date(y, m, 0, 23, 59, 59);
+    const now = new Date();
+    const [yParsed, mParsed] = (month || '').split('-').map(Number);
+    const y = Number.isFinite(yParsed) && yParsed >= 2000 ? yParsed : now.getFullYear();
+    const m = Number.isFinite(mParsed) && mParsed >= 1 && mParsed <= 12 ? mParsed : now.getMonth() + 1;
+    const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
+    const end = new Date(y, m, 0, 23, 59, 59, 999);
 
     const orderRows = await db
       .select()

@@ -29,10 +29,19 @@ function mockDbWith(tables: {
           return createQueryChain([]);
         },
       }),
+      transaction: async (cb: any) => cb({
+        insert: () => ({
+          values: () => ({
+            returning: () => Promise.resolve([{ id: 'trf-1', transferNumber: 'TRF-1001' }]),
+          }),
+        }),
+      }),
     },
     stockBalances: { _name: 'stock_balances' },
     polimPothaAccounts: { _name: 'polim_potha_accounts' },
     polimPothaEntries: { _name: 'polim_potha_entries' },
+    transfers: { _name: 'transfers' },
+    transferLines: { _name: 'transfer_lines' },
     auditLogs: { _name: 'audit_logs' },
     hasDatabaseUrl: () => true,
   }));

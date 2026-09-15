@@ -85,6 +85,19 @@ export function decryptBackupData(pkg: EncryptedBackupPackage, secretKey: string
  * DR-005: Validate accounting journals balance and stock invariants on restored dataset
  */
 export function verifyRestoredDatabaseIntegrity(data: any): BackupIntegrityReport {
+  if (!data || typeof data !== 'object') {
+    return {
+      valid: false,
+      checks: {
+        journalsBalance: false,
+        stockIntegrity: false,
+        ordersConsistent: false,
+        noNegativeBalances: false,
+      },
+      errors: ['Invalid restored database payload: expected an object'],
+    };
+  }
+
   const errors: string[] = [];
   let journalsBalance = true;
   let stockIntegrity = true;

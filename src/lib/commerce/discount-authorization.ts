@@ -55,6 +55,8 @@ export interface DiscountAuthorizationRequest {
   promotionDiscount?: number | null;
   /** Verified trade-in credit voucher amount */
   tradeInCredit?: number | null;
+  /** Verified customer loyalty points discount amount */
+  loyaltyDiscount?: number | null;
   /** Reason or memo for manual discount */
   reason?: string | null;
 }
@@ -80,6 +82,7 @@ export interface DiscountAuthorizationResult {
     manualDiscount: number;
     promotionDiscount: number;
     tradeInCredit: number;
+    loyaltyDiscount: number;
     effectiveSubtotal: number;
     discountedTaxableSubtotal: number;
   };
@@ -198,12 +201,13 @@ export function authorizeDiscount(
     }
   }
 
-  // 5. Verified Promotions & Trade-In Credits
+  // 5. Verified Promotions, Trade-In Credits & Loyalty Redemptions
   const promoDiscount = Math.max(0, Math.round((req.promotionDiscount || 0) * 100) / 100);
   const tradeInCredit = Math.max(0, Math.round((req.tradeInCredit || 0) * 100) / 100);
+  const loyaltyDiscount = Math.max(0, Math.round((req.loyaltyDiscount || 0) * 100) / 100);
 
   // 6. CI-004-H: Combined discount policy & caps
-  let totalDiscountCandidate = authorizedManual + promoDiscount + tradeInCredit;
+  let totalDiscountCandidate = authorizedManual + promoDiscount + tradeInCredit + loyaltyDiscount;
 
   // Non-owner combined cap check (if manual + promo exceeds policy cap)
   const isOwnerOrOverriddenByOwner = effectiveRole === 'OWNER' || overrideRole === 'OWNER';
@@ -212,7 +216,7 @@ export function authorizeDiscount(
     if (combinedPct > policy.maxNonOwnerCombinedPercent) {
       const maxAllowedNonOwner = Math.round((subtotal * policy.maxNonOwnerCombinedPercent) / 100 * 100) / 100;
       authorizedManual = Math.max(0, maxAllowedNonOwner - promoDiscount);
-      totalDiscountCandidate = authorizedManual + promoDiscount + tradeInCredit;
+      totalDiscountCandidate = authorizedManual + promoDiscount + tradeInCredit + loyaltyDiscount;
       ruleApplied += '_CAPPED_BY_POLICY';
     }
   }
@@ -245,6 +249,7 @@ export function authorizeDiscount(
       manualDiscount: authorizedManual,
       promotionDiscount: promoDiscount,
       tradeInCredit,
+      loyaltyDiscount,
       effectiveSubtotal: subtotal,
       discountedTaxableSubtotal,
     },

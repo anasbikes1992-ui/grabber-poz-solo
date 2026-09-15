@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
-import { db, customers, deliveries, orders, payments } from '@/db';
+import { db, customers, deliveries, orders, orderItems, payments } from '@/db';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 import { dispatchOrderViaKoombiyo, loadCustomerForOrder } from '@/lib/delivery/dispatch-order';
+import { recordReturn } from '@/lib/inventory/stock-service';
 
 function formatPaymentMethod(methods: string[]) {
   if (methods.length > 1) return 'SPLIT';
@@ -128,6 +129,39 @@ export async function POST(req: Request) {
 
     const isCod = body.paymentMethod === 'COD' || order.paymentStatus === 'PENDING';
     const codAmount = isCod ? Number(order.grandTotal) : undefined;
+    const requestedPartner = String(body.courierPartner || body.provider || 'Koombiyo').trim();
+
+    // In-House / Direct Delivery provider support
+    if (requestedPartner.toLowerCase() === 'in-house' || requestedPartner.toUpperCase() === 'IN_HOUSE') {
+      const trackingNumber = `INH-${Date.now().toString().slice(-8)}`;
+      const [newDelivery] = await db
+        .insert(deliveries)
+        .values({
+          orderId,
+          courierPartner: 'In-House',
+          trackingNumber,
+          status: 'ASSIGNED',
+          recipientName,
+          recipientPhone,
+          deliveryAddress: address,
+          codAmount: codAmount ? String(codAmount.toFixed(2)) : null,
+          dispatchedAt: new Date(),
+        })
+        .returning();
+
+      await db
+        .update(orders)
+        .set({ fulfillmentStatus: 'ASSIGNED', updatedAt: new Date() })
+        .where(eq(orders.id, orderId));
+
+      return NextResponse.json({
+        success: true,
+        trackingNumber,
+        courierPartner: 'In-House',
+        stub: false,
+        delivery: newDelivery,
+      });
+    }
 
     const result = await dispatchOrderViaKoombiyo({
       orderId,
@@ -145,7 +179,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       trackingNumber: result.trackingNumber,
-      courierPartner: 'Koombiyo',
+      courierPartner: requestedPartner || 'Koombiyo',
       stub: result.stub,
       delivery: result.delivery,
     });
@@ -195,6 +229,44 @@ export async function PATCH(req: Request) {
       fulfillmentStatus: nextStatus as 'PENDING' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'FAILED' | 'RETURNED',
       updatedAt: new Date(),
     }).where(eq(orders.id, current.orderId));
+
+    // Automated Return-to-Origin (RTO) Stock Restock on RETURNED
+    if (nextStatus === 'RETURNED' && body.autoRestock !== false) {
+      try {
+        const [order] = await db.select().from(orders).where(eq(orders.id, current.orderId)).limit(1);
+        const locationId = String(body.restockLocationId || body.locationId || order?.fulfillmentLocationId || order?.branchId || '');
+        const locationType = (body.locationType as 'BRANCH' | 'WAREHOUSE') || (order?.fulfillmentLocationId ? 'WAREHOUSE' : 'BRANCH');
+
+        if (locationId) {
+          const items = await db.select().from(orderItems).where(eq(orderItems.orderId, current.orderId));
+          if (items.length > 0) {
+            await db.transaction(async (tx) => {
+              for (const item of items) {
+                await recordReturn(
+                  tx as any,
+                  { locationType, locationId },
+                  {
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    quantity: item.quantity,
+                    unitCost: Number(item.unitCost || 0),
+                  },
+                  {
+                    referenceType: 'DELIVERY_RETURN',
+                    referenceId: deliveryId,
+                    actorId: session?.userId || null,
+                    notes: `RTO restock for order ${order?.orderNumber || current.orderId}`,
+                  }
+                );
+              }
+            });
+          }
+        }
+      } catch (restockErr) {
+        console.error('Failed to restock returned delivery items:', restockErr);
+      }
+    }
+
     return NextResponse.json({ success: true, delivery: updated });
   } catch (err) {
     const e = err as { message?: string; status?: number };

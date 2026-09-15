@@ -18,6 +18,8 @@
 # Environment variables
 .env
 .env*.local
+env*.local
+*.local
 .env.production
 .env.prod.txt
 .env.client*

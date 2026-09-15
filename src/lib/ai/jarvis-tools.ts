@@ -8,7 +8,9 @@ import { JarvisToolDefinition, JarvisUserContext, JarvisToolExecutionResult, Jar
 import { JARVIS_DB_TOOLS } from './jarvis-db-tools';
 import { executeJarvisDraftApproval } from '@/lib/jarvis/draft-execute';
 import { createApproval, findApprovalByToken } from '@/lib/approvals/approval-store';
-import { db, auditLogs, hasDatabaseUrl, stockBalances, polimPothaAccounts, polimPothaEntries } from '@/db';
+import { db, auditLogs, hasDatabaseUrl, stockBalances, polimPothaAccounts, polimPothaEntries, transfers, transferLines } from '@/db';
+import { isDemoUserId } from '@/lib/auth/session';
+import { recordTransfer } from '@/lib/inventory/stock-service';
 import { defaultCommerceService, CommerceService } from '../commerce/commerce-service';
 import { defaultAccountingEngine, AccountingEngine } from '../commerce/accounting-engine';
 
@@ -238,24 +240,82 @@ export class JarvisToolRegistry {
       },
     });
 
-    // 4. HIGH_RISK_WRITE: Propose Stock Transfer between Locations
+    // 4. HIGH_RISK_WRITE: Propose Stock Transfer between Locations — DB-grounded
     this.registerTool({
       name: 'propose_stock_transfer',
       description: 'Execute an inter-branch or warehouse stock transfer. Requires explicit user confirmation.',
       risk: 'HIGH_RISK_WRITE',
       requiredRole: ['OWNER', 'ADMIN', 'MANAGER'],
-      execute: async (args: { fromLocationId: string; toLocationId: string; items: Array<{ productId: string; quantity: number }> }, context) => {
+      execute: async (
+        args: {
+          fromLocationId: string;
+          toLocationId: string;
+          fromLocationType?: 'WAREHOUSE' | 'BRANCH';
+          toLocationType?: 'WAREHOUSE' | 'BRANCH';
+          items: Array<{ productId: string; quantity: number; variantId?: string }>;
+        },
+        context,
+      ) => {
+        const fromType = args.fromLocationType || 'WAREHOUSE';
+        const toType = args.toLocationType || 'BRANCH';
         const transferNumber = `TRF-${Date.now()}`;
-        const res = this.commerceService.transferStock({
-          transferNumber,
-          fromLocationType: 'WAREHOUSE',
-          fromLocationId: args.fromLocationId,
-          toLocationType: 'BRANCH',
-          toLocationId: args.toLocationId,
-          items: args.items,
-          actorId: context.userId,
+        const actorId = context.userId && !isDemoUserId(context.userId) ? context.userId : null;
+
+        const result = await db.transaction(async (tx) => {
+          const [tr] = await tx
+            .insert(transfers)
+            .values({
+              transferNumber,
+              fromLocationType: fromType,
+              fromLocationId: args.fromLocationId,
+              toLocationType: toType,
+              toLocationId: args.toLocationId,
+              status: 'RECEIVED',
+              requestedBy: actorId,
+              receivedBy: actorId,
+            })
+            .returning();
+
+          for (const item of args.items) {
+            const qty = Number(item.quantity);
+            if (!qty || qty < 1) throw new Error('Invalid transfer quantity');
+
+            await recordTransfer(
+              tx,
+              { locationType: fromType, locationId: args.fromLocationId },
+              { locationType: toType, locationId: args.toLocationId },
+              { productId: item.productId, variantId: item.variantId || null, quantity: qty },
+              {
+                referenceType: 'TRANSFER',
+                referenceId: tr.id,
+                actorId,
+              },
+            );
+
+            await tx.insert(transferLines).values({
+              transferId: tr.id,
+              productId: item.productId,
+              variantId: item.variantId || null,
+              requestedQty: qty,
+              shippedQty: qty,
+              receivedQty: qty,
+            });
+          }
+
+          if (actorId) {
+            await tx.insert(auditLogs).values({
+              userId: actorId,
+              action: 'JARVIS_STOCK_TRANSFER',
+              entityType: 'TRANSFER',
+              entityId: tr.id,
+              metadataJson: JSON.stringify({ transferNumber, from: args.fromLocationId, to: args.toLocationId, items: args.items }),
+            });
+          }
+
+          return tr;
         });
-        return { status: 'TRANSFER_COMPLETED', result: res };
+
+        return { status: 'TRANSFER_COMPLETED', transferId: result.id, transferNumber: result.transferNumber };
       },
     });
 

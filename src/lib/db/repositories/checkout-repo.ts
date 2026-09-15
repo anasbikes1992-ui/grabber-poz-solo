@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import { db } from '@/db';
 import {
@@ -12,6 +12,8 @@ import {
   polimPothaEntries,
   auditLogs,
   customers,
+  loyaltyMembers,
+  loyaltyTransactions,
 } from '@/db/schema';
 import { resolveCheckoutStatuses, type CheckoutPaymentMethod } from '@/lib/commerce/order-lifecycle';
 import { computeAuthoritativeCheckoutTotals } from '@/lib/commerce/authoritative-pricing';
@@ -67,6 +69,8 @@ export type CheckoutInput = {
   staffRole?: 'OWNER' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAREHOUSE' | 'ACCOUNTANT' | 'MARKETING';
   /** Offline POS sync — honor sale even when stock would go negative */
   allowStockUnderrun?: boolean;
+  /** Loyalty points redeemed for discount */
+  redeemLoyaltyPoints?: number;
   /** VERT-M02 */
   campaignId?: string;
   utmJson?: Record<string, string>;
@@ -313,6 +317,70 @@ export async function durableCheckout(input: CheckoutInput) {
         notes: auth.entryDraft.notes,
         createdBy: input.actorId || null,
       });
+    }
+
+    // Loyalty Point Accrual: if customer has active loyalty membership, award 1 pt per 100 LKR
+    if (paymentSuccess && input.customerId) {
+      const [member] = await tx
+        .select()
+        .from(loyaltyMembers)
+        .where(and(eq(loyaltyMembers.customerId, input.customerId), eq(loyaltyMembers.active, true)))
+        .limit(1);
+
+      if (member) {
+        // A. Handle point redemption if points were redeemed for this sale
+        let currentPoints = member.points;
+        if (input.redeemLoyaltyPoints && input.redeemLoyaltyPoints > 0) {
+          const pointsToRedeem = Math.min(currentPoints, input.redeemLoyaltyPoints);
+          currentPoints -= pointsToRedeem;
+          await tx
+            .update(loyaltyMembers)
+            .set({
+              points: sql`${loyaltyMembers.points} - ${pointsToRedeem}`,
+              lastVisitAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(loyaltyMembers.id, member.id));
+
+          await tx.insert(loyaltyTransactions).values({
+            memberId: member.id,
+            type: 'REDEEM',
+            pointsDelta: -pointsToRedeem,
+            balanceAfter: currentPoints,
+            orderId: order.id,
+            notes: `Redeemed on order ${orderNumber}`,
+          });
+        }
+
+        // B. Handle point accrual on paid net grandTotal
+        const earnedPoints = Math.floor(grandTotal / 100);
+        if (earnedPoints > 0) {
+          const newTotalSpent = Number(member.totalSpent) + grandTotal;
+          const newTier = newTotalSpent >= 100000 ? 'PLATINUM' : newTotalSpent >= 25000 ? 'GOLD' : 'SILVER';
+          const [updatedMember] = await tx
+            .update(loyaltyMembers)
+            .set({
+              points: sql`${loyaltyMembers.points} + ${earnedPoints}`,
+              totalSpent: newTotalSpent.toFixed(2),
+              tier: newTier,
+              lastVisitAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(loyaltyMembers.id, member.id))
+            .returning();
+
+          if (updatedMember) {
+            await tx.insert(loyaltyTransactions).values({
+              memberId: member.id,
+              type: 'EARN',
+              pointsDelta: earnedPoints,
+              balanceAfter: updatedMember.points,
+              orderId: order.id,
+              notes: `Earned from order ${orderNumber}`,
+            });
+          }
+        }
+      }
     }
 
     let journalEntryId: string | null = null;
