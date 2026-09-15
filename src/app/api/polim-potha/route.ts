@@ -9,28 +9,110 @@ export async function GET() {
     const accounts = await db.select().from(polimPothaAccounts).orderBy(desc(polimPothaAccounts.updatedAt)).limit(200);
     const custs = await db.select().from(customers);
     const cMap = new Map(custs.map((c) => [c.id, c]));
-    const entries = await db.select().from(polimPothaEntries).orderBy(desc(polimPothaEntries.createdAt)).limit(50);
+    const entries = await db.select().from(polimPothaEntries).orderBy(desc(polimPothaEntries.createdAt)).limit(500);
+
+    // Compute AR aging buckets across accounts using FIFO allocation
+    const nowMs = Date.now();
+    const entriesByCust = new Map<string, typeof entries>();
+    for (const e of entries) {
+      const list = entriesByCust.get(e.customerId) || [];
+      list.push(e);
+      entriesByCust.set(e.customerId, list);
+    }
+
+    let global0to30 = 0;
+    let global31to60 = 0;
+    let global61to90 = 0;
+    let global90Plus = 0;
+    let totalReceivable = 0;
+    let totalLimit = 0;
+
+    const mappedAccounts = accounts.map((a) => {
+      const c = cMap.get(a.customerId);
+      const limit = Number(a.creditLimit || 0);
+      const balance = Number(a.currentBalance || 0);
+      totalReceivable += balance;
+      totalLimit += limit;
+
+      // Customer aging calculation
+      const custEntries = (entriesByCust.get(a.customerId) || []).slice().reverse(); // Oldest first
+      const unpaidInvoices: Array<{ amount: number; date: Date }> = [];
+      let repaymentPool = 0;
+
+      for (const entry of custEntries) {
+        const amt = Number(entry.amount || 0);
+        if (entry.type === 'INVOICE') {
+          unpaidInvoices.push({ amount: amt, date: new Date(entry.createdAt) });
+        } else if (entry.type === 'REPAYMENT' || entry.type === 'WRITE_OFF') {
+          repaymentPool += amt;
+        }
+      }
+
+      let a0to30 = 0;
+      let a31to60 = 0;
+      let a61to90 = 0;
+      let a90Plus = 0;
+
+      for (const inv of unpaidInvoices) {
+        if (repaymentPool >= inv.amount) {
+          repaymentPool -= inv.amount;
+          continue;
+        }
+        const remaining = inv.amount - repaymentPool;
+        repaymentPool = 0;
+        const ageDays = Math.floor((nowMs - inv.date.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (ageDays <= 30) a0to30 += remaining;
+        else if (ageDays <= 60) a31to60 += remaining;
+        else if (ageDays <= 90) a61to90 += remaining;
+        else a90Plus += remaining;
+      }
+
+      // If customer has a balance but no recorded invoice history, put in 0-30 bucket
+      if (balance > 0 && a0to30 + a31to60 + a61to90 + a90Plus === 0) {
+        a0to30 = balance;
+      }
+
+      global0to30 += a0to30;
+      global31to60 += a31to60;
+      global61to90 += a61to90;
+      global90Plus += a90Plus;
+
+      return {
+        id: a.customerId,
+        accountId: a.id,
+        name: c?.name || a.customerId,
+        phone: c?.phone || '',
+        email: c?.email || null,
+        limit,
+        balance,
+        available: Math.max(0, limit - balance),
+        status: a.status,
+        aging: {
+          days0to30: Math.round(a0to30 * 100) / 100,
+          days31to60: Math.round(a31to60 * 100) / 100,
+          days61to90: Math.round(a61to90 * 100) / 100,
+          days90Plus: Math.round(a90Plus * 100) / 100,
+        },
+        updatedAt: a.updatedAt,
+      };
+    });
 
     return NextResponse.json({
       success: true,
-      accounts: accounts.map((a) => {
-        const c = cMap.get(a.customerId);
-        const limit = Number(a.creditLimit);
-        const balance = Number(a.currentBalance);
-        return {
-          id: a.customerId,
-          accountId: a.id,
-          name: c?.name || a.customerId,
-          phone: c?.phone || '',
-          email: c?.email || null,
-          limit,
-          balance,
-          available: Math.max(0, limit - balance),
-          status: a.status,
-          updatedAt: a.updatedAt,
-        };
-      }),
-      entries: entries.map((e) => ({
+      summary: {
+        totalReceivable: Math.round(totalReceivable * 100) / 100,
+        totalLimit: Math.round(totalLimit * 100) / 100,
+        accountsCount: accounts.length,
+        aging: {
+          days0to30: Math.round(global0to30 * 100) / 100,
+          days31to60: Math.round(global31to60 * 100) / 100,
+          days61to90: Math.round(global61to90 * 100) / 100,
+          days90Plus: Math.round(global90Plus * 100) / 100,
+        },
+      },
+      accounts: mappedAccounts,
+      entries: entries.slice(0, 50).map((e) => ({
         id: e.id,
         customerId: e.customerId,
         customer: cMap.get(e.customerId)?.name || e.customerId,

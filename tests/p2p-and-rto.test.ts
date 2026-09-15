@@ -142,4 +142,43 @@ describe('P2P Supplier Accounting & RTO Logistics Integrity', () => {
       expect(updatedBalance).toBe(55000);
     });
   });
+
+  describe('Polim Potha AR Aging Invariants', () => {
+    it('accurately allocates invoices across aging buckets (0-30, 31-60, 61-90, 90+) using FIFO repayment', async () => {
+      const { CreditEngine } = await import('@/lib/commerce/credit-engine');
+      const engine = new CreditEngine();
+
+      const custId = 'cust-aging-1';
+      engine.setAccount({
+        customerId: custId,
+        customerName: 'Test AR Customer',
+        creditLimit: 100000,
+        currentBalance: 0,
+        availableCredit: 100000,
+        status: 'ACTIVE',
+      });
+
+      const now = new Date();
+      const d10DaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+      const d45DaysAgo = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000);
+      const d100DaysAgo = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000);
+
+      // Oldest invoice: 20,000 (100 days ago)
+      engine.postEntry({ customerId: custId, type: 'INVOICE', amount: 20000, dueDate: d100DaysAgo, createdAt: d100DaysAgo });
+      // Middle invoice: 30,000 (45 days ago)
+      engine.postEntry({ customerId: custId, type: 'INVOICE', amount: 30000, dueDate: d45DaysAgo, createdAt: d45DaysAgo });
+      // Recent invoice: 15,000 (10 days ago)
+      engine.postEntry({ customerId: custId, type: 'INVOICE', amount: 15000, dueDate: d10DaysAgo, createdAt: d10DaysAgo });
+
+      // Partial repayment of 25,000 (settles 20,000 oldest + 5,000 of 45-day invoice)
+      engine.postEntry({ customerId: custId, type: 'REPAYMENT', amount: 25000, createdAt: now });
+
+      const aging = engine.getAgingReport(custId, now);
+
+      expect(aging.totalOutstanding).toBe(40000); // 65000 - 25000 = 40000
+      expect(aging.days90Plus).toBe(0); // Fully settled by 25k repayment
+      expect(aging.days31to60).toBe(25000); // 30000 - 5000 settled = 25000
+      expect(aging.days0to30).toBe(15000); // Untouched recent invoice
+    });
+  });
 });
