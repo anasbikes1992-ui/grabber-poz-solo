@@ -296,19 +296,19 @@ export class JarvisToolRegistry {
               transferId: tr.id,
               productId: item.productId,
               variantId: item.variantId || null,
-              requestedQty: qty,
-              shippedQty: qty,
+              quantity: qty,
               receivedQty: qty,
+              varianceQty: 0,
             });
           }
 
           if (actorId) {
             await tx.insert(auditLogs).values({
-              userId: actorId,
+              actorId,
               action: 'JARVIS_STOCK_TRANSFER',
-              entityType: 'TRANSFER',
+              entity: 'TRANSFER',
               entityId: tr.id,
-              metadataJson: JSON.stringify({ transferNumber, from: args.fromLocationId, to: args.toLocationId, items: args.items }),
+              afterState: { transferNumber, from: args.fromLocationId, to: args.toLocationId, items: args.items },
             });
           }
 

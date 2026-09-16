@@ -124,7 +124,7 @@ describe('P2P Supplier Accounting & RTO Logistics Integrity', () => {
     it('balances double-entry GL (Debit AP, Credit Bank/Cash) on supplier disbursement', () => {
       const disbursementAmount = 45000;
       const paymentMethod = 'BANK_TRANSFER';
-      const creditAccountCode = paymentMethod === 'CASH' ? '1010' : '1020';
+      const creditAccountCode = (paymentMethod as string) === 'CASH' ? '1010' : '1020';
 
       const journalLines = [
         { accountCode: '2000', type: 'DEBIT', amount: disbursementAmount, description: 'Accounts Payable - Supplier Disbursement' },

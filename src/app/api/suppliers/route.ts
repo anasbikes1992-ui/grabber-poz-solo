@@ -117,11 +117,11 @@ export async function POST(req: Request) {
 
         if (actorId) {
           await tx.insert(auditLogs).values({
-            userId: actorId,
+            actorId,
             action: 'SUPPLIER_PAYMENT',
-            entityType: 'SUPPLIER',
+            entity: 'SUPPLIER',
             entityId: supplierId,
-            metadataJson: JSON.stringify({ amount, paymentMethod, newBalance: newBal, entryId: entry.id }),
+            afterState: { amount, paymentMethod, newBalance: newBal, entryId: entry.id },
           });
         }
 
