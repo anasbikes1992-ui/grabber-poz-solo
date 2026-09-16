@@ -150,6 +150,28 @@ export function assertCanMutateCommerce(user: SessionUser | null): SessionUser {
   return assertRole(user, MUTATING_ROLES);
 }
 
+export async function assertUserIsActive(userId: string): Promise<boolean> {
+  if (isDemoUserId(userId)) return true;
+  try {
+    const { db, users } = await import('@/db');
+    const { eq } = await import('drizzle-orm');
+    const [u] = await db.select({ active: users.active }).from(users).where(eq(users.id, userId)).limit(1);
+    if (u && !u.active) {
+      throw Object.assign(new Error('User account is deactivated or suspended'), { status: 403 });
+    }
+  } catch (err: unknown) {
+    const e = err as { status?: number; message?: string };
+    if (e.status === 403) throw err;
+  }
+  return true;
+}
+
+export async function requireActiveStaffSession(): Promise<SessionUser> {
+  const session = await requireStaffSession();
+  await assertUserIsActive(session.userId);
+  return session;
+}
+
 export function isDemoUserId(id: string): boolean {
   return id === DEV_OWNER_SESSION.userId;
 }

@@ -100,11 +100,24 @@ export async function POST(req: Request) {
             .set({ costPrice: wavg.toFixed(2), updatedAt: new Date() })
             .where(eq(products.id, item.productId));
         }
+
+        if (line) {
+          const newReceived = (Number(line.receivedQty) || 0) + item.quantity;
+          await tx
+            .update(purchaseOrderLines)
+            .set({ receivedQty: newReceived })
+            .where(eq(purchaseOrderLines.id, line.id));
+        }
       }
+
+      const allLines = await tx.select().from(purchaseOrderLines).where(eq(purchaseOrderLines.poId, po.id));
+      const allFullyReceived = allLines.length > 0 && allLines.every((l) => Number(l.receivedQty) >= Number(l.orderedQty));
+      const anyReceived = allLines.some((l) => Number(l.receivedQty) > 0);
+      const nextPoStatus = allFullyReceived ? 'RECEIVED' : (anyReceived ? 'PARTIALLY_RECEIVED' : po.status);
 
       await tx
         .update(purchaseOrders)
-        .set({ status: 'RECEIVED', totalAmount: String(totalCost.toFixed(2)) })
+        .set({ status: nextPoStatus, totalAmount: String(totalCost.toFixed(2)) })
         .where(eq(purchaseOrders.id, po.id));
 
       const [acct] = await tx

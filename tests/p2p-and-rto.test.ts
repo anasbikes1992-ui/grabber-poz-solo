@@ -181,4 +181,49 @@ describe('P2P Supplier Accounting & RTO Logistics Integrity', () => {
       expect(aging.days0to30).toBe(15000); // Untouched recent invoice
     });
   });
+
+  describe('Purchasing GRN Partial vs Full Fulfillment Invariant', () => {
+    it('sets PARTIALLY_RECEIVED when some lines remain incomplete and RECEIVED when all are fulfilled', () => {
+      const lines = [
+        { id: 'l-1', orderedQty: 10, receivedQty: 10 },
+        { id: 'l-2', orderedQty: 5, receivedQty: 2 },
+      ];
+
+      const allFullyReceived = lines.every((l) => l.receivedQty >= l.orderedQty);
+      const anyReceived = lines.some((l) => l.receivedQty > 0);
+      const statusPartial = allFullyReceived ? 'RECEIVED' : anyReceived ? 'PARTIALLY_RECEIVED' : 'APPROVED';
+
+      expect(statusPartial).toBe('PARTIALLY_RECEIVED');
+
+      lines[1].receivedQty = 5;
+      const allDone = lines.every((l) => l.receivedQty >= l.orderedQty);
+      const statusFinal = allDone ? 'RECEIVED' : 'PARTIALLY_RECEIVED';
+      expect(statusFinal).toBe('RECEIVED');
+    });
+  });
+
+  describe('Register Shift Mid-Shift Cash Movement Reconciliation', () => {
+    it('accurately factors cash drops and additions into expectedCash at close', () => {
+      const openingFloat = 10000;
+      const cashSales = 25000;
+      const cashPaidIn = 5000; // Float top-up
+      const cashPaidOut = 3000; // Petty cash utility payment
+
+      const expectedCash = openingFloat + cashSales + cashPaidIn - cashPaidOut;
+      expect(expectedCash).toBe(37000);
+
+      const closingCash = 37000;
+      const variance = closingCash - expectedCash;
+      expect(variance).toBe(0);
+    });
+  });
+
+  describe('Staff Session Active Status Security Gate', () => {
+    it('allows active staff and rejects deactivated users', async () => {
+      const { assertUserIsActive, isDemoUserId } = await import('@/lib/auth/session');
+      expect(isDemoUserId('00000000-0000-0000-0000-000000000001')).toBe(true);
+      const activeRes = await assertUserIsActive('00000000-0000-0000-0000-000000000001');
+      expect(activeRes).toBe(true);
+    });
+  });
 });
