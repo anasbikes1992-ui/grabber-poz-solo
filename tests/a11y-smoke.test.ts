@@ -60,6 +60,32 @@ describe('a11y smoke — critical pages', () => {
     expect(jarvis).toMatch(/aria-modal/);
   });
 
+  it('Checkout has labeled inputs, radiogroup, alert region, and AA-contrast text', () => {
+    const src = read('src/app/shop/checkout/page.tsx');
+    expect(src).toMatch(/htmlFor=["']checkout-name["']/);
+    expect(src).toMatch(/htmlFor=["']checkout-phone["']/);
+    expect(src).toMatch(/htmlFor=["']checkout-address["']/);
+    expect(src).toMatch(/role=["']radiogroup["']/);
+    expect(src).toMatch(/role=["']alert["']/);
+    expect(src).toMatch(/role=["']status["']/);
+    expect(src).not.toMatch(/text-zinc-500|text-zinc-600/);
+  });
+
+  it('CartDrawer avoids sub-AA contrast text tokens', () => {
+    const src = read('src/components/storefront/CartDrawer.tsx');
+    expect(src).not.toMatch(/text-slate-500/);
+  });
+
+  it('PWA manifest and service worker are wired', () => {
+    expect(fs.existsSync(path.join(root, 'public/manifest.json'))).toBe(true);
+    expect(fs.existsSync(path.join(root, 'public/sw.js'))).toBe(true);
+    expect(fs.existsSync(path.join(root, 'src/app/icon.svg'))).toBe(true);
+    const layout = read('src/app/layout.tsx');
+    expect(layout).toMatch(/manifest:\s*['"]\/manifest\.json['"]/);
+    const shell = read('src/components/layout/app-shell.tsx');
+    expect(shell).toMatch(/serviceWorker/);
+  });
+
   it('robots.ts disallows key staff surfaces', () => {
     const src = read('src/app/robots.ts');
     for (const p of ['/grocery', '/restaurant', '/creative', '/approvals', '/whatsapp']) {

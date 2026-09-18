@@ -4,19 +4,27 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { Package } from 'lucide-react';
 import { StorefrontShell } from '@/components/storefront/storefront-shell';
 import {
   StorefrontFeaturedSection,
   StorefrontFooterCta,
   StorefrontMidBlocks,
 } from '@/components/storefront/storefront-blocks';
+import { ProductPromoBadge, promoBadgeLabel } from '@/components/storefront/ProductPromoBadge';
 import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { blocksForSlot } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { whatsappHref } from '@/lib/storefront/theme-vars';
 import { useShopperSession } from '@/hooks/use-shopper-session';
+import {
+  loadPublicPromotions,
+  pickCatalogBadgePromo,
+  type PublicPromo,
+} from '@/lib/storefront/public-promotions';
 import { CartDrawer } from '@/components/storefront/CartDrawer';
 import { CartFloatingBar } from '@/components/storefront/CartFloatingBar';
+import { HeroSlider } from '@/components/storefront/HeroSlider';
 
 type CatalogItem = {
   id: string;
@@ -69,13 +77,22 @@ const gridItem = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
-export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
+export function StorefrontHome({
+  cms,
+  initialCatalog,
+  initialBranchId,
+}: {
+  cms: StorefrontConfig;
+  initialCatalog?: CatalogItem[];
+  initialBranchId?: string | null;
+}) {
+  const heroSlider = blocksForSlot(cms.blocks, 'HERO').find((b) => b.type === 'HERO_SLIDER');
   const heroBlock = blocksForSlot(cms.blocks, 'HERO').find((b) => b.type === 'HERO');
   const hero = heroBlock?.type === 'HERO' ? heroBlock : undefined;
   const reduceMotion = useReducedMotion();
   const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
-  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
-  const [branchId, setBranchId] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<CatalogItem[]>(() => initialCatalog ?? []);
+  const [branchId, setBranchId] = useState<string | null>(() => initialBranchId ?? null);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const { shopper, refresh: refreshSession } = useShopperSession();
@@ -86,7 +103,14 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(() =>
+    initialCatalog && initialCatalog.length === 0
+      ? 'Store is connected but empty — run POST /api/seed once.'
+      : null,
+  );
+  const [badgePromo, setBadgePromo] = useState<PublicPromo | null>(null);
+  const [visibleCount, setVisibleCount] = useState(24);
+  const PAGE_SIZE = 24;
 
   const motionProps = reduceMotion
     ? {}
@@ -99,33 +123,51 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   useEffect(() => {
     void (async () => {
       try {
-        const [healthRes, catRes, pubRes] = await Promise.all([
-          fetch('/api/health'),
-          fetch('/api/pos/catalog'),
-          fetch('/api/storefront/public'),
+        const hasServerCatalog = Array.isArray(initialCatalog);
+        const tasks: Promise<unknown>[] = [
+          fetch('/api/storefront/public').then(async (pubRes) => {
+            const pub = (await pubRes.json()) as { verticalFlags?: VerticalFlags };
+            if (pub.verticalFlags) setVerticalFlags({ ...DEFAULT_VERTICAL_FLAGS, ...pub.verticalFlags });
+          }),
           refreshSession(false),
-        ]);
-        const pub = (await pubRes.json()) as { verticalFlags?: VerticalFlags };
-        if (pub.verticalFlags) setVerticalFlags({ ...DEFAULT_VERTICAL_FLAGS, ...pub.verticalFlags });
-        const health = (await healthRes.json()) as { db?: string };
-        if (health.db === 'not_configured') {
-          throw new Error('Database not connected on server — add DATABASE_URL on Vercel');
+          loadPublicPromotions().then((promos) => setBadgePromo(pickCatalogBadgePromo(promos))),
+        ];
+
+        if (!hasServerCatalog) {
+          tasks.push(
+            (async () => {
+              const [healthRes, catRes] = await Promise.all([
+                fetch('/api/health'),
+                fetch('/api/pos/catalog'),
+              ]);
+              const health = (await healthRes.json()) as { db?: string };
+              if (health.db === 'not_configured') {
+                throw new Error('Database not connected on server — add DATABASE_URL on Vercel');
+              }
+              if (!catRes.ok) {
+                const errBody = (await catRes.json().catch(() => ({}))) as { error?: string };
+                throw new Error(errBody.error || 'Catalog unavailable');
+              }
+              const data = (await catRes.json()) as { items?: CatalogItem[]; branchId?: string };
+              if (!data.items?.length) {
+                setLoadErr('Store is connected but empty — run POST /api/seed once.');
+              }
+              setCatalog(data.items ?? []);
+              setBranchId(data.branchId ?? null);
+            })(),
+          );
         }
-        if (!catRes.ok) {
-          const errBody = (await catRes.json().catch(() => ({}))) as { error?: string };
-          throw new Error(errBody.error || 'Catalog unavailable');
-        }
-        const data = (await catRes.json()) as { items?: CatalogItem[]; branchId?: string };
-        if (!data.items?.length) {
-          setLoadErr('Store is connected but empty — run POST /api/seed once.');
-        }
-        setCatalog(data.items ?? []);
-        setBranchId(data.branchId ?? null);
+
+        await Promise.all(tasks);
       } catch (e) {
         setLoadErr(e instanceof Error ? e.message : 'Could not load store');
       }
     })();
-  }, [refreshSession]);
+  }, [refreshSession, initialCatalog]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [q, selectedCategory, sortBy]);
 
   useEffect(() => {
     const needle = q.trim();
@@ -210,6 +252,11 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
     return sorted;
   }, [catalog, q, serverHits, selectedCategory, sortBy]);
 
+  const visibleItems = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount],
+  );
+
   const totals = useMemo(() => {
     const subtotal = cart.reduce((s, l) => s + Number(l.unitPrice) * l.qty, 0);
     return { subtotal, itemCount: cart.reduce((s, l) => s + l.qty, 0) };
@@ -277,6 +324,44 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
   return (
     <StorefrontShell cms={cms} verticalFlags={verticalFlags} onOpenBag={() => setCartDrawerOpen(true)}>
       <div>
+        {heroSlider?.type === 'HERO_SLIDER' ? (
+          <>
+            <HeroSlider slides={heroSlider.slides} autoplayMs={heroSlider.autoplayMs} />
+            <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+              <div className="storefront-hero-card rounded-3xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] p-6 shadow-xl backdrop-blur">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-secondary)]">Your bag</p>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[var(--sf-accent)]/10 text-[var(--sf-accent)] text-xs font-bold font-mono">
+                    {totals.itemCount} item(s)
+                  </span>
+                </div>
+                <p className="mt-2 font-display text-3xl font-bold text-[var(--sf-on-surface)]">{money(totals.subtotal)}</p>
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCartDrawerOpen(true)}
+                    className="w-full min-h-11 cursor-pointer rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] py-2.5 text-xs font-bold text-[var(--sf-on-surface)]"
+                  >
+                    View Bag
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy || cart.length === 0}
+                    onClick={() => void checkout()}
+                    className="w-full min-h-11 cursor-pointer rounded-full bg-[var(--sf-primary)] py-2.5 text-xs font-bold text-[var(--sf-on-primary)] disabled:opacity-40"
+                  >
+                    {busy ? 'Loading…' : shopper ? 'Checkout' : 'Sign in'}
+                  </button>
+                </div>
+                {msg && (
+                  <p className="mt-3 text-sm text-[var(--sf-accent)]" role="status">
+                    {msg}
+                  </p>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
         <section className="storefront-hero relative overflow-hidden border-b border-[var(--sf-border)]">
           <div
             className="pointer-events-none absolute inset-0"
@@ -401,6 +486,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
             </motion.div>
           </div>
         </section>
+        )}
 
         <StorefrontMidBlocks cms={cms} />
 
@@ -531,7 +617,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
               {...gridMotionProps}
               className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             >
-              {filtered.map((item) => (
+              {visibleItems.map((item) => (
                 <motion.article
                   key={item.id}
                   variants={reduceMotion ? undefined : gridItem}
@@ -551,7 +637,7 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center gap-1.5 text-[var(--sf-secondary)] opacity-60">
-                          <span className="text-3xl">🛍️</span>
+                          <Package className="h-8 w-8" aria-hidden />
                           <span className="text-[10px] font-semibold uppercase tracking-wider">
                             {item.category || 'Product'}
                           </span>
@@ -562,6 +648,12 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                       {item.category && item.category !== 'Uncategorized' && (
                         <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur text-[10px] font-bold text-white tracking-wide shadow-sm">
                           {item.category}
+                        </div>
+                      )}
+
+                      {badgePromo && (
+                        <div className="absolute bottom-3 left-3">
+                          <ProductPromoBadge text={promoBadgeLabel(badgePromo)} />
                         </div>
                       )}
 
@@ -633,6 +725,18 @@ export function StorefrontHome({ cms }: { cms: StorefrontConfig }) {
                 </motion.article>
               ))}
             </motion.div>
+          )}
+
+          {filtered.length > visibleCount && (
+            <div className="mt-8 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+                className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-6 text-sm font-semibold text-[var(--sf-on-surface)] transition-colors hover:border-[var(--sf-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+              >
+                Load more ({filtered.length - visibleCount} remaining)
+              </button>
+            </div>
           )}
 
           {/* Slide-Over Cart Drawer & Floating Bag Bar */}

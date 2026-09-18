@@ -10,6 +10,7 @@ import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-confi
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { storefrontThemeStyle, storefrontThemeAttrs, whatsappHref } from '@/lib/storefront/theme-vars';
 import { useShopperSession } from '@/hooks/use-shopper-session';
+import { AnnouncementBar } from './AnnouncementBar';
 import { PromotionPopup } from './PromotionPopup';
 
 function navLinkClass(active: boolean) {
@@ -92,9 +93,13 @@ export function StorefrontShell({
       </a>
       <PromotionPopup />
       {announcement?.type === 'ANNOUNCEMENT' && (
-        <div className="bg-[var(--sf-primary)] text-center text-xs font-semibold text-[var(--sf-on-primary)] px-4 py-2">
-          {announcement.text}
-        </div>
+        <AnnouncementBar
+          text={announcement.text}
+          promoCode={announcement.promoCode}
+          ctaText={announcement.ctaText}
+          ctaUrl={announcement.ctaUrl}
+          endsAt={announcement.endsAt}
+        />
       )}
 
       <header className="sticky top-0 z-40 border-b border-[var(--sf-border)] bg-[var(--sf-background)]/85 backdrop-blur-xl">

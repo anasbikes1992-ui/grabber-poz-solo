@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "analyze:sizes": "node scripts/report-client-sizes.mjs",
     "test": "vitest run",
     "check": "npm run typecheck && npm test && npm run build",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",

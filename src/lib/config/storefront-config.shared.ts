@@ -3,7 +3,17 @@
 export type StorefrontSlot = 'TOP' | 'HERO' | 'MID' | 'PRE_CATALOG' | 'FOOTER';
 
 export type StorefrontBlock =
-  | { id: string; type: 'ANNOUNCEMENT'; text: string; slot: 'TOP'; enabled?: boolean }
+  | {
+      id: string;
+      type: 'ANNOUNCEMENT';
+      text: string;
+      promoCode?: string;
+      ctaText?: string;
+      ctaUrl?: string;
+      endsAt?: string;
+      slot: 'TOP';
+      enabled?: boolean;
+    }
   | {
       id: string;
       type: 'HERO';
@@ -26,7 +36,22 @@ export type StorefrontBlock =
       body: string;
       ctaLabel?: string;
       ctaHref?: string;
+      imageUrl?: string;
       slot: 'MID';
+      enabled?: boolean;
+    }
+  | {
+      id: string;
+      type: 'HERO_SLIDER';
+      slides: Array<{
+        title: string;
+        subtitle?: string;
+        imageUrl?: string;
+        ctaLabel?: string;
+        ctaHref?: string;
+      }>;
+      autoplayMs?: number;
+      slot: 'HERO';
       enabled?: boolean;
     }
   | { id: string; type: 'FEATURED'; title: string; productSlugs: string[]; slot: 'PRE_CATALOG'; enabled?: boolean }
@@ -100,7 +125,36 @@ export const DEFAULT_STOREFRONT: StorefrontConfig = {
     whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim() || undefined,
   },
   blocks: [
-    { id: 'ann_1', type: 'ANNOUNCEMENT', text: 'Free islandwide delivery on orders over LKR 10,000', slot: 'TOP', enabled: true },
+    {
+      id: 'ann_1',
+      type: 'ANNOUNCEMENT',
+      text: 'Free islandwide delivery on orders over LKR 10,000',
+      ctaText: 'Shop now',
+      ctaUrl: '/shop#catalog',
+      slot: 'TOP',
+      enabled: true,
+    },
+    {
+      id: 'hero_slider_1',
+      type: 'HERO_SLIDER',
+      slot: 'HERO',
+      enabled: true,
+      autoplayMs: 7000,
+      slides: [
+        {
+          title: 'Shop Grabber',
+          subtitle: 'Browse live inventory and place COD orders online — same catalog as your POS.',
+          ctaLabel: 'Browse products',
+          ctaHref: '/shop#catalog',
+        },
+        {
+          title: 'Islandwide delivery',
+          subtitle: 'Free delivery on orders over LKR 10,000. WhatsApp checkout when you need help.',
+          ctaLabel: 'View catalog',
+          ctaHref: '/shop#catalog',
+        },
+      ],
+    },
     {
       id: 'hero_1',
       type: 'HERO',
@@ -110,7 +164,7 @@ export const DEFAULT_STOREFRONT: StorefrontConfig = {
       secondaryCtaLabel: 'Device repairs',
       secondaryCtaHref: '/shop/repairs',
       slot: 'HERO',
-      enabled: true,
+      enabled: false,
     },
     {
       id: 'mid_repairs',
@@ -148,7 +202,17 @@ export function normalizeBlock(raw: Record<string, unknown>): StorefrontBlock | 
   const enabled = raw.enabled !== false;
 
   if (type === 'ANNOUNCEMENT') {
-    return { id, type: 'ANNOUNCEMENT', text: String(raw.text || ''), slot: 'TOP', enabled };
+    return {
+      id,
+      type: 'ANNOUNCEMENT',
+      text: String(raw.text || ''),
+      promoCode: raw.promoCode ? String(raw.promoCode) : undefined,
+      ctaText: raw.ctaText ? String(raw.ctaText) : undefined,
+      ctaUrl: raw.ctaUrl ? String(raw.ctaUrl) : undefined,
+      endsAt: raw.endsAt ? String(raw.endsAt) : undefined,
+      slot: 'TOP',
+      enabled,
+    };
   }
   if (type === 'HERO') {
     const mediaType = raw.heroMediaType as 'none' | 'image' | 'video' | undefined;
@@ -175,7 +239,31 @@ export function normalizeBlock(raw: Record<string, unknown>): StorefrontBlock | 
       body: String(raw.body || ''),
       ctaLabel: raw.ctaLabel ? String(raw.ctaLabel) : undefined,
       ctaHref: raw.ctaHref ? String(raw.ctaHref) : undefined,
+      imageUrl: raw.imageUrl ? String(raw.imageUrl) : undefined,
       slot: 'MID',
+      enabled,
+    };
+  }
+  if (type === 'HERO_SLIDER') {
+    const slidesRaw = Array.isArray(raw.slides) ? raw.slides : [];
+    const slides = slidesRaw
+      .map((s) => {
+        const row = s as Record<string, unknown>;
+        return {
+          title: String(row.title || ''),
+          subtitle: row.subtitle ? String(row.subtitle) : undefined,
+          imageUrl: row.imageUrl ? String(row.imageUrl) : undefined,
+          ctaLabel: row.ctaLabel ? String(row.ctaLabel) : undefined,
+          ctaHref: row.ctaHref ? String(row.ctaHref) : undefined,
+        };
+      })
+      .filter((s) => s.title);
+    return {
+      id,
+      type: 'HERO_SLIDER',
+      slides,
+      autoplayMs: typeof raw.autoplayMs === 'number' ? raw.autoplayMs : 6000,
+      slot: 'HERO',
       enabled,
     };
   }

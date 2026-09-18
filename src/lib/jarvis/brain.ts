@@ -1,13 +1,11 @@
 /**
  * GRABBER BUSINESS OS — MASTER CLOSED-LOOP BUSINESS BRAIN
- * Orchestrates Observe -> Measure -> Analyze -> Detect -> Opportunity -> Recommend -> Policy -> Approve -> Execute -> Attribute -> Learn.
+ * Orchestrates Observe → Measure → Analyze → Detect → Opportunity → Recommend → Policy → Approve → Execute → Attribute → Learn.
  */
 
 import { readConfigJson, mergeConfigJson } from '@/lib/config/business-settings';
 import { AutonomyPolicyEngine, type ActionCategory } from './autonomy-policy';
 import { CockpitAggregator, type OwnerMorningBrief } from './cockpit';
-import { AnomalyDetector, type BusinessAnomaly } from './anomaly-detector';
-import { OpportunityEngine, type BusinessOpportunity } from './opportunity-engine';
 
 export interface ClosedLoopActionRecord {
   id: string;
@@ -39,22 +37,22 @@ export class JarvisBusinessBrain {
     this.policyEngine = new AutonomyPolicyEngine();
   }
 
-  /**
-   * Reads the active closed-loop action log from business settings.
-   */
+  public getPolicyEngine() {
+    return this.policyEngine;
+  }
+
   public async listActionHistory(limit = 50): Promise<ClosedLoopActionRecord[]> {
     const cfg = await readConfigJson();
     const history = (cfg.jarvisActionHistory as ClosedLoopActionRecord[] | undefined) || [];
     return history.slice(0, limit);
   }
 
-  /**
-   * Logs a new recommended action draft into the brain.
-   */
-  public async logProposedAction(action: Omit<ClosedLoopActionRecord, 'id' | 'recommendedAt' | 'status'>): Promise<ClosedLoopActionRecord> {
+  public async logProposedAction(
+    action: Omit<ClosedLoopActionRecord, 'id' | 'recommendedAt' | 'status'>,
+  ): Promise<ClosedLoopActionRecord> {
     const cfg = await readConfigJson();
     const history = (cfg.jarvisActionHistory as ClosedLoopActionRecord[] | undefined) || [];
-    
+
     const record: ClosedLoopActionRecord = {
       ...action,
       id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -69,9 +67,6 @@ export class JarvisBusinessBrain {
     return record;
   }
 
-  /**
-   * Records execution of an approved action.
-   */
   public async markActionExecuted(actionId: string): Promise<boolean> {
     const cfg = await readConfigJson();
     const history = (cfg.jarvisActionHistory as ClosedLoopActionRecord[] | undefined) || [];
@@ -85,12 +80,9 @@ export class JarvisBusinessBrain {
     return true;
   }
 
-  /**
-   * Evaluates measured financial impact and stores learned feedback.
-   */
   public async recordAttributedLearning(
     actionId: string,
-    measured: ClosedLoopActionRecord['measuredOutcome']
+    measured: ClosedLoopActionRecord['measuredOutcome'],
   ): Promise<boolean> {
     const cfg = await readConfigJson();
     const history = (cfg.jarvisActionHistory as ClosedLoopActionRecord[] | undefined) || [];
@@ -104,10 +96,9 @@ export class JarvisBusinessBrain {
     return true;
   }
 
-  /**
-   * Runs the full autonomous observation loop.
-   */
   public async runFullObservationCycle(): Promise<OwnerMorningBrief> {
     return CockpitAggregator.generateMorningBrief();
   }
 }
+
+export const defaultJarvisBrain = new JarvisBusinessBrain();

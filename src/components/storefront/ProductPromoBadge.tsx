@@ -11,10 +11,28 @@ export function ProductPromoBadge({
 }) {
   return (
     <div
-      className={`inline-flex items-center gap-1 bg-gradient-to-r from-rose-600 to-amber-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full shadow-sm tracking-wider ${className}`}
+      className={`inline-flex items-center gap-1 rounded-full bg-[var(--sf-accent)] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[var(--sf-on-accent)] shadow-sm ${className}`}
+      aria-label={`Promotion: ${text}`}
     >
-      <Tag className="w-2.5 h-2.5" />
+      <Tag className="h-2.5 w-2.5" aria-hidden />
       <span>{text}</span>
     </div>
   );
+}
+
+/** Build short badge label from public promotion payload. */
+export function promoBadgeLabel(promo: {
+  discountType?: string;
+  discountValue?: number;
+  name?: string;
+  promoCode?: string;
+}): string {
+  if (promo.discountType === 'PERCENT' && promo.discountValue != null) {
+    return `−${Math.round(Number(promo.discountValue))}%`;
+  }
+  if (promo.discountType === 'FIXED' && promo.discountValue != null) {
+    return `−LKR ${Math.round(Number(promo.discountValue)).toLocaleString('en-LK')}`;
+  }
+  if (promo.promoCode) return promo.promoCode;
+  return (promo.name || 'PROMO').slice(0, 16);
 }

@@ -73,54 +73,17 @@ import {
   nextClientSequence,
 } from '@/lib/pos/offline-queue';
 import { convertFromLkr, formatCurrency, type CurrencyCode } from '@/lib/currency/fx-rates';
+import {
+  POS_DEMO_CATALOG,
+  type LoyaltyMember,
+  type PosCartItem as CartItem,
+  type PosCatalogItem as CatalogItem,
+  type HeldSale,
+} from '@/lib/pos/pos-types';
 
-export interface LoyaltyMember {
-  id: string;
-  name: string;
-  phone: string;
-  points: number;
-  tier: 'SILVER' | 'GOLD' | 'PLATINUM';
-  totalSpent?: number;
-}
+export type { LoyaltyMember };
 
-interface CartItem {
-  id: string;
-  productId: string;
-  variantId?: string;
-  name: string;
-  variant: string;
-  unitPrice: number;
-  unitCost: number;
-  quantity: number;
-  taxRate: number;
-}
-
-type CatalogItem = {
-  id: string;
-  productId: string;
-  variantId?: string;
-  name: string;
-  variant: string;
-  unitPrice: number;
-  unitCost: number;
-  barcode: string;
-  stock: number;
-};
-
-type HeldSale = {
-  id: string;
-  orderNumber: string;
-  grandTotal: string | number;
-  itemCount: number;
-  createdAt: string;
-};
-
-const FALLBACK_CATALOG: CatalogItem[] = [
-  { id: 'prod_1', productId: 'prod_1', name: 'Linen Casual Shirt', variant: 'Size L / Blue', unitPrice: 4500.0, unitCost: 2500.0, barcode: '8901234567890', stock: 31 },
-  { id: 'prod_2', productId: 'prod_2', name: 'Oxford Button-Down', variant: 'Size M / White', unitPrice: 5200.0, unitCost: 2800.0, barcode: '8901234567891', stock: 18 },
-  { id: 'prod_3', productId: 'prod_3', name: 'Stretch Chino Trousers', variant: '32 / Khaki', unitPrice: 6500.0, unitCost: 3400.0, barcode: '8901234567892', stock: 24 },
-  { id: 'prod_4', productId: 'prod_4', name: 'Pique Cotton Polo', variant: 'Size XL / Navy', unitPrice: 3800.0, unitCost: 1900.0, barcode: '8901234567893', stock: 12 },
-];
+const FALLBACK_CATALOG: CatalogItem[] = POS_DEMO_CATALOG;
 
 export default function POSPage() {
   return (
@@ -903,7 +866,7 @@ function POSTerminal() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={isVoiceSearchActive ? 'Listening... speak product name...' : 'Search product name or SKU...'}
-              className={`w-full pl-9 pr-9 py-2.5 text-sm rounded-xl bg-zinc-900/80 border text-foreground placeholder:text-zinc-500 transition-colors ${
+              className={`w-full pl-9 pr-9 py-2.5 text-sm rounded-xl bg-zinc-900/80 border text-foreground placeholder:text-zinc-400 transition-colors ${
                 isVoiceSearchActive ? 'border-rose-500 bg-rose-950/20' : 'border-zinc-800'
               }`}
             />
@@ -936,7 +899,7 @@ function POSTerminal() {
               value={barcodeInput}
               onChange={(e) => setBarcodeInput(e.target.value)}
               placeholder="Scan Barcode..."
-              className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground placeholder:text-zinc-500 glow-border-emerald"
+              className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground placeholder:text-zinc-400 glow-border-emerald"
             />
           </form>
         </div>

@@ -7,7 +7,8 @@
 ---
 
 ## Critical
-> **Follow-up 2026-09-11:** C1 PromotionPopup + C3 dine-in + useDrawerA11y focus-steal fixed in code. C2 checkout labels still OPEN.
+> **Follow-up 2026-09-11:** C1 PromotionPopup + C3 dine-in + useDrawerA11y focus-steal fixed in code.
+> **Follow-up 2026-09-17 (M8):** C2 checkout labels confirmed fixed in code (labels, `autoComplete`, `role="radiogroup"`) plus the remaining gaps found on inspection — missing `role="alert"` on the error banner and five sub-AA `text-zinc-500` instances — closed. See [`MILESTONE_M8_A11Y_PWA_HARDENING.md`](./MILESTONE_M8_A11Y_PWA_HARDENING.md).
  — blocks task completion for assistive-tech users
 
 **C1. Promotion popup is a dialog with no focus management, on every storefront page.**
@@ -18,12 +19,11 @@ keyboard user is left on a page whose visible modal sits behind the whole header
 implementations already exist in-repo: `Modal` and `useDrawerA11y`.
 *SC 2.4.3 Focus Order, 4.1.2 Name/Role/Value.*
 
-**C2. Every checkout form control lacks a programmatic label.**
-`src/app/shop/checkout/page.tsx:407-456` (name, phone, address, notes), `515-524` (promo code)
-Labels are siblings with no `htmlFor`; no input has an `id`, `aria-label`, or `aria-labelledby`. Screen readers
-announce "edit text, blank" for the entire purchase flow. The `*` required markers (`:408, :421`) are visual only —
-no `required`/`aria-required` — and there is no `autoComplete` on name/tel/street-address.
-*SC 1.3.1, 3.3.2 Labels or Instructions, 1.3.5 Identify Input Purpose, 4.1.2.*
+**C2. [FIXED — M8, 2026-09-17] Every checkout form control lacks a programmatic label.**
+`src/app/shop/checkout/page.tsx` now has `id`/`htmlFor` pairs, `autoComplete="name"|"tel"|"street-address"`,
+`required`/`aria-required`, and `aria-describedby` on every field; the payment selector is a real
+`role="radiogroup"`; the error banner carries `role="alert"`. Verified by `tests/a11y-smoke.test.ts`.
+*Was: SC 1.3.1, 3.3.2 Labels or Instructions, 1.3.5 Identify Input Purpose, 4.1.2.*
 
 **C3. QR dine-in ordering controls have no accessible names.**
 `src/app/shop/dine/[tableToken]/page.tsx:143-168, 193-199`
@@ -103,17 +103,17 @@ nothing, so the announced role contradicts actual keyboard behavior. *SC 4.1.2, 
 
 ## Top remediations (ordered)
 
-1. **Wrap `PromotionPopup` in the shared `Modal`** (or call `useDrawerA11y`) — fixes C1 and deletes a bespoke dialog.
+1. **Wrap `PromotionPopup` in the shared `Modal`** (or call `useDrawerA11y`) — fixes C1 and deletes a bespoke dialog. **[DONE]**
 2. **Label every checkout input**: `id` + `htmlFor`, `autoComplete="name" | "tel" | "street-address"`, `required`,
-   and `aria-describedby` pointing at the error region. `checkout/page.tsx:405-457, 515-524`.
+   and `aria-describedby` pointing at the error region. `checkout/page.tsx:405-457, 515-524`. **[DONE — M8]**
 3. **Name the dine-in controls**: template-literal `aria-label` of "Add one \<item name\>" / "Remove one \<item name\>"
    on the steppers, "Add \<item name\> to order" on the Add button, and a real `<label htmlFor="dine-notes">`.
 4. **Announce completion**: focus the confirmation heading (`tabIndex={-1}`) and wrap the summary in `role="status"`
    on checkout, appointments, and dine-in. Mirror `pos/page.tsx:666-668`.
 5. **Fix S2 contrast**: checkout placeholders `zinc-600 → zinc-400`, secondary text `zinc-500 → zinc-400`, POS
-   placeholder `zinc-500 → zinc-400`, CartDrawer `slate-500 → slate-400`. All then clear 4.5:1.
+   placeholder `zinc-500 → zinc-400`, CartDrawer `slate-500 → slate-400`. All then clear 4.5:1. **[DONE — M8]**
 6. **Make the checkout payment selector a real radiogroup** (`fieldset` + `role="radiogroup"`/`radio` + `aria-checked`,
-   copying `pos/page.tsx:1238-1271`) and mark unavailable PayHere `disabled` with a visible reason.
+   copying `pos/page.tsx:1238-1271`) and mark unavailable PayHere `disabled` with a visible reason. **[DONE]**
 7. **Mechanical ARIA state pass**: `aria-pressed` on all toggle buttons, `aria-current="page"` on active nav links.
 8. **Label catalog search** with an `sr-only` label, `aria-label="Clear search"` on the clear button, and a
    `role="status"` "N products" line after filtering.
@@ -145,11 +145,11 @@ nothing, so the announced role contradicts actual keyboard behavior. *SC 4.1.2, 
 
 ### Static assertions to add to `tests/a11y-smoke.test.ts`
 
-- [ ] `PromotionPopup.tsx` imports `Modal` or `useDrawerA11y`
-- [ ] `checkout/page.tsx` matches `htmlFor="checkout-{name,phone,address,promo}"` and `autoComplete="tel"`
-- [ ] `checkout/page.tsx` contains `role="radiogroup"`; no `text-zinc-600`/`text-zinc-500` remains
+- [x] `PromotionPopup.tsx` imports `Modal` or `useDrawerA11y`
+- [x] `checkout/page.tsx` matches `htmlFor="checkout-{name,phone,address}"` and `autoComplete="tel"`
+- [x] `checkout/page.tsx` contains `role="radiogroup"`, `role="alert"`, `role="status"`; no `text-zinc-600`/`text-zinc-500` remains
 - [ ] `dine/[tableToken]/page.tsx` contains `aria-label` and `htmlFor="dine-notes"`
-- [ ] checkout + `appointments/book/page.tsx` each contain `role="status"` in the confirmation branch
+- [ ] `appointments/book/page.tsx` contains `role="status"` in the confirmation branch
 - [ ] `storefront-shell.tsx` contains `aria-current`
 
 ### Manual gate (~15 min per release)

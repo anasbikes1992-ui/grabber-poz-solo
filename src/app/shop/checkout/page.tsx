@@ -302,7 +302,7 @@ export default function ShopCheckoutPage() {
             <span>Continue Shopping</span>
           </Link>
           <BrandLogo size="sm" showTagline={false} showSoloBadge={false} />
-          <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
             <span className="hidden sm:inline">256-bit Encrypted Checkout</span>
           </div>
@@ -570,19 +570,19 @@ export default function ShopCheckoutPage() {
                       <ShoppingBag className="h-4 w-4 text-emerald-400" />
                       <h2 className="text-sm font-bold text-white">Order Summary</h2>
                     </div>
-                    <span className="text-xs text-zinc-500 font-medium">{itemCount} items</span>
+                    <span className="text-xs text-zinc-400 font-medium">{itemCount} items</span>
                   </div>
 
                   {/* Cart Items List */}
                   <div className="max-h-60 overflow-y-auto space-y-2.5 pr-1 divide-y divide-zinc-800/40">
                     {cart.length === 0 ? (
-                      <p className="text-xs text-zinc-500 py-4 text-center">Your shopping bag is empty.</p>
+                      <p className="text-xs text-zinc-400 py-4 text-center">Your shopping bag is empty.</p>
                     ) : (
                       cart.map((l) => (
                         <div key={l.id} className="pt-2.5 first:pt-0 flex items-center justify-between text-xs">
                           <div className="pr-3">
                             <p className="font-semibold text-zinc-200 line-clamp-1">{l.name}</p>
-                            <p className="text-[10px] text-zinc-500 mt-0.5">Qty: {l.qty} × LKR {l.unitPrice.toLocaleString()}</p>
+                            <p className="text-[10px] text-zinc-400 mt-0.5">Qty: {l.qty} × LKR {l.unitPrice.toLocaleString()}</p>
                           </div>
                           <span className="font-mono font-bold text-zinc-300 shrink-0">
                             LKR {(l.unitPrice * l.qty).toLocaleString()}
@@ -627,7 +627,7 @@ export default function ShopCheckoutPage() {
                   </div>
 
                   {errorMsg && (
-                    <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400 flex items-center gap-2">
+                    <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400 flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       <span>{errorMsg}</span>
                     </div>
@@ -642,7 +642,7 @@ export default function ShopCheckoutPage() {
                     <span>{busy ? 'Processing Checkout...' : payMethod === 'PAYHERE' ? 'Proceed to Online Payment' : 'Confirm Cash on Delivery Order'}</span>
                   </button>
 
-                  <p className="text-[10px] text-center text-zinc-500 pt-1">
+                  <p className="text-[10px] text-center text-zinc-400 pt-1">
                     By placing this order, you agree to our Terms of Service & Privacy Policy.
                   </p>
                 </div>

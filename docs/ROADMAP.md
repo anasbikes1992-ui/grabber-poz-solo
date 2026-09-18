@@ -23,7 +23,7 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 `P2` Storefront UX & Animated Cart Drawer **DONE** (Slide-over drawer, quick floating bar, in-drawer promo validation).
 `P3` Staff Portal UX & Keypad Polish **DONE** (Touch numpad, demo PIN quick-fill, direct cashier `/pos` routing).
 **Next:** `M7` Client Deployment & Onboarding Console — plan [`reports/M7_ONBOARDING_PLAN.md`](../reports/M7_ONBOARDING_PLAN.md).  
-**Commercial verdict:** COMMERCE CERTIFIED. Residual: inject session role server-side (see `COMMERCE_INVARIANTS.md`). 1 VPS → 20 Independent Managed Deployments → 20 DBs. Zero tenant_id.
+**Shipped:** `M8` Accessibility Hardening & Installable PWA — [`docs/MILESTONE_M8_A11Y_PWA_HARDENING.md`](./MILESTONE_M8_A11Y_PWA_HARDENING.md) (checkout a11y closed; `/pos` + `/shop` installable PWA shell).
 
 | Area | Completion | Status |
 |------|------------|--------|

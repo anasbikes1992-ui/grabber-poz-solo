@@ -188,12 +188,12 @@ export function CartDrawer({
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {items.length === 0 ? (
                   <div className="text-center py-16 space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 mx-auto">
+                    <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 mx-auto">
                       <ShoppingBag className="w-8 h-8" />
                     </div>
                     <div>
                       <p className="font-bold text-slate-300">Your bag is currently empty</p>
-                      <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+                      <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
                         Explore our live catalog to discover apparel, gadgets, and seasonal deals.
                       </p>
                     </div>
@@ -254,7 +254,7 @@ export function CartDrawer({
                         <button
                           type="button"
                           onClick={() => onRemoveItem(item.id)}
-                          className="w-8 h-8 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center justify-center transition-colors shrink-0"
+                          className="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 flex items-center justify-center transition-colors shrink-0"
                           aria-label="Remove item"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -274,7 +274,7 @@ export function CartDrawer({
                       <label htmlFor="cart-promo-code" className="sr-only">
                         Promo code
                       </label>
-                      <Tag className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden />
+                      <Tag className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
                       <input
                         id="cart-promo-code"
                         type="text"
@@ -365,7 +365,7 @@ export function CartDrawer({
                     )}
                   </div>
 
-                  <div className="flex items-center justify-center gap-1 text-[10px] text-slate-500">
+                  <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Secure Sri Lanka Checkout · M3 Certified Economics</span>
                   </div>

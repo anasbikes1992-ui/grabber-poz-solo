@@ -1,5 +1,6 @@
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import { StorefrontHome } from '@/components/storefront/storefront-home';
+import { loadStorefrontCatalog } from '@/lib/storefront/catalog-service';
 
 export const metadata = {
   title: 'Online Store | Grabber Commerce',
@@ -7,6 +8,12 @@ export const metadata = {
 };
 
 export default async function ShopCatalogPage() {
-  const cms = await readStorefrontConfig();
-  return <StorefrontHome cms={cms} />;
+  const [cms, catalog] = await Promise.all([readStorefrontConfig(), loadStorefrontCatalog()]);
+  return (
+    <StorefrontHome
+      cms={cms}
+      initialCatalog={catalog.items}
+      initialBranchId={catalog.branchId}
+    />
+  );
 }

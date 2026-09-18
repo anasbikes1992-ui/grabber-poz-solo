@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Nunito_Sans, Plus_Jakarta_Sans, Rubik } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/app-shell';
@@ -27,6 +27,12 @@ export const metadata: Metadata = {
   title: 'Grabber — Store & Business OS',
   description:
     'Online storefront for shoppers + staff POS, inventory, Polim Potha, and vertical operations.',
+  manifest: '/manifest.json',
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Grabber' },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#09090b',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

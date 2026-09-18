@@ -24,8 +24,15 @@ function money(n: number) {
 
 function MidBannerBlock({ block }: { block: Extract<StorefrontBlock, { type: 'MID_BANNER' }> }) {
   return (
-    <section className="border-y border-[var(--sf-border)] bg-[var(--sf-muted)]/50">
-      <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-4 py-10 sm:flex-row sm:items-center sm:px-6">
+    <section className="relative overflow-hidden border-y border-[var(--sf-border)] bg-[var(--sf-muted)]/50">
+      {block.imageUrl && (
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-25"
+          style={{ backgroundImage: `url(${block.imageUrl})` }}
+          aria-hidden
+        />
+      )}
+      <div className="relative mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-4 py-10 sm:flex-row sm:items-center sm:px-6">
         <div>
           <h2 className="font-display text-xl font-bold text-[var(--sf-foreground)]">{block.title}</h2>
           <p className="mt-2 max-w-xl text-sm text-[var(--sf-secondary)]">{block.body}</p>
