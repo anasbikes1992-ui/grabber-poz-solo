@@ -4,6 +4,9 @@ import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import { resolveLandingMode } from '@/lib/config/landing-mode';
 import { loadStorefrontCatalog } from '@/lib/storefront/catalog-service';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const COMPANY_METADATA: Metadata = {
   title: 'Grabber POZ | The All-in-One Retail & Commerce OS for Sri Lanka',
   description:

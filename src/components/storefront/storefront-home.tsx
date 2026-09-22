@@ -13,7 +13,7 @@ import {
 } from '@/components/storefront/storefront-blocks';
 import { ProductPromoBadge, promoBadgeLabel } from '@/components/storefront/ProductPromoBadge';
 import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
-import { blocksForSlot } from '@/lib/config/storefront-config.shared';
+import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { whatsappHref } from '@/lib/storefront/theme-vars';
 import { useShopperSession } from '@/hooks/use-shopper-session';
@@ -86,12 +86,15 @@ export function StorefrontHome({
   initialCatalog?: CatalogItem[];
   initialBranchId?: string | null;
 }) {
-  const heroSlider = blocksForSlot(cms.blocks, 'HERO').find((b) => b.type === 'HERO_SLIDER');
-  const heroBlock = blocksForSlot(cms.blocks, 'HERO').find((b) => b.type === 'HERO');
+  const [currentCms, setCurrentCms] = useState<StorefrontConfig>(() => cms ?? DEFAULT_STOREFRONT);
+  const heroSlider = blocksForSlot(currentCms.blocks, 'HERO').find((b) => b.type === 'HERO_SLIDER');
+  const heroBlock = blocksForSlot(currentCms.blocks, 'HERO').find((b) => b.type === 'HERO');
   const hero = heroBlock?.type === 'HERO' ? heroBlock : undefined;
   const reduceMotion = useReducedMotion();
   const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
+  const hasInitialCatalog = Array.isArray(initialCatalog) && initialCatalog.length > 0;
   const [catalog, setCatalog] = useState<CatalogItem[]>(() => initialCatalog ?? []);
+  const [loadingCatalog, setLoadingCatalog] = useState<boolean>(!hasInitialCatalog);
   const [branchId, setBranchId] = useState<string | null>(() => initialBranchId ?? null);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
@@ -103,11 +106,7 @@ export function StorefrontHome({
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [loadErr, setLoadErr] = useState<string | null>(() =>
-    initialCatalog && initialCatalog.length === 0
-      ? 'Store is connected but empty — run POST /api/seed once.'
-      : null,
-  );
+  const [loadErr, setLoadErr] = useState<string | null>(null);
   const [badgePromo, setBadgePromo] = useState<PublicPromo | null>(null);
   const [visibleCount, setVisibleCount] = useState(24);
   const PAGE_SIZE = 24;
@@ -123,19 +122,20 @@ export function StorefrontHome({
   useEffect(() => {
     void (async () => {
       try {
-        const hasServerCatalog = Array.isArray(initialCatalog);
         const tasks: Promise<unknown>[] = [
           fetch('/api/storefront/public').then(async (pubRes) => {
-            const pub = (await pubRes.json()) as { verticalFlags?: VerticalFlags };
+            const pub = (await pubRes.json()) as { storefront?: StorefrontConfig; verticalFlags?: VerticalFlags };
+            if (pub.storefront) setCurrentCms(pub.storefront);
             if (pub.verticalFlags) setVerticalFlags({ ...DEFAULT_VERTICAL_FLAGS, ...pub.verticalFlags });
           }),
           refreshSession(false),
           loadPublicPromotions().then((promos) => setBadgePromo(pickCatalogBadgePromo(promos))),
         ];
 
-        if (!hasServerCatalog) {
+        if (!hasInitialCatalog) {
           tasks.push(
             (async () => {
+              setLoadingCatalog(true);
               const [healthRes, catRes] = await Promise.all([
                 fetch('/api/health'),
                 fetch('/api/pos/catalog'),
@@ -151,19 +151,23 @@ export function StorefrontHome({
               const data = (await catRes.json()) as { items?: CatalogItem[]; branchId?: string };
               if (!data.items?.length) {
                 setLoadErr('Store is connected but empty — run POST /api/seed once.');
+              } else {
+                setLoadErr(null);
               }
               setCatalog(data.items ?? []);
               setBranchId(data.branchId ?? null);
+              setLoadingCatalog(false);
             })(),
           );
         }
 
         await Promise.all(tasks);
       } catch (e) {
+        setLoadingCatalog(false);
         setLoadErr(e instanceof Error ? e.message : 'Could not load store');
       }
     })();
-  }, [refreshSession, initialCatalog]);
+  }, [refreshSession, hasInitialCatalog]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
@@ -319,10 +323,10 @@ export function StorefrontHome({
     window.location.href = '/shop/checkout';
   }
 
-  const waOrder = whatsappHref(cms.theme.whatsappNumber, 'Hi, I would like to place an order.');
+  const waOrder = whatsappHref(currentCms.theme.whatsappNumber, 'Hi, I would like to place an order.');
 
   return (
-    <StorefrontShell cms={cms} verticalFlags={verticalFlags} onOpenBag={() => setCartDrawerOpen(true)}>
+    <StorefrontShell cms={currentCms} verticalFlags={verticalFlags} onOpenBag={() => setCartDrawerOpen(true)}>
       <div>
         {heroSlider?.type === 'HERO_SLIDER' ? (
           <>
@@ -488,10 +492,10 @@ export function StorefrontHome({
         </section>
         )}
 
-        <StorefrontMidBlocks cms={cms} verticalFlags={verticalFlags} />
+        <StorefrontMidBlocks cms={currentCms} verticalFlags={verticalFlags} />
 
         <StorefrontFeaturedSection
-          cms={cms}
+          cms={currentCms}
           catalog={filtered}
           onAdd={(item) =>
             addToCart({
@@ -585,14 +589,24 @@ export function StorefrontHome({
             )}
           </div>
 
-          {loadErr && (
+          {loadErr && !loadingCatalog && (
             <p className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               {loadErr}. Check <a href="/api/health" className="underline">/api/health</a> or seed demo data.
             </p>
           )}
 
           {/* Product Grid */}
-          {filtered.length === 0 ? (
+          {loadingCatalog ? (
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="animate-pulse rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-4 space-y-3">
+                  <div className="h-48 rounded-2xl bg-[var(--sf-muted)]/60" />
+                  <div className="h-4 w-3/4 rounded bg-[var(--sf-muted)]/60" />
+                  <div className="h-4 w-1/2 rounded bg-[var(--sf-muted)]/60" />
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="mt-12 p-12 text-center rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] space-y-3">
               <div className="w-12 h-12 rounded-full bg-[var(--sf-muted)] mx-auto flex items-center justify-center text-lg">
                 <Search className="h-5 w-5 text-[var(--sf-secondary)]" aria-hidden />
@@ -748,7 +762,7 @@ export function StorefrontHome({
             items={cart}
             onUpdateQty={setQty}
             onRemoveItem={removeFromCart}
-            whatsappPhone={cms.theme.whatsappNumber}
+            whatsappPhone={currentCms.theme.whatsappNumber}
           />
           <CartFloatingBar
             itemCount={totals.itemCount}
@@ -757,10 +771,10 @@ export function StorefrontHome({
           />
         </section>
 
-        <StorefrontFooterCta cms={cms} />
+        <StorefrontFooterCta cms={currentCms} />
 
         <footer className="border-t border-[var(--sf-border)] bg-[var(--sf-muted)]/40 py-8 text-center text-sm text-[var(--sf-secondary)]">
-          <p>© {new Date().getFullYear()} {cms.theme.storeName || 'Grabber Business OS'}</p>
+          <p>© {new Date().getFullYear()} {currentCms.theme.storeName || 'Grabber Business OS'}</p>
         </footer>
       </div>
     </StorefrontShell>
