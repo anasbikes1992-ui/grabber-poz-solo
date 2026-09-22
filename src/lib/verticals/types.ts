@@ -13,7 +13,8 @@ export type VerticalType =
   | 'PHARMACY'
   | 'BEAUTY'
   | 'AUTOPARTS'
-  | 'WHOLESALE';
+  | 'WHOLESALE'
+  | 'RENTAL';
 
 export interface VerticalKpiWeighting {
   salesWeight: number;

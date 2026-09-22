@@ -43,12 +43,13 @@ describe('a11y smoke — critical pages', () => {
     expect(src).toMatch(/id=["']main-content["']/);
   });
 
-  it('Company landing has main landmark, mobile nav, Staff Portal', () => {
-    const src = read('src/components/company/CompanyLanding.tsx');
-    expect(src).toMatch(/id=["']main-content["']/);
-    expect(src).toMatch(/landing-mobile-nav/);
-    expect(src).toMatch(/Staff Portal/);
-    expect(src).toMatch(/htmlFor=["']lead-business-name["']/);
+  it('Company landing has main landmark, mobile nav, Staff Portal, and labeled lead form', () => {
+    const hero = read('src/components/company/CompanyLanding.tsx');
+    const below = read('src/components/company/CompanyLandingBelowFold.tsx');
+    expect(hero).toMatch(/id=["']main-content["']/);
+    expect(hero).toMatch(/landing-mobile-nav/);
+    expect(hero).toMatch(/Staff Portal/);
+    expect(below).toMatch(/htmlFor=["']lead-business-name["']/);
   });
 
   it('Cart and Jarvis drawers expose dialog semantics', () => {

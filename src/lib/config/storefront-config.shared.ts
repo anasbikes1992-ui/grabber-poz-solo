@@ -163,8 +163,6 @@ export const DEFAULT_STOREFRONT: StorefrontConfig = {
       title: 'Shop Grabber',
       subtitle: 'Browse live inventory and place COD orders online — same catalog as your POS.',
       ctaLabel: 'Browse products',
-      secondaryCtaLabel: 'Device repairs',
-      secondaryCtaHref: '/shop/repairs',
       slot: 'HERO',
       enabled: false,
     },

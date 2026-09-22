@@ -102,6 +102,30 @@ export const AGENT_REGISTRY: AgentDefinition[] = [
     verticalFlag: 'grocery',
     href: '/grocery',
   },
+  {
+    id: 'PHARMACY',
+    label: 'Pharmacy Agent',
+    description: 'Pending prescriptions and pharmacist approval queue',
+    category: 'vertical',
+    verticalFlag: 'pharmacy',
+    href: '/pharmacy',
+  },
+  {
+    id: 'RENTAL',
+    label: 'Rental Agent',
+    description: 'Overdue contracts and asset utilization',
+    category: 'vertical',
+    verticalFlag: 'rental',
+    href: '/rental',
+  },
+  {
+    id: 'AUTOPARTS',
+    label: 'Auto Parts Agent',
+    description: 'Fitment coverage and OEM cross-reference gaps',
+    category: 'vertical',
+    verticalFlag: 'autoParts',
+    href: '/auto-parts',
+  },
 ];
 
 export function getAgentDefinition(id: AgentId): AgentDefinition | undefined {

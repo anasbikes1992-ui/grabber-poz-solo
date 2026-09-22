@@ -11,6 +11,9 @@ import { ELECTRONICS_PACK } from './packs/electronics';
 import { RESTAURANT_PACK } from './packs/restaurant';
 import { HARDWARE_PACK } from './packs/hardware';
 import { GENERAL_RETAIL_PACK } from './packs/general-retail';
+import { PHARMACY_PACK } from './packs/pharmacy';
+import { RENTAL_PACK } from './packs/rental';
+import { AUTOPARTS_PACK } from './packs/autoparts';
 
 export const VERTICAL_REGISTRY: Record<VerticalType, VerticalPack> = {
   GENERAL_RETAIL: GENERAL_RETAIL_PACK,
@@ -19,10 +22,11 @@ export const VERTICAL_REGISTRY: Record<VerticalType, VerticalPack> = {
   ELECTRONICS: ELECTRONICS_PACK,
   RESTAURANT: RESTAURANT_PACK,
   HARDWARE: HARDWARE_PACK,
-  PHARMACY: { ...GENERAL_RETAIL_PACK, id: 'PHARMACY', name: 'Pharmacy & Healthcare' },
+  PHARMACY: PHARMACY_PACK,
   BEAUTY: { ...FASHION_PACK, id: 'BEAUTY', name: 'Beauty & Cosmetics' },
-  AUTOPARTS: { ...HARDWARE_PACK, id: 'AUTOPARTS', name: 'Auto Parts & Spare Store' },
+  AUTOPARTS: AUTOPARTS_PACK,
   WHOLESALE: { ...HARDWARE_PACK, id: 'WHOLESALE', name: 'Wholesale & B2B Distribution' },
+  RENTAL: RENTAL_PACK,
 };
 
 export function getVerticalPack(type: VerticalType | string = 'GENERAL_RETAIL'): VerticalPack {

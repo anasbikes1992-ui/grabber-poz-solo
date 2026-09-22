@@ -488,7 +488,7 @@ export function StorefrontHome({
         </section>
         )}
 
-        <StorefrontMidBlocks cms={cms} />
+        <StorefrontMidBlocks cms={cms} verticalFlags={verticalFlags} />
 
         <StorefrontFeaturedSection
           cms={cms}

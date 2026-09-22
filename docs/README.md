@@ -2,10 +2,14 @@
 
 Welcome to the official documentation for **Grabber Solo / Grabber Business OS (Single-Business Edition)** and the **Jarvis Autonomous Business OS**.
 
+**SSOT tip:** Schema = `src/db/schema.ts` (**92** tables). If a badge or older doc says otherwise, trust the schema.  
+**Gaps & next wave:** [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md) · **Ops:** [`WAVE_B3_OPS_CHECKLIST.md`](./WAVE_B3_OPS_CHECKLIST.md)
+
 ---
 
 | **[Full Proof Plan](./FULL_PROOF_PLAN.md)** | Phases 0–4 + operator checklist | Production proof track |
-| **[Vertical Depth](./VERTICAL_DEPTH_PLAN.md)** | Restaurant / salon / ROAS waves A–C | Vertical money paths |
+| **[ERP Gaps & Next Wave](./ERP_GAPS_AND_NEXT_WAVE.md)** | Missing verticals/tables + M7 | Post Wave A–C |
+| **[Wave B/C Robustness](./WAVE_B_C_ROBUSTNESS_PLAN.md)** | Storefront restore + splits | B0–C done |
 | **[Coolify incident 2026-09-11](./DEPLOY_INCIDENT_COOLIFY_2026-09-11.md)** | Contabo build failure + secret leak | Must-read before Coolify redeploy |
 | **[docs/archive](./archive/README.md)** | Superseded snapshots | Do not use for runbooks |
 
@@ -15,7 +19,7 @@ Welcome to the official documentation for **Grabber Solo / Grabber Business OS (
 
 | Document | Title & Focus | Scope & Highlights |
 | :--- | :--- | :--- |
-| **[01 System Architecture](./01_SYSTEM_ARCHITECTURE.md)** | **Master System Architecture & Tech Stack** | Single-business database topology, 65 PostgreSQL tables, double-entry GL, and HMAC security. |
+| **[01 System Architecture](./01_SYSTEM_ARCHITECTURE.md)** | **Master System Architecture & Tech Stack** | Single-business database topology, **92** PostgreSQL tables (see `schema.ts`), double-entry GL, and HMAC security. |
 | **[Domain Architecture](./GRABBER_DOMAIN_ARCHITECTURE.md)** | **Canonical Domain Engine Specifications** | Server-authoritative pricing, immutable stock ledger, and unified multi-channel commerce core. |
 | **[Offline POS Subsystem](./GRABBER_OFFLINE_POS.md)** | **5-Store IndexedDB Offline Architecture** | Catalog snapshots, customer cache, transaction journal, sequence UUIDs, and reconnect backoff sync. |
 | **[Returns & Reverse Commerce](./GRABBER_RETURNS_REFUNDS.md)** | **Itemized Returns & Pro-Rata Accounting** | `orderReturnLines` schema, discount/tax proration, grading/restocking, and Polim Potha credit refunds. |
@@ -49,8 +53,11 @@ Welcome to the official documentation for **Grabber Solo / Grabber Business OS (
 ## ⚡ Quick Operational Command Reference
 
 ```bash
-# Run full automated test suite (68 test files / 451 tests)
+# Run full automated test suite (556+ tests / 87 files — re-count with npm test)
 npm test
+
+# Heavy client module line counts (Wave C)
+npm run analyze:sizes
 
 # Run complete release gate suite (env validate, auth coverage, RLS, typecheck, tests)
 npm run release:gate

@@ -29,9 +29,23 @@ type Milestone = {
   action?: 'seed' | 'preset_seed' | 'link';
 };
 
+type WizardStep = {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  required: boolean;
+  done: boolean;
+  href: string;
+  milestoneDoneCount: number;
+  milestoneTotal: number;
+};
+
 type ProgressPayload = {
   success?: boolean;
   milestones?: Milestone[];
+  wizardSteps?: WizardStep[];
+  currentStepId?: string | null;
   percent?: number;
   requiredCompleted?: number;
   requiredTotal?: number;
@@ -164,11 +178,14 @@ export default function SetupPage() {
   }
 
   const milestones = progress?.milestones ?? [];
+  const wizardSteps = progress?.wizardSteps ?? [];
+  const currentStepId = progress?.currentStepId ?? null;
   const percent = progress?.percent ?? 0;
   const requiredCompleted = progress?.requiredCompleted ?? 0;
   const requiredTotal = progress?.requiredTotal ?? 4;
   const nextId = progress?.nextMilestoneId;
   const activePreset = progress?.preset ?? selectedPreset;
+  const currentWizard = wizardSteps.find((s) => s.id === currentStepId);
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -196,6 +213,61 @@ export default function SetupPage() {
       </div>
 
       <IntegrationHealthBanner service="all" />
+
+      {wizardSteps.length > 0 && (
+        <nav
+          aria-label="Onboarding wizard steps"
+          className="p-4 rounded-2xl glass-card border border-zinc-800 space-y-3"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-white">Owner wizard</h2>
+            {currentWizard && (
+              <span className="text-[10px] font-bold uppercase tracking-wide text-amber-400">
+                Step {currentWizard.order}/{wizardSteps.length}: {currentWizard.title}
+              </span>
+            )}
+          </div>
+          <ol className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {wizardSteps.map((step) => {
+              const isCurrent = step.id === currentStepId;
+              return (
+                <li key={step.id}>
+                  <a
+                    href={step.href}
+                    className={`block min-h-11 rounded-xl border px-2.5 py-2 text-left transition ${
+                      step.done
+                        ? 'border-emerald-500/40 bg-emerald-500/10'
+                        : isCurrent
+                          ? 'border-amber-500/50 bg-amber-500/10 ring-1 ring-amber-500/30'
+                          : 'border-zinc-800 bg-zinc-900/60'
+                    }`}
+                    aria-current={isCurrent ? 'step' : undefined}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {step.done ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" aria-hidden />
+                      ) : (
+                        <Circle
+                          className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-amber-400' : 'text-zinc-600'}`}
+                          aria-hidden
+                        />
+                      )}
+                      <span className="text-[10px] font-bold text-white leading-tight">{step.title}</span>
+                    </div>
+                    <p className="text-[9px] text-zinc-500 mt-1">
+                      {step.milestoneDoneCount}/{step.milestoneTotal}
+                      {!step.required ? ' · optional' : ''}
+                    </p>
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
+          {currentWizard && (
+            <p className="text-[11px] text-zinc-400">{currentWizard.description}</p>
+          )}
+        </nav>
+      )}
 
       <div className="p-4 rounded-2xl glass-card border border-zinc-800 space-y-2">
         <div className="flex items-center justify-between text-xs">

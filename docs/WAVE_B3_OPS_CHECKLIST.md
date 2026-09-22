@@ -40,4 +40,7 @@ NEXT_PUBLIC_APP_URL=https://grabberpoz.com
 
 - [`COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md`](./COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md)
 - [`WAVE_B_C_ROBUSTNESS_PLAN.md`](./WAVE_B_C_ROBUSTNESS_PLAN.md)
+- [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md)
 - `scripts/staff-credentials.mjs`
+
+**Verify after redeploy:** `GET /api/health` must include `build` and `landingMode`. If Contabo only returns `db`/`sentry`, the running image is older than Wave B3 code — rebuild/redeploy Coolify.

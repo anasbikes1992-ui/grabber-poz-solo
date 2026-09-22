@@ -19,13 +19,20 @@
 | **GAP-011** | **P1** | Warranty Operations | Warranty was registration/search only. There was no persisted claim, expiry gate, repair linkage, resolution, or controlled claim status lifecycle. | Added `warranty_claims` relational table and migration `0017`, claim creation with serial and expiry validation, and staff status updates with repair/resolution linkage. | **CLOSED** |
 | **GAP-012** | **P1** | Onboarding Certification | `/setup` displayed milestones but had no server-enforced completion operation. Operators could treat an incomplete installation as ready. | Added required branch and non-temporary OWNER credential gates, `goLiveReady`, persisted `onboardingCompletedAt`, and protected `POST /api/setup/progress` completion action. | **CLOSED** |
 | **GAP-013** | **P1** | Delivery Operations | Dispatch was not idempotent and there was no guarded delivery status transition API; repeated dispatches could create/update shipments unpredictably. | Added reuse of active delivery records, terminal-state dispatch rejection, explicit status transition validation, delivered timestamping, and order fulfillment synchronization through `PATCH /api/delivery`. Multi-provider adapter support remains future scope. | **CLOSED** |
+| **SCH-001** | **P2** | Vertical Engine | Dedicated pharmacy pack with prescription + pharmacist approval gate. | Wave E: `prescriptions` / lines / approvals, flag `pharmacy`, pack, `/pharmacy`, agent `PHARMACY`, migration `0018`. Tests: `wave-e-erp-verticals.test.ts`. | **CLOSED** |
+| **SCH-002** | **P2** | Vertical Engine | Dedicated rental pack with asset calendar and deposit handling. | Wave E: `rental_assets` / contracts / periods / deposits, flag `rental`, pack, `/rental`, agent `RENTAL`. | **CLOSED** |
+| **SCH-003** | **P2** | Vertical Engine | Relational vehicle compatibility (Make → Model → Generation → Year → OEM). | Wave E: `vehicle_makes` / models / generations / `vehicle_compatibility`, flag `autoParts`, pack, `/auto-parts`, agent `AUTOPARTS`. | **CLOSED** |
+| **SCH-004** | **P3** | Finance | Full statutory payroll (EPF/ETF) engine beyond draft `payroll_runs` | Wave F: `statutory.ts` 8/12/3, finalize + GL 5100/5110/2200/2210/2150, payslips via email. Migration `0019`. Tests: `wave-f-payroll-compliance.test.ts`. | **CLOSED** |
+| **SCH-005** | **P3** | Compliance | VAT returns / e-invoice submissions | Wave F: `einvoice_submissions`, `/compliance/einvoice`, local or `EINVOICE_PROVIDER_URL` submit + `EINVOICE_SUBMIT` job. Certified IRD gateway still deferred. | **CLOSED** (foundation) |
 
 ---
 
-## 2. Scheduled Future Scope (Phase 4 Roadmapped)
+## 2. Scheduled Future Scope (post Wave F)
 
 | Item ID | Priority | Category | Description | Target Phase |
 | :--- | :--- | :--- | :--- | :--- |
-| **SCH-001** | **P2** | Vertical Engine | Dedicated `pharmacy.ts` pack with prescription scan capture and regulatory pharmacist approval gate. | Phase 4 |
-| **SCH-002** | **P2** | Vertical Engine | Dedicated `rental.ts` pack with asset availability calendar and deposit dispute handling. | Phase 4 |
-| **SCH-003** | **P2** | Vertical Engine | Relational `vehicle_compatibility` table (Make -> Model -> Generation -> Year -> Engine -> OEM). | Phase 4 |
+| **SCH-006** | **P3** | Multi-entity | Legal entities + intercompany (breaks Solo 1-DB model — only if Group SKU sold) | Phase 6 |
+| **SCH-007** | **P3** | Compliance | Certified IRD e-invoice gateway + VAT return pack | Phase 5b — foundation via AUTO_EINVOICE + provider URL |
+| **SCH-008** | **P3** | Payroll | Official IRD PAYE tables + biometric clocks | Phase 5b — stub PAYE + Form C/R1 CSV shipped in Wave G |
+
+Full ERP remaining map: [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md).

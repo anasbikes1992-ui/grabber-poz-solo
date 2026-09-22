@@ -374,36 +374,47 @@ async function main() {
       `;
     }
 
-    // 2. Insert Products in batches
+    // 2. Pre-create all distinct categories
     const categoriesCache = new Map();
     const existingCats = await sql`SELECT id, name FROM categories`;
     existingCats.forEach((c) => categoriesCache.set(c.name.toLowerCase(), c.id));
 
-    for (const p of products) {
-      const catKey = (p.category || 'General').toLowerCase();
-      let categoryId = categoriesCache.get(catKey);
-
-      if (!categoryId) {
+    const distinctCategories = Array.from(new Set(products.map((p) => p.category || 'Party Essentials')));
+    for (const catName of distinctCategories) {
+      const catKey = catName.toLowerCase();
+      if (!categoriesCache.has(catKey)) {
+        const slug = `${slugify(catName)}-${Math.random().toString(36).slice(2, 7)}`;
         const [newCat] = await sql`
           INSERT INTO categories (name, slug)
-          VALUES (${p.category || 'General'}, ${slugify(p.category || 'General') + '-' + Date.now().toString(36)})
+          VALUES (${catName}, ${slug})
           RETURNING id
         `;
-        categoryId = newCat.id;
-        categoriesCache.set(catKey, categoryId);
+        if (newCat) categoriesCache.set(catKey, newCat.id);
       }
+    }
 
-      const slug = slugify(p.name) + '-' + Math.random().toString(36).slice(2, 6);
+    // 3. Batch insert products and initial stock balances (chunks of 100)
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < products.length; i += BATCH_SIZE) {
+      const batch = products.slice(i, i + BATCH_SIZE);
+      const rows = batch.map((p) => {
+        const catKey = (p.category || 'Party Essentials').toLowerCase();
+        return {
+          name: p.name,
+          slug: `${slugify(p.name)}-${Math.random().toString(36).slice(2, 6)}`,
+          sku: p.sku,
+          barcode: p.barcode || null,
+          cost_price: p.costPrice || '0.00',
+          sale_price: p.salePrice || '0.00',
+          category_id: categoriesCache.get(catKey) || null,
+          description: p.description || '',
+          image_url: p.imageUrl || '',
+          is_active: true,
+        };
+      });
 
-      const [newProd] = await sql`
-        INSERT INTO products (
-          name, slug, sku, barcode, cost_price, sale_price, category_id,
-          description, image_url, is_active
-        )
-        VALUES (
-          ${p.name}, ${slug}, ${p.sku}, ${p.barcode}, ${p.costPrice}, ${p.salePrice},
-          ${categoryId}, ${p.description || ''}, ${p.imageUrl || ''}, true
-        )
+      const insertedProds = await sql`
+        INSERT INTO products ${sql(rows, 'name', 'slug', 'sku', 'barcode', 'cost_price', 'sale_price', 'category_id', 'description', 'image_url', 'is_active')}
         ON CONFLICT (sku) DO UPDATE SET
           name = EXCLUDED.name,
           sale_price = EXCLUDED.sale_price,
@@ -415,20 +426,26 @@ async function main() {
         RETURNING id
       `;
 
-      // Seed initial stock balance
-      if (newProd && branch) {
+      if (branch && insertedProds.length > 0) {
+        const stockRows = insertedProds.map((prod, idx) => ({
+          location_type: 'BRANCH',
+          location_id: branch.id,
+          product_id: prod.id,
+          variant_id: null,
+          on_hand: batch[idx]?.stock || 10,
+          reserved: 0,
+          damaged: 0,
+        }));
+
         await sql`
-          INSERT INTO stock_balances (location_type, location_id, product_id, on_hand, reserved, reorder_point)
-          VALUES ('BRANCH', ${branch.id}, ${newProd.id}, ${p.stock || 10}, 0, 5)
-          ON CONFLICT (location_type, location_id, product_id) DO UPDATE SET
+          INSERT INTO stock_balances ${sql(stockRows, 'location_type', 'location_id', 'product_id', 'variant_id', 'on_hand', 'reserved', 'damaged')}
+          ON CONFLICT (location_type, location_id, product_id, variant_id) DO UPDATE SET
             on_hand = EXCLUDED.on_hand
         `;
       }
 
-      inserted++;
-      if (inserted % 50 === 0 || inserted === products.length) {
-        process.stdout.write(`\rImporting products: ${inserted}/${products.length}...`);
-      }
+      inserted += batch.length;
+      process.stdout.write(`\rImporting products: ${inserted}/${products.length}...`);
     }
 
     console.log(`\n\n✅ CATALOG IMPORT COMPLETE: ${inserted} products successfully imported for ${manifest.businessName}.`);

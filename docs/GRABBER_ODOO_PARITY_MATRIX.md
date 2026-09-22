@@ -34,9 +34,9 @@ This document is the verified, adversarial-tested capability matrix benchmarked 
 | **Mobile & Device Repair** | **F5 Certified** | Repair ticket lifecycle (`repairJobs`), parts inventory depletion, technician tracking, customer pickup SMS/WhatsApp. |
 | **Restaurant & Cafe** | **F5 Certified** | Table & floor management, KOT printing, real-time KDS, recipe BOM ingredient auto-deduction. |
 | **Hire Purchase / EMI** | **F5 Certified** | Down payment, installment schedules, overdue penalty calculations, customer installment ledger. |
-| **Pharmacy / Meds** | **F2 Architectural** | Batch/lot expiry control on canonical stock; dedicated prescription verification workflow scheduled for Phase 4. |
-| **Rental & Equipment** | **F2 Architectural** | Asset models supported; dedicated rental contract and availability calendar scheduled for Phase 4. |
-| **Auto Parts & Spares** | **F2 Architectural** | Product variant attributes supported; relational Make/Model/Year compatibility index scheduled for Phase 4. |
+| **Pharmacy / Meds** | **F3–F4 Implemented (Wave E)** | Prescriptions, pharmacist approvals, FEFO via grocery lots; live pilot pending for F5. |
+| **Rental & Equipment** | **F3–F4 Implemented (Wave E)** | Assets, contracts, deposits, return/dispute lifecycle. |
+| **Auto Parts & Spares** | **F3–F4 Implemented (Wave E)** | Make/Model/Generation + `vehicle_compatibility` OEM index. |
 
 ---
 

@@ -5,6 +5,7 @@ import { MessageCircle, Wrench } from 'lucide-react';
 import type { StorefrontBlock, StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { blocksForSlot } from '@/lib/config/storefront-config.shared';
 import { whatsappHref } from '@/lib/storefront/theme-vars';
+import type { VerticalFlags } from '@/lib/config/vertical-flags';
 
 type FeaturedCatalogItem = {
   id: string;
@@ -50,7 +51,18 @@ function MidBannerBlock({ block }: { block: Extract<StorefrontBlock, { type: 'MI
   );
 }
 
-function VerticalPromoBlock({ block }: { block: Extract<StorefrontBlock, { type: 'VERTICAL_PROMO' }> }) {
+function VerticalPromoBlock({
+  block,
+  verticalFlags,
+}: {
+  block: Extract<StorefrontBlock, { type: 'VERTICAL_PROMO' }>;
+  verticalFlags?: VerticalFlags;
+}) {
+  // Strictly hide repairs promo if the repairs vertical is not active
+  if (block.vertical === 'repairs' && !verticalFlags?.repairs) {
+    return null;
+  }
+
   return (
     <section className="border-y border-[var(--sf-border)] bg-[var(--sf-surface)]/80 backdrop-blur-md">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-[1fr_auto] sm:items-center sm:px-6">
@@ -71,14 +83,22 @@ function VerticalPromoBlock({ block }: { block: Extract<StorefrontBlock, { type:
   );
 }
 
-export function StorefrontMidBlocks({ cms }: { cms: StorefrontConfig }) {
+export function StorefrontMidBlocks({
+  cms,
+  verticalFlags,
+}: {
+  cms: StorefrontConfig;
+  verticalFlags?: VerticalFlags;
+}) {
   const midBlocks = blocksForSlot(cms.blocks, 'MID');
   if (!midBlocks.length) return null;
   return (
     <>
       {midBlocks.map((block) => {
         if (block.type === 'MID_BANNER') return <MidBannerBlock key={block.id} block={block} />;
-        if (block.type === 'VERTICAL_PROMO') return <VerticalPromoBlock key={block.id} block={block} />;
+        if (block.type === 'VERTICAL_PROMO') {
+          return <VerticalPromoBlock key={block.id} block={block} verticalFlags={verticalFlags} />;
+        }
         return null;
       })}
     </>

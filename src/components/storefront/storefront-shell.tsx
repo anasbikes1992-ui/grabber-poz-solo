@@ -77,7 +77,7 @@ export function StorefrontShell({
 
   const isProducts = pathname === '/' || pathname.startsWith('/products') || pathname.startsWith('/categories');
   const isRepairs = pathname.startsWith('/shop/repairs');
-  const showRepairs = verticalFlags.repairs;
+  const showRepairs = Boolean(verticalFlags.repairs);
 
   return (
     <div

@@ -24,6 +24,8 @@ env*.local
 .env.prod.txt
 .env.client*
 .env.*.production
+*cred*.txt
+*.tar.gz
 
 # Generated certification / migration reports (may contain business metadata)
 /reports/client_certification_*

@@ -1262,3 +1262,376 @@ export const marketingSpend = pgTable('marketing_spend', {
   campaignIdx: index('marketing_spend_campaign_idx').on(t.campaignId),
   spentOnIdx: index('marketing_spend_spent_on_idx').on(t.spentOn),
 }));
+
+// ==========================================
+// 14. WAVE E — PHARMACY / RENTAL / AUTO / AP / BANK / HR
+// ==========================================
+
+export const prescriptions = pgTable('prescriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  prescriptionNumber: text('prescription_number').notNull().unique(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  customerName: text('customer_name').notNull(),
+  customerPhone: text('customer_phone'),
+  doctorName: text('doctor_name'),
+  status: text('status').notNull().default('DRAFT'), // DRAFT|PENDING_APPROVAL|APPROVED|DISPENSED|CANCELLED
+  pharmacistUserId: uuid('pharmacist_user_id').references(() => users.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index('prescriptions_status_idx').on(t.status),
+}));
+
+export const prescriptionLines = pgTable('prescription_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  prescriptionId: uuid('prescription_id').notNull().references(() => prescriptions.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  productName: text('product_name').notNull(),
+  qty: integer('qty').notNull().default(1),
+  dosageText: text('dosage_text'),
+  lotPreference: text('lot_preference'),
+  controlled: boolean('controlled').notNull().default(false),
+  dispensedLotId: uuid('dispensed_lot_id').references(() => stockLots.id, { onDelete: 'set null' }),
+}, (t) => ({
+  rxIdx: index('prescription_lines_rx_idx').on(t.prescriptionId),
+}));
+
+export const pharmacistApprovals = pgTable('pharmacist_approvals', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  prescriptionId: uuid('prescription_id').notNull().references(() => prescriptions.id, { onDelete: 'cascade' }),
+  approverUserId: uuid('approver_user_id').references(() => users.id, { onDelete: 'set null' }),
+  decision: text('decision').notNull(), // APPROVED|REJECTED
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  rxIdx: index('pharmacist_approvals_rx_idx').on(t.prescriptionId),
+}));
+
+export const rentalAssets = pgTable('rental_assets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('AVAILABLE'), // AVAILABLE|RENTED|MAINTENANCE|RETIRED
+  depositDefault: numeric('deposit_default', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  dailyRate: numeric('daily_rate', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index('rental_assets_status_idx').on(t.status),
+}));
+
+export const rentalContracts = pgTable('rental_contracts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contractNumber: text('contract_number').notNull().unique(),
+  assetId: uuid('asset_id').notNull().references(() => rentalAssets.id, { onDelete: 'restrict' }),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  customerName: text('customer_name').notNull(),
+  customerPhone: text('customer_phone'),
+  startAt: timestamp('start_at', { withTimezone: true }).notNull(),
+  endAt: timestamp('end_at', { withTimezone: true }),
+  depositAmount: numeric('deposit_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  rateAmount: numeric('rate_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  status: text('status').notNull().default('DRAFT'), // DRAFT|ACTIVE|RETURNED|DISPUTED
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index('rental_contracts_status_idx').on(t.status),
+  assetIdx: index('rental_contracts_asset_idx').on(t.assetId),
+}));
+
+export const rentalPeriods = pgTable('rental_periods', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contractId: uuid('contract_id').notNull().references(() => rentalContracts.id, { onDelete: 'cascade' }),
+  periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
+  periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  paidAt: timestamp('paid_at', { withTimezone: true }),
+}, (t) => ({
+  contractIdx: index('rental_periods_contract_idx').on(t.contractId),
+}));
+
+export const rentalDeposits = pgTable('rental_deposits', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contractId: uuid('contract_id').notNull().references(() => rentalContracts.id, { onDelete: 'cascade' }),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  status: text('status').notNull().default('HELD'), // HELD|REFUNDED|FORFEITED
+  holdJournalEntryId: uuid('hold_journal_entry_id').references(() => journalEntries.id, { onDelete: 'set null' }),
+  releaseJournalEntryId: uuid('release_journal_entry_id').references(() => journalEntries.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  contractIdx: index('rental_deposits_contract_idx').on(t.contractId),
+}));
+
+export const vehicleMakes = pgTable('vehicle_makes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const vehicleModels = pgTable('vehicle_models', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  makeId: uuid('make_id').notNull().references(() => vehicleMakes.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  makeNameIdx: uniqueIndex('vehicle_models_make_name_idx').on(t.makeId, t.name),
+}));
+
+export const vehicleGenerations = pgTable('vehicle_generations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  modelId: uuid('model_id').notNull().references(() => vehicleModels.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  yearFrom: integer('year_from'),
+  yearTo: integer('year_to'),
+  engine: text('engine'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  modelIdx: index('vehicle_generations_model_idx').on(t.modelId),
+}));
+
+export const vehicleCompatibility = pgTable('vehicle_compatibility', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  generationId: uuid('generation_id').notNull().references(() => vehicleGenerations.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  oemCode: text('oem_code'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  genProductIdx: uniqueIndex('vehicle_compatibility_gen_product_idx').on(t.generationId, t.productId, t.variantId),
+  productIdx: index('vehicle_compatibility_product_idx').on(t.productId),
+}));
+
+export const apInvoices = pgTable('ap_invoices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  supplierId: uuid('supplier_id').notNull().references(() => suppliers.id, { onDelete: 'restrict' }),
+  poId: uuid('po_id').references(() => purchaseOrders.id, { onDelete: 'set null' }),
+  invoiceNumber: text('invoice_number').notNull(),
+  invoiceDate: timestamp('invoice_date', { withTimezone: true }).notNull().defaultNow(),
+  dueDate: timestamp('due_date', { withTimezone: true }),
+  subtotal: numeric('subtotal', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  taxAmount: numeric('tax_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  amountPaid: numeric('amount_paid', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  status: text('status').notNull().default('DRAFT'), // DRAFT|POSTED|PARTIAL|PAID|VOID
+  notes: text('notes'),
+  supplierEntryId: uuid('supplier_entry_id').references(() => supplierEntries.id, { onDelete: 'set null' }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  supplierIdx: index('ap_invoices_supplier_idx').on(t.supplierId),
+  statusIdx: index('ap_invoices_status_idx').on(t.status),
+  supplierInvoiceIdx: uniqueIndex('ap_invoices_supplier_number_idx').on(t.supplierId, t.invoiceNumber),
+}));
+
+export const apPayments = pgTable('ap_payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  invoiceId: uuid('invoice_id').notNull().references(() => apInvoices.id, { onDelete: 'cascade' }),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  method: text('method').notNull().default('BANK'),
+  paidAt: timestamp('paid_at', { withTimezone: true }).notNull().defaultNow(),
+  journalEntryId: uuid('journal_entry_id').references(() => journalEntries.id, { onDelete: 'set null' }),
+  supplierEntryId: uuid('supplier_entry_id').references(() => supplierEntries.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  invoiceIdx: index('ap_payments_invoice_idx').on(t.invoiceId),
+}));
+
+export const bankAccounts = pgTable('bank_accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  bankName: text('bank_name').notNull(),
+  accountNumberMasked: text('account_number_masked'),
+  currency: text('currency').notNull().default('LKR'),
+  glAccountCode: text('gl_account_code').notNull().default('1010'),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const bankReconciliations = pgTable('bank_reconciliations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  accountId: uuid('account_id').notNull().references(() => bankAccounts.id, { onDelete: 'cascade' }),
+  statementDate: timestamp('statement_date', { withTimezone: true }).notNull(),
+  openingBalance: numeric('opening_balance', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  closingBalance: numeric('closing_balance', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  status: text('status').notNull().default('OPEN'), // OPEN|COMPLETED
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  accountIdx: index('bank_reconciliations_account_idx').on(t.accountId),
+}));
+
+export const bankReconciliationLines = pgTable('bank_reconciliation_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  reconciliationId: uuid('reconciliation_id').notNull().references(() => bankReconciliations.id, { onDelete: 'cascade' }),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  description: text('description'),
+  matchedPaymentRef: text('matched_payment_ref'),
+  cleared: boolean('cleared').notNull().default(false),
+}, (t) => ({
+  reconIdx: index('bank_recon_lines_recon_idx').on(t.reconciliationId),
+}));
+
+export const employees = pgTable('employees', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  name: text('name').notNull(),
+  phone: text('phone'),
+  email: text('email'),
+  roleTitle: text('role_title'),
+  hireDate: timestamp('hire_date', { withTimezone: true }),
+  basicSalary: numeric('basic_salary', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  nicNumber: text('nic_number'),
+  epfNumber: text('epf_number'),
+  etfNumber: text('etf_number'),
+  epfEligible: boolean('epf_eligible').notNull().default(true),
+  etfEligible: boolean('etf_eligible').notNull().default(true),
+  payeEligible: boolean('paye_eligible').notNull().default(false),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  activeIdx: index('employees_active_idx').on(t.active),
+}));
+
+export const attendance = pgTable('attendance', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  employeeId: uuid('employee_id').notNull().references(() => employees.id, { onDelete: 'cascade' }),
+  workDate: timestamp('work_date', { withTimezone: true }).notNull(),
+  checkIn: timestamp('check_in', { withTimezone: true }),
+  checkOut: timestamp('check_out', { withTimezone: true }),
+  status: text('status').notNull().default('PRESENT'), // PRESENT|ABSENT|LEAVE|HALF_DAY
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  empDateIdx: uniqueIndex('attendance_emp_date_idx').on(t.employeeId, t.workDate),
+}));
+
+export const leaveRequests = pgTable('leave_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  employeeId: uuid('employee_id').notNull().references(() => employees.id, { onDelete: 'cascade' }),
+  fromDate: timestamp('from_date', { withTimezone: true }).notNull(),
+  toDate: timestamp('to_date', { withTimezone: true }).notNull(),
+  leaveType: text('leave_type').notNull().default('ANNUAL'), // ANNUAL|SICK|UNPAID|OTHER
+  status: text('status').notNull().default('PENDING'), // PENDING|APPROVED|REJECTED
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  empIdx: index('leave_requests_emp_idx').on(t.employeeId),
+  statusIdx: index('leave_requests_status_idx').on(t.status),
+}));
+
+export const payrollRuns = pgTable('payroll_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  periodLabel: text('period_label').notNull(),
+  periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
+  periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
+  status: text('status').notNull().default('DRAFT'), // DRAFT|FINALIZED|PAID
+  totalGross: numeric('total_gross', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalEmployeeEpf: numeric('total_employee_epf', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalEmployerEpf: numeric('total_employer_epf', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalEtf: numeric('total_etf', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalPaye: numeric('total_paye', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  totalNet: numeric('total_net', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  journalEntryId: uuid('journal_entry_id').references(() => journalEntries.id, { onDelete: 'set null' }),
+  wagesJournalEntryId: uuid('wages_journal_entry_id').references(() => journalEntries.id, { onDelete: 'set null' }),
+  statutoryJournalEntryId: uuid('statutory_journal_entry_id').references(() => journalEntries.id, { onDelete: 'set null' }),
+  finalizedAt: timestamp('finalized_at', { withTimezone: true }),
+  wagesPaidAt: timestamp('wages_paid_at', { withTimezone: true }),
+  statutoryPaidAt: timestamp('statutory_paid_at', { withTimezone: true }),
+  notes: text('notes'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const payrollLines = pgTable('payroll_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  runId: uuid('run_id').notNull().references(() => payrollRuns.id, { onDelete: 'cascade' }),
+  employeeId: uuid('employee_id').notNull().references(() => employees.id, { onDelete: 'restrict' }),
+  grossAmount: numeric('gross_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  employeeEpf: numeric('employee_epf', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  employerEpf: numeric('employer_epf', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  etfAmount: numeric('etf_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  payeAmount: numeric('paye_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  netAmount: numeric('net_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  notes: text('notes'),
+}, (t) => ({
+  runIdx: index('payroll_lines_run_idx').on(t.runId),
+}));
+
+export const einvoiceSubmissions = pgTable('einvoice_submissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  orderNumber: text('order_number').notNull(),
+  documentType: text('document_type').notNull().default('TAX_INVOICE'),
+  status: text('status').notNull().default('DRAFT'), // DRAFT|QUEUED|SUBMITTED|ACCEPTED|REJECTED
+  payloadJson: jsonb('payload_json').$type<Record<string, unknown>>().notNull().default({}),
+  providerRef: text('provider_ref'),
+  errorMessage: text('error_message'),
+  submittedAt: timestamp('submitted_at', { withTimezone: true }),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  orderIdx: index('einvoice_submissions_order_idx').on(t.orderId),
+  statusIdx: index('einvoice_submissions_status_idx').on(t.status),
+}));
+
+export const emailLogs = pgTable('email_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  toAddress: text('to_address').notNull(),
+  subject: text('subject').notNull(),
+  templateKey: text('template_key'),
+  status: text('status').notNull().default('QUEUED'), // QUEUED|SENT|FAILED|SKIPPED
+  provider: text('provider'),
+  providerMessageId: text('provider_message_id'),
+  errorMessage: text('error_message'),
+  relatedType: text('related_type'),
+  relatedId: text('related_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  statusIdx: index('email_logs_status_idx').on(t.status),
+  createdIdx: index('email_logs_created_idx').on(t.createdAt),
+}));
+
+export const emailTemplates = pgTable('email_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  templateKey: text('template_key').notNull().unique(),
+  subject: text('subject').notNull(),
+  bodyHtml: text('body_html').notNull(),
+  bodyText: text('body_text'),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const controlledDrugLogs = pgTable('controlled_drug_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  prescriptionId: uuid('prescription_id').notNull().references(() => prescriptions.id, { onDelete: 'cascade' }),
+  prescriptionLineId: uuid('prescription_line_id').references(() => prescriptionLines.id, { onDelete: 'set null' }),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+  productName: text('product_name').notNull(),
+  qty: integer('qty').notNull().default(1),
+  lotId: uuid('lot_id').references(() => stockLots.id, { onDelete: 'set null' }),
+  customerName: text('customer_name'),
+  pharmacistUserId: uuid('pharmacist_user_id').references(() => users.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  rxIdx: index('controlled_drug_logs_rx_idx').on(t.prescriptionId),
+  createdIdx: index('controlled_drug_logs_created_idx').on(t.createdAt),
+}));

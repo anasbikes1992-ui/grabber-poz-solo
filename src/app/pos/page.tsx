@@ -50,6 +50,10 @@ const TableServicePanel = dynamic(
   () => import('@/components/restaurant/table-service-panel').then((m) => m.TableServicePanel),
   { ssr: false }
 );
+const FitmentLookup = dynamic(
+  () => import('@/components/pos/fitment-lookup').then((m) => m.FitmentLookup),
+  { ssr: false },
+);
 
 import { ThermalReceipt } from '@/components/pos/thermal-receipt';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
@@ -923,6 +927,16 @@ function POSTerminal() {
             />
           </form>
         </div>
+
+        {verticalFlags.autoParts && (
+          <FitmentLookup
+            onPickProduct={(productId) => {
+              const hit = catalog.find((c) => c.id === productId);
+              if (hit) addToCart(hit);
+              else setSearch(productId);
+            }}
+          />
+        )}
 
         {/* Product Catalog Grid */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">

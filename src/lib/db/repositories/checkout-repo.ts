@@ -502,6 +502,12 @@ export async function durableCheckout(input: CheckoutInput) {
         phone: customerPhone || undefined,
       }).catch(() => undefined);
     }
+
+    void import('@/lib/compliance/auto-einvoice')
+      .then(({ maybeAutoEinvoiceOnPaidOrder }) =>
+        maybeAutoEinvoiceOnPaidOrder(result.order.orderNumber, String(result.order.paymentStatus)),
+      )
+      .catch(() => undefined);
   }
 
   return result;

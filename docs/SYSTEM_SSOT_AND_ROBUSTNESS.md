@@ -1,20 +1,22 @@
 # Grabber Business OS — System SSOT & Robustness Backlog
 
 **Layer:** repo-owned durable knowledge (knowledge-ops L4)  
-**Updated:** 2026-09-11  
-**Live:** https://grabber-poz-solo.vercel.app
+**Updated:** 2026-09-18  
+**Live:** https://grabber-poz-solo.vercel.app · Contabo demo/HQ (redeploy for health metadata)
 
 ---
 
 ## What this is built as
 
-Solo multi-vertical **commerce OS** on **Next.js App Router** + **Drizzle → Postgres (Supabase)** + Coolify Contabo / Vercel.
+Solo multi-vertical **commerce OS** on **Next.js App Router** + **Drizzle → Postgres** + Coolify Contabo / Vercel.
 
 | Surface | Purpose |
 |---------|---------|
 | `/pos`, `/barcodes` | Staff retail terminal + labels |
 | `/shop/*` | Public storefront, dine QR, repairs, appointments |
+| `/` | `LANDING_MODE` — company marketing **or** client storefront |
 | `/restaurant`, KDS | Floor + kitchen tickets |
+| `/setup` | M7 onboarding wizard + milestones |
 | `/ai/agents` | R6 propose→approve agents (no LLM required v1) |
 | Vertical modules | Salon, hire purchase, loyalty, wholesale, WhatsApp, creative |
 
@@ -24,7 +26,8 @@ Solo multi-vertical **commerce OS** on **Next.js App Router** + **Drizzle → Po
 
 | Concern | SSOT |
 |---------|------|
-| Schema | `src/db/schema.ts` + `drizzle/migrations/` |
+| Schema | `src/db/schema.ts` + `drizzle/migrations/` (through **0018** Wave E) |
+| Vertical flags | 12 flags incl. `pharmacy`, `rental`, `autoParts` |
 | DB client | `src/db/index.ts`, `src/lib/db/connection.ts` |
 | Staff auth | `src/lib/auth/session.ts` (+ edge variant) |
 | Commerce mutate gate | `assertCanMutateCommerce` |
@@ -33,10 +36,25 @@ Solo multi-vertical **commerce OS** on **Next.js App Router** + **Drizzle → Po
 | Agents | `docs/AGENTS.md`, `src/lib/agents/*` |
 | Print | `docs/PRINT_THERMAL.md`, `globals.css` print, `src/lib/print/*` |
 | Ops readiness | `docs/PRODUCTION_READY.md` |
-| Root `/` landing | `src/lib/config/landing-mode.ts` — `LANDING_MODE=company\|storefront` |
+| Root `/` landing | `src/lib/config/landing-mode.ts` — `LANDING_MODE=company\|storefront\|auto` |
+| Storefront CMS | `storefront-config` + `--sf-*` tokens; Wave B blocks (`HERO_SLIDER`, rich `ANNOUNCEMENT`) |
+| Onboarding | `src/lib/setup/onboarding-milestones.ts` (`wizardSteps` + milestones) |
+| ERP gaps / next | `docs/ERP_GAPS_AND_NEXT_WAVE.md` |
 | ORM | **Drizzle only** (`POSTGRES_PRISMA_URL` is connection alias, not Prisma ORM) |
 
 If a fact is in two places, **prefer schema + service layer over UI copy**.
+
+---
+
+## Robustness waves (2026-09)
+
+| Wave | Outcome |
+|------|---------|
+| A | Landing dynamic imports, AppShell, shopper session dedupe, checkout a11y |
+| B0–B2 | Restore AnnouncementBar/badges/brain/publish-links; server catalog; HERO_SLIDER |
+| B3 | `/api/health` → `build` + `landingMode`; Contabo checklist (seed/PIN/lighthouse) |
+| C | POS types extract; CompanyLanding below-fold dynamic; `npm run analyze:sizes` |
+| **Next** | **M7** owner onboarding wizard (S1 shell shipped) |
 
 ---
 
@@ -63,8 +81,8 @@ Think “delight + integrity under load,” not feature sprawl.
 ### P2 — Product polish (Apple bar)
 
 11. **One storefront identity** — same theme tokens on menu/book/repairs. *(Generator pass.)*
-12. **Contrast** — `--sf-on-surface` for text on dark surfaces. *(Generator pass.)*
-13. **Observability** — Sentry on; `/api/health` should expose build SHA.
+12. **Contrast** — `--sf-on-surface` for text on dark surfaces. *(Generator pass + M8.)*
+13. **Observability** — Sentry on; `/api/health` exposes `build` + `landingMode` *(code done; Contabo redeploy needed)*.
 14. **Offline POS** — proven hold/sync under flaky WAN for Contabo Solo shops.
 15. **Print path** — staff training: Chrome margins None; thermal presets documented.
 
@@ -72,7 +90,7 @@ Think “delight + integrity under load,” not feature sprawl.
 
 16. Freeze verticals → **Café Solo** or **Salon Solo** SKU with fixed price + onboarding checklist.
 17. Approval Center as the only “AI” promise for v1 (propose → staff approve).
-18. Paying pilot + weekly ops review before next vertical depth wave.
+18. Paying pilot + weekly ops review before next vertical depth wave (pharmacy/rental/auto-parts).
 
 ---
 
@@ -80,32 +98,27 @@ Think “delight + integrity under load,” not feature sprawl.
 
 ### Pass 1 — 2026-09-11 pre-deploy
 Target: production Vercel. **FAIL 6.9/10** (threshold 7.0).
-Critical: public demo PIN minted OWNER without DB. Also: invisible dark CTAs, theme drift menu vs home, sold-out catalog, POS allowed stock 0.
+Critical: public demo PIN minted OWNER without DB.
 
-### Pass 2 — 2026-09-11 post-push (`0b59032` on `main`)
-Code integrity checklist **10/10 OK** (demo gate, supervisor-pin, license throw, menu filters, unique `client_uuid`, `--sf-on-surface`, shopper anon 200).
+### Pass 2 — 2026-09-11 post-push
+Code integrity checklist **10/10 OK**. Remaining gap is **ops/data** (rotate seed PINs, seed stock, Sentry on, migration `0016`).
 
-Live probes:
-- `/adminpoz` — demo copy + Fill Demo PIN **gone** ✓
-- `POST /api/auth/login` with unknown email + `1234` → **401** (no synthetic demo user) ✓
-- `POST` with role OWNER + `1234` (no email) → **200 real seed user** `owner@store.local` — not `demo:true`, but **weak seed PIN still opens OWNER** ⚠
-- `/shop` + `/shop/menu` — same dark theme ✓; CTA contrast improved ✓
-- Catalog / dining menu — **empty** (“0 items” / “seed restaurant preset”) — conversion still blocked
-- `/api/health` — `db:connected`, `sentry:off`
-- Shopper GET anonymous → **200** ✓
-
-**Verdict:** eng hardening **landed**; remaining gap is **ops/data** (rotate seed PINs, seed stock + restaurant menu, Sentry on, apply migration `0016` on DB).
+### Pass 3 — 2026-09-18 health metadata
+- Vercel `/api/health` → `build`, `landingMode: company`, `db:connected` ✓
+- Contabo demo/HQ → `db:connected` but **no** `build`/`landingMode` yet → **redeploy** latest image
 
 ---
 
 ## Ruflo note
 
-Multi-agent orchestration (`npx ruflo`) is optional overhead here. Prefer cavecrew locate → main/generator fix → GAN eval for this repo until swarm memory is needed across machines.
+Multi-agent orchestration (`npx ruflo`) is optional. Prefer main-thread fix → GAN eval until swarm memory is needed across machines.
 
 ---
 
 ## Related docs
 
 - [`AGENTS.md`](./AGENTS.md) · [`AGENT_HARNESS.md`](./AGENT_HARNESS.md)
+- [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md)
+- [`WAVE_B_C_ROBUSTNESS_PLAN.md`](./WAVE_B_C_ROBUSTNESS_PLAN.md) · [`WAVE_B3_OPS_CHECKLIST.md`](./WAVE_B3_OPS_CHECKLIST.md)
 - [`CODEBASE_MAP_AND_IMPROVEMENTS.md`](./CODEBASE_MAP_AND_IMPROVEMENTS.md)
 - [`PRINT_THERMAL.md`](./PRINT_THERMAL.md) · [`THEME_21ST_SYNC.md`](./THEME_21ST_SYNC.md)

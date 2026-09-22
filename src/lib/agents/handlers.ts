@@ -15,6 +15,10 @@ import {
   creativeProjects,
   quotations,
   stockLots,
+  prescriptions,
+  rentalContracts,
+  rentalAssets,
+  vehicleCompatibility,
 } from '@/db';
 import { readConfigJson } from '@/lib/config/business-settings';
 import { listAutomationLogs } from '@/lib/automation/rules-store';
@@ -378,6 +382,80 @@ export async function runGroceryAgent(): Promise<AgentResult> {
   };
 }
 
+export async function runPharmacyAgent(): Promise<AgentResult> {
+  const pending = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(prescriptions)
+    .where(sql`${prescriptions.status} IN ('DRAFT', 'PENDING_APPROVAL')`);
+  const approved = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(prescriptions)
+    .where(eq(prescriptions.status, 'APPROVED'));
+  const pendingCount = pending[0]?.count || 0;
+  const approvedCount = approved[0]?.count || 0;
+  return {
+    agent: 'PHARMACY',
+    summary: `${pendingCount} Rx awaiting approval; ${approvedCount} approved ready to dispense.`,
+    recommendations: [
+      pendingCount > 0 ? `Review ${pendingCount} prescription(s) at /pharmacy.` : 'No pending Rx — queue clear.',
+      approvedCount > 0 ? `Dispense ${approvedCount} approved prescription(s).` : 'No approved Rx waiting.',
+    ],
+    metrics: { pending: pendingCount, approvedReady: approvedCount },
+  };
+}
+
+export async function runRentalAgent(): Promise<AgentResult> {
+  const now = new Date();
+  const overdue = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(rentalContracts)
+    .where(
+      and(
+        eq(rentalContracts.status, 'ACTIVE'),
+        sql`${rentalContracts.endAt} IS NOT NULL`,
+        lte(rentalContracts.endAt, now),
+      ),
+    );
+  const rented = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(rentalAssets)
+    .where(eq(rentalAssets.status, 'RENTED'));
+  const available = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(rentalAssets)
+    .where(eq(rentalAssets.status, 'AVAILABLE'));
+  const overdueCount = overdue[0]?.count || 0;
+  return {
+    agent: 'RENTAL',
+    summary: `${overdueCount} overdue contract(s); ${rented[0]?.count || 0} assets rented, ${available[0]?.count || 0} available.`,
+    recommendations: overdueCount
+      ? [`Follow up ${overdueCount} overdue rental return(s) at /rental.`]
+      : ['No overdue rentals — utilization healthy.'],
+    metrics: {
+      overdue: overdueCount,
+      rented: rented[0]?.count || 0,
+      available: available[0]?.count || 0,
+    },
+  };
+}
+
+export async function runAutopartsAgent(): Promise<AgentResult> {
+  const [fitment] = await db.select({ count: sql<number>`count(*)::int` }).from(vehicleCompatibility);
+  const [catalog] = await db.select({ count: sql<number>`count(*)::int` }).from(products);
+  const fit = fitment?.count || 0;
+  const total = catalog?.count || 0;
+  const coverage = total > 0 ? Math.round((fit / total) * 100) : 0;
+  return {
+    agent: 'AUTOPARTS',
+    summary: `${fit} fitment link(s) across ${total} products (~${coverage}% coverage).`,
+    recommendations:
+      coverage < 70
+        ? ['Add vehicle compatibility rows for top-moving SKUs at /auto-parts.']
+        : ['Fitment coverage looks solid — keep OEM codes updated.'],
+    metrics: { fitmentRows: fit, products: total, coveragePct: coverage },
+  };
+}
+
 const HANDLERS: Record<AgentId, () => Promise<AgentResult>> = {
   SALES: runSalesAgent,
   INVENTORY: runInventoryAgent,
@@ -392,6 +470,9 @@ const HANDLERS: Record<AgentId, () => Promise<AgentResult>> = {
   WHATSAPP: runWhatsappAgent,
   CREATIVE: runCreativeAgent,
   GROCERY: runGroceryAgent,
+  PHARMACY: runPharmacyAgent,
+  RENTAL: runRentalAgent,
+  AUTOPARTS: runAutopartsAgent,
 };
 
 export async function executeAgent(id: AgentId): Promise<AgentResult> {

@@ -76,6 +76,20 @@ const PRESET_CATALOGS: Partial<Record<VerticalPresetId, CatalogItem[]>> = {
     { sku: 'FULL-DEMO-1', slug: 'full-demo-retail', name: 'Demo Retail SKU', sale: '2500.00', cost: '1200.00', category: 'General' },
     { sku: 'FULL-DEMO-2', slug: 'full-demo-service', name: 'Demo Service SKU', sale: '5000.00', cost: '2000.00', category: 'Services' },
   ],
+  pharmacy: [
+    { sku: 'PHARM-PARA-500', slug: 'paracetamol-500', name: 'Paracetamol 500mg 10s', sale: '120.00', cost: '60.00', category: 'OTC' },
+    { sku: 'PHARM-VITC-1000', slug: 'vitamin-c-1000', name: 'Vitamin C 1000mg', sale: '850.00', cost: '420.00', category: 'Supplements' },
+    { sku: 'PHARM-ORS', slug: 'ors-sachet', name: 'ORS Sachet', sale: '45.00', cost: '20.00', category: 'OTC' },
+  ],
+  rental: [
+    { sku: 'RENT-GEN-2KVA', slug: 'generator-2kva', name: 'Generator 2kVA (hire)', sale: '4500.00', cost: '0.00', category: 'Hire' },
+    { sku: 'RENT-DRILL', slug: 'hammer-drill-hire', name: 'Hammer Drill (hire/day)', sale: '1500.00', cost: '0.00', category: 'Hire' },
+  ],
+  autoparts: [
+    { sku: 'AUTO-OIL-FILTER', slug: 'oil-filter-universal', name: 'Oil Filter Universal', sale: '1800.00', cost: '1100.00', category: 'Filters' },
+    { sku: 'AUTO-BRAKE-PAD', slug: 'brake-pad-front', name: 'Front Brake Pads', sale: '6500.00', cost: '4200.00', category: 'Brakes' },
+    { sku: 'AUTO-SPARK-NGK', slug: 'spark-plug-ngk', name: 'NGK Spark Plug', sale: '950.00', cost: '520.00', category: 'Ignition' },
+  ],
 };
 
 async function applyVerticalFlags(presetId: VerticalPresetId) {
