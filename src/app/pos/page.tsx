@@ -135,6 +135,11 @@ function POSTerminal() {
   const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState<number>(0);
   const [isSearchingLoyalty, setIsSearchingLoyalty] = useState(false);
   const [loyaltyMessage, setLoyaltyMessage] = useState('');
+  const [businessProfile, setBusinessProfile] = useState<{
+    name?: string;
+    receiptHeader?: string;
+    receiptFooter?: string;
+  } | null>(null);
 
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinAction, setPinAction] = useState<{ type: 'DISCOUNT' | 'VOID' | 'CREDIT' | 'OPEN_DRAWER'; payload?: any } | null>(null);
@@ -143,6 +148,14 @@ function POSTerminal() {
   const [cashTenderInput, setCashTenderInput] = useState<number | ''>('');
   const [isVoiceSearchActive, setIsVoiceSearchActive] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const receiptHeaderLines = (businessProfile?.receiptHeader || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const receiptStoreName = receiptHeaderLines[0] || businessProfile?.name || 'Grabber Store';
+  const receiptStoreAddress = receiptHeaderLines.slice(1).join(' • ') || 'Main Counter';
+  const receiptFooterNote = businessProfile?.receiptFooter || undefined;
 
   const toggleSound = () => {
     const next = !soundEnabled;
@@ -215,6 +228,13 @@ function POSTerminal() {
   useEffect(() => {
     fetchVerticalFlags().then(setVerticalFlags).catch(() => undefined);
     setReceiptPaper(readReceiptPaperId());
+
+    fetch('/api/settings/business')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.profile) setBusinessProfile(data.profile);
+      })
+      .catch(() => undefined);
 
     fetch('/api/pos/catalog')
       .then((r) => r.json())
@@ -640,8 +660,8 @@ function POSTerminal() {
       try {
         // Optional hardware raw buffer generation for physical WebUSB/Bluetooth devices
         ESCPOSPrinterController.generateReceiptBuffer({
-          storeName: 'Grabber Store',
-          branchName: 'Main Counter',
+          storeName: receiptStoreName,
+          branchName: receiptStoreAddress,
           billNumber: data.order?.orderNumber || orderNumber,
           cashierName: 'Cashier',
           date: new Date().toLocaleString('en-LK'),
@@ -1658,10 +1678,11 @@ function POSTerminal() {
           completedOrder
             ? {
                 orderNumber: completedOrder.orderNumber,
-                storeName: 'Grabber Store',
-                storeAddress: 'Main Counter, Colombo',
-                storePhone: '+94 11 234 5678',
-                vatRegNumber: 'VAT-10029384-7000',
+                storeName: receiptStoreName,
+                storeAddress: receiptStoreAddress,
+                counterName: '01',
+                cashierName: 'Cashier',
+                orderType: posMode === 'TABLES' ? 'Dine In' : 'Take Away',
                 items: completedOrder.items.map((it: CartItem) => ({
                   name: it.name,
                   quantity: it.quantity,
@@ -1679,6 +1700,7 @@ function POSTerminal() {
                 amountPaid: completedOrder.amountPaid,
                 changeDue: completedOrder.changeDue,
                 loyaltyEarned: completedOrder.loyaltyEarned,
+                footerNote: receiptFooterNote,
               }
             : null
         }

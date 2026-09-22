@@ -82,6 +82,8 @@ export type StorefrontColorScheme = 'light' | 'dark';
 export type StorefrontTheme = {
   /** Preset id from theme-presets.ts (grabber, spindrift, hearth, …). */
   presetId?: string;
+  /** White-label display name for the storefront shell/footer. */
+  storeName?: string;
   primaryColor: string;
   accentColor: string;
   secondaryColor?: string;

@@ -1,0 +1,278 @@
+{
+  "clientId": "GRB-002",
+  "businessName": "ThePartyStore",
+  "csvPath": "D:\\AAA GRABBER\\ThePartyStore\\wc_import_ready.csv",
+  "imagesDir": "D:\\AAA GRABBER\\ThePartyStore\\TPSproduct_images",
+  "publicImagesDir": "D:\\GRABBER POZ SOLO\\public\\uploads\\clients\\thepartystore\\products",
+  "dryRun": true,
+  "productRows": 4061,
+  "sourceImages": 4140,
+  "imageMatches": {
+    "exact": 4049,
+    "fuzzy": 6,
+    "missing": 6
+  },
+  "duplicateSkuCount": 113,
+  "duplicateSkus": [
+    {
+      "sku": "8909",
+      "count": 6
+    },
+    {
+      "sku": "8979",
+      "count": 2
+    },
+    {
+      "sku": "9672",
+      "count": 2
+    },
+    {
+      "sku": "7451",
+      "count": 2
+    },
+    {
+      "sku": "8964",
+      "count": 2
+    },
+    {
+      "sku": "5513",
+      "count": 2
+    },
+    {
+      "sku": "5516",
+      "count": 2
+    },
+    {
+      "sku": "5517",
+      "count": 2
+    },
+    {
+      "sku": "5514",
+      "count": 2
+    },
+    {
+      "sku": "5455",
+      "count": 2
+    },
+    {
+      "sku": "5453",
+      "count": 2
+    },
+    {
+      "sku": "9127",
+      "count": 2
+    },
+    {
+      "sku": "5454",
+      "count": 2
+    },
+    {
+      "sku": "7505",
+      "count": 3
+    },
+    {
+      "sku": "4710",
+      "count": 2
+    },
+    {
+      "sku": "9129",
+      "count": 2
+    },
+    {
+      "sku": "8183",
+      "count": 3
+    },
+    {
+      "sku": "7090KDH",
+      "count": 2
+    },
+    {
+      "sku": "4877",
+      "count": 3
+    },
+    {
+      "sku": "3697",
+      "count": 2
+    },
+    {
+      "sku": "9528",
+      "count": 2
+    },
+    {
+      "sku": "8180HP",
+      "count": 2
+    },
+    {
+      "sku": "9781",
+      "count": 4
+    },
+    {
+      "sku": "7090RR",
+      "count": 2
+    },
+    {
+      "sku": "7090LB",
+      "count": 2
+    },
+    {
+      "sku": "8324Be",
+      "count": 2
+    },
+    {
+      "sku": "8662",
+      "count": 2
+    },
+    {
+      "sku": "9228",
+      "count": 2
+    },
+    {
+      "sku": "4520",
+      "count": 3
+    },
+    {
+      "sku": "9670",
+      "count": 2
+    },
+    {
+      "sku": "4002",
+      "count": 2
+    },
+    {
+      "sku": "9896",
+      "count": 3
+    },
+    {
+      "sku": "4519",
+      "count": 2
+    },
+    {
+      "sku": "4923",
+      "count": 2
+    },
+    {
+      "sku": "4911",
+      "count": 2
+    },
+    {
+      "sku": "5166",
+      "count": 2
+    },
+    {
+      "sku": "8365",
+      "count": 2
+    },
+    {
+      "sku": "128",
+      "count": 2
+    },
+    {
+      "sku": "125",
+      "count": 2
+    },
+    {
+      "sku": "124",
+      "count": 5
+    },
+    {
+      "sku": "8586",
+      "count": 4
+    },
+    {
+      "sku": "8848",
+      "count": 2
+    },
+    {
+      "sku": "8553",
+      "count": 4
+    },
+    {
+      "sku": "8426",
+      "count": 2
+    },
+    {
+      "sku": "5534",
+      "count": 2
+    },
+    {
+      "sku": "7174",
+      "count": 54
+    },
+    {
+      "sku": "6591",
+      "count": 12
+    },
+    {
+      "sku": "4661",
+      "count": 3
+    },
+    {
+      "sku": "1951",
+      "count": 4
+    },
+    {
+      "sku": "9517",
+      "count": 6
+    }
+  ],
+  "topCategories": [
+    {
+      "category": "Balloons",
+      "count": 1035
+    },
+    {
+      "category": "Party Essentials",
+      "count": 722
+    },
+    {
+      "category": "Birthday",
+      "count": 493
+    },
+    {
+      "category": "Tableware",
+      "count": 431
+    },
+    {
+      "category": "Costumes & Wearables",
+      "count": 382
+    },
+    {
+      "category": "Theme Party Kits",
+      "count": 267
+    },
+    {
+      "category": "Cake & Candles",
+      "count": 253
+    },
+    {
+      "category": "Banners & Backdrops",
+      "count": 209
+    },
+    {
+      "category": "Decorations",
+      "count": 161
+    },
+    {
+      "category": "Baby Shower",
+      "count": 44
+    },
+    {
+      "category": "Seasonal & Halloween",
+      "count": 40
+    },
+    {
+      "category": "Gift Bags & Wrapping",
+      "count": 24
+    }
+  ],
+  "missingImages": [
+    "Hollywood Film Festival Photo Props",
+    "Daisy Flower Candy Color Foil Balloon (Purple)",
+    "Monkey Shape Foil Balloon",
+    "Standing Leopard Foil Balloon",
+    "Standing Lion Foil Balloon",
+    "Silver Star Design Napkins"
+  ],
+  "copied": 0,
+  "generatedAt": "2026-09-21T19:48:45.278Z"
+}

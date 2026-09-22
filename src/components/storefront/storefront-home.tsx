@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Package } from 'lucide-react';
+import { Package, Search } from 'lucide-react';
 import { StorefrontShell } from '@/components/storefront/storefront-shell';
 import {
   StorefrontFeaturedSection,
@@ -519,9 +519,11 @@ export function StorefrontHome({
                 {/* Search Bar */}
                 <div className="relative flex-1">
                   <input
+                    id="storefront-search"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search name, SKU, category…"
+                    aria-label="Search products"
                     className="w-full min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] pl-4 pr-10 py-2.5 text-sm shadow-sm outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]"
                   />
                   {q ? (
@@ -593,7 +595,7 @@ export function StorefrontHome({
           {filtered.length === 0 ? (
             <div className="mt-12 p-12 text-center rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] space-y-3">
               <div className="w-12 h-12 rounded-full bg-[var(--sf-muted)] mx-auto flex items-center justify-center text-lg">
-                🔍
+                <Search className="h-5 w-5 text-[var(--sf-secondary)]" aria-hidden />
               </div>
               <h3 className="text-base font-bold text-[var(--sf-foreground)]">No matching products found</h3>
               <p className="text-xs text-[var(--sf-secondary)] max-w-sm mx-auto">
@@ -758,7 +760,7 @@ export function StorefrontHome({
         <StorefrontFooterCta cms={cms} />
 
         <footer className="border-t border-[var(--sf-border)] bg-[var(--sf-muted)]/40 py-8 text-center text-sm text-[var(--sf-secondary)]">
-          <p>© {new Date().getFullYear()} Grabber Business OS</p>
+          <p>© {new Date().getFullYear()} {cms.theme.storeName || 'Grabber Business OS'}</p>
         </footer>
       </div>
     </StorefrontShell>

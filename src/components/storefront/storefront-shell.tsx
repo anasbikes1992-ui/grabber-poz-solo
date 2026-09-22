@@ -39,6 +39,7 @@ export function StorefrontShell({
 
   const announcement = blocksForSlot(cms.blocks, 'TOP').find((b) => b.type === 'ANNOUNCEMENT');
   const waLink = whatsappHref(cms.theme.whatsappNumber, 'Hi, I have a question about your store.');
+  const storeName = cms.theme.storeName || 'Grabber Business OS';
 
   useEffect(() => {
     try {
@@ -104,8 +105,14 @@ export function StorefrontShell({
 
       <header className="sticky top-0 z-40 border-b border-[var(--sf-border)] bg-[var(--sf-background)]/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link href="/shop" className="inline-flex shrink-0 cursor-pointer" aria-label="Grabber home">
-            <BrandLogo size="md" showTagline={false} showSoloBadge={false} />
+          <Link href="/shop" className="inline-flex shrink-0 cursor-pointer" aria-label={`${storeName} home`}>
+            {cms.theme.storeName ? (
+              <span className="rounded-full bg-[var(--sf-primary)] px-4 py-2 text-sm font-black tracking-tight text-[var(--sf-on-primary)] shadow-sm">
+                {storeName}
+              </span>
+            ) : (
+              <BrandLogo size="md" showTagline={false} showSoloBadge={false} />
+            )}
           </Link>
 
           <nav className="hidden items-center gap-1 text-sm md:flex" aria-label="Store navigation">

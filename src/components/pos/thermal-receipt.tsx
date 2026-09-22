@@ -14,6 +14,8 @@ export interface ThermalReceiptData {
   orderNumber: string;
   date?: string;
   cashierName?: string;
+  counterName?: string;
+  orderType?: string;
   storeName?: string;
   storeAddress?: string;
   storePhone?: string;
@@ -87,14 +89,15 @@ export function ThermalReceipt({
       <div style={{ fontSize: '10px' }} className="space-y-0.5">
         <div className="flex justify-between gap-1">
           <span>
-            Bill No: <strong>{data.orderNumber}</strong>
+            Order No: <strong>{data.orderNumber}</strong>
           </span>
           <span className="shrink-0">{dateStr}</span>
         </div>
         <div className="flex justify-between gap-1">
-          <span>Cashier: {data.cashierName || 'Cashier'}</span>
-          <span>Tender: {data.tender}</span>
+          <span>Counter: {data.counterName || '01'}</span>
+          <span>Operator: {data.cashierName || 'Cashier'}</span>
         </div>
+        {data.orderType && <div className="font-bold uppercase">{data.orderType}</div>}
       </div>
 
       <div className="border-b border-dashed border-black my-1.5" />
@@ -104,9 +107,10 @@ export function ThermalReceipt({
           className="grid grid-cols-12 font-bold border-b border-black pb-0.5 mb-1"
           style={{ fontSize: '10px' }}
         >
-          <span className="col-span-6 text-left">ITEM</span>
+          <span className={narrow ? 'col-span-6 text-left' : 'col-span-5 text-left'}>ITEM</span>
           <span className="col-span-2 text-center">QTY</span>
-          <span className="col-span-4 text-right">AMOUNT</span>
+          {!narrow && <span className="col-span-2 text-right">PRICE</span>}
+          <span className={narrow ? 'col-span-4 text-right' : 'col-span-3 text-right'}>AMOUNT</span>
         </div>
 
         <div className="space-y-1">
@@ -114,16 +118,19 @@ export function ThermalReceipt({
             const lineTotal = item.lineTotal ?? item.unitPrice * item.quantity;
             return (
               <div key={idx} className="grid grid-cols-12" style={{ fontSize: '10.5px' }}>
-                <div className="col-span-6 text-left truncate pr-1">
+                <div className={narrow ? 'col-span-6 text-left truncate pr-1' : 'col-span-5 text-left truncate pr-1'}>
                   <span className="font-semibold">{item.name}</span>
-                  {item.quantity > 1 && (
+                  {narrow && item.quantity > 1 && (
                     <div style={{ fontSize: '9px' }} className="text-gray-700">
                       @{item.unitPrice.toFixed(2)}
                     </div>
                   )}
                 </div>
                 <div className="col-span-2 text-center font-medium">{item.quantity}</div>
-                <div className="col-span-4 text-right font-medium">{lineTotal.toFixed(2)}</div>
+                {!narrow && <div className="col-span-2 text-right font-medium">{item.unitPrice.toFixed(2)}</div>}
+                <div className={narrow ? 'col-span-4 text-right font-medium' : 'col-span-3 text-right font-medium'}>
+                  {lineTotal.toFixed(2)}
+                </div>
               </div>
             );
           })}
@@ -165,12 +172,13 @@ export function ThermalReceipt({
         </div>
 
         <div className="border-t border-black my-1 pt-1 flex justify-between text-sm font-bold">
-          <span>TOTAL DUE</span>
+          <span>Net Amount</span>
           <span>LKR {data.grandTotal.toFixed(2)}</span>
         </div>
 
+        <div className="mt-2 border-t border-dashed border-black pt-1 font-bold">Payments</div>
         <div className="flex justify-between" style={{ fontSize: '10px' }}>
-          <span>Amount Paid ({data.tender})</span>
+          <span>{data.tender}</span>
           <span>LKR {(data.amountPaid ?? data.grandTotal).toFixed(2)}</span>
         </div>
 
@@ -203,7 +211,7 @@ export function ThermalReceipt({
 
       <div className="text-center text-gray-800 space-y-0.5 mt-2" style={{ fontSize: '9px' }}>
         <p>{data.footerNote || 'Thank you for shopping with us!'}</p>
-        <p>Exchange possible within 7 days with bill.</p>
+        {!data.footerNote && <p>Exchange possible within 7 days with bill.</p>}
         <p className="font-semibold mt-1 text-gray-600" style={{ fontSize: '8px' }}>
           Powered by Grabber Business OS
         </p>

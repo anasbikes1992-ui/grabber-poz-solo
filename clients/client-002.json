@@ -41,6 +41,12 @@
   "catalogSource": {
     "type": "woocommerce_csv",
     "csvPath": "D:/AAA GRABBER/ThePartyStore/wc_import_ready.csv",
-    "imagesDir": "D:/AAA GRABBER/ThePartyStore/TPSproduct_images"
+    "imagesDir": "D:/AAA GRABBER/ThePartyStore/TPSproduct_images",
+    "publicImagesDir": "public/uploads/clients/thepartystore/products",
+    "publicImagesBaseUrl": "/uploads/clients/thepartystore/products",
+    "imageMatchMode": "name",
+    "inferCategories": true,
+    "dedupeSku": true,
+    "defaultStock": 10
   }
 }
