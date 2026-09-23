@@ -42,6 +42,8 @@ const PUBLIC_PREFIXES = [
   '/locations/',
   '/api/storefront/reviews',
   '/api/storefront/wishlist',
+  '/api/storage/media',
+  '/api/storage/upload',
 ];
 
 /** Crawlable storefront product detail pages (not staff /products admin) */
