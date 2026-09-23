@@ -5,6 +5,7 @@ import { MessageCircle, Wrench } from 'lucide-react';
 import type { StorefrontBlock, StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { blocksForSlot } from '@/lib/config/storefront-config.shared';
 import { whatsappHref } from '@/lib/storefront/theme-vars';
+import type { VerticalFlags } from '@/lib/config/vertical-flags';
 
 type FeaturedCatalogItem = {
   id: string;
@@ -24,8 +25,15 @@ function money(n: number) {
 
 function MidBannerBlock({ block }: { block: Extract<StorefrontBlock, { type: 'MID_BANNER' }> }) {
   return (
-    <section className="border-y border-[var(--sf-border)] bg-[var(--sf-muted)]/50">
-      <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-4 py-10 sm:flex-row sm:items-center sm:px-6">
+    <section className="relative overflow-hidden border-y border-[var(--sf-border)] bg-[var(--sf-muted)]/50">
+      {block.imageUrl && (
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-25"
+          style={{ backgroundImage: `url(${block.imageUrl})` }}
+          aria-hidden
+        />
+      )}
+      <div className="relative mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-4 py-10 sm:flex-row sm:items-center sm:px-6">
         <div>
           <h2 className="font-display text-xl font-bold text-[var(--sf-foreground)]">{block.title}</h2>
           <p className="mt-2 max-w-xl text-sm text-[var(--sf-secondary)]">{block.body}</p>
@@ -43,7 +51,18 @@ function MidBannerBlock({ block }: { block: Extract<StorefrontBlock, { type: 'MI
   );
 }
 
-function VerticalPromoBlock({ block }: { block: Extract<StorefrontBlock, { type: 'VERTICAL_PROMO' }> }) {
+function VerticalPromoBlock({
+  block,
+  verticalFlags,
+}: {
+  block: Extract<StorefrontBlock, { type: 'VERTICAL_PROMO' }>;
+  verticalFlags?: VerticalFlags;
+}) {
+  // Strictly hide repairs promo if the repairs vertical is not active
+  if (block.vertical === 'repairs' && !verticalFlags?.repairs) {
+    return null;
+  }
+
   return (
     <section className="border-y border-[var(--sf-border)] bg-[var(--sf-surface)]/80 backdrop-blur-md">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-[1fr_auto] sm:items-center sm:px-6">
@@ -64,14 +83,22 @@ function VerticalPromoBlock({ block }: { block: Extract<StorefrontBlock, { type:
   );
 }
 
-export function StorefrontMidBlocks({ cms }: { cms: StorefrontConfig }) {
+export function StorefrontMidBlocks({
+  cms,
+  verticalFlags,
+}: {
+  cms: StorefrontConfig;
+  verticalFlags?: VerticalFlags;
+}) {
   const midBlocks = blocksForSlot(cms.blocks, 'MID');
   if (!midBlocks.length) return null;
   return (
     <>
       {midBlocks.map((block) => {
         if (block.type === 'MID_BANNER') return <MidBannerBlock key={block.id} block={block} />;
-        if (block.type === 'VERTICAL_PROMO') return <VerticalPromoBlock key={block.id} block={block} />;
+        if (block.type === 'VERTICAL_PROMO') {
+          return <VerticalPromoBlock key={block.id} block={block} verticalFlags={verticalFlags} />;
+        }
         return null;
       })}
     </>

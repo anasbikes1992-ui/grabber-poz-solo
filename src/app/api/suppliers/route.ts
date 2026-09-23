@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { desc, eq } from 'drizzle-orm';
-import { db, suppliers, supplierAccounts } from '@/db';
-import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
+import { db, suppliers, supplierAccounts, supplierEntries, journalEntries, journalLines, chartOfAccounts, auditLogs } from '@/db';
+import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
+import { ensureDefaultChartOfAccounts } from '@/lib/commerce/ensure-coa';
 
 async function actor() {
   let session = await getSession();
@@ -41,8 +42,95 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    await actor();
+    const session = await actor();
     const body = await req.json();
+
+    if (body.action === 'record_payment') {
+      const supplierId = String(body.supplierId || '').trim();
+      const amount = Number(body.amount);
+      const paymentMethod = String(body.paymentMethod || 'BANK_TRANSFER').toUpperCase(); // CASH, BANK_TRANSFER
+      const notes = body.notes ? String(body.notes).trim() : 'Supplier invoice settlement';
+      const actorId = session && !isDemoUserId(session.userId) ? session.userId : null;
+
+      if (!supplierId || !amount || amount <= 0) {
+        return NextResponse.json({ success: false, error: 'supplierId and positive amount required' }, { status: 400 });
+      }
+
+      const result = await db.transaction(async (tx) => {
+        const [acct] = await tx
+          .select()
+          .from(supplierAccounts)
+          .where(eq(supplierAccounts.supplierId, supplierId))
+          .limit(1);
+
+        if (!acct) {
+          throw new Error('Supplier account not found');
+        }
+
+        const currentBal = Number(acct.currentBalance);
+        const newBal = Math.max(0, currentBal - amount);
+
+        await tx
+          .update(supplierAccounts)
+          .set({ currentBalance: newBal.toFixed(2), updatedAt: new Date() })
+          .where(eq(supplierAccounts.supplierId, supplierId));
+
+        const [entry] = await tx
+          .insert(supplierEntries)
+          .values({
+            supplierId,
+            poId: body.poId || null,
+            type: 'PAYMENT',
+            amount: amount.toFixed(2),
+            balanceAfter: newBal.toFixed(2),
+            createdBy: actorId,
+          })
+          .returning();
+
+        // General Ledger: Debit Accounts Payable (2000), Credit Cash (1010) or Bank (1020)
+        await ensureDefaultChartOfAccounts(tx as unknown as typeof db);
+        const resolve = async (code: string) => {
+          const [a] = await tx.select().from(chartOfAccounts).where(eq(chartOfAccounts.code, code)).limit(1);
+          if (!a) throw new Error(`Missing COA ${code}`);
+          return a.id;
+        };
+
+        const aAp = await resolve('2000');
+        const aBank = await resolve(paymentMethod === 'CASH' ? '1010' : '1020');
+
+        const [je] = await tx
+          .insert(journalEntries)
+          .values({
+            entryNumber: `JRN-SUPPAY-${Date.now().toString().slice(-8)}`,
+            entryDate: new Date(),
+            referenceType: 'SUPPLIER_PAYMENT',
+            referenceId: entry.id,
+            description: `Payment to supplier ${supplierId} (${paymentMethod})`,
+            createdBy: actorId,
+          })
+          .returning();
+
+        await tx.insert(journalLines).values([
+          { journalEntryId: je.id, accountId: aAp, debit: amount.toFixed(2), credit: '0.00', memo: `Settlement AP: ${notes}` },
+          { journalEntryId: je.id, accountId: aBank, debit: '0.00', credit: amount.toFixed(2), memo: `${paymentMethod} disbursed` },
+        ]);
+
+        if (actorId) {
+          await tx.insert(auditLogs).values({
+            actorId,
+            action: 'SUPPLIER_PAYMENT',
+            entity: 'SUPPLIER',
+            entityId: supplierId,
+            afterState: { amount, paymentMethod, newBalance: newBal, entryId: entry.id },
+          });
+        }
+
+        return { entry, newBalance: newBal, journalEntryId: je.id };
+      });
+
+      return NextResponse.json({ success: true, payment: result });
+    }
+
     const name = String(body.name || '').trim();
     if (!name) return NextResponse.json({ success: false, error: 'name required' }, { status: 400 });
 

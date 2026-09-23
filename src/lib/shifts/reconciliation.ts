@@ -24,6 +24,8 @@ export type ReconcileSummary = {
   payhereSales: number;
   polimSales: number;
   creditSales: number;
+  cashPaidIn?: number;
+  cashPaidOut?: number;
   expectedCash: number;
   closingCash: number;
   cashVariance: number;
@@ -43,6 +45,50 @@ async function resolveAccountId(
   const [row] = await tx.select().from(chartOfAccounts).where(eq(chartOfAccounts.code, code)).limit(1);
   if (!row) throw new Error(`Account ${code} missing`);
   return row.id;
+}
+
+export async function recordShiftCashMovement(params: {
+  shiftId: string;
+  type: 'PAID_IN' | 'PAID_OUT';
+  amount: number;
+  reason: string;
+  actorId?: string;
+}) {
+  const { db } = await import('@/db');
+  const [shift] = await db.select().from(shifts).where(eq(shifts.id, params.shiftId)).limit(1);
+  if (!shift) throw Object.assign(new Error('Shift not found'), { status: 404 });
+  if (shift.status === 'CLOSED') throw Object.assign(new Error('Cannot add movement to closed shift'), { status: 409 });
+
+  const prevRec = (shift.reconciliationJson as Record<string, any>) || {};
+  const prevMovements = Array.isArray(prevRec.cashMovements) ? prevRec.cashMovements : [];
+  const cashPaidIn = Number(prevRec.cashPaidIn || 0) + (params.type === 'PAID_IN' ? params.amount : 0);
+  const cashPaidOut = Number(prevRec.cashPaidOut || 0) + (params.type === 'PAID_OUT' ? params.amount : 0);
+
+  const newMovements = [
+    ...prevMovements,
+    {
+      type: params.type,
+      amount: params.amount,
+      reason: params.reason,
+      actorId: params.actorId || null,
+      timestamp: new Date().toISOString(),
+    },
+  ];
+
+  const updatedRec = {
+    ...prevRec,
+    cashPaidIn,
+    cashPaidOut,
+    cashMovements: newMovements,
+  };
+
+  const [updated] = await db
+    .update(shifts)
+    .set({ reconciliationJson: updatedRec })
+    .where(eq(shifts.id, params.shiftId))
+    .returning();
+
+  return { shift: updated, cashPaidIn, cashPaidOut, movements: newMovements };
 }
 
 export async function closeShiftWithReconciliation(input: ReconcileInput) {
@@ -76,8 +122,11 @@ export async function closeShiftWithReconciliation(input: ReconcileInput) {
       }
     }
 
+    const prevRec = (shift.reconciliationJson as Record<string, any>) || {};
+    const cashPaidIn = Number(prevRec.cashPaidIn || 0);
+    const cashPaidOut = Number(prevRec.cashPaidOut || 0);
     const openingFloat = Number(shift.openingFloat);
-    const expectedCash = openingFloat + cashSales;
+    const expectedCash = openingFloat + cashSales + cashPaidIn - cashPaidOut;
     const cashVariance = input.closingCash - expectedCash;
     const cardVariance = (input.actualCard ?? cardSales) - cardSales;
     const payhereVariance = (input.actualPayhere ?? payhereSales) - payhereSales;
@@ -85,11 +134,14 @@ export async function closeShiftWithReconciliation(input: ReconcileInput) {
     const totalVariance = cashVariance + cardVariance + payhereVariance + polimVariance;
 
     const reconciliationJson = {
+      ...prevRec,
       cashSales,
       cardSales,
       payhereSales,
       polimSales,
       creditSales,
+      cashPaidIn,
+      cashPaidOut,
       expectedCash,
       cashVariance,
       cardVariance,
@@ -158,6 +210,8 @@ export async function closeShiftWithReconciliation(input: ReconcileInput) {
       payhereSales,
       polimSales,
       creditSales,
+      cashPaidIn,
+      cashPaidOut,
       expectedCash,
       closingCash: input.closingCash,
       cashVariance,

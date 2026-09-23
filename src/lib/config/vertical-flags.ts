@@ -17,6 +17,9 @@ export const DEFAULT_VERTICAL_FLAGS: VerticalFlags = {
   grocery: false,
   whatsapp: true,
   creative: true,
+  pharmacy: false,
+  rental: false,
+  autoParts: false,
 };
 
 export async function fetchVerticalFlags(): Promise<VerticalFlags> {

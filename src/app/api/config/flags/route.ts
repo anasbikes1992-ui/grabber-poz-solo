@@ -15,6 +15,9 @@ const DEFAULT_FLAGS = {
   grocery: false,
   whatsapp: true,
   creative: true,
+  pharmacy: false,
+  rental: false,
+  autoParts: false,
 };
 
 export async function GET() {

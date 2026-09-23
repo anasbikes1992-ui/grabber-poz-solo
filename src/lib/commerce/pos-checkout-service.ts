@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { durableCheckout } from '@/lib/db/repositories/checkout-repo';
-import { db, branches, customers, tradeInVouchers, registers } from '@/db';
+import { db, branches, customers, tradeInVouchers, registers, loyaltyMembers } from '@/db';
 import { evaluatePromotion, evaluateCartPromotions } from '@/lib/commerce/promotion-engine';
 import { listPromotions, recordPromotionRedemption } from '@/lib/config/promotions-store';
 import { applyTradeInCredit } from '@/lib/trade-in/trade-in-service';
@@ -41,6 +41,7 @@ export type PosCheckoutInput = {
   promoCode?: string;
   tradeInVoucherNumber?: string;
   tradeInCredit?: number;
+  redeemLoyaltyPoints?: number;
   payments?: PaymentLine[];
   paymentMethod?: string;
   amount?: number;
@@ -147,6 +148,31 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     tradeInCredit = Number(v.appraisalValue);
   }
 
+  const customerId = body.customerId || (isStorefront ? body.shopperCustomerId : undefined);
+  let loyaltyDiscount = 0;
+
+  if (body.redeemLoyaltyPoints && body.redeemLoyaltyPoints > 0) {
+    if (!customerId) {
+      throw Object.assign(new Error('Customer ID required for loyalty point redemption'), { status: 400 });
+    }
+    const [member] = await db
+      .select()
+      .from(loyaltyMembers)
+      .where(and(eq(loyaltyMembers.customerId, customerId), eq(loyaltyMembers.active, true)))
+      .limit(1);
+
+    if (!member) {
+      throw Object.assign(new Error('Active loyalty membership not found for point redemption'), { status: 400 });
+    }
+    if (member.points < body.redeemLoyaltyPoints) {
+      throw Object.assign(
+        new Error(`Insufficient loyalty points (Available: ${member.points}, Requested: ${body.redeemLoyaltyPoints})`),
+        { status: 400 },
+      );
+    }
+    loyaltyDiscount = body.redeemLoyaltyPoints;
+  }
+
   // CI-004: Server-Side Discount Authorization
   const discountAuth = authorizeDiscount({
     subtotal: itemSubtotal,
@@ -159,6 +185,7 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     channel,
     promotionDiscount: promoTotal,
     tradeInCredit,
+    loyaltyDiscount,
   });
 
   const discountTotal = discountAuth.authorizedDiscountTotal;
@@ -204,7 +231,6 @@ export async function processPosCheckout(body: PosCheckoutInput) {
         ? Number(rawPayments[0].amount)
         : undefined;
 
-  const customerId = body.customerId || (isStorefront ? body.shopperCustomerId : undefined);
   const orderNumber =
     body.orderNumber || (isStorefront ? `WEB-${Date.now().toString().slice(-8)}` : undefined);
 
@@ -233,6 +259,7 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     terminalId: body.terminalId,
     clientSequence: body.clientSequence != null ? Number(body.clientSequence) : undefined,
     allowStockUnderrun: Boolean(body.offlineSync || body.allowStockUnderrun),
+    redeemLoyaltyPoints: body.redeemLoyaltyPoints,
     campaignId: body.campaignId || body.utmCampaign || undefined,
     utmJson: {
       ...(body.utmJson || {}),

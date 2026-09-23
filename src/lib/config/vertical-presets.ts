@@ -9,7 +9,10 @@ export type VerticalPresetId =
   | 'salon'
   | 'wholesale'
   | 'hybrid'
-  | 'full';
+  | 'full'
+  | 'pharmacy'
+  | 'rental'
+  | 'autoparts';
 
 /** Composable capability modules — toggled per merchant after preset selection. */
 export type VerticalFlags = {
@@ -22,6 +25,9 @@ export type VerticalFlags = {
   grocery: boolean;
   whatsapp: boolean;
   creative: boolean;
+  pharmacy: boolean;
+  rental: boolean;
+  autoParts: boolean;
 };
 
 export type VerticalPreset = {
@@ -47,7 +53,12 @@ const ALL_FLAGS_ON: VerticalFlags = {
   grocery: true,
   whatsapp: true,
   creative: true,
+  pharmacy: true,
+  rental: true,
+  autoParts: true,
 };
+
+const OFF_NEW = { pharmacy: false, rental: false, autoParts: false } as const;
 
 /**
  * Hybrid presets + composable module flags.
@@ -71,6 +82,7 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       grocery: false,
       whatsapp: true,
       creative: true,
+      ...OFF_NEW,
     },
     itemTypes: ['SERIALIZED', 'PHYSICAL', 'SERVICE', 'PART'],
     posModes: ['RETAIL_SALE', 'REPAIR_INTAKE', 'HP_COLLECTION'],
@@ -98,6 +110,7 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       grocery: false,
       whatsapp: true,
       creative: true,
+      ...OFF_NEW,
     },
     itemTypes: ['SERIALIZED', 'PHYSICAL', 'SERVICE', 'PART'],
     posModes: ['RETAIL_SALE', 'REPAIR_INTAKE', 'HP_COLLECTION'],
@@ -124,6 +137,7 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       grocery: false,
       whatsapp: true,
       creative: true,
+      ...OFF_NEW,
     },
     itemTypes: ['PHYSICAL'],
     posModes: ['RETAIL_SALE'],
@@ -150,6 +164,7 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       grocery: true,
       whatsapp: true,
       creative: false,
+      ...OFF_NEW,
     },
     itemTypes: ['PHYSICAL'],
     posModes: ['RETAIL_SALE'],
@@ -176,6 +191,7 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       grocery: false,
       whatsapp: true,
       creative: true,
+      ...OFF_NEW,
     },
     itemTypes: ['PREPARED_FOOD', 'RAW_INGREDIENT', 'PHYSICAL'],
     posModes: ['TABLE_SERVICE', 'KDS', 'RETAIL_SALE'],
@@ -202,6 +218,7 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       grocery: false,
       whatsapp: true,
       creative: true,
+      ...OFF_NEW,
     },
     itemTypes: ['SERVICE', 'PHYSICAL'],
     posModes: ['RETAIL_SALE'],
@@ -228,6 +245,7 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       grocery: false,
       whatsapp: true,
       creative: false,
+      ...OFF_NEW,
     },
     itemTypes: ['PHYSICAL', 'CUSTOM_QUOTE'],
     posModes: ['WHOLESALE_QUOTE', 'RETAIL_SALE'],
@@ -235,6 +253,93 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       'Polim Potha credit limit check',
       'Quotation-to-order conversion',
       'Tiered volume pricing',
+    ],
+  },
+  pharmacy: {
+    id: 'pharmacy',
+    label: 'Pharmacy & Healthcare',
+    description: 'Prescription intake, pharmacist approval gate, FEFO lots',
+    natureOfBusiness: 'Retail pharmacy',
+    exampleMerchant: 'Community pharmacy, clinic dispensary',
+    vertical: 'pharmacy',
+    flags: {
+      repairs: false,
+      restaurant: false,
+      hirePurchase: false,
+      appointments: false,
+      loyalty: true,
+      wholesale: false,
+      grocery: true,
+      whatsapp: true,
+      creative: false,
+      pharmacy: true,
+      rental: false,
+      autoParts: false,
+    },
+    itemTypes: ['PHYSICAL'],
+    posModes: ['RETAIL_SALE'],
+    adaptedWorkflows: [
+      'Prescription draft → pharmacist approve → dispense',
+      'Batch / expiry FEFO for medicines',
+      'Linked to /pharmacy staff console',
+    ],
+  },
+  rental: {
+    id: 'rental',
+    label: 'Equipment Rental',
+    description: 'Asset calendar, deposits, contract return disputes',
+    natureOfBusiness: 'Equipment & tool rental',
+    exampleMerchant: 'Generator / camera / tool hire shop',
+    vertical: 'rental',
+    flags: {
+      repairs: false,
+      restaurant: false,
+      hirePurchase: false,
+      appointments: false,
+      loyalty: true,
+      wholesale: false,
+      grocery: false,
+      whatsapp: true,
+      creative: false,
+      pharmacy: false,
+      rental: true,
+      autoParts: false,
+    },
+    itemTypes: ['PHYSICAL', 'SERIALIZED', 'SERVICE'],
+    posModes: ['RETAIL_SALE'],
+    adaptedWorkflows: [
+      'Asset AVAILABLE → ACTIVE contract → RETURNED',
+      'Deposit HELD / REFUNDED / FORFEITED',
+      'Staff console at /rental',
+    ],
+  },
+  autoparts: {
+    id: 'autoparts',
+    label: 'Auto Parts & Spares',
+    description: 'Make/Model/Year fitment index and OEM cross-reference',
+    natureOfBusiness: 'Automotive spare parts',
+    exampleMerchant: 'Spare parts counter, garage supply',
+    vertical: 'autoparts',
+    flags: {
+      repairs: false,
+      restaurant: false,
+      hirePurchase: false,
+      appointments: false,
+      loyalty: true,
+      wholesale: true,
+      grocery: false,
+      whatsapp: true,
+      creative: false,
+      pharmacy: false,
+      rental: false,
+      autoParts: true,
+    },
+    itemTypes: ['PHYSICAL', 'PART'],
+    posModes: ['RETAIL_SALE', 'WHOLESALE_QUOTE'],
+    adaptedWorkflows: [
+      'Vehicle generation → product compatibility',
+      'OEM code search at /auto-parts',
+      'Wholesale quotes for garages',
     ],
   },
   hybrid: {
@@ -254,6 +359,9 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       grocery: false,
       whatsapp: true,
       creative: true,
+      pharmacy: false,
+      rental: false,
+      autoParts: false,
     },
     itemTypes: ['PHYSICAL', 'SERIALIZED', 'SERVICE', 'PART', 'CUSTOM_QUOTE'],
     posModes: ['RETAIL_SALE', 'REPAIR_INTAKE', 'HP_COLLECTION', 'WHOLESALE_QUOTE'],

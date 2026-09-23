@@ -36,4 +36,13 @@ npm run lighthouse:shop
 
 ## Next: Wave B
 
-Server catalog for first paint, lazy framer-motion, catalog pagination, company below-fold defer.
+See [`WAVE_B_C_ROBUSTNESS_PLAN.md`](./WAVE_B_C_ROBUSTNESS_PLAN.md).
+
+### Wave B0 — DONE
+Restore AnnouncementBar, ProductPromoBadge, publish-links, creative/types, promotions barrel, jarvis brain → cockpit API; CMS rich announcement; Social publish presets.
+
+### Wave B1 — DONE (in progress verify)
+Server `loadStorefrontCatalog` for `/shop` + storefront `/`; skip client catalog refetch; Load more pagination (24).
+
+### Wave B2 — NEXT
+`HERO_SLIDER`, mid-banner imageUrl, lighthouse gate.

@@ -137,8 +137,9 @@ export class CreditEngine {
     dueDate?: Date;
     notes?: string;
     createdBy?: string;
+    createdAt?: Date;
   }): { account: CustomerCreditAccount; entry: PolimPothaEntry } {
-    const { customerId, type, amount, orderId, dueDate, notes, createdBy } = params;
+    const { customerId, type, amount, orderId, dueDate, notes, createdBy, createdAt } = params;
     const account = this.accounts.get(customerId) || this.getAccount(customerId);
 
     let balanceDelta = 0;
@@ -163,7 +164,7 @@ export class CreditEngine {
       dueDate,
       notes,
       createdBy,
-      createdAt: new Date(),
+      createdAt: createdAt || new Date(),
     };
 
     this.entries.push(entry);

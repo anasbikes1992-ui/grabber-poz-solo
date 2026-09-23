@@ -98,9 +98,114 @@ function slugify(text) {
     .replace(/^-+|-+$/g, '') || `prod-${Date.now()}`;
 }
 
+function normalizeName(text) {
+  return (text || '')
+    .toString()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\.(jpe?g|png|webp)$/i, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function encodeUrlPath(pathname) {
+  return pathname
+    .split('/')
+    .map((part) => encodeURIComponent(part))
+    .join('/')
+    .replace(/^%2F/, '/');
+}
+
+function buildLocalImageIndex(imagesDir) {
+  const index = new Map();
+  if (!imagesDir) return index;
+  const fullDir = path.resolve(imagesDir);
+  if (!fs.existsSync(fullDir)) return index;
+
+  for (const fileName of fs.readdirSync(fullDir)) {
+    if (!/\.(jpe?g|png|webp)$/i.test(fileName)) continue;
+    const key = normalizeName(fileName);
+    if (!index.has(key)) index.set(key, fileName);
+  }
+  return index;
+}
+
+function resolveLocalImageUrl(productName, imageIndex, publicBaseUrl) {
+  const key = normalizeName(productName);
+  if (!key || imageIndex.size === 0 || !publicBaseUrl) return '';
+
+  const exact = imageIndex.get(key);
+  if (exact) return encodeUrlPath(`${publicBaseUrl.replace(/\/$/, '')}/${exact}`);
+
+  let best = '';
+  let bestScore = 0;
+  for (const [imageKey, fileName] of imageIndex.entries()) {
+    const score =
+      imageKey === key
+        ? 100
+        : imageKey.includes(key)
+          ? key.length
+          : key.includes(imageKey)
+            ? imageKey.length
+            : 0;
+    if (score > bestScore) {
+      best = fileName;
+      bestScore = score;
+    }
+  }
+
+  return bestScore >= Math.min(18, Math.max(8, key.length * 0.8))
+    ? encodeUrlPath(`${publicBaseUrl.replace(/\/$/, '')}/${best}`)
+    : '';
+}
+
+function inferCategory(name, fallback = 'Party Essentials') {
+  const text = normalizeName(`${name} ${fallback}`);
+  const rules = [
+    ['Balloons', /\b(balloon|foil|latex|orbz|bouquet|arch|helium)\b/],
+    ['Birthday', /\b(birthday|fabulous|sweet 16|13th|18th|21st|30th|40th|50th|60th|70th|80th)\b/],
+    ['Baby Shower', /\b(baby shower|baby boy|baby girl|gender reveal|stroller|1st tooth)\b/],
+    ['Tableware', /\b(paper plate|paper cup|napkin|table cover|tablecover|straw|popcorn box)\b/],
+    ['Cake & Candles', /\b(cake topper|cup cake|cupcake|candle|sparkler|ice fountain)\b/],
+    ['Banners & Backdrops', /\b(banner|bunting|fringe curtain|backdrop|photo booth|props)\b/],
+    ['Costumes & Wearables', /\b(mask|wig|sash|tiara|boa|wings|glasses|hat|headband)\b/],
+    ['Theme Party Kits', /\b(theme|avengers|barbie|unicorn|batman|among us|mermaid|princess|toy story|baby shark|winnie|tiktok|minecraft|spiderman|superman)\b/],
+    ['Seasonal & Halloween', /\b(halloween|ghost|skeleton|spider|witch|vampire|zombie|skull|christmas|santa|reindeer)\b/],
+    ['Gift Bags & Wrapping', /\b(gift bag|kraft bag|wine bag|wrapping paper)\b/],
+    ['Decorations', /\b(pom pom|lantern|tassel|streamer|confetti|decor|flower|garland)\b/],
+  ];
+  for (const [category, pattern] of rules) {
+    if (pattern.test(text)) return category;
+  }
+  return fallback && fallback !== 'Uncategorized' ? fallback : 'Party Essentials';
+}
+
+function uniqueSku(rawSku, name, rowNumber, seenSkus, dedupeSku) {
+  const base = (rawSku || `TPS-${slugify(name).slice(0, 18) || rowNumber}`).toString().trim();
+  if (!dedupeSku) return base || `TPS-${rowNumber}`;
+  const normalizedBase = base || `TPS-${rowNumber}`;
+  const count = seenSkus.get(normalizedBase) || 0;
+  seenSkus.set(normalizedBase, count + 1);
+  return count === 0 ? normalizedBase : `${normalizedBase}-${String(count + 1).padStart(3, '0')}`;
+}
+
 async function loadProductsFromSource() {
-  const { type, csvPath, jsonPath, imagesDir } = manifest.catalogSource;
+  const {
+    type,
+    csvPath,
+    jsonPath,
+    imagesDir,
+    publicImagesBaseUrl,
+    imageMatchMode,
+    inferCategories,
+    dedupeSku,
+  } = manifest.catalogSource;
   const products = [];
+  const imageIndex = imageMatchMode === 'name' ? buildLocalImageIndex(imagesDir) : new Map();
+  const seenSkus = new Map();
 
   if (type === 'woocommerce_csv') {
     const fullPath = path.resolve(csvPath);
@@ -119,6 +224,9 @@ async function loadProductsFromSource() {
     const catIdx = headers.indexOf('categories');
     const imgIdx = headers.indexOf('images');
     const stockIdx = headers.indexOf('stock');
+    const defaultStock = Number.isFinite(Number(manifest.catalogSource.defaultStock))
+      ? Number(manifest.catalogSource.defaultStock)
+      : 10;
 
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r];
@@ -128,12 +236,16 @@ async function loadProductsFromSource() {
       const regularPrice = parseFloat(row[regPriceIdx] || row[salePriceIdx] || '0') || 0;
       const salePrice = parseFloat(row[salePriceIdx] || row[regPriceIdx] || '0') || 0;
       const costPrice = costIdx !== -1 && row[costIdx] ? parseFloat(row[costIdx]) : 0;
-      const sku = row[skuIdx] || `SKU-${slugify(name).slice(0, 16)}-${r}`;
+      const sku = uniqueSku(row[skuIdx], name, r, seenSkus, Boolean(dedupeSku));
       const barcode = barcodeIdx !== -1 ? row[barcodeIdx] : '';
-      const category = catIdx !== -1 ? (row[catIdx] || '').split('>').pop().trim() : 'General';
+      const rawCategory = catIdx !== -1 ? (row[catIdx] || '').split('>').pop().trim() : 'General';
+      const category = inferCategories ? inferCategory(name, rawCategory) : rawCategory;
       const description = descIdx !== -1 ? row[descIdx] : '';
-      const stock = stockIdx !== -1 ? parseInt(row[stockIdx] || '0', 10) : 10;
-      const imageUrl = imgIdx !== -1 ? (row[imgIdx] || '').split(',')[0].trim() : '';
+      const rawStock = stockIdx !== -1 ? String(row[stockIdx] || '').trim() : '';
+      const stock = rawStock ? parseInt(rawStock, 10) : defaultStock;
+      const csvImageUrl = imgIdx !== -1 ? (row[imgIdx] || '').split(',')[0].trim() : '';
+      const localImageUrl = resolveLocalImageUrl(name, imageIndex, publicImagesBaseUrl);
+      const imageUrl = localImageUrl || csvImageUrl;
 
       products.push({
         name,
@@ -262,58 +374,78 @@ async function main() {
       `;
     }
 
-    // 2. Insert Products in batches
+    // 2. Pre-create all distinct categories
     const categoriesCache = new Map();
     const existingCats = await sql`SELECT id, name FROM categories`;
     existingCats.forEach((c) => categoriesCache.set(c.name.toLowerCase(), c.id));
 
-    for (const p of products) {
-      const catKey = (p.category || 'General').toLowerCase();
-      let categoryId = categoriesCache.get(catKey);
-
-      if (!categoryId) {
+    const distinctCategories = Array.from(new Set(products.map((p) => p.category || 'Party Essentials')));
+    for (const catName of distinctCategories) {
+      const catKey = catName.toLowerCase();
+      if (!categoriesCache.has(catKey)) {
+        const slug = `${slugify(catName)}-${Math.random().toString(36).slice(2, 7)}`;
         const [newCat] = await sql`
           INSERT INTO categories (name, slug)
-          VALUES (${p.category || 'General'}, ${slugify(p.category || 'General') + '-' + Date.now().toString(36)})
+          VALUES (${catName}, ${slug})
           RETURNING id
         `;
-        categoryId = newCat.id;
-        categoriesCache.set(catKey, categoryId);
+        if (newCat) categoriesCache.set(catKey, newCat.id);
       }
+    }
 
-      const slug = slugify(p.name) + '-' + Math.random().toString(36).slice(2, 6);
+    // 3. Batch insert products and initial stock balances (chunks of 100)
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < products.length; i += BATCH_SIZE) {
+      const batch = products.slice(i, i + BATCH_SIZE);
+      const rows = batch.map((p) => {
+        const catKey = (p.category || 'Party Essentials').toLowerCase();
+        return {
+          name: p.name,
+          slug: `${slugify(p.name)}-${Math.random().toString(36).slice(2, 6)}`,
+          sku: p.sku,
+          barcode: p.barcode || null,
+          cost_price: p.costPrice || '0.00',
+          sale_price: p.salePrice || '0.00',
+          category_id: categoriesCache.get(catKey) || null,
+          description: p.description || '',
+          image_url: p.imageUrl || '',
+          is_active: true,
+        };
+      });
 
-      const [newProd] = await sql`
-        INSERT INTO products (
-          name, slug, sku, barcode, cost_price, sale_price, category_id,
-          description, image_url, is_active
-        )
-        VALUES (
-          ${p.name}, ${slug}, ${p.sku}, ${p.barcode}, ${p.costPrice}, ${p.salePrice},
-          ${categoryId}, ${p.description || ''}, ${p.imageUrl || ''}, true
-        )
+      const insertedProds = await sql`
+        INSERT INTO products ${sql(rows, 'name', 'slug', 'sku', 'barcode', 'cost_price', 'sale_price', 'category_id', 'description', 'image_url', 'is_active')}
         ON CONFLICT (sku) DO UPDATE SET
           name = EXCLUDED.name,
           sale_price = EXCLUDED.sale_price,
           cost_price = EXCLUDED.cost_price,
-          description = EXCLUDED.description
+          category_id = EXCLUDED.category_id,
+          description = EXCLUDED.description,
+          image_url = EXCLUDED.image_url,
+          is_active = true
         RETURNING id
       `;
 
-      // Seed initial stock balance
-      if (newProd && branch) {
+      if (branch && insertedProds.length > 0) {
+        const stockRows = insertedProds.map((prod, idx) => ({
+          location_type: 'BRANCH',
+          location_id: branch.id,
+          product_id: prod.id,
+          variant_id: null,
+          on_hand: batch[idx]?.stock || 10,
+          reserved: 0,
+          damaged: 0,
+        }));
+
         await sql`
-          INSERT INTO stock_balances (location_type, location_id, product_id, on_hand, reserved, reorder_point)
-          VALUES ('BRANCH', ${branch.id}, ${newProd.id}, ${p.stock || 10}, 0, 5)
-          ON CONFLICT (location_type, location_id, product_id) DO UPDATE SET
+          INSERT INTO stock_balances ${sql(stockRows, 'location_type', 'location_id', 'product_id', 'variant_id', 'on_hand', 'reserved', 'damaged')}
+          ON CONFLICT (location_type, location_id, product_id, variant_id) DO UPDATE SET
             on_hand = EXCLUDED.on_hand
         `;
       }
 
-      inserted++;
-      if (inserted % 50 === 0 || inserted === products.length) {
-        process.stdout.write(`\rImporting products: ${inserted}/${products.length}...`);
-      }
+      inserted += batch.length;
+      process.stdout.write(`\rImporting products: ${inserted}/${products.length}...`);
     }
 
     console.log(`\n\n✅ CATALOG IMPORT COMPLETE: ${inserted} products successfully imported for ${manifest.businessName}.`);

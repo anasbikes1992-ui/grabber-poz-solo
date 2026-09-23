@@ -1,8 +1,9 @@
 /**
  * Onboarding milestones — live progress detection for /setup guided flow.
+ * M7-S1: wizardSteps wrap the same milestones (no new completion rules).
  */
 import { sql, eq } from 'drizzle-orm';
-import { db, businessConfig, products, orders, hasDatabaseUrl } from '@/db';
+import { db, products, orders, branches, users } from '@/db';
 import { readConfigJson, readBusinessProfile, readIntegrationsPublic } from '@/lib/config/business-settings';
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import { listAutomationRules } from '@/lib/automation/rules-store';
@@ -20,8 +21,27 @@ export type OnboardingMilestone = {
   action?: 'seed' | 'preset_seed' | 'link';
 };
 
+/** Productized wizard steps (M7) — groups of milestone ids; completion still milestone-gated. */
+export type OnboardingWizardStepDef = {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  required: boolean;
+  milestoneIds: string[];
+  href: string;
+};
+
+export type OnboardingWizardStep = OnboardingWizardStepDef & {
+  done: boolean;
+  milestoneDoneCount: number;
+  milestoneTotal: number;
+};
+
 export type OnboardingProgress = {
   milestones: OnboardingMilestone[];
+  wizardSteps: OnboardingWizardStep[];
+  currentStepId: string | null;
   completed: number;
   total: number;
   requiredCompleted: number;
@@ -33,7 +53,96 @@ export type OnboardingProgress = {
   seeded: boolean;
   seededPreset: string | null;
   dbConnected: boolean;
+  completedAt: string | null;
+  goLiveReady: boolean;
 };
+
+/**
+ * Ordered owner wizard (M7-S1 shell). Maps onto live milestones — do not invent
+ * completion flags that bypass database / branch / owner gates.
+ */
+export const ONBOARDING_WIZARD_STEPS: OnboardingWizardStepDef[] = [
+  {
+    id: 'welcome',
+    title: 'Welcome & database',
+    description: 'Confirm DATABASE_URL and health before go-live work.',
+    order: 1,
+    required: true,
+    milestoneIds: ['database'],
+    href: '/api/health',
+  },
+  {
+    id: 'business',
+    title: 'Business & vertical',
+    description: 'Choose a vertical preset and confirm store profile.',
+    order: 2,
+    required: true,
+    milestoneIds: ['preset', 'profile'],
+    href: '/setup#presets',
+  },
+  {
+    id: 'operations',
+    title: 'Owner & branch',
+    description: 'Rotate TEMP$ owner PIN and ensure at least one branch.',
+    order: 3,
+    required: true,
+    milestoneIds: ['operations'],
+    href: '/settings/staff',
+  },
+  {
+    id: 'catalog',
+    title: 'Starter catalog',
+    description: 'Seed products, registers, and chart of accounts for the preset.',
+    order: 4,
+    required: true,
+    milestoneIds: ['seed'],
+    href: '/setup',
+  },
+  {
+    id: 'channels',
+    title: 'Storefront & WhatsApp',
+    description: 'Optional: homepage CMS and messaging credentials.',
+    order: 5,
+    required: false,
+    milestoneIds: ['storefront', 'integrations'],
+    href: '/store/builder',
+  },
+  {
+    id: 'automation',
+    title: 'Automation',
+    description: 'Optional: order/repair/stock WhatsApp rules.',
+    order: 6,
+    required: false,
+    milestoneIds: ['automation'],
+    href: '/settings/automation',
+  },
+  {
+    id: 'first_sale',
+    title: 'First sale & certify',
+    description: 'Optional: record one sale, then complete onboarding.',
+    order: 7,
+    required: false,
+    milestoneIds: ['first_sale'],
+    href: '/pos',
+  },
+];
+
+export function buildWizardSteps(milestones: OnboardingMilestone[]): {
+  wizardSteps: OnboardingWizardStep[];
+  currentStepId: string | null;
+} {
+  const byId = new Map(milestones.map((m) => [m.id, m]));
+  const wizardSteps: OnboardingWizardStep[] = ONBOARDING_WIZARD_STEPS.map((def) => {
+    const refs = def.milestoneIds.map((id) => byId.get(id)).filter(Boolean) as OnboardingMilestone[];
+    const milestoneTotal = Math.max(def.milestoneIds.length, 1);
+    const milestoneDoneCount = refs.filter((m) => m.done).length;
+    const done = refs.length > 0 && refs.every((m) => m.done);
+    return { ...def, done, milestoneDoneCount, milestoneTotal };
+  });
+  const current =
+    wizardSteps.find((s) => s.required && !s.done) || wizardSteps.find((s) => !s.done) || null;
+  return { wizardSteps, currentStepId: current?.id ?? null };
+}
 
 async function isDbConnected(): Promise<boolean> {
   if (!hasDbUrl()) return false;
@@ -57,6 +166,8 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
 
   let productCount = 0;
   let orderCount = 0;
+  let branchCount = 0;
+  let ownerReady = false;
   let profileName = '';
   if (dbConnected) {
     try {
@@ -64,6 +175,10 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       productCount = Number(pc?.c ?? 0);
       const [oc] = await db.select({ c: sql<number>`count(*)::int` }).from(orders);
       orderCount = Number(oc?.c ?? 0);
+      const [bc] = await db.select({ c: sql<number>`count(*)::int` }).from(branches);
+      branchCount = Number(bc?.c ?? 0);
+      const ownerRows = await db.select({ hashedPin: users.hashedPin }).from(users).where(eq(users.role, 'OWNER')).limit(10);
+      ownerReady = ownerRows.some((u) => Boolean(u.hashedPin && !u.hashedPin.startsWith('TEMP$')));
       const profile = await readBusinessProfile();
       profileName = profile?.name?.trim() || '';
     } catch {
@@ -155,6 +270,16 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       action: 'link',
     },
     {
+      id: 'operations',
+      title: 'Operational bootstrap',
+      description: branchCount > 0 && ownerReady ? 'A branch exists and the owner credential is rotated.' : 'Create a branch and rotate the temporary owner credential.',
+      href: '/settings/staff',
+      done: branchCount > 0 && ownerReady,
+      required: true,
+      order: 5,
+      action: 'link',
+    },
+    {
       id: 'integrations',
       title: 'WhatsApp & payments',
       description: whatsappConfigured
@@ -163,7 +288,7 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       href: '/whatsapp',
       done: whatsappConfigured,
       required: false,
-      order: 5,
+      order: 6,
       action: 'link',
     },
     {
@@ -175,7 +300,7 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       href: '/store/builder',
       done: storefrontCustomized,
       required: false,
-      order: 6,
+      order: 7,
       action: 'link',
     },
     {
@@ -187,7 +312,7 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       href: '/settings/automation',
       done: automationConfigured,
       required: false,
-      order: 7,
+      order: 8,
       action: 'link',
     },
     {
@@ -197,7 +322,7 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
       href: '/pos',
       done: orderCount > 0,
       required: false,
-      order: 8,
+      order: 9,
       action: 'link',
     },
   ];
@@ -206,9 +331,15 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
   const completed = milestones.filter((m) => m.done).length;
   const requiredCompleted = required.filter((m) => m.done).length;
   const next = milestones.find((m) => m.required && !m.done) || milestones.find((m) => !m.done);
+  const { wizardSteps, currentStepId } = buildWizardSteps(milestones);
+
+  const completedAt = (config.onboardingCompletedAt as string) || null;
+  const goLiveReady = dbConnected && requiredCompleted === required.length;
 
   return {
     milestones,
+    wizardSteps,
+    currentStepId,
     completed,
     total: milestones.length,
     requiredCompleted,
@@ -220,7 +351,20 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress> {
     seeded: productCount > 0,
     seededPreset,
     dbConnected,
+    completedAt,
+    goLiveReady,
   };
+}
+
+export async function completeOnboarding() {
+  const progress = await getOnboardingProgress();
+  if (!progress.goLiveReady) {
+    throw Object.assign(new Error(`Required onboarding milestones incomplete: ${progress.requiredTotal - progress.requiredCompleted} remaining`), { status: 409 });
+  }
+  const { mergeConfigJson } = await import('@/lib/config/business-settings');
+  const completedAt = new Date().toISOString();
+  await mergeConfigJson({ onboardingCompletedAt: completedAt });
+  return { ...progress, completedAt, goLiveReady: true };
 }
 
 /** Persist onboarding markers after seed or preset apply. */

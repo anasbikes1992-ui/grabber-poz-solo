@@ -30,12 +30,22 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 /** Lightweight health probe for cert / load balancers */
 export async function GET() {
+  const build =
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.CF_PAGES_COMMIT_SHA ||
+    process.env.COOLIFY_COMMIT_SHA ||
+    process.env.GIT_COMMIT_SHA ||
+    process.env.SOURCE_COMMIT ||
+    null;
+
   const base = {
     success: true,
     ok: true,
     service: 'grabber-poz-solo',
     ts: new Date().toISOString(),
     sentry: isSentryEnabled() ? 'configured' : 'off',
+    build: build ? String(build).slice(0, 12) : 'unknown',
+    landingMode: (process.env.LANDING_MODE || process.env.NEXT_PUBLIC_LANDING_MODE || 'auto').toLowerCase(),
   };
 
   if (!hasDatabaseUrl()) {

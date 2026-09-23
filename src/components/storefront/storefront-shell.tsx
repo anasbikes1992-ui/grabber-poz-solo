@@ -10,6 +10,7 @@ import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-confi
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { storefrontThemeStyle, storefrontThemeAttrs, whatsappHref } from '@/lib/storefront/theme-vars';
 import { useShopperSession } from '@/hooks/use-shopper-session';
+import { AnnouncementBar } from './AnnouncementBar';
 import { PromotionPopup } from './PromotionPopup';
 
 function navLinkClass(active: boolean) {
@@ -38,6 +39,7 @@ export function StorefrontShell({
 
   const announcement = blocksForSlot(cms.blocks, 'TOP').find((b) => b.type === 'ANNOUNCEMENT');
   const waLink = whatsappHref(cms.theme.whatsappNumber, 'Hi, I have a question about your store.');
+  const storeName = cms.theme.storeName || (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_STORE_NAME : undefined) || 'Grabber Store';
 
   useEffect(() => {
     try {
@@ -75,7 +77,7 @@ export function StorefrontShell({
 
   const isProducts = pathname === '/' || pathname.startsWith('/products') || pathname.startsWith('/categories');
   const isRepairs = pathname.startsWith('/shop/repairs');
-  const showRepairs = verticalFlags.repairs;
+  const showRepairs = Boolean(verticalFlags.repairs);
 
   return (
     <div
@@ -92,15 +94,25 @@ export function StorefrontShell({
       </a>
       <PromotionPopup />
       {announcement?.type === 'ANNOUNCEMENT' && (
-        <div className="bg-[var(--sf-primary)] text-center text-xs font-semibold text-[var(--sf-on-primary)] px-4 py-2">
-          {announcement.text}
-        </div>
+        <AnnouncementBar
+          text={announcement.text}
+          promoCode={announcement.promoCode}
+          ctaText={announcement.ctaText}
+          ctaUrl={announcement.ctaUrl}
+          endsAt={announcement.endsAt}
+        />
       )}
 
       <header className="sticky top-0 z-40 border-b border-[var(--sf-border)] bg-[var(--sf-background)]/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link href="/shop" className="inline-flex shrink-0 cursor-pointer" aria-label="Grabber home">
-            <BrandLogo size="md" showTagline={false} showSoloBadge={false} />
+          <Link href="/shop" className="inline-flex shrink-0 cursor-pointer" aria-label={`${storeName} home`}>
+            {cms.theme.storeName || (storeName && storeName !== 'Grabber Business OS' && storeName !== 'GRABBER') ? (
+              <span className="rounded-full bg-[var(--sf-primary)] px-4 py-2 text-sm font-black tracking-tight text-[var(--sf-on-primary)] shadow-sm">
+                {storeName}
+              </span>
+            ) : (
+              <BrandLogo size="md" showTagline={false} showSoloBadge={false} />
+            )}
           </Link>
 
           <nav className="hidden items-center gap-1 text-sm md:flex" aria-label="Store navigation">

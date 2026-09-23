@@ -11,6 +11,8 @@ import { db, abandonedCarts } from '@/db';
 import { eq } from 'drizzle-orm';
 import { processCreativeRenderJob } from '@/lib/creative/creative-job-processor';
 import { generateAndCachePdf, processCreativePdfJob } from '@/lib/creative/creative-pdf-processor';
+import { sendEmail } from '@/lib/integrations/email';
+import { submitEinvoice } from '@/lib/compliance/einvoice';
 import type { JobType } from './outbox';
 
 export async function handleJob(type: JobType, payload: Record<string, unknown>): Promise<void> {
@@ -118,6 +120,28 @@ export async function handleJob(type: JobType, payload: Record<string, unknown>)
     }
     case 'DRAFT_PO': {
       // Inventory agent proposes; job ack only until approval execute wired
+      break;
+    }
+    case 'EMAIL_SEND': {
+      const result = await sendEmail({
+        to: String(payload.to || ''),
+        subject: String(payload.subject || ''),
+        html: payload.html as string | undefined,
+        text: payload.text as string | undefined,
+        templateKey: payload.templateKey as string | undefined,
+        relatedType: payload.relatedType as string | undefined,
+        relatedId: payload.relatedId as string | undefined,
+      });
+      if (!result.success && result.status === 'FAILED') {
+        throw new Error(result.error || 'Email send failed');
+      }
+      break;
+    }
+    case 'EINVOICE_SUBMIT': {
+      const id = String(payload.id || '');
+      if (!id) throw new Error('EINVOICE_SUBMIT requires id');
+      const row = await submitEinvoice(id);
+      if (row.status === 'REJECTED') throw new Error(row.errorMessage || 'E-invoice rejected');
       break;
     }
     default:

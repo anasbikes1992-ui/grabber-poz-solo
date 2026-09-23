@@ -93,7 +93,7 @@
 | Service catalog (haircut, shave, duration) | **DONE** (Wave A S01) |
 | Product consumption per service | **PARTIAL** (deplete if recipe linked; seed BOM optional) |
 | Stylist/barber commission | **DONE** (Wave B S03 accrual) |
-| Salaries / payroll / HR | **PARTIAL** (Wave C S05 CSV export only) |
+| Salaries / payroll / HR | **DONE** (Wave F — EPF 8%/12% + ETF 3%, finalize + GL) |
 | Appointment book + POS settle | **DONE** (Wave A S02 Complete & charge) |
 | Public book | **DONE** (Wave B S04 `/shop/appointments/book`) |
 | `salon` preset | **DONE** (Wave A P01) |
@@ -193,7 +193,7 @@ Config (proposed): `business_config.config_json.engines = { costModel, attributi
 |----|-------------|--------|
 | **VERT-R05** | Bill split | **DONE** |
 | **VERT-R06 / GRW-10** | Public QR menu | **DONE** |
-| **VERT-S05** | Salaries / payroll / HR | **DONE** (CSV export only) |
+| **VERT-S05** | Salaries / payroll / HR | **DONE** (Wave F EPF/ETF + leave; salon commission CSV separate) |
 | **VERT-M03/M04** | Creative + segment ROAS | **DONE** |
 | **VERT-P03** | Real pharmacy pack | **DEFERRED** (compliance) |
 
@@ -216,7 +216,7 @@ Engine UI: one **Marketing / ROAS** page — spend in, attributed revenue out, f
 
 ## 6. Explicit non-goals (Solo)
 
-- Full HRIS (leave, PF, EPF, payslips) — partner or export later  
+- Full HRIS partner connectors (biometric clocks, EPF Board API) — later
 - Multi-branch complex labor law packs  
 - Claiming “unlimited AI ROAS” — Jarvis stays DB-grounded; ROAS is ledger + attribution  
 

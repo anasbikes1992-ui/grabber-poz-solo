@@ -22,8 +22,12 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 `P1` GrabberPoz.com Company Landing Page **DONE** (Hero, Features, Polim Potha, Hardware, Packages, Lead capture).
 `P2` Storefront UX & Animated Cart Drawer **DONE** (Slide-over drawer, quick floating bar, in-drawer promo validation).
 `P3` Staff Portal UX & Keypad Polish **DONE** (Touch numpad, demo PIN quick-fill, direct cashier `/pos` routing).
-**Next:** `M7` Client Deployment & Onboarding Console — plan [`reports/M7_ONBOARDING_PLAN.md`](../reports/M7_ONBOARDING_PLAN.md).  
-**Commercial verdict:** COMMERCE CERTIFIED. Residual: inject session role server-side (see `COMMERCE_INVARIANTS.md`). 1 VPS → 20 Independent Managed Deployments → 20 DBs. Zero tenant_id.
+**Next:** `M7-S2` Owner PIN rotation in wizard — plan [`reports/M7_ONBOARDING_PLAN.md`](../reports/M7_ONBOARDING_PLAN.md) · **S1 DONE**.  
+**Shipped:** **Wave E** Pharmacy + Rental + Auto-parts + AP/Bank/HR foundation — [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md) · migration `0018`.  
+**Shipped:** **Wave F** EPF/ETF payroll finalize + email (Resend) + tax e-invoice queue — migration `0019` · `/hr` · `/compliance/einvoice`.  
+**Shipped:** **Wave G** pay wages / remit statutory · Form C & ETF R1 CSV · PAYE stub · auto e-invoice · pharmacy FEFO+controlled log · rental deposit GL · salon→payroll · POS OEM fitment — migration `0020`.
+**Shipped:** Waves A–C storefront/ops harden — [`WAVE_B_C_ROBUSTNESS_PLAN.md`](./WAVE_B_C_ROBUSTNESS_PLAN.md).  
+**Shipped:** `M8` Accessibility Hardening & Installable PWA — [`docs/MILESTONE_M8_A11Y_PWA_HARDENING.md`](./MILESTONE_M8_A11Y_PWA_HARDENING.md).
 
 | Area | Completion | Status |
 |------|------------|--------|
@@ -42,7 +46,7 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 | Creative Engine | ~45% (queue + approve; media needs FAL) | 🟡 |
 | Vertical flag gating in hub/nav | 100% (AUD-01 dynamic gating) | 🟢 |
 | Grocery FEFO / Expiry Radar | 100% (AUD-02 batch intake + FEFO UI) | 🟢 |
-| Testing | ~65% (467 tests across 71 suites) | 🟢 |
+| Testing | ~70% (556+ tests across 87 suites) | 🟢 |
 
 > **Audit 2026-09-10:** Full review in [`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md). Agents are **not** stubs — update supersedes older “Stub only” row.
 

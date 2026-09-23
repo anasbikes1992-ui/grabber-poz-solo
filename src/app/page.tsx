@@ -2,6 +2,10 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import { resolveLandingMode } from '@/lib/config/landing-mode';
+import { loadStorefrontCatalog } from '@/lib/storefront/catalog-service';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const COMPANY_METADATA: Metadata = {
   title: 'Grabber POZ | The All-in-One Retail & Commerce OS for Sri Lanka',
@@ -40,19 +44,21 @@ export default async function HomePage() {
   const h = await headers();
   const mode = resolveLandingMode(h.get('host') || h.get('x-forwarded-host'));
 
-  // Dynamic import so only one landing graph ships per mode
   if (mode === 'storefront') {
-    const [{ StorefrontHome }, cms] = await Promise.all([
+    const [{ StorefrontHome }, cms, catalog] = await Promise.all([
       import('@/components/storefront/storefront-home'),
       readStorefrontConfig(),
+      loadStorefrontCatalog(),
     ]);
-    return <StorefrontHome cms={cms} />;
+    return (
+      <StorefrontHome
+        cms={cms}
+        initialCatalog={catalog.items}
+        initialBranchId={catalog.branchId}
+      />
+    );
   }
 
-  // Company landing (grabberpoz.com) points its "Storefront Demo" / "Staff Portal"
-  // links at the demo merchant subdomain rather than the apex. Non-public env,
-  // read at request time — not inlined at build.
-  const demoUrl = (process.env.COMPANY_DEMO_URL ?? 'https://demo.grabberpoz.com').replace(/\/$/, '');
   const { CompanyLanding } = await import('@/components/company/CompanyLanding');
-  return <CompanyLanding demoUrl={demoUrl} />;
+  return <CompanyLanding />;
 }

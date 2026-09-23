@@ -77,22 +77,53 @@ export class CockpitAggregator {
 
     const stockoutCount = lowStockRows.length;
 
-    // 3. Customer Base Count
+    // 3. Customer Base Count & Repeat Buyers
     const customerCountResult = await db.select({ count: sql<number>`count(*)::int` }).from(customers);
     const totalCustomers = Number(customerCountResult[0]?.count || 0);
 
-    // 4. Compute Health Score
+    const repeatQuery = await db
+      .select({ count: sql<number>`count(distinct ${orders.customerId})::int` })
+      .from(orders)
+      .where(sql`${orders.customerId} is not null`);
+    const repeatCount = Number(repeatQuery[0]?.count || 0);
+    const repeatCustomerRate = totalCustomers > 0 ? Math.min(100, Math.round((repeatCount / totalCustomers) * 100)) : 25;
+
+    // 4. Compute 7-day Rolling Baseline & Gross Margin
+    const baselineQuery = await db
+      .select({
+        totalRevenue: sql<string>`coalesce(sum(${orders.grandTotal}), 0)`,
+      })
+      .from(orders)
+      .where(sql`${orders.createdAt} >= ${sevenDaysAgo} AND ${orders.createdAt} < ${todayStart} AND ${orders.orderStatus} != 'DRAFT' AND ${orders.orderStatus} != 'CANCELLED'`);
+
+    const baselineRevenue7d = Number(baselineQuery[0]?.totalRevenue || 0);
+    const avgDailyBaseline = baselineRevenue7d / 7;
+    const revenueVsBaselinePercent = avgDailyBaseline > 0
+      ? Math.round(((todayRev - avgDailyBaseline) / avgDailyBaseline) * 100)
+      : (todayRev > 0 ? 10 : 0);
+
+    const marginQuery = await db
+      .select({
+        avgSalePrice: sql<string>`coalesce(avg(${products.salePrice}), 0)`,
+        avgCostPrice: sql<string>`coalesce(avg(${products.costPrice}), 0)`,
+      })
+      .from(products);
+    const avgSale = Number(marginQuery[0]?.avgSalePrice || 0);
+    const avgCost = Number(marginQuery[0]?.avgCostPrice || 0);
+    const grossMarginPercent = avgSale > 0 ? Math.round(((avgSale - avgCost) / avgSale) * 1000) / 10 : 32.5;
+
+    // 5. Compute Health Score
     const health = HealthScoreEngine.calculateBusinessHealth({
-      revenueVsBaselinePercent: todayRev > 0 ? 5 : -5,
-      grossMarginPercent: 32.5,
+      revenueVsBaselinePercent,
+      grossMarginPercent,
       stockoutRiskCount: stockoutCount,
       deadStockValueLkr: 12000,
-      repeatCustomerRate: 27,
+      repeatCustomerRate,
       seoScore: 78,
       overdueCreditCount: 0,
     });
 
-    // 5. Detect Anomalies & Highlights
+    // 6. Detect Anomalies & Highlights
     const noticed: OwnerMorningBrief['jarvisNoticed'] = [];
 
     if (stockoutCount > 0) {
@@ -123,7 +154,7 @@ export class CockpitAggregator {
       category: 'CUSTOMERS',
     });
 
-    // 6. Opportunities & Recommended Actions
+    // 7. Opportunities & Recommended Actions
     const opps: BusinessOpportunity[] = [];
     const recommendedActions: OwnerMorningBrief['recommendedActions'] = [];
 
@@ -162,7 +193,7 @@ export class CockpitAggregator {
         revenueLkr: todayRev,
         ordersCount: todayCount,
         aovLkr: aov,
-        grossMarginPercent: 32.5,
+        grossMarginPercent,
         stockoutRiskCount: stockoutCount,
         dormantCustomerCount: Math.min(15, totalCustomers),
         seoScore: 78,

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShieldCheck, UserCheck, ArrowRight, KeyRound, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, UserCheck, ArrowRight, KeyRound, CheckCircle2, Palette } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
 const ROLES = [
@@ -29,6 +29,7 @@ export default function LoginClient() {
   const [pin, setPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [email, setEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -45,11 +46,12 @@ export default function LoginClient() {
     setError(null);
     setBusy(true);
     try {
+      const cleanEmail = email.trim();
       if (mustRotate && newPin) {
         const res = await fetch('/api/auth/login', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email || undefined, currentPin: pin, newPin }),
+          body: JSON.stringify({ email: cleanEmail || undefined, currentPin: pin, newPin }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Rotation failed');
@@ -57,7 +59,7 @@ export default function LoginClient() {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pin, role: selectedRole, email: email || undefined }),
+          body: JSON.stringify({ pin, role: selectedRole, email: cleanEmail || undefined }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Login failed');
@@ -67,7 +69,10 @@ export default function LoginClient() {
         }
       }
       setIsSuccess(true);
-      setTimeout(() => router.push(nextPath), 600);
+      // Hard navigation ensures cookies are recognized by middleware & server components
+      setTimeout(() => {
+        window.location.assign(nextPath);
+      }, 300);
     } catch (err: unknown) {
       setError((err as Error).message);
     } finally {
@@ -155,18 +160,26 @@ export default function LoginClient() {
               </button>
             )}
           </div>
-          <input
-            id="staff-pin"
-            type="password"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="Enter 4-digit PIN"
-            maxLength={6}
-            required
-            className="w-full px-4 py-3 text-base rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono tracking-widest text-center"
-          />
+          <div className="relative">
+            <input
+              id="staff-pin"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="Enter PIN or Password"
+              maxLength={64}
+              required
+              className="w-full px-4 py-3 pr-16 text-base rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono tracking-wider text-center"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 bg-zinc-800/80 rounded-md cursor-pointer transition-colors"
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
 
           {/* Quick touch numpad for counter screens */}
           <div className="grid grid-cols-3 gap-1.5 pt-2">
@@ -177,7 +190,7 @@ export default function LoginClient() {
                 onClick={() => {
                   if (k === 'C') setPin('');
                   else if (k === '⌫') setPin((p) => p.slice(0, -1));
-                  else setPin((p) => (p.length < 6 ? p + k : p));
+                  else setPin((p) => (p.length < 64 ? p + k : p));
                 }}
                 className="py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-foreground font-mono font-bold text-sm transition-colors cursor-pointer active:scale-95"
               >
@@ -190,19 +203,20 @@ export default function LoginClient() {
         {mustRotate && (
           <div className="space-y-1.5">
             <label htmlFor="new-pin" className="text-xs font-semibold text-foreground">
-              New PIN
+              New PIN or Password
             </label>
-            <input
-              id="new-pin"
-              type="password"
-              inputMode="numeric"
-              value={newPin}
-              onChange={(e) => setNewPin(e.target.value)}
-              placeholder="Choose new PIN"
-              maxLength={6}
-              required
-              className="w-full px-4 py-3 text-base rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono tracking-widest text-center"
-            />
+            <div className="relative">
+              <input
+                id="new-pin"
+                type={showPassword ? 'text' : 'password'}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value)}
+                placeholder="Choose new PIN or Password (min 4 chars)"
+                maxLength={64}
+                required
+                className="w-full px-4 py-3 pr-16 text-base rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-mono tracking-wider text-center"
+              />
+            </div>
           </div>
         )}
 
@@ -251,6 +265,26 @@ export default function LoginClient() {
           </a>
         </p>
       </form>
+
+      {/* Quick Staff / Admin Shortcut for Storefront Studio & Media */}
+      <div className="p-4 rounded-2xl border border-zinc-800/80 bg-zinc-900/40 backdrop-blur flex items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+            <Palette className="h-4 w-4" aria-hidden="true" />
+          </div>
+          <div>
+            <div className="font-bold text-foreground">Storefront Studio, Media & Themes</div>
+            <div className="text-[11px] text-muted-foreground">Manage active theme, hero slides, and media folder</div>
+          </div>
+        </div>
+        <a
+          href="/store/builder"
+          className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-foreground font-semibold text-[11px] transition flex items-center gap-1.5 shrink-0 border border-zinc-700/60 shadow-xs"
+        >
+          <span>Open Builder</span>
+          <ArrowRight className="h-3 w-3" aria-hidden="true" />
+        </a>
+      </div>
     </div>
   );
 }

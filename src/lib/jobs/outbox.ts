@@ -14,7 +14,9 @@ export type JobType =
   | 'DRAFT_PO'
   | 'CHECKOUT_ABANDON'
   | 'CREATIVE_RENDER'
-  | 'CREATIVE_PDF';
+  | 'CREATIVE_PDF'
+  | 'EMAIL_SEND'
+  | 'EINVOICE_SUBMIT';
 
 export type EnqueueInput = {
   type: JobType;

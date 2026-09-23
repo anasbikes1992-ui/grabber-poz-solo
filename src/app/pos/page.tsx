@@ -50,6 +50,10 @@ const TableServicePanel = dynamic(
   () => import('@/components/restaurant/table-service-panel').then((m) => m.TableServicePanel),
   { ssr: false }
 );
+const FitmentLookup = dynamic(
+  () => import('@/components/pos/fitment-lookup').then((m) => m.FitmentLookup),
+  { ssr: false },
+);
 
 import { ThermalReceipt } from '@/components/pos/thermal-receipt';
 import { ESCPOSPrinterController } from '@/lib/hardware/printer';
@@ -73,54 +77,17 @@ import {
   nextClientSequence,
 } from '@/lib/pos/offline-queue';
 import { convertFromLkr, formatCurrency, type CurrencyCode } from '@/lib/currency/fx-rates';
+import {
+  POS_DEMO_CATALOG,
+  type LoyaltyMember,
+  type PosCartItem as CartItem,
+  type PosCatalogItem as CatalogItem,
+  type HeldSale,
+} from '@/lib/pos/pos-types';
 
-export interface LoyaltyMember {
-  id: string;
-  name: string;
-  phone: string;
-  points: number;
-  tier: 'SILVER' | 'GOLD' | 'PLATINUM';
-  totalSpent?: number;
-}
+export type { LoyaltyMember };
 
-interface CartItem {
-  id: string;
-  productId: string;
-  variantId?: string;
-  name: string;
-  variant: string;
-  unitPrice: number;
-  unitCost: number;
-  quantity: number;
-  taxRate: number;
-}
-
-type CatalogItem = {
-  id: string;
-  productId: string;
-  variantId?: string;
-  name: string;
-  variant: string;
-  unitPrice: number;
-  unitCost: number;
-  barcode: string;
-  stock: number;
-};
-
-type HeldSale = {
-  id: string;
-  orderNumber: string;
-  grandTotal: string | number;
-  itemCount: number;
-  createdAt: string;
-};
-
-const FALLBACK_CATALOG: CatalogItem[] = [
-  { id: 'prod_1', productId: 'prod_1', name: 'Linen Casual Shirt', variant: 'Size L / Blue', unitPrice: 4500.0, unitCost: 2500.0, barcode: '8901234567890', stock: 31 },
-  { id: 'prod_2', productId: 'prod_2', name: 'Oxford Button-Down', variant: 'Size M / White', unitPrice: 5200.0, unitCost: 2800.0, barcode: '8901234567891', stock: 18 },
-  { id: 'prod_3', productId: 'prod_3', name: 'Stretch Chino Trousers', variant: '32 / Khaki', unitPrice: 6500.0, unitCost: 3400.0, barcode: '8901234567892', stock: 24 },
-  { id: 'prod_4', productId: 'prod_4', name: 'Pique Cotton Polo', variant: 'Size XL / Navy', unitPrice: 3800.0, unitCost: 1900.0, barcode: '8901234567893', stock: 12 },
-];
+const FALLBACK_CATALOG: CatalogItem[] = POS_DEMO_CATALOG;
 
 export default function POSPage() {
   return (
@@ -172,6 +139,11 @@ function POSTerminal() {
   const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState<number>(0);
   const [isSearchingLoyalty, setIsSearchingLoyalty] = useState(false);
   const [loyaltyMessage, setLoyaltyMessage] = useState('');
+  const [businessProfile, setBusinessProfile] = useState<{
+    name?: string;
+    receiptHeader?: string;
+    receiptFooter?: string;
+  } | null>(null);
 
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinAction, setPinAction] = useState<{ type: 'DISCOUNT' | 'VOID' | 'CREDIT' | 'OPEN_DRAWER'; payload?: any } | null>(null);
@@ -180,6 +152,14 @@ function POSTerminal() {
   const [cashTenderInput, setCashTenderInput] = useState<number | ''>('');
   const [isVoiceSearchActive, setIsVoiceSearchActive] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const receiptHeaderLines = (businessProfile?.receiptHeader || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const receiptStoreName = receiptHeaderLines[0] || businessProfile?.name || 'Grabber Store';
+  const receiptStoreAddress = receiptHeaderLines.slice(1).join(' • ') || 'Main Counter';
+  const receiptFooterNote = businessProfile?.receiptFooter || undefined;
 
   const toggleSound = () => {
     const next = !soundEnabled;
@@ -252,6 +232,13 @@ function POSTerminal() {
   useEffect(() => {
     fetchVerticalFlags().then(setVerticalFlags).catch(() => undefined);
     setReceiptPaper(readReceiptPaperId());
+
+    fetch('/api/settings/business')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.profile) setBusinessProfile(data.profile);
+      })
+      .catch(() => undefined);
 
     fetch('/api/pos/catalog')
       .then((r) => r.json())
@@ -677,8 +664,8 @@ function POSTerminal() {
       try {
         // Optional hardware raw buffer generation for physical WebUSB/Bluetooth devices
         ESCPOSPrinterController.generateReceiptBuffer({
-          storeName: 'Grabber Store',
-          branchName: 'Main Counter',
+          storeName: receiptStoreName,
+          branchName: receiptStoreAddress,
           billNumber: data.order?.orderNumber || orderNumber,
           cashierName: 'Cashier',
           date: new Date().toLocaleString('en-LK'),
@@ -903,7 +890,7 @@ function POSTerminal() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={isVoiceSearchActive ? 'Listening... speak product name...' : 'Search product name or SKU...'}
-              className={`w-full pl-9 pr-9 py-2.5 text-sm rounded-xl bg-zinc-900/80 border text-foreground placeholder:text-zinc-500 transition-colors ${
+              className={`w-full pl-9 pr-9 py-2.5 text-sm rounded-xl bg-zinc-900/80 border text-foreground placeholder:text-zinc-400 transition-colors ${
                 isVoiceSearchActive ? 'border-rose-500 bg-rose-950/20' : 'border-zinc-800'
               }`}
             />
@@ -936,10 +923,20 @@ function POSTerminal() {
               value={barcodeInput}
               onChange={(e) => setBarcodeInput(e.target.value)}
               placeholder="Scan Barcode..."
-              className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground placeholder:text-zinc-500 glow-border-emerald"
+              className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground placeholder:text-zinc-400 glow-border-emerald"
             />
           </form>
         </div>
+
+        {verticalFlags.autoParts && (
+          <FitmentLookup
+            onPickProduct={(productId) => {
+              const hit = catalog.find((c) => c.id === productId);
+              if (hit) addToCart(hit);
+              else setSearch(productId);
+            }}
+          />
+        )}
 
         {/* Product Catalog Grid */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">
@@ -1695,10 +1692,11 @@ function POSTerminal() {
           completedOrder
             ? {
                 orderNumber: completedOrder.orderNumber,
-                storeName: 'Grabber Store',
-                storeAddress: 'Main Counter, Colombo',
-                storePhone: '+94 11 234 5678',
-                vatRegNumber: 'VAT-10029384-7000',
+                storeName: receiptStoreName,
+                storeAddress: receiptStoreAddress,
+                counterName: '01',
+                cashierName: 'Cashier',
+                orderType: posMode === 'TABLES' ? 'Dine In' : 'Take Away',
                 items: completedOrder.items.map((it: CartItem) => ({
                   name: it.name,
                   quantity: it.quantity,
@@ -1716,6 +1714,7 @@ function POSTerminal() {
                 amountPaid: completedOrder.amountPaid,
                 changeDue: completedOrder.changeDue,
                 loyaltyEarned: completedOrder.loyaltyEarned,
+                footerNote: receiptFooterNote,
               }
             : null
         }

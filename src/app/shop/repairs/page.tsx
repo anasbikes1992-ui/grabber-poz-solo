@@ -1,16 +1,27 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { StorefrontShell } from '@/components/storefront/storefront-shell';
 import { RepairServiceCard } from '@/components/repairs/repair-ui';
 import { REPAIR_SERVICES } from '@/lib/repairs/services';
+import { readConfigJson } from '@/lib/config/business-settings';
+import { readStorefrontConfig } from '@/lib/config/storefront-config';
+import { DEFAULT_VERTICAL_FLAGS } from '@/lib/config/vertical-flags';
 
 export const metadata = {
   title: 'Device Repairs · MobileRepair',
   description: 'Book phone, tablet, and laptop repairs with OEM vs Grade A estimates and courier pickup.',
 };
 
-export default function RepairsLandingPage() {
+export default async function RepairsLandingPage() {
+  const cfg = await readConfigJson();
+  const flags = { ...DEFAULT_VERTICAL_FLAGS, ...((cfg.verticalFlags as Record<string, boolean>) || {}) };
+  if (!flags.repairs) {
+    notFound();
+  }
+  const cms = await readStorefrontConfig();
+
   return (
-    <StorefrontShell>
+    <StorefrontShell cms={cms} verticalFlags={flags}>
       <section className="relative overflow-hidden border-b border-[var(--sf-border)]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(161,98,7,0.12),transparent_55%)]" />
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20">

@@ -9,8 +9,15 @@ export const REQUIRED_COA = [
   { code: '1200', name: 'Merchandise Inventory', type: 'ASSET' as const },
   { code: '2000', name: 'Accounts Payable (Suppliers)', type: 'LIABILITY' as const },
   { code: '2100', name: 'VAT Payable', type: 'LIABILITY' as const },
+  { code: '2150', name: 'Net Wages Payable', type: 'LIABILITY' as const },
+  { code: '2160', name: 'PAYE / APIT Payable', type: 'LIABILITY' as const },
+  { code: '2200', name: 'EPF Payable', type: 'LIABILITY' as const },
+  { code: '2210', name: 'ETF Payable', type: 'LIABILITY' as const },
+  { code: '2320', name: 'Customer Deposits (Rental)', type: 'LIABILITY' as const },
   { code: '4000', name: 'Sales Revenue', type: 'REVENUE' as const },
   { code: '5000', name: 'Cost of Goods Sold (COGS)', type: 'EXPENSE' as const },
+  { code: '5100', name: 'Salaries & Wages Expense', type: 'EXPENSE' as const },
+  { code: '5110', name: 'Employer Statutory Contributions', type: 'EXPENSE' as const },
 ];
 
 export type CoaDb = {

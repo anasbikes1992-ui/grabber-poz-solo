@@ -11,14 +11,15 @@ export type PublishPreset = {
   copyText?: string;
 };
 
+/** Build copy/open presets for Social Hub & Creative publish flows. */
 export function buildPublishPresets(input: {
   channels: SocialChannelsConfig;
   campaignTitle: string;
   mediaUrl?: string;
   ctaText?: string;
 }): PublishPreset[] {
-  const shopUrl = getStoreUrl();
-  const cta = input.ctaText || `Shop now: ${shopUrl}/products`;
+  const shopUrl = getStoreUrl().replace(/\/$/, '');
+  const cta = input.ctaText || `Shop now: ${shopUrl}/shop`;
   const caption = `${input.campaignTitle}\n\n${cta}`.trim();
 
   const presets: PublishPreset[] = [];

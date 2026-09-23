@@ -6,7 +6,7 @@ import { isRouteAllowedForRole } from '@/lib/auth/rbac-rules';
 import { checkPathRateLimit, clientIpFromHeaders } from '@/lib/security/rate-limit';
 
 /** Public marketing / storefront / auth / webhooks */
-const PUBLIC_EXACT = new Set(['/', '/store', '/shop', '/shop/login', '/adminpoz', '/login', '/unauthorized']);
+const PUBLIC_EXACT = new Set(['/', '/store', '/shop', '/shop/login', '/admin', '/adminpoz', '/login', '/unauthorized']);
 const PUBLIC_PREFIXES = [
   '/shop/',
   '/categories/',
@@ -42,6 +42,8 @@ const PUBLIC_PREFIXES = [
   '/locations/',
   '/api/storefront/reviews',
   '/api/storefront/wishlist',
+  '/api/storage/media',
+  '/api/storage/upload',
 ];
 
 /** Crawlable storefront product detail pages (not staff /products admin) */

@@ -85,6 +85,19 @@ export function decryptBackupData(pkg: EncryptedBackupPackage, secretKey: string
  * DR-005: Validate accounting journals balance and stock invariants on restored dataset
  */
 export function verifyRestoredDatabaseIntegrity(data: any): BackupIntegrityReport {
+  if (!data || typeof data !== 'object') {
+    return {
+      valid: false,
+      checks: {
+        journalsBalance: false,
+        stockIntegrity: false,
+        ordersConsistent: false,
+        noNegativeBalances: false,
+      },
+      errors: ['Invalid restored database payload: expected an object'],
+    };
+  }
+
   const errors: string[] = [];
   let journalsBalance = true;
   let stockIntegrity = true;
@@ -118,11 +131,50 @@ export function verifyRestoredDatabaseIntegrity(data: any): BackupIntegrityRepor
     }
   }
 
-  // 3. Order lines check
+  // 2b. Stock ledger integrity — movement deltas must reconcile to the current onHand balance.
+  if (Array.isArray(data.stockMovements) && Array.isArray(data.stockBalances)) {
+    const keyOf = (locationId: string, productId: string, variantId?: string | null) =>
+      `${locationId}:${productId}:${variantId || ''}`;
+
+    const movementTotals = new Map<string, number>();
+    for (const m of data.stockMovements) {
+      const key = keyOf(m.locationId, m.productId, m.variantId);
+      movementTotals.set(key, (movementTotals.get(key) || 0) + Number(m.delta || 0));
+    }
+
+    for (const b of data.stockBalances) {
+      const key = keyOf(b.locationId, b.productId, b.variantId);
+      const expected = movementTotals.get(key) ?? 0;
+      if (Math.abs(expected - Number(b.onHand)) > 0.001) {
+        stockIntegrity = false;
+        errors.push(
+          `Stock ledger mismatch for product ${b.productId} at location ${b.locationId}: movements sum ${expected} != onHand ${b.onHand}`,
+        );
+      }
+    }
+  }
+
+  // 3. Order lines check — every non-draft/cancelled order must have line items,
+  // and every line item must reference an order that exists in the snapshot.
   if (Array.isArray(data.orders) && Array.isArray(data.orderItems)) {
+    const orderIds = new Set(data.orders.map((o: any) => o.id));
     const orderItemCountByOrder: Record<string, number> = {};
+
     for (const item of data.orderItems) {
+      if (!orderIds.has(item.orderId)) {
+        ordersConsistent = false;
+        errors.push(`Order item ${item.id} references missing order ${item.orderId}`);
+        continue;
+      }
       orderItemCountByOrder[item.orderId] = (orderItemCountByOrder[item.orderId] || 0) + 1;
+    }
+
+    for (const order of data.orders) {
+      const isEmptyByDesign = order.orderStatus === 'DRAFT' || order.orderStatus === 'CANCELLED';
+      if (!isEmptyByDesign && !orderItemCountByOrder[order.id]) {
+        ordersConsistent = false;
+        errors.push(`Order ${order.orderNumber || order.id} has no line items`);
+      }
     }
   }
 

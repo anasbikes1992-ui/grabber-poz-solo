@@ -19,7 +19,7 @@ Grabber POZ Solo is a **strong multi-vertical commerce OS**: auth and mutate gat
 | Vertical depth (café/salon) | B+ | Waves A–C shipped; re-seed floor for UUID QR tokens |
 | Docs / release hygiene | B | Incident + PRODUCTION_READY; archive stale plans |
 | Agent harness | B− | Propose→approve is right; lack `status`/`next_actions` |
-| Public a11y | C+ → improving | Dine-in C3 fixed; checkout labels + PromotionPopup still open |
+| Public a11y | B → improving (M8) | Dine-in C3 fixed; checkout labels + PromotionPopup fixed (M8, 2026-09-17); S3/S5/minor items remain |
 | Guest order security | B (was F) | Catalog-priced POST + UUID tokens + rate limit |
 | Deploy secrets | C → fixed pattern | Never bake ARG secrets; rotate leaked keys |
 
@@ -44,7 +44,7 @@ Grabber POZ Solo is a **strong multi-vertical commerce OS**: auth and mutate gat
 |----------|-------|-------------------|--------|
 | P0 | Coolify/runtime secrets | Ops, not graph | Rotate leaked keys; runtime-only env ([`DEPLOY_INCIDENT_COOLIFY_2026-09-11.md`](./DEPLOY_INCIDENT_COOLIFY_2026-09-11.md)) |
 | P0 | Prod smoke QR→KOT / menu | Restaurant KDS community | Redeploy; **re-seed floor** (UUID tokens); hit `/shop/menu` + guest POST |
-| P0 | Storefront a11y C1–C2 | A11Y_AUDIT | Wire `PromotionPopup` to `Modal`/`useDrawerA11y`; checkout `htmlFor` labels |
+| P0 | Storefront a11y C1–C2 | A11Y_AUDIT | **[DONE — M8]** `PromotionPopup` wired to `useDrawerA11y`; checkout `htmlFor` labels, `role="alert"`, and contrast fixed — see [`MILESTONE_M8_A11Y_PWA_HARDENING.md`](./MILESTONE_M8_A11Y_PWA_HARDENING.md) |
 | P1 | Salon charge atomicity | CODE_REVIEW | Wrap complete+charge; settle_kot pre-validate |
 | P1 | Low cohesion API blobs | Cron/Automation 0.05, Storefront 0.06 | Split route files by domain; shared `actor()` helpers |
 | P1 | Agent observation shape | Isolated `AgentResult` nodes | Implement [`AGENT_HARNESS.md`](./AGENT_HARNESS.md) `status`/`next_actions` |

@@ -3,34 +3,75 @@
  * Authorized, Grounded Tool Calls with Multi-Tier Action Confirmation
  */
 
+import { and, asc, eq } from 'drizzle-orm';
 import { JarvisToolDefinition, JarvisUserContext, JarvisToolExecutionResult, JarvisActionRisk } from './jarvis-types';
 import { JARVIS_DB_TOOLS } from './jarvis-db-tools';
 import { executeJarvisDraftApproval } from '@/lib/jarvis/draft-execute';
 import { createApproval, findApprovalByToken } from '@/lib/approvals/approval-store';
-import { db, auditLogs, hasDatabaseUrl } from '@/db';
+import { db, auditLogs, hasDatabaseUrl, stockBalances, polimPothaAccounts, polimPothaEntries, transfers, transferLines } from '@/db';
+import { isDemoUserId } from '@/lib/auth/session';
+import { recordTransfer } from '@/lib/inventory/stock-service';
 import { defaultCommerceService, CommerceService } from '../commerce/commerce-service';
-import { defaultInventoryEngine, InventoryEngine } from '../commerce/inventory-engine';
-import { defaultCreditEngine, CreditEngine } from '../commerce/credit-engine';
 import { defaultAccountingEngine, AccountingEngine } from '../commerce/accounting-engine';
+
+/** FIFO invoice aging, mirroring CreditEngine.getAgingReport but sourced from real Polim Potha ledger rows. */
+function computePolimAgingFromEntries(
+  entries: Array<{ type: string; amount: string | number; createdAt: Date }>,
+  asOfDate: Date = new Date(),
+) {
+  const unpaidInvoices: Array<{ amount: number; date: Date }> = [];
+  let repaymentPool = 0;
+
+  for (const entry of entries) {
+    const amount = Number(entry.amount);
+    if (entry.type === 'INVOICE') {
+      unpaidInvoices.push({ amount, date: entry.createdAt });
+    } else if (entry.type === 'REPAYMENT' || entry.type === 'WRITE_OFF') {
+      repaymentPool += amount;
+    }
+  }
+
+  const nowMs = asOfDate.getTime();
+  let days0to30 = 0;
+  let days31to60 = 0;
+  let days61to90 = 0;
+  let days90Plus = 0;
+
+  for (const inv of unpaidInvoices) {
+    if (repaymentPool >= inv.amount) {
+      repaymentPool -= inv.amount;
+      continue;
+    }
+    const remainingAmount = inv.amount - repaymentPool;
+    repaymentPool = 0;
+    const ageInDays = Math.floor((nowMs - inv.date.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (ageInDays <= 30) days0to30 += remainingAmount;
+    else if (ageInDays <= 60) days31to60 += remainingAmount;
+    else if (ageInDays <= 90) days61to90 += remainingAmount;
+    else days90Plus += remainingAmount;
+  }
+
+  return {
+    days0to30: Math.round(days0to30 * 100) / 100,
+    days31to60: Math.round(days31to60 * 100) / 100,
+    days61to90: Math.round(days61to90 * 100) / 100,
+    days90Plus: Math.round(days90Plus * 100) / 100,
+  };
+}
 
 export class JarvisToolRegistry {
   private tools: Map<string, JarvisToolDefinition> = new Map();
   private pendingConfirmations: Map<string, { tool: JarvisToolDefinition; args: any; context: JarvisUserContext; expiresAt: number }> = new Map();
 
   private commerceService: CommerceService;
-  private inventoryEngine: InventoryEngine;
-  private creditEngine: CreditEngine;
   private accountingEngine: AccountingEngine;
 
   constructor(
     commerceService: CommerceService = defaultCommerceService,
-    inventoryEngine: InventoryEngine = defaultInventoryEngine,
-    creditEngine: CreditEngine = defaultCreditEngine,
     accountingEngine: AccountingEngine = defaultAccountingEngine
   ) {
     this.commerceService = commerceService;
-    this.inventoryEngine = inventoryEngine;
-    this.creditEngine = creditEngine;
     this.accountingEngine = accountingEngine;
     this.registerCoreTools();
     for (const tool of JARVIS_DB_TOOLS) {
@@ -43,7 +84,7 @@ export class JarvisToolRegistry {
   }
 
   private registerCoreTools() {
-    // 1. READ: Get Stock Summary
+    // 1. READ: Get Stock Summary — DB-grounded (was reading a disconnected in-memory engine)
     this.registerTool({
       name: 'get_stock_summary',
       description: 'Retrieve real-time on-hand, reserved, and available inventory per branch or warehouse.',
@@ -53,20 +94,69 @@ export class JarvisToolRegistry {
         if (['MANAGER', 'CASHIER'].includes(context.role) && !context.assignedBranchIds.includes(args.locationId)) {
           throw new Error('Access denied to stock outside assigned branch.');
         }
-        const state = this.inventoryEngine.getBalance('BRANCH', args.locationId, args.productId || 'all', args.variantId);
-        return { locationId: args.locationId, stock: state };
+
+        if (args.productId) {
+          const conditions = [eq(stockBalances.locationId, args.locationId), eq(stockBalances.productId, args.productId)];
+          if (args.variantId) conditions.push(eq(stockBalances.variantId, args.variantId));
+          const rows = await db.select().from(stockBalances).where(and(...conditions));
+          const onHand = rows.reduce((s, r) => s + r.onHand, 0);
+          const reserved = rows.reduce((s, r) => s + r.reserved, 0);
+          return {
+            locationId: args.locationId,
+            productId: args.productId,
+            variantId: args.variantId || null,
+            onHand,
+            reserved,
+            available: Math.max(0, onHand - reserved),
+          };
+        }
+
+        const rows = await db.select().from(stockBalances).where(eq(stockBalances.locationId, args.locationId));
+        const totalOnHand = rows.reduce((s, r) => s + r.onHand, 0);
+        const totalReserved = rows.reduce((s, r) => s + r.reserved, 0);
+        return {
+          locationId: args.locationId,
+          skuCount: rows.length,
+          totalOnHand,
+          totalReserved,
+          totalAvailable: Math.max(0, totalOnHand - totalReserved),
+        };
       },
     });
 
-    // 2. READ: Get Customer Credit & Aging (Polim Potha)
+    // 2. READ: Get Customer Credit & Aging (Polim Potha) — DB-grounded
     this.registerTool({
       name: 'get_customer_credit_report',
       description: 'Look up Polim Potha customer credit limits, outstanding balances, and aging buckets.',
       risk: 'READ',
       execute: async (args: { customerId: string }) => {
-        const account = this.creditEngine.getAccount(args.customerId);
-        const aging = this.creditEngine.getAgingReport(args.customerId);
-        return { account, aging };
+        const [account] = await db
+          .select()
+          .from(polimPothaAccounts)
+          .where(eq(polimPothaAccounts.customerId, args.customerId))
+          .limit(1);
+        if (!account) {
+          return { account: null, aging: null };
+        }
+
+        const entries = await db
+          .select()
+          .from(polimPothaEntries)
+          .where(eq(polimPothaEntries.customerId, args.customerId))
+          .orderBy(asc(polimPothaEntries.createdAt));
+
+        const aging = computePolimAgingFromEntries(entries);
+
+        return {
+          account: {
+            customerId: account.customerId,
+            creditLimit: Number(account.creditLimit),
+            balance: Number(account.currentBalance),
+            availableCredit: Math.max(0, Number(account.creditLimit) - Number(account.currentBalance)),
+            status: account.status,
+          },
+          aging,
+        };
       },
     });
 
@@ -150,24 +240,82 @@ export class JarvisToolRegistry {
       },
     });
 
-    // 4. HIGH_RISK_WRITE: Propose Stock Transfer between Locations
+    // 4. HIGH_RISK_WRITE: Propose Stock Transfer between Locations — DB-grounded
     this.registerTool({
       name: 'propose_stock_transfer',
       description: 'Execute an inter-branch or warehouse stock transfer. Requires explicit user confirmation.',
       risk: 'HIGH_RISK_WRITE',
       requiredRole: ['OWNER', 'ADMIN', 'MANAGER'],
-      execute: async (args: { fromLocationId: string; toLocationId: string; items: Array<{ productId: string; quantity: number }> }, context) => {
+      execute: async (
+        args: {
+          fromLocationId: string;
+          toLocationId: string;
+          fromLocationType?: 'WAREHOUSE' | 'BRANCH';
+          toLocationType?: 'WAREHOUSE' | 'BRANCH';
+          items: Array<{ productId: string; quantity: number; variantId?: string }>;
+        },
+        context,
+      ) => {
+        const fromType = args.fromLocationType || 'WAREHOUSE';
+        const toType = args.toLocationType || 'BRANCH';
         const transferNumber = `TRF-${Date.now()}`;
-        const res = this.commerceService.transferStock({
-          transferNumber,
-          fromLocationType: 'WAREHOUSE',
-          fromLocationId: args.fromLocationId,
-          toLocationType: 'BRANCH',
-          toLocationId: args.toLocationId,
-          items: args.items,
-          actorId: context.userId,
+        const actorId = context.userId && !isDemoUserId(context.userId) ? context.userId : null;
+
+        const result = await db.transaction(async (tx) => {
+          const [tr] = await tx
+            .insert(transfers)
+            .values({
+              transferNumber,
+              fromLocationType: fromType,
+              fromLocationId: args.fromLocationId,
+              toLocationType: toType,
+              toLocationId: args.toLocationId,
+              status: 'RECEIVED',
+              requestedBy: actorId,
+              receivedBy: actorId,
+            })
+            .returning();
+
+          for (const item of args.items) {
+            const qty = Number(item.quantity);
+            if (!qty || qty < 1) throw new Error('Invalid transfer quantity');
+
+            await recordTransfer(
+              tx,
+              { locationType: fromType, locationId: args.fromLocationId },
+              { locationType: toType, locationId: args.toLocationId },
+              { productId: item.productId, variantId: item.variantId || null, quantity: qty },
+              {
+                referenceType: 'TRANSFER',
+                referenceId: tr.id,
+                actorId,
+              },
+            );
+
+            await tx.insert(transferLines).values({
+              transferId: tr.id,
+              productId: item.productId,
+              variantId: item.variantId || null,
+              quantity: qty,
+              receivedQty: qty,
+              varianceQty: 0,
+            });
+          }
+
+          if (actorId) {
+            await tx.insert(auditLogs).values({
+              actorId,
+              action: 'JARVIS_STOCK_TRANSFER',
+              entity: 'TRANSFER',
+              entityId: tr.id,
+              afterState: { transferNumber, from: args.fromLocationId, to: args.toLocationId, items: args.items },
+            });
+          }
+
+          return tr;
         });
-        return { status: 'TRANSFER_COMPLETED', result: res };
+
+        return { status: 'TRANSFER_COMPLETED', transferId: result.id, transferNumber: result.transferNumber };
       },
     });
 

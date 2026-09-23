@@ -43,6 +43,26 @@ export async function POST(req: Request) {
   try {
     const session = await resolveActor();
     const body = await req.json();
+
+    if (body.action === 'cash_movement') {
+      const { shiftId, type, amount, reason } = body;
+      if (!shiftId || !type || amount == null) {
+        return NextResponse.json(
+          { success: false, error: 'shiftId, type (PAID_IN/PAID_OUT), and amount required' },
+          { status: 400 },
+        );
+      }
+      const { recordShiftCashMovement } = await import('@/lib/shifts/reconciliation');
+      const res = await recordShiftCashMovement({
+        shiftId,
+        type,
+        amount: Number(amount),
+        reason: reason || 'Shift cash adjustment',
+        actorId: session.userId,
+      });
+      return NextResponse.json({ success: true, ...res });
+    }
+
     const cashierId = await resolveCashierId(session.userId, body.cashierId);
     const result = await openShift({
       registerId: body.registerId,

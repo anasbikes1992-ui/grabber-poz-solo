@@ -37,7 +37,7 @@ export interface MetricSample {
 
 export class AnomalyDetector {
   /**
-   * Evaluates sales velocity drops and sudden spikes.
+   * Evaluates sales velocity drops and sudden spikes with adaptive statistical confidence.
    */
   public static detectSalesAnomalies(samples: {
     todayRevenue: number;
@@ -48,9 +48,13 @@ export class AnomalyDetector {
   }): BusinessAnomaly[] {
     const anomalies: BusinessAnomaly[] = [];
 
-    // 1. Critical revenue drop (>40% below 7d average with significant volume)
-    if (samples.avgDailyRevenue7d > 10000 && samples.todayRevenue < samples.avgDailyRevenue7d * 0.5) {
+    // 1. Critical revenue drop (>40% below 7d average with significant volume & sample depth)
+    const minBaselineRevenue = 10000;
+    const hasSufficientVolume = samples.avgDailyOrders7d >= 2 || samples.avgDailyRevenue7d >= minBaselineRevenue;
+
+    if (hasSufficientVolume && samples.avgDailyRevenue7d >= minBaselineRevenue && samples.todayRevenue < samples.avgDailyRevenue7d * 0.5) {
       const dropPct = Math.round(((samples.avgDailyRevenue7d - samples.todayRevenue) / samples.avgDailyRevenue7d) * 100);
+      const confidence = Math.min(98, Math.max(75, Math.round(75 + (dropPct * 0.2) + Math.min(10, samples.avgDailyOrders7d))));
       anomalies.push({
         id: `anom_sales_drop_${Date.now()}`,
         category: 'SALES',
@@ -64,8 +68,8 @@ export class AnomalyDetector {
           deviationPercent: -dropPct,
           samplePeriod: 'Last 7 Days',
         },
-        confidencePercent: 92,
-        estimatedImpactLkr: samples.avgDailyRevenue7d - samples.todayRevenue,
+        confidencePercent: confidence,
+        estimatedImpactLkr: Math.max(0, samples.avgDailyRevenue7d - samples.todayRevenue),
         recommendedAction: {
           actionType: 'PROMOTION_SUGGESTION',
           label: 'Deploy Flash Clearance / Hero Promo',
@@ -75,15 +79,15 @@ export class AnomalyDetector {
       });
     }
 
-    // 2. High cancellation rate anomaly
-    if (samples.todayOrders > 5 && samples.cancelledOrdersCount / samples.todayOrders > 0.25) {
+    // 2. High cancellation rate anomaly (requires at least 5 orders today)
+    if (samples.todayOrders >= 5 && samples.cancelledOrdersCount / samples.todayOrders > 0.25) {
       const cancelRate = Math.round((samples.cancelledOrdersCount / samples.todayOrders) * 100);
       anomalies.push({
         id: `anom_order_cancel_${Date.now()}`,
         category: 'SALES',
-        severity: 'HIGH',
+        severity: cancelRate >= 50 ? 'CRITICAL' : 'HIGH',
         title: `Elevated Order Cancellation Rate (${cancelRate}%)`,
-        description: `${samples.cancelledOrdersCount} orders have been cancelled today. Investigate delivery delays or payment gateway failures.`,
+        description: `${samples.cancelledOrdersCount} of ${samples.todayOrders} orders have been cancelled today. Investigate delivery delays or payment gateway failures.`,
         evidence: {
           metric: 'Cancellation Rate',
           currentValue: `${cancelRate}%`,
@@ -91,7 +95,7 @@ export class AnomalyDetector {
           deviationPercent: cancelRate,
           samplePeriod: 'Today',
         },
-        confidencePercent: 88,
+        confidencePercent: Math.min(95, 80 + samples.cancelledOrdersCount * 2),
         recommendedAction: {
           actionType: 'INSPECT_ORDERS',
           label: 'View Cancelled Orders & Logs',

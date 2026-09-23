@@ -26,6 +26,10 @@ export async function POST(req: Request) {
     const supabaseUrl = getSupabaseUrl();
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    const sizeFormatted = file.size > 1024 * 1024
+      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+      : `${(file.size / 1024).toFixed(1)} KB`;
+
     if (supabaseUrl && serviceKey) {
       const bucket = String(form.get('bucket') || 'products');
       const ext = file.name.split('.').pop() || 'bin';
@@ -49,7 +53,15 @@ export async function POST(req: Request) {
         );
       }
       const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
-      return NextResponse.json({ success: true, url: publicUrl, provider: 'supabase' });
+      return NextResponse.json({
+        success: true,
+        url: publicUrl,
+        provider: 'supabase',
+        name: file.name,
+        sizeBytes: file.size,
+        sizeFormatted,
+        relativePath: publicUrl,
+      });
     }
 
     // Local fallback — real file on disk
@@ -60,12 +72,17 @@ export async function POST(req: Request) {
     const dest = path.join(uploadsDir, filename);
     await writeFile(dest, Buffer.from(await file.arrayBuffer()));
     const base = getAppUrl();
-    const url = `${base}/uploads/${filename}`;
+    const relativePath = `/uploads/${filename}`;
+    const url = `${base}${relativePath}`;
     return NextResponse.json({
       success: true,
       url,
+      relativePath,
+      name: file.name,
+      sizeBytes: file.size,
+      sizeFormatted,
       provider: 'local',
-      warning: 'Supabase not configured — stored under public/uploads',
+      warning: 'Stored under public/uploads',
     });
   } catch (err: unknown) {
     const e = err as { message?: string };

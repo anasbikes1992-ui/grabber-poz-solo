@@ -105,6 +105,67 @@ describe('Disaster Recovery & Backup/Restore Certification (DR-001 to DR-007)', 
     expect(failedStockReport.checks.noNegativeBalances).toBe(false);
   });
 
+  it('DR-005b: orders-consistent check now actually inspects orderItems (previously always passed)', () => {
+    // Order with no line items must fail — the check used to build the count map and discard it.
+    const orphanedOrderDataset = {
+      ...mockDatabaseDataset.data,
+      orders: [{ id: 'ord-1', orderNumber: 'ORD-1001', orderStatus: 'COMPLETED' }],
+      orderItems: [] as Array<{ id: string; orderId: string }>,
+    };
+    const emptyOrderReport = verifyRestoredDatabaseIntegrity(orphanedOrderDataset);
+    expect(emptyOrderReport.valid).toBe(false);
+    expect(emptyOrderReport.checks.ordersConsistent).toBe(false);
+    expect(emptyOrderReport.errors.some((e) => e.includes('has no line items'))).toBe(true);
+
+    // DRAFT/CANCELLED orders are legitimately empty and must not fail the check.
+    const draftOrderDataset = {
+      ...mockDatabaseDataset.data,
+      orders: [{ id: 'ord-1', orderNumber: 'ORD-1001', orderStatus: 'DRAFT' }],
+      orderItems: [] as Array<{ id: string; orderId: string }>,
+    };
+    expect(verifyRestoredDatabaseIntegrity(draftOrderDataset).checks.ordersConsistent).toBe(true);
+
+    // An order item referencing a non-existent order must fail.
+    const orphanedItemDataset = {
+      ...mockDatabaseDataset.data,
+      orders: [{ id: 'ord-1', orderNumber: 'ORD-1001', orderStatus: 'COMPLETED' }],
+      orderItems: [{ id: 'oi-1', orderId: 'ord-missing' }],
+    };
+    const orphanedItemReport = verifyRestoredDatabaseIntegrity(orphanedItemDataset);
+    expect(orphanedItemReport.valid).toBe(false);
+    expect(orphanedItemReport.errors.some((e) => e.includes('references missing order'))).toBe(true);
+
+    // A complete order with matching items must pass.
+    const validOrderDataset = {
+      ...mockDatabaseDataset.data,
+      orders: [{ id: 'ord-1', orderNumber: 'ORD-1001', orderStatus: 'COMPLETED' }],
+      orderItems: [{ id: 'oi-1', orderId: 'ord-1' }],
+    };
+    expect(verifyRestoredDatabaseIntegrity(validOrderDataset).checks.ordersConsistent).toBe(true);
+  });
+
+  it('DR-005c: stock ledger integrity now reconciles movement deltas against onHand balances (previously never falsified)', () => {
+    const reconciledDataset = {
+      ...mockDatabaseDataset.data,
+      stockMovements: [
+        { locationId: 'loc1', productId: 'p1', variantId: null, delta: 60 },
+        { locationId: 'loc1', productId: 'p1', variantId: null, delta: -10 },
+      ],
+      stockBalances: [{ productId: 'p1', locationId: 'loc1', variantId: null, onHand: 50 }],
+    };
+    expect(verifyRestoredDatabaseIntegrity(reconciledDataset).checks.stockIntegrity).toBe(true);
+
+    const mismatchedDataset = {
+      ...mockDatabaseDataset.data,
+      stockMovements: [{ locationId: 'loc1', productId: 'p1', variantId: null, delta: 60 }],
+      stockBalances: [{ productId: 'p1', locationId: 'loc1', variantId: null, onHand: 50 }],
+    };
+    const mismatchedReport = verifyRestoredDatabaseIntegrity(mismatchedDataset);
+    expect(mismatchedReport.valid).toBe(false);
+    expect(mismatchedReport.checks.stockIntegrity).toBe(false);
+    expect(mismatchedReport.errors.some((e) => e.includes('Stock ledger mismatch'))).toBe(true);
+  });
+
   it('DR-006 & DR-007: Validates SLA commitment: RPO <= 1 hour, RTO <= 15 minutes', () => {
     expect(DISASTER_RECOVERY_SLA.RPO_HOURS).toBeLessThanOrEqual(1);
     expect(DISASTER_RECOVERY_SLA.RTO_MINUTES).toBeLessThanOrEqual(15);

@@ -51,6 +51,23 @@ export default function AccountsPage() {
             <BookOpen className="w-6 h-6 text-sky-400" /> Chart of Accounts
           </h1>
           <p className="text-xs text-zinc-400 mt-1">Trial balance from posted journal lines — /api/reports?type=trial-balance</p>
+          <div className="flex flex-wrap gap-2 mt-3 text-[11px] font-bold">
+            <Link href="/accounts/ap" className="px-2.5 py-1.5 rounded-lg border border-zinc-700 text-emerald-300 hover:bg-zinc-900">
+              Accounts Payable
+            </Link>
+            <Link href="/accounts/bank" className="px-2.5 py-1.5 rounded-lg border border-zinc-700 text-sky-300 hover:bg-zinc-900">
+              Bank Reconciliation
+            </Link>
+            <Link href="/hr" className="px-2.5 py-1.5 rounded-lg border border-zinc-700 text-violet-300 hover:bg-zinc-900">
+              HR & Payroll
+            </Link>
+            <Link href="/compliance/einvoice" className="px-2.5 py-1.5 rounded-lg border border-zinc-700 text-amber-300 hover:bg-zinc-900">
+              Tax e-invoice
+            </Link>
+            <Link href="/suppliers" className="px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-900">
+              Suppliers
+            </Link>
+          </div>
         </div>
         <div className="flex gap-2">
           <button

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { desc, eq, or, ilike } from 'drizzle-orm';
-import { db, serialNumbers, products } from '@/db';
+import { db, serialNumbers, products, warrantyClaims } from '@/db';
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 
 export async function GET(req: Request) {
@@ -60,6 +60,38 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    if (body.action === 'create_claim') {
+      const serial = String(body.serial || '').trim().toUpperCase();
+      const issueDescription = String(body.issueDescription || '').trim();
+      if (!serial || !issueDescription) return NextResponse.json({ success: false, error: 'serial and issueDescription required' }, { status: 400 });
+      const [serialRow] = await db.select().from(serialNumbers).where(eq(serialNumbers.serial, serial)).limit(1);
+      if (!serialRow) return NextResponse.json({ success: false, error: 'Serial / IMEI not found' }, { status: 404 });
+      if (!serialRow.warrantyExpires || serialRow.warrantyExpires.getTime() < Date.now()) return NextResponse.json({ success: false, error: 'Warranty has expired' }, { status: 409 });
+      const [claim] = await db.insert(warrantyClaims).values({
+        claimNumber: `WCL-${Date.now().toString().slice(-8)}`,
+        serialId: serialRow.id,
+        customerName: serialRow.customerName || String(body.customerName || 'Customer'),
+        customerPhone: serialRow.customerPhone || String(body.customerPhone || '').trim() || null,
+        issueDescription,
+        createdBy: session && !isDemoUserId(session.userId) ? session.userId : null,
+      }).returning();
+      return NextResponse.json({ success: true, claim }, { status: 201 });
+    }
+    if (body.action === 'update_claim') {
+      const claimId = String(body.claimId || '').trim();
+      const status = String(body.status || '').trim().toUpperCase();
+      const allowed = ['SUBMITTED', 'APPROVED', 'REJECTED', 'IN_REPAIR', 'RESOLVED', 'CLOSED'];
+      if (!claimId || !allowed.includes(status)) return NextResponse.json({ success: false, error: 'claimId and valid status required' }, { status: 400 });
+      const [claim] = await db.update(warrantyClaims).set({
+        status,
+        resolution: body.resolution ? String(body.resolution).trim() : undefined,
+        repairJobId: body.repairJobId ? String(body.repairJobId) : undefined,
+        resolvedBy: ['RESOLVED', 'CLOSED'].includes(status) && session && !isDemoUserId(session.userId) ? session.userId : undefined,
+        updatedAt: new Date(),
+      }).where(eq(warrantyClaims.id, claimId)).returning();
+      if (!claim) return NextResponse.json({ success: false, error: 'Claim not found' }, { status: 404 });
+      return NextResponse.json({ success: true, claim });
+    }
     const serial = String(body.serial || '').trim();
     const productName = String(body.productName || '').trim();
     const customerName = String(body.customerName || '').trim();

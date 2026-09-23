@@ -9,7 +9,7 @@ No LLM required for v1 — agents **READ** live data and **propose** actions; st
 
 ---
 
-## Agent catalog (12)
+## Agent catalog (16)
 
 | ID | Label | Category | Vertical flag | Data source |
 |----|-------|----------|---------------|-------------|
@@ -25,6 +25,10 @@ No LLM required for v1 — agents **READ** live data and **propose** actions; st
 | `POLIM` | Polim Potha Agent | vertical | — | `polim_potha_accounts` |
 | `WHATSAPP` | WhatsApp Agent | communication | `whatsapp` | `automationLogs` |
 | `CREATIVE` | Creative Agent | communication | `creative` | `creative_projects` |
+| `GROCERY` | Grocery / FEFO Agent | vertical | `grocery` | `stock_lots` |
+| `PHARMACY` | Pharmacy Agent | vertical | `pharmacy` | `prescriptions` |
+| `RENTAL` | Rental Agent | vertical | `rental` | `rental_contracts`, `rental_assets` |
+| `AUTOPARTS` | Auto Parts Agent | vertical | `autoParts` | `vehicle_compatibility` |
 
 `POLIM` is always enabled (core credit ledger). Other vertical agents require the matching flag in `business_config.verticalFlags` (Settings / `/api/config/flags`).
 
@@ -38,13 +42,13 @@ curl https://grabber-poz-solo.vercel.app/api/agents/run
 
 # Run one agent (staff session in production)
 curl -X POST https://grabber-poz-solo.vercel.app/api/agents/run `
-  -H "Content-Type: application/json" `
-  -d '{"agent":"REPAIR","prompt":"Daily briefing"}'
+ -H "Content-Type: application/json" `
+ -d '{"agent":"REPAIR","prompt":"Daily briefing"}'
 
 # Run all enabled agents
 curl -X POST https://grabber-poz-solo.vercel.app/api/agents/run `
-  -H "Content-Type: application/json" `
-  -d '{"all":true}'
+ -H "Content-Type: application/json" `
+ -d '{"all":true}'
 
 # Combined daily brief (GET, staff session)
 curl https://grabber-poz-solo.vercel.app/api/agents/brief
@@ -58,11 +62,11 @@ Logs append to `business_config.agentLogs` (last 200 entries).
 
 ```text
 Agent READ (handlers.ts)
-    → recommendations[] + metrics
-    → agentLogs
-    → Approval Center PROPOSE (actionable recommendations → createApproval)
-    → EXECUTE at /approvals (AGENT_* token → approval-execute.ts → audit_logs)
-    → Jarvis tools still use confirmationToken → jarvis-tools confirm
+ → recommendations[] + metrics
+ → agentLogs
+ → Approval Center PROPOSE (actionable recommendations → createApproval)
+ → EXECUTE at /approvals (AGENT_* token → approval-execute.ts → audit_logs)
+ → Jarvis tools still use confirmationToken → jarvis-tools confirm
 ```
 
 Actionable patterns (PO lines, repair tickets, EMI collection, KOT serve, creative promos) auto-create **DRAFT** approvals when agents run with a staff session.
@@ -75,6 +79,7 @@ Actionable patterns (PO lines, repair tickets, EMI collection, KOT serve, creati
 npm test -- tests/agents-vertical.test.ts
 npm test -- tests/agents-approval-bridge.test.ts
 npm test -- tests/agents-approval-execute.test.ts
+npm test -- tests/wave-e-erp-verticals.test.ts
 npm run release:gate -- --env-file .env.prod.txt --production
 node scripts/release-gate.mjs r6 --env-file .env.prod.txt --production
 ```
@@ -85,5 +90,6 @@ node scripts/release-gate.mjs r6 --env-file .env.prod.txt --production
 
 - [`AGENT_HARNESS.md`](./AGENT_HARNESS.md) — observation/recovery contracts, action-space rules
 - [`RELEASE_GATE.md`](./RELEASE_GATE.md) — R6 exit criteria
+- [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md) — Wave E verticals + ERP foundation
 - [`REPAIRS_STOREFRONT_BLUEPRINT.md`](./REPAIRS_STOREFRONT_BLUEPRINT.md) — repairs + agents plan
 - [`ROADMAP.md`](./ROADMAP.md) — release train
