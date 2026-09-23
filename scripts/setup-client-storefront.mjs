@@ -180,7 +180,8 @@ try {
     `;
   }
 
-  const [existingConfig] = await sql`SELECT id, config_json FROM business_config LIMIT 1`;
+  const configRows = await sql`SELECT id, config_json FROM business_config`;
+  const existingConfig = configRows[0];
   const nextConfig = {
     ...((existingConfig?.config_json || {})),
     planMode: 'pro',
@@ -198,7 +199,6 @@ try {
           enable_delivery = true,
           config_json = ${sql.json(nextConfig)},
           updated_at = now()
-      WHERE id = ${existingConfig.id}
     `;
   } else {
     await sql`

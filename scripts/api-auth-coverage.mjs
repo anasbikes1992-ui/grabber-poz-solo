@@ -43,6 +43,7 @@ const PUBLIC_API = [
   '/restaurant/menu',
   '/storefront/reviews',
   '/storefront/wishlist',
+  '/storage/media',
 ];
 
 const STAFF_MARKERS = [

@@ -1,7 +1,7 @@
 /**
  * Read/write business_config.config_json sections without duplicating merge logic.
  */
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db, businessConfig, businessProfile, hasDatabaseUrl } from '@/db';
 import { getStoreName } from '@/lib/config/app-url';
 
@@ -28,7 +28,7 @@ export type BrandConfig = {
 let memoryConfigJson: Record<string, unknown> = {};
 
 async function ensureConfigRow() {
-  const [row] = await db.select().from(businessConfig).limit(1);
+  const [row] = await db.select().from(businessConfig).orderBy(desc(businessConfig.updatedAt)).limit(1);
   if (row) return row;
   const [created] = await db
     .insert(businessConfig)
