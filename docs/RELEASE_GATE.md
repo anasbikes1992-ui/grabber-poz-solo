@@ -2,7 +2,9 @@
 
 **Ship / no-ship checklist.**  
 **Strategy:** finish **R1 → R2 → R3** before R4–R7.  
-**Client claims / packages:** [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) · [`CLIENT_DELIVERABLES.md`](./CLIENT_DELIVERABLES.md) · [`STAGE_READINESS.md`](./STAGE_READINESS.md)
+**Client claims / Pro plan scope:** [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) · [`CLIENT_DELIVERABLES.md`](./CLIENT_DELIVERABLES.md) · [`STAGE_READINESS.md`](./STAGE_READINESS.md)
+
+**Commercial rule:** sell **Grabber Business OS Pro** as one complete product. Vertical packs configure business type; they are not feature tiers.
 
 **Verdict values:** `READY` · `CONDITIONALLY READY` · `BLOCKED`
 
@@ -177,7 +179,7 @@ Checklist:
 
 ## R3 exit criteria (Storefront)
 
-Minimum sellable package: **POS + Inventory + Online Store + COD**
+Minimum sellable Pro handover: **POS + Inventory + Online Store + COD**
 
 - [x] SSR `/products/[slug]` + Product JSON-LD
 - [x] `/sitemap.xml` + `/robots.txt` (disallow `/adminpoz`)

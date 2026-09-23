@@ -119,6 +119,15 @@ export class ESCPOSPrinterController {
     }
   }
 
+  private static escapeHtml(value: string | number | undefined | null): string {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   /**
    * Generates standalone ESC/POS pulse buffer to kick open RJ11 cash drawer (\x1B\x70\x00\x19\xFA).
    */
@@ -131,7 +140,81 @@ export class ESCPOSPrinterController {
    */
   public static printBrowserReceipt(data: ReceiptPayload): void {
     if (typeof window === 'undefined') return;
-    window.print();
+    const receiptWindow = window.open('', 'grabber-receipt-print', 'width=360,height=640');
+    if (!receiptWindow) return;
+
+    const line = '-'.repeat(42);
+    const rows = data.items
+      .map((item) => {
+        const name = item.name.slice(0, 18).padEnd(18, ' ');
+        const qty = String(item.qty).padStart(3, ' ');
+        const amount = item.totalPrice.toFixed(2).padStart(10, ' ');
+        return this.escapeHtml(`${name} ${qty} ${amount}`);
+      })
+      .join('\n');
+    const footerNote = this.escapeHtml(data.footerNote || 'Thank you for shopping with us!');
+
+    receiptWindow.document.open();
+    receiptWindow.document.write(`<!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Receipt ${this.escapeHtml(data.billNumber)}</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 80mm;
+              background: #fff;
+              color: #000;
+              font-family: "Courier New", Courier, monospace;
+              font-size: 11px;
+              line-height: 1.25;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            pre {
+              margin: 0;
+              padding: 2mm 1.5mm;
+              white-space: pre-wrap;
+              break-inside: avoid;
+              page-break-inside: avoid;
+            }
+            .center { text-align: center; }
+          </style>
+        </head>
+        <body>
+          <pre><span class="center">${this.escapeHtml(data.storeName)}
+${this.escapeHtml(data.branchName)}</span>
+${this.escapeHtml(data.address)}
+${data.phone ? `Tel: ${this.escapeHtml(data.phone)}` : ''}
+${data.vatRegNumber ? `VAT Reg: ${this.escapeHtml(data.vatRegNumber)}` : ''}
+${line}
+Bill No: ${this.escapeHtml(data.billNumber)}
+Date: ${this.escapeHtml(data.date)}
+Cashier: ${this.escapeHtml(data.cashierName)}
+Tender: ${this.escapeHtml(data.tenderMethod)}
+${line}
+Item               Qty     Amount
+${line}
+${rows}
+${line}
+Subtotal:       LKR ${data.subtotal.toFixed(2)}
+VAT:            LKR ${data.vatAmount.toFixed(2)}
+TOTAL:          LKR ${data.grandTotal.toFixed(2)}
+Paid:           LKR ${data.amountPaid.toFixed(2)}
+Change:         LKR ${data.changeDue.toFixed(2)}
+${data.loyaltyPointsEarned ? `Loyalty:        +${data.loyaltyPointsEarned} pts\n` : ''}${line}
+${footerNote}
+Powered by Grabber Business OS</pre>
+        </body>
+      </html>`);
+    receiptWindow.document.close();
+    receiptWindow.setTimeout(() => {
+      receiptWindow.focus();
+      receiptWindow.print();
+    }, 50);
   }
 
   /**
@@ -242,4 +325,3 @@ export class ESCPOSPrinterController {
     }
   }
 }
-

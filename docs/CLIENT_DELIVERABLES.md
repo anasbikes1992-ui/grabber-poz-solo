@@ -3,100 +3,98 @@
 **What the client receives.**  
 **Claims:** [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) · **Pricing model:** [`COMMERCIAL_MODEL.md`](./COMMERCIAL_MODEL.md) · **Ops:** [`SOFTWARE_PLAYBOOK.md`](./SOFTWARE_PLAYBOOK.md) · **VPS:** [`VPS_DEPLOY.md`](./VPS_DEPLOY.md)
 
-**Effective:** 2026-09-02
+**Effective:** 2026-09-23
 
 ---
 
-## 1. Commercial deliverable (every paying client)
+## 1. Commercial Deliverable
+
+Every paying client receives **Grabber Business OS Pro**.
 
 | Item | Form |
-|------|------|
-| **Perpetual Single-Business Usage License** | Named entity; one production instance |
-| **Implementation** | Scoped migration, staff setup, training |
-| **Infrastructure & Maintenance** (Managed Cloud) | Monthly/annual — VPS, DB, backups, updates, support, Sentry |
-| **Data ownership** | Export/dump rights; not Grabber source IP |
+|---|---|
+| Perpetual Single-Business Usage License | Named entity; one production instance unless otherwise quoted |
+| Implementation | Scoped migration, vertical pack configuration, staff setup, training |
+| Infrastructure & Maintenance | VPS/app, dedicated DB, backups, updates, support, monitoring |
+| Data ownership | Export/dump rights; not Grabber source IP |
 
 ---
 
-## 2. Packages → technical deliverables
-
-### Starter (maps to CORE / R3)
+## 2. Technical Deliverables
 
 | Deliverable | Acceptance |
-|-------------|------------|
-| Dedicated Postgres DB | `/api/health` → `db: connected` |
-| App on Grabber Managed VPS (or contracted host) | HTTPS live |
-| P0 env + Sentry DSN (Grabber ops) | `env:validate`; health `sentry: configured` |
-| Schema ~49 tables + COA | `client:certify` |
-| OWNER user (PIN rotated) | `/adminpoz` → `/app` |
-| Catalog + opening stock | Store + POS |
-| Storefront COD + POS + orders + settings | Smoke pass |
-| Docs + credential sheet | Signed |
-
-**Not in Starter unless sold:** WhatsApp API, PayHere, GPU video, deep verticals.
-
-### Business Growth
-
-Starter **plus** (as contracted): up to 3 branches, COMMS WhatsApp, `/social`, Creative **C0**, sold verticals, priority support window.  
-AI video: starter credit pack **only if line-itemed** — not unlimited.
-
-### Enterprise
-
-Custom scope; Managed Cloud **or** self-host + **mandatory AMC**; optional hybrid.
-
-### Add-ons
-
-| Package | Deliverable |
-|---------|-------------|
-| **COMMS** | WhatsApp Cloud API + webhook + wa.me |
-| **SOCIAL C0** | `/social` + PDF + UGC scripts |
-| **AI C1/C2** | Credits / packs |
-| **VERTICAL** | Flag + smoke |
-| **PILOT** | Re-test + physical POS + 7-day acceptance |
+|---|---|
+| Dedicated database | `/api/health` reports connected DB |
+| App on Grabber Managed VPS or contracted host | HTTPS live |
+| Production env + monitoring | `env:validate`; Sentry/health proof where contracted |
+| OWNER/admin setup | `/adminpoz` login and PIN rotated |
+| Catalog + opening stock | Visible in POS and storefront |
+| POS + receipt + order flow | Physical or PDF smoke pass |
+| Storefront COD order | Order visible in admin and stock updates |
+| Backups | Backup proof and restore procedure documented |
+| Docs + credential sheet | Signed by client |
 
 ---
 
-## 3. Creative tiers (must appear on quote)
+## 3. Vertical Pack Configuration
 
-| Tier | Deliverable | Infra |
-|------|-------------|-------|
-| C0 | PDF, scripts, Social Hub | App only |
-| C1 | Cloud images | API keys |
-| C2 | GPU video | Separate GPU worker |
+One or more packs are configured during onboarding:
 
----
+- Retail & Wholesale.
+- Electronics & Repairs.
+- Restaurant / Cafe.
+- Salon / Services.
+- Party / Events.
+- Grocery / Pharmacy readiness later, only after dedicated certification.
 
-## 4. Handover artifacts
-
-1. License certificate (named business, package, date)  
-2. URLs (storefront, `/adminpoz`, webhook if COMMS)  
-3. Staff roster + PIN rotation confirmation  
-4. Cert report if run  
-5. Claims Tier C acknowledgment (source ≠ license; AI not unlimited; COD default)  
-6. Maintenance start date + SLA contact  
-
-**Access:** Grabber manages VPS by default. Client gets data export rights — not necessarily root SSH unless self-host Enterprise.
+Vertical pack choice affects navigation, seed data, workflow defaults, reports, storefront language, and training checklist. It does not reduce the Pro platform scope.
 
 ---
 
-## 5. Client responsibilities
+## 4. Provider-Dependent Deliverables
 
-- Accurate CSVs and opening stock  
-- Domain DNS (unless Grabber manages)  
-- Meta/WhatsApp Business verification (COMMS)  
-- Hardware (PC, scanner, 80mm printer)  
-- Paying Infrastructure & Maintenance / AMC on time  
+These require credentials, third-party approval, and acceptance proof before being claimed live:
+
+- WhatsApp Cloud API and webhook.
+- PayHere/WebXPay/other payment gateways.
+- Courier/delivery provider adapters.
+- AI image/video/voice credits.
+- Custom reports, bridges, or special vertical workflows.
 
 ---
 
-## 6. Sign-off
+## 5. Handover Artifacts
+
+1. License certificate: `Grabber Business OS Pro`.
+2. Selected vertical pack(s).
+3. URLs: storefront, `/adminpoz`, webhook URLs where relevant.
+4. Staff roster and PIN rotation confirmation.
+5. Smoke/certification report.
+6. Claims acknowledgment: source code is not sold, AI is not unlimited, provider-live claims require proof.
+7. Maintenance start date and SLA contact.
+
+---
+
+## 6. Client Responsibilities
+
+- Accurate CSVs and opening stock.
+- Domain DNS unless Grabber manages it.
+- Provider account ownership and verification.
+- Hardware readiness: PC, scanner, 80mm printer, cash drawer where needed.
+- Monthly infrastructure and maintenance payment on time.
+
+---
+
+## 7. Sign-Off
 
 ```text
-Client: ____________  Package: Starter / Growth / Enterprise
+Client: ______________________
+Product: Grabber Business OS Pro
+Vertical pack(s): ______________________
 Host: Grabber VPS / Vercel / Self-host+AMC
 License: Perpetual Single-Business Usage — INITIALS ____
-AI tier: C0 / C1 / C2 credits: ________
+Provider extras: WhatsApp / Payment / Courier / AI credits / None
 Physical POS: PASS / WAIVE    7-day: PASS / DEFERRED
-Owner: ____________  Date: ____
-Grabber: ____________  Date: ____
+Owner: ______________________  Date: ____
+Grabber: ____________________  Date: ____
 ```

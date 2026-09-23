@@ -2,7 +2,7 @@
 
 ## Recommendation
 
-The best win-win path is to keep Grabber as one reusable single-client product, then onboard each merchant with a small manifest, a repeatable catalog import, a storefront preset, and client-specific assets. For ThePartyStore, use the general-retail core with party-specific categories, product images matched by product name, and a white-label `party-pop` storefront theme.
+The best win-win path is to keep Grabber as one reusable **Grabber Business OS Pro** product, then onboard each merchant with a small manifest, a repeatable catalog import, a storefront preset, and client-specific assets. For ThePartyStore, use the Party/Event + Retail pack with party-specific categories, product images matched by product name, and a white-label `party-pop` storefront theme.
 
 ## What Is Configured
 
@@ -11,7 +11,7 @@ The best win-win path is to keep Grabber as one reusable single-client product, 
 - Source images: `D:\AAA GRABBER\ThePartyStore\TPSproduct_images`
 - Public image base: `/uploads/clients/thepartystore/products`
 - Storefront preset: `party-pop`
-- Vertical: `general-retail`
+- Vertical pack: `party_events` + `retail_wholesale`
 - Receipt model: 80mm thermal by default, compatible with 58mm preset
 
 ## Catalog Findings
@@ -61,14 +61,14 @@ npm run ops:smoke
 ## Coolify Deployment
 
 1. Create a new Coolify app from this repository.
-2. Set environment variables from the production env rotation: `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, payment keys, WhatsApp keys, and any delivery keys.
+2. Set environment variables from the production env rotation: `DATABASE_URL`, `AUTH_SECRET` / `NEXTAUTH_SECRET`, `APP_URL`, `STORE_NAME`, payment keys, WhatsApp keys, and any delivery keys.
 3. Build with `npm ci && npm run build`.
 4. Start with `npm start`.
 5. Add a persistent volume or object-storage/CDN strategy for images, because `public/uploads` is gitignored and should not carry 264 MB in Git.
 6. Preferred volume mount: `/app/public/uploads`.
 7. Sync `public/uploads/clients/thepartystore/products` to the Coolify volume before importing catalog.
 8. Run database setup and import commands from Coolify terminal after env is active.
-9. Point the domain to Coolify and set `NEXT_PUBLIC_APP_URL=https://thepartystore.grabberpoz.com`.
+9. Point the domain to Coolify and set `APP_URL=https://thepartystore.grabberpoz.com` plus `STORE_NAME=ThePartyStore`.
 
 ## Final Acceptance Checklist
 

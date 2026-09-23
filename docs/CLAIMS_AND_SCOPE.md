@@ -6,7 +6,7 @@ Use this document in proposals, SOWs, invoices, and dispute resolution.
 **Commercial model:** [`COMMERCIAL_MODEL.md`](./COMMERCIAL_MODEL.md)  
 **Hosting:** Grabber Managed **VPS** by default — [`VPS_DEPLOY.md`](./VPS_DEPLOY.md)
 
-**Effective:** 2026-09-02
+**Effective:** 2026-09-23
 
 ---
 
@@ -16,7 +16,7 @@ Use this document in proposals, SOWs, invoices, and dispute resolution.
 
 - One merchant = **one isolated PostgreSQL database** + **one app instance** (default: Grabber-managed VPS; optional Vercel).
 - Dual surface: **public storefront** (`/`) and **staff OS** (`/app` via `/adminpoz`).
-- Sold as a **Perpetual Single-Business Usage License** + recurring **Infrastructure & Maintenance** — not multi-tenant SaaS lock-in, and **not** a source-code sale.
+- Sold as **Grabber Business OS Pro** under a **Perpetual Single-Business Usage License** + recurring **Infrastructure & Maintenance** — not multi-tenant SaaS lock-in, and **not** a source-code sale.
 
 It is **not**:
 
@@ -27,9 +27,9 @@ It is **not**:
 
 ---
 
-## 2. Claim tiers
+## 2. Claim Classes
 
-### Tier A — May claim as **included** in Starter / CORE (R3)
+### Class A — May claim as included in Grabber Business OS Pro
 
 | Capability | Honest wording |
 |------------|----------------|
@@ -38,9 +38,10 @@ It is **not**:
 | Counter POS | Staff PIN login; barcode checkout; cash/card tenders; shift open/close. |
 | Unified stock | Same inventory pool for POS + storefront. |
 | Web storefront | Public catalog + **COD** checkout when shopper signed in. |
-| Orders / Polim / settings / reports | As contracted in package. |
+| Orders / Polim / settings / reports | Included when configured for the client’s vertical pack and acceptance-smoked. |
+| Jarvis / agents | READ/DRAFT included; risky execution requires staff approval and audit. |
 
-### Tier B — Optional add-ons (contracted + configured)
+### Class B — Provider-dependent or quoted extras
 
 | Capability | Prerequisite |
 |------------|---------------|
@@ -48,13 +49,12 @@ It is **not**:
 | Pixels / Meta CAPI | `/social` or env |
 | PayHere / WebXPay | Explicit enable |
 | Verticals | Flags + smoke |
-| Creative C0 (PDF / UGC scripts) | Growth+ |
+| Creative C0/C1/C2 | Credentials or credits where applicable |
 | Social Channel Manager | `/social` |
-| Agents / Jarvis | Staff session |
 | Grabber Managed Cloud (VPS) | Monthly infra fee |
 | Sentry-backed support | Grabber ops DSN on host |
 
-### Tier C — Forbidden unless separately delivered
+### Class C — Forbidden unless separately delivered
 
 | Overclaim | Reality |
 |-----------|---------|

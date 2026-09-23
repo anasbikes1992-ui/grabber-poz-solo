@@ -56,13 +56,13 @@ export function JarvisProModal({ isOpen, onClose, onUpgradeOrSwitch }: JarvisPro
           <div className="space-y-2">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-black tracking-wide text-purple-400 uppercase">
               <Sparkles className="h-3.5 w-3.5" />
-              <span>Pro Edition Exclusive</span>
+              <span>Grabber Business OS Pro</span>
             </div>
             <h2 id="jarvis-pro-title" className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              Unlock Jarvis AI Copilot
+              Jarvis AI Copilot Included
             </h2>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              Your store is currently operating in <strong className="text-zinc-200">Basic Mode</strong>. Basic mode gives you 100% of our POS, Multi-Branch, Inventory, and Ledger capabilities. Jarvis Copilot is available exclusively in <strong className="text-purple-400">Pro Mode</strong>.
+              Every Grabber client receives Jarvis as part of <strong className="text-purple-400">Grabber Business OS Pro</strong>. Jarvis reads and drafts from live business data; risky execution stays approval-controlled.
             </p>
           </div>
 
@@ -108,7 +108,7 @@ export function JarvisProModal({ isOpen, onClose, onUpgradeOrSwitch }: JarvisPro
                 className="flex-1 py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 transition cursor-pointer active:scale-95"
               >
                 <Zap className="h-4 w-4 fill-white" />
-                <span>Switch to Pro Mode</span>
+                <span>Open Jarvis</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             )}
@@ -118,7 +118,7 @@ export function JarvisProModal({ isOpen, onClose, onUpgradeOrSwitch }: JarvisPro
               onClick={onClose}
               className="py-3 px-5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-semibold text-xs transition cursor-pointer"
             >
-              Continue in Basic Mode
+              Close
             </button>
           </div>
         </div>

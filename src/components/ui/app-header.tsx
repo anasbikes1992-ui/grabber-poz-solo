@@ -31,11 +31,9 @@ import {
   Briefcase,
   Share2,
   ExternalLink,
-  Mic,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { JarvisProModal } from '@/components/ai/JarvisProModal';
 import { readLang, t, type Lang } from '@/lib/i18n/translations';
 import {
   fetchVerticalFlags,
@@ -66,21 +64,12 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
   const [openDropdown, setOpenDropdown] = useState<DropdownKey>(null);
   const [lang, setLang] = useState<Lang>('en');
   const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
-  const [planMode, setPlanMode] = useState<'basic' | 'pro'>('pro');
-  const [showProModal, setShowProModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
     setLang(readLang());
     fetchVerticalFlags().then(setVerticalFlags);
-
-    fetch('/api/config/plan')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success && d.mode) setPlanMode(d.mode);
-      })
-      .catch(() => {});
 
     fetch('/api/auth/session')
       .then((r) => r.json())
@@ -145,21 +134,6 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
 
   const toggleDropdown = (key: DropdownKey) => {
     setOpenDropdown((prev) => (prev === key ? null : key));
-  };
-
-  const handleSwitchToPro = async () => {
-    try {
-      await fetch('/api/config/plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'pro' }),
-      });
-      setPlanMode('pro');
-      setShowProModal(false);
-      onToggleJarvis?.();
-    } catch {
-      /* ignore */
-    }
   };
 
   // Nav Groups
@@ -554,19 +528,15 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
                 {onToggleJarvis && (
                   <button
                     type="button"
-                    onClick={planMode === 'basic' ? () => setShowProModal(true) : onToggleJarvis}
+                    onClick={onToggleJarvis}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/40 text-purple-300 text-xs font-bold cursor-pointer transition active:scale-95 shadow-sm"
-                    title={planMode === 'basic' ? 'Jarvis AI Copilot (PRO Feature)' : 'Open Jarvis AI Copilot (Voice & Live DB)'}
+                    title="Open Jarvis AI Copilot (READ/DRAFT with approval-controlled execution)"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-purple-400" />
                     <span className="hidden md:inline">Jarvis</span>
-                    {planMode === 'basic' ? (
-                      <span className="text-[9px] px-1 py-0.2 rounded bg-purple-500/30 text-purple-200 font-black tracking-wider uppercase ml-0.5">
-                        PRO
-                      </span>
-                    ) : (
-                      <Mic className="w-3 h-3 text-purple-300 ml-0.5" />
-                    )}
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-purple-500/30 text-purple-200 font-black tracking-wider uppercase ml-0.5">
+                      PRO
+                    </span>
                   </button>
                 )}
 
@@ -883,11 +853,6 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
         </button>
       </div>
 
-      <JarvisProModal
-        isOpen={showProModal}
-        onClose={() => setShowProModal(false)}
-        onUpgradeOrSwitch={handleSwitchToPro}
-      />
     </>
   );
 }

@@ -58,7 +58,7 @@ export const MODULE_CATALOG: ModularAddon[] = [
     description: 'Automated video ad generator, social media reels builder, and product explainer video pipeline.',
     setupFeeLkr: 45000,
     monthlyFeeLkr: 3500,
-    recommendedFor: 'Marketing Growth Merchants',
+    recommendedFor: 'Marketing Expansion Merchants',
   },
 ];
 
@@ -101,7 +101,7 @@ export function ModularPricingCalculator() {
           Calculate Your Custom Business OS Package
         </h2>
         <p className="text-stone-400 mt-2 text-sm max-w-xl mx-auto">
-          Start with our core Counter POS & Web Storefront. Add only the vertical modules your business needs — zero bloated software costs.
+          Every client gets Grabber Business OS Pro. We configure only the vertical workflows your business needs — no confusing feature tiers.
         </p>
 
         {/* Billing Toggle */}

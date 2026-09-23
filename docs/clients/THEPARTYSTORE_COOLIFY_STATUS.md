@@ -2,6 +2,8 @@
 
 Date: 2026-09-22
 
+> Updated 2026-09-23: ThePartyStore is a **Grabber Business OS Pro** client instance using the Party/Event + Retail vertical packs.
+
 ## Created Resources
 
 - Coolify project: `thepartystore`

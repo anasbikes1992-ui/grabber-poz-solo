@@ -1,172 +1,118 @@
 # Grabber Business OS — Commercial Model (SSOT)
 
-**Perpetual Single-Business Usage License** + recurring **Infrastructure & Maintenance** + optional **AI credits**.  
-**Not** a multi-tenant SaaS rent lock. **Not** a source-code sale.
+**One product:** `Grabber Business OS Pro`.
+
+Every client receives the same supported platform: POS, inventory, storefront, customers, reports, Jarvis/agents, backups, updates, and support. We configure the system by **business category / vertical pack**, not by feature-tier packages.
 
 **Claims:** [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md)  
 **Deliverables:** [`CLIENT_DELIVERABLES.md`](./CLIENT_DELIVERABLES.md)  
 **Hosting:** [`VPS_DEPLOY.md`](./VPS_DEPLOY.md) (default Grabber-managed) · Vercel optional
 
-**Effective:** 2026-09-02 · Prices below are **indicative LKR** — lock numbers on the signed quote.
-
 ---
 
-## 1. Sales message (approved)
+## 1. Approved Sales Message
 
-> **You buy a perpetual license for your business.**  
-> You are not renting your POS.  
-> The monthly fee is **Cloud Infrastructure & Maintenance**: private dedicated environment, database, backups, updates, monitoring, and technical support.
+> Every Grabber client receives **Grabber Business OS Pro**.
+> We configure it for your business type, deploy it in a dedicated environment, and keep it updated through monthly cloud, maintenance, backup, monitoring, and support.
 
-**Never say in contracts:** “You own the software / source code.”  
 **Say:** “Perpetual Single-Business Usage License.”
+**Never say:** “You own the source code.”
 
 ---
 
-## 2. What the one-time fee buys vs recurring
+## 2. Pricing Structure
 
-| Component | Customer pays |
-|-----------|---------------|
-| Grabber perpetual business license | **One-time** |
-| Implementation & configuration | **One-time** |
-| Data migration (scoped SKU/customer count) | **One-time** |
-| Hardware config / initial training | **One-time** |
-| Dedicated cloud / VPS infrastructure | **Monthly or annual** |
-| Maintenance & updates (supported track) | **Monthly/annual** |
-| Support (business hours SLA) | **In maintenance** |
-| AI video / heavy image generation | **Credits or packs** |
-| Custom development | **Separate quotation** |
+| Line item | Billing |
+|---|---|
+| Grabber Business OS Pro license | One-time |
+| Implementation, configuration, and training | One-time |
+| Data migration within signed scope | One-time |
+| Dedicated cloud / VPS infrastructure | Monthly or annual |
+| Maintenance, backups, updates, and support | Monthly or annual |
+| AI media generation credits | Credit pack or usage-based |
+| Custom development / special reports | Separate quotation |
+
+Indicative quote range:
+
+- **License + setup:** LKR 250,000–450,000 depending on migration, branch count, hardware, and vertical workflow depth.
+- **Monthly cloud + support + updates:** LKR 10,000–25,000 depending on deployment size and SLA.
+
+Lock exact numbers only in the signed quote.
 
 ---
 
-## 3. Default deployment: Grabber Managed Cloud (VPS)
+## 3. Vertical Packs
 
-**95% of merchants.** Grabber operates a standardized VPS fleet (or equivalent). Each client gets an **isolated app + dedicated PostgreSQL**.
+| Pack | Use case |
+|---|---|
+| Retail & Wholesale | Counter POS, inventory, customers, quotations, credit ledger, branch/warehouse flows |
+| Electronics & Repairs | Product sales, IMEI/serial/warranty, repair intake, diagnosis, estimates, handover |
+| Restaurant / Cafe | POS, table/KOT/KDS flows, menu, prep workflow, recipe/BOM where configured |
+| Salon / Services | Appointments, service catalog, staff workflow, consumables where configured |
+| Party / Events | Storefront options, custom text, event dates, bundles, delivery/pickup |
+| Grocery / Pharmacy | Grocery FEFO can be configured; pharmacy compliance is not sold as production-ready until certified |
+
+Vertical packs configure defaults, navigation, seeded workflows, reports, storefront language, and onboarding checklist. They do **not** create a lower/higher product tier.
+
+---
+
+## 4. Included in Pro
+
+- Counter POS, barcode scanning, receipts, shifts, cash/card/COD workflows.
+- Products, variants, inventory, branches, warehouses, transfers, GRN.
+- Customers, Polim Potha credit ledger, quotations, orders, returns.
+- Public storefront, product pages, COD checkout, SEO metadata.
+- Jarvis and deterministic agents in READ/DRAFT mode with approval-controlled execution.
+- Admin storefront builder, media, themes, reports, backups, and updates.
+
+Provider-dependent features such as live WhatsApp sending, online card gateways, courier adapters, or AI media generation require credentials, acceptance testing, and/or usage credits.
+
+---
+
+## 5. Billable Extras
+
+- Hardware and printer supply/configuration.
+- On-site visits after the agreed go-live window.
+- Extra SKU/customer/supplier migration beyond signed scope.
+- Custom reports, bridges, or vertical workflow development.
+- AI image/video/voice generation credits.
+- Large branch rollout, self-hosting, or special SLA.
+- Third-party fees: Meta, payment gateways, courier providers, domains, SMS, email.
+
+Never sell “unlimited AI generation” inside flat maintenance.
+
+---
+
+## 6. Deployment Model
+
+Default: Grabber Managed Cloud / VPS with isolated app, dedicated database, backups, monitoring, and Sentry.
+
+Optional self-hosting is available only by signed scope with mandatory AMC/support terms.
+
+---
+
+## 7. Contract Boundaries
+
+1. Non-transferable perpetual single-business usage license for the named legal entity.
+2. Right to operate one production instance unless extra instances are quoted.
+3. Grabber retains all IP: source code, schema design, trademarks, AI pipelines, and internal tools.
+4. Client owns their business data; data export is available by request.
+5. Updates require active maintenance.
+6. Hosting, third-party providers, and AI compute are separate from the license.
+
+---
+
+## 8. Invoice Pattern
 
 ```text
-Customer (owns license + data)
-        ↓
-Grabber Business OS (perpetual license)
-        ↓
-Grabber-managed VPS / dedicated environment
-        ↓
-Dedicated PostgreSQL + storage + backups
-        ↓
-Sentry (ops) → Grabber fixes issues
-```
-
-Customer pays one-time license/implementation **+** monthly **Infrastructure & Maintenance**.
-
-Optional: still deploy on Vercel for a client if contracted — same commercial terms; infra line item covers that host.
-
----
-
-## 4. Packages (indicative)
-
-| Package | One-time (license + implementation) | Monthly Infra & Maintenance | Target |
-|---------|--------------------------------------|------------------------------|--------|
-| **Starter** | **LKR 125,000** | **LKR 5,000** | 1 location, 1 POS, COD store, inventory, Polim, basic accounting |
-| **Business Growth** | **LKR 250,000** | **LKR 10,000** | Up to 3 branches, WhatsApp COMMS, Social Hub, Creative **C0** (PDF/UGC scripts), verticals as sold |
-| **Enterprise** | **LKR 450,000+** | **LKR 20,000** or AMC | 5+ branches, warehouse, custom bridges, hybrid/self-host options |
-
-### Starter includes (scope-capped)
-
-- 1 location, 1 POS register  
-- Web storefront (COD)  
-- Inventory, products, customers  
-- Polim Potha (when enabled)  
-- Basic reporting / COA  
-- Up to **500 SKU** migration (extra SKUs billed)  
-- Staff setup + initial training  
-- Production deploy on Grabber VPS  
-- Sentry monitoring on Grabber ops account (client does not need a Sentry seat)
-
-### Growth adds (as contracted)
-
-- Up to 3 branches + transfers (when configured)  
-- WhatsApp Commerce (COMMS) when Meta credentials provided  
-- Social Channel Manager `/social`  
-- Creative C0 (PDF Studio, UGC scripts/storyboards)  
-- Priority implementation window  
-
-**Not unlimited in Growth monthly fee:** AI video renders (C1/C2) — see §6.
-
----
-
-## 5. What monthly “Infrastructure & Maintenance” includes / excludes
-
-### Included ✅
-
-- Dedicated (or isolated) app hosting on Grabber VPS  
-- Dedicated PostgreSQL + disk  
-- Automated backups (schedule per contract; default daily)  
-- Uptime monitoring + **Sentry** error capture (Grabber ops)  
-- Security patches on supported app version  
-- Application updates on the **maintenance track** while fees are current  
-- Bug fixes for contracted scope  
-- Remote technical support (business hours; WhatsApp/phone per SLA)
-
-### Not included ❌ (billable)
-
-- On-site visits after initial go-live window (e.g. 14 days)  
-- Custom features / new report layouts / ERP bridges  
-- Manual catalog data entry beyond contracted migration  
-- Meta / PayHere / courier account fees  
-- AI video / voice overage beyond credit pack  
-- Major new modules (new verticals) — upgrade SKU  
-- Self-host firefighting without active AMC  
-
----
-
-## 6. AI / Creative commercial ring-fence
-
-| Tier | What | Pricing |
-|------|------|---------|
-| **C0** | PDF Studio, UGC hooks/scripts, Social Hub | Included in Growth+ (zero GPU) |
-| **C1** | Cloud image APIs (FAL/Replicate) | Starter pack or per-image |
-| **C2** | GPU video / UGC render | Credits — e.g. **5 videos/mo** starter on Growth if sold; then **LKR 1,500–2,500 / video** or packs of 10 |
-
-**Never** sell “unlimited AI generation” inside flat maintenance.
-
----
-
-## 7. Self-hosted / customer server (Enterprise only)
-
-```text
-Customer server → Grabber OS → Customer Postgres → Customer network
-```
-
-- One-time from **LKR 350,000+** (license + deploy + docs + admin training)  
-- Hardware bar: Ubuntu LTS / Docker / ≥16GB RAM / SSD (see `VPS_DEPLOY.md`)  
-- **AMC mandatory** for remote support: **LKR 75,000–100,000 / year** (indicative)  
-- No AMC → no remote debug of their offline network / SSL / Postgres  
-
-Prefer Grabber Managed Cloud whenever possible.
-
----
-
-## 8. License legal boundaries (contract must say)
-
-1. Non-transferable **Perpetual Single-Business Usage License** for the **named legal entity**.  
-2. Right to operate **one production instance** (extra shops/brands = additional license).  
-3. Grabber retains **all IP**: source code, schema design, trademarks, AI pipelines, internal tools.  
-4. No reverse-engineering, resale, sublicensing, or multi-tenant hosting of Grabber for third parties.  
-5. Perpetual use of the **purchased major version family** while data remains; **updates** require active maintenance.  
-6. Hosting and AI compute are **separate** from the license.  
-7. Data export / DB dump available on request (client owns **data**, not Grabber IP).
-
----
-
-## 9. Invoice line-item pattern (recommended)
-
-```text
-1. Perpetual Single-Business License — Grabber Starter ........ LKR xxx
-2. Implementation & go-live (≤500 SKU, N users, training) .... LKR xxx
-3. Cloud Infrastructure & Maintenance — Month 1 ............. LKR 5,000
-4. AI Video Credit Pack (optional) .......................... LKR xxx
+1. Grabber Business OS Pro — Perpetual Single-Business License ... LKR xxx
+2. Implementation, configuration, migration, training ............ LKR xxx
+3. Cloud Infrastructure, Backups, Updates & Support — Month 1 .... LKR xxx
+4. Optional hardware / AI credits / custom work .................. LKR xxx
 ```
 
 ---
 
-## 10. Change control
+## 9. Change Control
 
-Update this file + `CLAIMS_AND_SCOPE.md` + `CLIENT_DELIVERABLES.md` + `GTM_MARKETING_PLAN.md` together when prices or package contents change.
+Update this file + `CLAIMS_AND_SCOPE.md` + `CLIENT_DELIVERABLES.md` + `GTM_MARKETING_PLAN.md` together when commercial terms or included scope changes.

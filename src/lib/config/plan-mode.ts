@@ -1,19 +1,22 @@
 /**
- * GRABBER BUSINESS OS — PLAN MODES (BASIC vs PRO)
+ * GRABBER BUSINESS OS — COMMERCIAL EDITION
  *
- * Basic Mode: Full POS & ERP suite (Counter POS, multi-branch, inventory & barcodes,
- *             stock transfers, customer CRM, Polim Potha credit ledger, sales, quotes,
- *             shifts, receipts, basic storefront catalog & checkout).
- *             Does NOT include Jarvis Autonomous AI Copilot.
- *
- * Pro Mode:   Includes everything in Basic + Jarvis AI Copilot (live DB grounding,
- *             voice queries, restock alerts, demand forecasting) + Advanced Storefront
- *             Studio & Themes + Company Marketing Suite.
+ * Grabber is sold as one all-in-one product: Grabber Business OS Pro.
+ * Every client receives the full supported platform. Differences between
+ * clients are configured through vertical packs and provider readiness, not
+ * through feature-tier packages.
  */
 
 import { readConfigJson, mergeConfigJson } from '@/lib/config/business-settings';
 
-export type GrabberPlanMode = 'basic' | 'pro';
+export type GrabberPlanMode = 'pro';
+export type GrabberVerticalPack =
+  | 'retail_wholesale'
+  | 'electronics_repairs'
+  | 'restaurant_cafe'
+  | 'salon_services'
+  | 'party_events'
+  | 'grocery_pharmacy';
 
 export interface PlanFeatureMatrix {
   counterPos: boolean;
@@ -26,20 +29,8 @@ export interface PlanFeatureMatrix {
   jarvisAi: boolean;
   storefrontStudio: boolean;
   companyMarketingSuite: boolean;
+  approvalControlledExecute: boolean;
 }
-
-export const BASIC_PLAN_FEATURES: PlanFeatureMatrix = {
-  counterPos: true,
-  inventoryAndBarcodes: true,
-  multiBranch: true,
-  polimPothaLedger: true,
-  salesAndQuotes: true,
-  shiftReconciliation: true,
-  basicStorefront: true,
-  jarvisAi: false,
-  storefrontStudio: false,
-  companyMarketingSuite: false,
-};
 
 export const PRO_PLAN_FEATURES: PlanFeatureMatrix = {
   counterPos: true,
@@ -52,39 +43,52 @@ export const PRO_PLAN_FEATURES: PlanFeatureMatrix = {
   jarvisAi: true,
   storefrontStudio: true,
   companyMarketingSuite: true,
+  approvalControlledExecute: true,
 };
 
+export const DEFAULT_VERTICAL_PACKS: GrabberVerticalPack[] = ['retail_wholesale'];
+
 /**
- * Read the current plan mode.
- * Evaluates DB business settings first, then falls back to env variable `GRABBER_PLAN_MODE`,
- * and defaults to 'pro'.
+ * Read the current commercial edition.
+ * Legacy installs may still carry `basic`; it is deliberately coerced to `pro`
+ * so no supported client is feature-gated by an old tier flag.
  */
 export async function getGrabberPlanMode(): Promise<GrabberPlanMode> {
-  try {
-    const cfg = await readConfigJson();
-    if (cfg?.planMode === 'basic' || cfg?.planMode === 'pro') {
-      return cfg.planMode;
-    }
-  } catch {
-    /* ignore DB read error */
-  }
-
-  const envMode = (
-    process.env.GRABBER_PLAN_MODE ||
-    process.env.NEXT_PUBLIC_GRABBER_PLAN_MODE ||
-    'pro'
-  ).toLowerCase();
-
-  return envMode === 'basic' ? 'basic' : 'pro';
+  return 'pro';
 }
 
 /**
- * Set and persist plan mode into business settings config.
+ * Persist the single commercial edition. Accepts only `pro`; legacy callers that
+ * send `basic` are migrated to `pro`.
  */
-export async function setGrabberPlanMode(mode: GrabberPlanMode): Promise<void> {
-  await mergeConfigJson({ planMode: mode });
+export async function setGrabberPlanMode(_mode: GrabberPlanMode | 'basic' = 'pro'): Promise<void> {
+  await mergeConfigJson({ planMode: 'pro' });
 }
 
-export function getPlanFeatures(mode: GrabberPlanMode): PlanFeatureMatrix {
-  return mode === 'basic' ? BASIC_PLAN_FEATURES : PRO_PLAN_FEATURES;
+export async function getEnabledVerticalPacks(): Promise<GrabberVerticalPack[]> {
+  try {
+    const cfg = await readConfigJson();
+    const packs = Array.isArray(cfg?.verticalPacks) ? cfg.verticalPacks : DEFAULT_VERTICAL_PACKS;
+    return packs.filter((pack): pack is GrabberVerticalPack =>
+      [
+        'retail_wholesale',
+        'electronics_repairs',
+        'restaurant_cafe',
+        'salon_services',
+        'party_events',
+        'grocery_pharmacy',
+      ].includes(pack),
+    );
+  } catch {
+    return DEFAULT_VERTICAL_PACKS;
+  }
+}
+
+export async function setEnabledVerticalPacks(packs: GrabberVerticalPack[]): Promise<void> {
+  const safePacks = packs.length ? packs : DEFAULT_VERTICAL_PACKS;
+  await mergeConfigJson({ planMode: 'pro', verticalPacks: safePacks });
+}
+
+export function getPlanFeatures(_mode: GrabberPlanMode = 'pro'): PlanFeatureMatrix {
+  return PRO_PLAN_FEATURES;
 }

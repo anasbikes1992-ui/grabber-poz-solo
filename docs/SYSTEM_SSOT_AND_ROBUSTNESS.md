@@ -10,6 +10,8 @@
 
 Solo multi-vertical **commerce OS** on **Next.js App Router** + **Drizzle → Postgres** + Coolify Contabo / Vercel.
 
+**Commercial SSOT:** Grabber is sold as **Grabber Business OS Pro**, one all-in-one plan. Business category is configured through vertical packs, not package tiers or upgrade gates.
+
 | Surface | Purpose |
 |---------|---------|
 | `/pos`, `/barcodes` | Staff retail terminal + labels |

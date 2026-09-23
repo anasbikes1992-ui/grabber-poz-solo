@@ -549,7 +549,7 @@ export default function StoreBuilderPage() {
                         onChange={(e) =>
                           updateSlide(heroSlider.id, activeSlideIdx, { imageUrl: e.target.value })
                         }
-                        placeholder="/uploads/clients/thepartystore/products/Baby Shower Decoration Package 1.jpg"
+                        placeholder="/uploads/clients/your-store/products/hero-banner.jpg"
                         className="flex-1 rounded-xl border border-border bg-secondary/50 px-3 py-2 font-mono text-[11px] text-foreground"
                       />
 
@@ -782,7 +782,7 @@ export default function StoreBuilderPage() {
                   <div className={`space-y-3 ${activeSlide?.imageUrl ? 'sm:col-span-7' : 'sm:col-span-12'}`}>
                     <div className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-0.5 text-[10px] font-bold text-rose-600 shadow-xs backdrop-blur dark:bg-black/60 dark:text-rose-400">
                       <Sparkles className="h-3 w-3 text-rose-500" />
-                      <span>{activeSlide?.badge || 'ThePartyStore · Complete Party Solutions'}</span>
+                      <span>{activeSlide?.badge || config.theme.storeName || 'Official Store · Live Catalog'}</span>
                     </div>
 
                     <h3

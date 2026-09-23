@@ -97,7 +97,7 @@ Grabber is ready for repeatable controlled production pilots and can truthfully 
 
 | ID | Action | Preconditions | Effects | Cost | Risk |
 |---|---|---|---|---:|---|
-| A01 | Freeze claims and package matrix | S0 | Sales only promises certified/configured capabilities | Low | Low |
+| A01 | Freeze claims and Pro scope matrix | S0 | Sales only promises certified/configured capabilities | Low | Low |
 | A02 | Add schema integrity constraints | S0 | Invalid quantities, duplicates, overlaps, and unsafe journal lines rejected | Medium | Medium |
 | A03 | Add durable audit/event histories | A02 | State transitions and sensitive actions are traceable | High | Medium |
 | A04 | Complete payment/refund/reconciliation model | A02, A03 | Cash, gateway, refund, settlement, and chargeback truth separated | High | High |
@@ -122,7 +122,7 @@ Grabber is ready for repeatable controlled production pilots and can truthfully 
 
 **Deliverables:**
 
-- Approved package matrix: Starter, Growth, Enterprise, add-ons.
+- Approved commercial model: one Grabber Business OS Pro plan, vertical packs, and billable extras.
 - Module readiness labels: Certified, Conditional, Design-only, Excluded.
 - Claims review against code, tests, environment, and UAT evidence.
 - No unsupported promises for pharmacy, rental, auto-parts, unlimited AI, gateways, or courier providers.
@@ -259,9 +259,9 @@ Grabber is ready for repeatable controlled production pilots and can truthfully 
 
 ### Launch sequence
 
-1. Sell Starter Core to general retail, fashion, and mobile/IT merchants.
+1. Sell Grabber Business OS Pro to general retail, fashion, wholesale, party/event, and mobile/IT merchants.
 2. Use unified stock, offline POS, local credit, returns, and dedicated deployment as the demonstration wedge.
-3. Sell WhatsApp, payment gateways, repairs, branches, and Creative C0 as configured add-ons.
+3. Configure WhatsApp, payment gateways, repairs, branches, and creative workflows only when credentials and acceptance proof exist.
 4. Introduce salon/service packages after scheduling and completion controls pass.
 5. Introduce wholesale after B2B pricing, shipment allocation, and AP/AR statements pass.
 6. Introduce pharmacy, rental, and auto-parts only after dedicated vertical certification.
@@ -290,7 +290,7 @@ Grabber is ready for repeatable controlled production pilots and can truthfully 
 
 ### Gate G0 - Claims
 
-- Claims, commercial model, marketing copy, and package matrix agree.
+- Claims, commercial model, marketing copy, and Pro scope matrix agree.
 - No conditional feature is advertised as included.
 
 ### Gate G1 - Security

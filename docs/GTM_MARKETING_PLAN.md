@@ -8,43 +8,59 @@
 
 ## 1. Positioning
 
-> Grabber Business OS is a **dedicated single-business** retail OS: counter POS, COD web storefront, inventory, Polim Potha — sold as a **perpetual business license**, hosted on **Grabber Managed Cloud (VPS)** with monthly infrastructure & maintenance. Optional WhatsApp, Social Hub, and AI creative credits.
+> Grabber Business OS Pro is one complete operating system for SMEs: counter POS, inventory, storefront, customers, credit ledger, reports, Jarvis/agents, backups, updates, and support — configured for the client’s business category.
 
-**Hero hook:** Unified stock across counter POS and web storefront.
+**Hero hook:** One business truth across counter sales, stock, customers, and online orders.
 
-**Pricing psychology (approved):**
-
-> LKR 125,000 one-time software & implementation  
-> + LKR 5,000/month for **cloud infrastructure, backups, maintenance and support**  
-> — not a mysterious “SaaS rent.”
+**Commercial hook:** One Pro system. No confusing tiers. Configure by vertical pack.
 
 ---
 
-## 2. Packages (point to Commercial Model)
+## 2. Offer
 
-| Package | One-time | Monthly | Notes |
-|---------|----------|---------|-------|
-| Starter | LKR 125,000 | LKR 5,000 | CORE commerce |
-| Business Growth | LKR 250,000 | LKR 10,000 | Branches, COMMS, Social, Creative C0 |
-| Enterprise | LKR 450,000+ | LKR 20,000 or AMC | Custom / self-host |
+| Product | Pricing pattern | Notes |
+|---|---|---|
+| Grabber Business OS Pro | One-time license/setup + monthly cloud/support/updates | Exact price depends on migration, branch count, hardware, and vertical depth |
+| Vertical Pack | Included as configuration scope | Retail & Wholesale, Electronics & Repairs, Restaurant/Cafe, Salon/Services, Party/Event |
+| Billable extras | Separate quote or credits | Hardware, onsite visits, custom reports, large migration, AI media credits, third-party provider setup |
 
-AI video = **credits**, never “unlimited” in maintenance.
+Avoid package-tier selling. Use implementation size, migration workload, vertical depth, and SLA to price effort.
 
 ---
 
-## 3. Differentiator table
+## 3. Differentiators
 
-| Multi-tenant SaaS | Grabber Solo |
+| Common POS / SaaS | Grabber Business OS Pro |
 | :--- | :--- |
-| Rent forever / lockout fear | Perpetual license + paid infra |
-| Shared DB | Dedicated Postgres per business |
-| Storefront often separate | One stock pool |
-| Marketing bolted on | Optional Social + Creative C0–C2 |
+| Feature tiers limit clients | Every client gets the full Pro platform |
+| Separate online store | Storefront shares the same stock and customer data |
+| Shared SaaS database | Dedicated deployment and database per business |
+| AI hype | Jarvis reads/drafts; execution is approval-controlled |
+| Generic Western workflows | Local credit ledger, COD, Sri Lankan SME operations |
 
 ---
 
-## 4. Sales script (30s)
+## 4. Sales Script
 
-> You buy Grabber once for your business — you're not renting your POS. We run your private cloud on our VPS with backups and support for a clear monthly infrastructure fee. When you sell at the counter, the same stock updates online so you don't double-sell.
+> Every Grabber client gets the full Pro system. We configure it for your business type — retail, wholesale, repairs, cafe, salon, or events — then deploy it privately with backups, updates, and support. You do not buy a limited POS tier; you get one complete business OS.
 
-Avoid: source-code ownership, unlimited AI, card payments included unless contracted.
+Avoid: source-code ownership, unlimited AI, live WhatsApp/card/courier claims before credentials and acceptance proof.
+
+---
+
+## 5. Target Segments
+
+1. Retail & Wholesale merchants with stock, barcode, customers, and credit.
+2. Electronics and mobile repair businesses with warranty/repair workflows.
+3. Party/event shops needing custom storefront options and delivery/pickup.
+4. Cafes/restaurants after KOT/KDS and menu flows pass physical smoke.
+5. Salons/services after scheduling and completion controls are proven.
+
+---
+
+## 6. Proof-Based Content
+
+- Weekly workflow demo: scan → sale → receipt → stock change.
+- Weekly storefront demo: product options → COD order → admin order → stock update.
+- Weekly trust demo: backup, health check, audit log, dedicated database.
+- Monthly vertical case study with measured sales, stock, support, and adoption outcomes.

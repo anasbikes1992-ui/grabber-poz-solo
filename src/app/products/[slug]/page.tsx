@@ -77,6 +77,19 @@ export default async function ProductDetailPage({ params }: Props) {
             stock: product.stock,
           },
         ];
+  const attributeRows = product.variants.flatMap((variant) =>
+    Object.entries(variant.attributesJson || {}).map(([key, value]) => ({
+      key,
+      value,
+      variant: variant.name,
+    })),
+  );
+  const uniqueAttributeRows = attributeRows.filter(
+    (row, index, rows) =>
+      rows.findIndex(
+        (candidate) => candidate.key === row.key && candidate.value === row.value,
+      ) === index,
+  );
 
   const jsonLd = productJsonLd({
     name: product.name,
@@ -136,6 +149,60 @@ export default async function ProductDetailPage({ params }: Props) {
         </div>
       </main>
       <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+        <div className="mb-8 grid gap-4 lg:grid-cols-3">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+            <h2 className="font-display text-xl font-bold text-slate-900">Product options & details</h2>
+            <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Available options</p>
+                <p className="mt-1 font-semibold text-slate-900">
+                  {product.variants.length > 0 ? `${product.variants.length} variants` : 'Standard product'}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Order notes</p>
+                <p className="mt-1 font-semibold text-slate-900">Custom text, event date, delivery or pickup</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Stock status</p>
+                <p className="mt-1 font-semibold text-slate-900">
+                  {product.stock > 0 ? `${product.stock} units available` : 'Confirm availability'}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Need help?</p>
+                <p className="mt-1 font-semibold text-slate-900">WhatsApp the store after adding to bag</p>
+              </div>
+            </div>
+            {uniqueAttributeRows.length > 0 && (
+              <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                {uniqueAttributeRows.slice(0, 8).map((row) => (
+                  <div key={`${row.key}-${row.value}`} className="flex justify-between rounded-xl border border-slate-200 px-3 py-2">
+                    <dt className="text-slate-500">{row.key}</dt>
+                    <dd className="font-semibold text-slate-900">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </section>
+          <section className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
+            <h2 className="font-display text-xl font-bold text-emerald-950">Quick FAQ</h2>
+            <div className="mt-4 space-y-3 text-sm">
+              <div>
+                <p className="font-semibold text-emerald-950">Can I customize this?</p>
+                <p className="text-emerald-900/75">Add names, themes, dates, or notes in the order panel.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-emerald-950">Can I pick up?</p>
+                <p className="text-emerald-900/75">Choose pickup or delivery before adding the item to your bag.</p>
+              </div>
+              <div>
+                <p className="font-semibold text-emerald-950">Is stock live?</p>
+                <p className="text-emerald-900/75">Availability is connected to the store inventory and confirmed at checkout.</p>
+              </div>
+            </div>
+          </section>
+        </div>
         <ProductReviews productId={product.id} />
       </div>
     </div>

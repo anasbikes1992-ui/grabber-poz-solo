@@ -4,6 +4,7 @@ import './globals.css';
 import { AppShell } from '@/components/layout/app-shell';
 import { StorefrontAnalytics } from '@/components/storefront/storefront-analytics';
 import { resolveMarketingPixels } from '@/lib/config/resolve-marketing';
+import { siteBaseUrl } from '@/lib/storefront/seo';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -24,6 +25,7 @@ const nunitoSans = Nunito_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteBaseUrl()),
   title: 'Grabber — Store & Business OS',
   description:
     'Online storefront for shoppers + staff POS, inventory, Polim Potha, and vertical operations.',

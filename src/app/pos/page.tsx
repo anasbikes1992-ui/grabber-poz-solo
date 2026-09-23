@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -88,6 +88,7 @@ import {
 export type { LoyaltyMember };
 
 const FALLBACK_CATALOG: CatalogItem[] = POS_DEMO_CATALOG;
+const POS_CATALOG_PAGE_SIZE = 24;
 
 export default function POSPage() {
   return (
@@ -112,6 +113,7 @@ function POSTerminal() {
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const [search, setSearch] = useState('');
+  const [catalogPage, setCatalogPage] = useState(1);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [announcement, setAnnouncement] = useState('');
   const [discountPercent, setDiscountPercent] = useState<number>(0);
@@ -160,6 +162,29 @@ function POSTerminal() {
   const receiptStoreName = receiptHeaderLines[0] || businessProfile?.name || 'Grabber Store';
   const receiptStoreAddress = receiptHeaderLines.slice(1).join(' • ') || 'Main Counter';
   const receiptFooterNote = businessProfile?.receiptFooter || undefined;
+  const filteredCatalog = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    if (!normalizedSearch) return catalog;
+    return catalog.filter((item) =>
+      [item.name, item.variant, item.barcode]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedSearch)),
+    );
+  }, [catalog, search]);
+  const catalogTotalPages = Math.max(1, Math.ceil(filteredCatalog.length / POS_CATALOG_PAGE_SIZE));
+  const safeCatalogPage = Math.min(catalogPage, catalogTotalPages);
+  const visibleCatalog = useMemo(() => {
+    const start = (safeCatalogPage - 1) * POS_CATALOG_PAGE_SIZE;
+    return filteredCatalog.slice(start, start + POS_CATALOG_PAGE_SIZE);
+  }, [filteredCatalog, safeCatalogPage]);
+
+  useEffect(() => {
+    setCatalogPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    if (catalogPage > catalogTotalPages) setCatalogPage(catalogTotalPages);
+  }, [catalogPage, catalogTotalPages]);
 
   const toggleSound = () => {
     const next = !soundEnabled;
@@ -938,9 +963,38 @@ function POSTerminal() {
           />
         )}
 
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-[11px] text-muted-foreground">
+          <span>
+            Showing {visibleCatalog.length ? (safeCatalogPage - 1) * POS_CATALOG_PAGE_SIZE + 1 : 0}
+            {'–'}
+            {Math.min(safeCatalogPage * POS_CATALOG_PAGE_SIZE, filteredCatalog.length)} of {filteredCatalog.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCatalogPage((currentPage) => Math.max(1, currentPage - 1))}
+              disabled={safeCatalogPage <= 1}
+              className="rounded-lg border border-zinc-800 px-2 py-1 font-semibold text-zinc-300 disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <span className="font-mono text-zinc-400">
+              {safeCatalogPage}/{catalogTotalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCatalogPage((currentPage) => Math.min(catalogTotalPages, currentPage + 1))}
+              disabled={safeCatalogPage >= catalogTotalPages}
+              className="rounded-lg border border-zinc-800 px-2 py-1 font-semibold text-zinc-300 disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+
         {/* Product Catalog Grid */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">
-          {catalog.filter((i) => i.name.toLowerCase().includes(search.toLowerCase())).map((item) => {
+          {visibleCatalog.map((item) => {
             const outOfStock = Number(item.stock) <= 0;
             return (
             <button
@@ -987,6 +1041,11 @@ function POSTerminal() {
             </button>
             );
           })}
+          {visibleCatalog.length === 0 && (
+            <div className="col-span-full flex min-h-40 items-center justify-center rounded-2xl border border-dashed border-zinc-800 text-center text-xs text-muted-foreground">
+              No products match “{search}”.
+            </div>
+          )}
         </div>
       </div>
 

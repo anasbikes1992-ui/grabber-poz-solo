@@ -1,13 +1,13 @@
 # ThePartyStore Product Proposal
 
 **Prepared for:** ThePartyStore
-**Prepared by:** Grabber MyPoz Business OS
+**Prepared by:** Grabber Business OS Pro
 **Deployment model:** Dedicated single-business app + dedicated database
 **Status:** Ready for Coolify deployment after credentials and runtime env are provided
 
 ## Executive Summary
 
-ThePartyStore should launch on **Grabber MyPoz Business OS — Solo Edition** as a dedicated party-supplies POS and online storefront. The system uses one isolated application and one isolated database for this client, with the same reusable product codebase that can later be sold to other merchants through client-specific manifests and setup scripts.
+ThePartyStore should launch on **Grabber Business OS Pro** as a dedicated party-supplies POS and online storefront. The system uses one isolated application and one isolated database for this client, with the same reusable product codebase that can later be configured for other merchants through client-specific manifests and setup scripts.
 
 This is the best win-win approach:
 
@@ -17,10 +17,10 @@ This is the best win-win approach:
 
 ## Proposed Product
 
-**Product name:** Grabber MyPoz Business OS — Solo Edition
+**Product name:** Grabber Business OS Pro
 **Client instance:** ThePartyStore
 **Storefront domain target:** `https://thepartystore.grabberpoz.com` unless a custom client domain is supplied
-**Primary vertical:** General retail / party supplies
+**Primary vertical pack:** Party / Events + Retail & Wholesale
 **Main sales modes:** Counter POS, COD storefront, WhatsApp-assisted sales
 
 ## Included Scope
@@ -64,7 +64,7 @@ This is the best win-win approach:
 - Currency: `LKR`.
 - Timezone: `Asia/Colombo`.
 - Receipt header and footer configured through business profile.
-- General-retail vertical flags enabled, unrelated verticals disabled by default.
+- Party/Event and retail workflows enabled, unrelated vertical modules disabled by default.
 
 ### 5. Deployment & Operations
 
@@ -90,7 +90,7 @@ This is the best win-win approach:
 | POS receipt correction | Done | Sample-style thermal receipt |
 | TypeScript validation | Passed | `npm run typecheck` |
 | Targeted tests | Passed | `a11y-smoke` and `pos-hardware` |
-| Production build | Passed | Requires larger Node heap on this repo |
+| Production build | Passed | Build workers capped in `next.config.mjs`; large Node heap recommended on VPS |
 
 ## Catalog Readiness
 
@@ -195,7 +195,9 @@ Minimum:
 ```env
 NODE_ENV=production
 LANDING_MODE=storefront
+APP_URL=https://thepartystore.grabberpoz.com
 NEXT_PUBLIC_APP_URL=https://thepartystore.grabberpoz.com
+STORE_NAME=ThePartyStore
 DATABASE_URL=
 AUTH_SECRET=
 MASTER_ENCRYPTION_KEY=
@@ -258,9 +260,9 @@ NODE_OPTIONS=--max-old-space-size=8192
 NEXT_TELEMETRY_DISABLED=1
 ```
 
-## Commercial Packaging
+## Commercial Model
 
-### Pilot Package
+### Grabber Business OS Pro
 
 Includes:
 
@@ -273,7 +275,7 @@ Includes:
 - Deployment on dedicated instance
 - Initial handover and smoke test
 
-Excludes unless separately enabled:
+Quoted separately only when it has real delivery cost:
 
 - Online card payments
 - Full WhatsApp automation

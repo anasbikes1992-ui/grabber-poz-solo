@@ -4,6 +4,8 @@
 **Scope:** Independent review of code, docs, stack, and UI/UX, plus new business/product ideas and a single prioritized roadmap.
 **Relationship to existing docs:** This file does not replace [`goaldoc.md`](../goaldoc.md), [`goalplan.md`](../goalplan.md), [`docs/ROADMAP.md`](./ROADMAP.md), [`docs/GRABBER_GAP_REGISTER.md`](./GRABBER_GAP_REGISTER.md), or [`docs/CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md). Those remain the execution-level source of truth. This document adds an outside-in business lens, net-new module proposals, and a merged roadmap that reconciles all of them into one sequence.
 
+> **Commercial update — 2026-09-23:** Current sales model is one **Grabber Business OS Pro** plan with vertical packs and quoted implementation extras. This document uses “growth” only as a business outcome, not as a package tier.
+
 ---
 
 ## 1. Executive Verdict
@@ -65,12 +67,12 @@ These are additions to the sellable catalog, not replacements for the existing g
 ### 4.1 Grabber Scanner — companion mobile app for receiving, stocktake, and delivery
 **Problem:** Warehouse receiving and stock counts done on a laptop or mobile browser are slow and error-prone; staff must type SKUs or fight a browser camera API.
 **Solution:** A small Capacitor- or Expo-wrapped app (reuses existing TypeScript business logic and API) with a native camera barcode scanner, offline queue (reuses the existing IndexedDB offline engine pattern), and three modes: **Receive** (GRN put-away), **Count** (cycle count), **Deliver** (driver POD photo + signature capture).
-**Fit:** Add-on for Growth/Enterprise; also the natural home for the Section 4.4 delivery proof-of-delivery workflow already scoped in `goaldoc.md` §4.M.
+**Fit:** Quoted implementation extra for clients that need receiving, cycle-count, or delivery proof workflows; also the natural home for the Section 4.4 delivery proof-of-delivery workflow already scoped in `goaldoc.md` §4.M.
 
 ### 4.2 Grabber Forecast — deterministic demand & reorder engine
 **Problem:** Owners currently rely on gut feel for "what to reorder and how much," especially for grocery/FEFO and fashion seasonal stock.
 **Solution:** A **deterministic**, explainable forecasting service (moving average + seasonality index per vertical pack, not a black-box model) that reads existing `stockMovements` and `salesMetrics` history to produce a suggested purchase-request draft — feeding directly into the purchase-to-pay chain already planned in `goalplan.md` Phase 3 (A05/A07). Suggestions are always a **draft PR**, never an auto-issued PO, preserving the approval-gated-AI principle already established for Jarvis.
-**Fit:** Growth/Enterprise add-on; strong differentiator vs. Odoo-class competitors who mostly leave reordering manual at the SMB tier.
+**Fit:** Included as a Pro intelligence workflow once purchase-to-pay history exists; strong differentiator vs. Odoo-class competitors who mostly leave reordering manual at the SMB segment.
 
 ### 4.3 Grabber Local Pay — LankaPay/CEFTS/QR interbank rail
 **Problem:** Current payment adapters (PayHere, WebXPay, Stripe, Koko, Mintpay, Payzy) are card/wallet-first. Many Sri Lankan merchants and customers prefer direct bank QR transfer (LankaPay JustPay / CEFTS) to avoid card MDR fees.
@@ -80,17 +82,17 @@ These are additions to the sellable catalog, not replacements for the existing g
 ### 4.4 Grabber Group — multi-entity roll-up reporting (without breaking single-tenancy)
 **Problem:** Some merchants operate several **legally separate** businesses (e.g., a family running a grocery, a hardware store, and a restaurant), each correctly isolated in its own Grabber installation per the architecture invariant. Today there is no way for the owner to see a combined picture.
 **Solution:** A **read-only aggregation service** that pulls signed, summarized KPI exports (already-existing report/KPI APIs) from each installation via an authenticated pull or scheduled signed push, and renders a single "Group Dashboard." Critically, this does **not** introduce `tenant_id` or shared database access — each business's operational data stays in its own DB; only aggregated numbers cross the boundary, preserving the core architectural guarantee.
-**Fit:** New Enterprise/multi-location commercial tier — meaningful new revenue line for the same underlying product, sold to multi-shop owners who currently have to build this in a spreadsheet.
+**Fit:** Quoted large-rollout implementation scope for multi-location owners — meaningful new revenue line for the same underlying Pro product, sold to operators who currently build this in a spreadsheet.
 
 ### 4.5 Grabber Trust — supplier & vendor scorecards
 **Problem:** Purchase-to-pay (goalplan Phase 3) will produce rich GRN/invoice/variance data, but there's no way to see "which suppliers are reliable" over time.
 **Solution:** A supplier scorecard view built on top of the same purchase-to-pay tables: on-time delivery %, short/damaged receipt rate, price variance trend, and average payment terms honored. This turns operational exhaust data already being captured into a decision-support module with near-zero new schema.
-**Fit:** Included in Enterprise; strengthens the purchasing story sold in Section 4.2.
+**Fit:** Included in Pro where the purchasing workflow is enabled; strengthens the purchasing story sold in Section 4.2.
 
 ### 4.6 Grabber Assist — voice/quick-command layer on Jarvis
 **Problem:** Busy counters can't always type; a cashier's hands are full.
 **Solution:** A thin voice-to-text front end (Web Speech API where available, graceful fallback to quick-command text chips) that feeds into the **existing** typed Jarvis tool contracts and preflight/approval engine described in `implementation_plan.md` Phase 4 — no new AI-safety surface is introduced, this is purely an input modality on top of already-approval-gated tools.
-**Fit:** Growth/Enterprise add-on; strong demo differentiator with low incremental risk since it reuses the control plane already designed.
+**Fit:** Included in Pro when voice/browser provider readiness is validated; strong demo differentiator with low incremental risk since it reuses the control plane already designed.
 
 ### 4.7 Grabber Offline App — installable PWA for the counter
 **Problem:** The product already claims offline-aware POS (IndexedDB queue), but without a web app manifest and service worker it cannot be "installed" on a counter tablet, cannot control its own cache, and will not survive certain browser/OS cache-clearing behavior as gracefully as a true PWA.
@@ -100,7 +102,7 @@ These are additions to the sellable catalog, not replacements for the existing g
 ### 4.8 Grabber Compliance Pack — e-invoicing & regulatory readiness
 **Problem:** Sri Lanka (and regional markets Grabber may expand into) increasingly moves toward mandated e-invoicing/VAT digital reporting. Being ready before it's mandatory is a sales advantage; being caught unready after a mandate is a liability.
 **Solution:** An export/report module producing the structured invoice data format regulators are likely to require (aligned to existing tax registry + journal entries), sold as a low-effort compliance add-on now and a mandatory upgrade path later. Track the specific IRD/Customs requirement and scope narrowly — do not overclaim compliance the way `CLAIMS_AND_SCOPE.md` already warns against for other domains.
-**Fit:** Enterprise add-on; frame explicitly as "readiness," not "certified compliance," consistent with the existing claims discipline.
+**Fit:** Quoted compliance-readiness scope; frame explicitly as "readiness," not "certified compliance," consistent with the existing claims discipline.
 
 ### 4.9 Grabber Insure — extended warranty & protection plan upsell
 **Problem:** Electronics/repair verticals (already strong per the parity matrix) leave margin on the table by not systematically offering protection plans at checkout.
@@ -110,7 +112,7 @@ These are additions to the sellable catalog, not replacements for the existing g
 ### 4.10 Grabber Storefront Kiosk — "scan and go" in-store self-checkout for retail/grocery
 **Problem:** QR ordering already exists for restaurant dine-in; general retail/grocery doesn't have an equivalent self-service accelerator for busy counters.
 **Solution:** Extend the existing guest-order/QR infrastructure (already hardened per `CODEBASE_MAP_AND_IMPROVEMENTS.md` — UUID tokens, catalog-priced POST, rate limiting) into a retail "scan your own items, pay at a kiosk or via QR" flow that still settles through the canonical checkout service, preserving all commerce invariants.
-**Fit:** Growth/Enterprise add-on for grocery/general retail.
+**Fit:** Optional vertical-pack workflow for grocery/general retail once checkout, payment, and stock controls are certified.
 
 ---
 
@@ -155,8 +157,8 @@ Run `goalplan.md` Phase 6 (A13: durable agent actions, dead letters, health prob
 ### Track G — Vertical UI identity (new, can start any time after Track C's a11y items close)
 Execute Section 5's theme-pack program (items 1, 3, 4, 5) alongside Track D/E vertical work, so each vertical pack ships with both the right operational depth and the right visual identity at the same time instead of shipping generic UI first and re-skinning later.
 
-### Track H — Onboarding, pilots, and new commercial tiers (continue as planned + additions)
-Run `goalplan.md` Phase 7 (A14/A15/A16: onboarding console, pilots, marketing scale) as scoped. **Insert 4.4 (Grabber Group roll-up)** and **4.5 (Grabber Trust supplier scorecards)** here as new Enterprise-tier revenue lines to pitch once the underlying purchase-to-pay and reporting data exists — both are read-only aggregation on top of already-planned data, so they should be nearly incremental cost to ship at this point. **Insert 4.8 (Grabber Compliance Pack)** and **4.10 (Grabber Storefront Kiosk)** as optional pilot add-ons once a vertical's core depth (Track E) is certified for that segment.
+### Track H — Onboarding, pilots, and large-scope rollouts (continue as planned + additions)
+Run `goalplan.md` Phase 7 (A14/A15/A16: onboarding console, pilots, marketing scale) as scoped. **Insert 4.4 (Grabber Group roll-up)** and **4.5 (Grabber Trust supplier scorecards)** here as quoted large-rollout scopes once the underlying purchase-to-pay and reporting data exists — both are read-only aggregation on top of already-planned data, so they should be nearly incremental cost to ship at this point. **Insert 4.8 (Grabber Compliance Pack)** and **4.10 (Grabber Storefront Kiosk)** as optional pilot scopes once a vertical's core depth (Track E) is certified for that segment.
 
 ### Sequencing at a glance
 

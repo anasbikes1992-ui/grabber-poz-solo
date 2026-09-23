@@ -43,9 +43,9 @@ Vercel remains an **optional** deploy target for demos or contracted clients.
 
 | Role | Spec (minimum) | Notes |
 |------|----------------|-------|
-| **Pilot / Starter** | 2 vCPU, 4 GB RAM, 60 GB SSD | 1–2 small shops |
-| **Growth multi-client host** | 4 vCPU, 8–16 GB RAM, 160 GB+ SSD | Several isolated apps |
-| **Self-host Enterprise (client)** | 4 vCPU, **16 GB RAM**, SSD | Mandatory AMC |
+| **Pilot / Small Pro install** | 2 vCPU, 4 GB RAM, 60 GB SSD | 1–2 small shops |
+| **Multi-client host** | 4 vCPU, 8–16 GB RAM, 160 GB+ SSD | Several isolated apps |
+| **Self-host / large client** | 4 vCPU, **16 GB RAM**, SSD | Mandatory AMC |
 | **Creative C2 GPU** | Separate GPU host | Not on the web VPS |
 
 OS: **Ubuntu 22.04/24.04 LTS**. Node **20+**. Postgres **15+**.
@@ -172,7 +172,7 @@ Without DSN, the app runs normally (Sentry no-ops).
 | Env file encrypted vault | On change |
 | Media/uploads disk | Daily sync if local |
 
-Test restore quarterly (Enterprise AMC requirement).
+Test restore quarterly for self-host or contracted AMC clients.
 
 ---
 

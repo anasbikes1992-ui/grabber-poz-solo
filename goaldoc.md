@@ -270,30 +270,29 @@ customer_consents
 - Every module has a health check that tests capability, not merely presence of credentials.
 - Every production claim maps to an executable test, smoke test, or signed acceptance record.
 
-## 6. Product Packages
+## 6. Product Offer
 
-### Starter Core - indicative LKR 125,000 + LKR 5,000/month
+### Grabber Business OS Pro
 
-One location, one register, POS, products, inventory, COD storefront, customers, basic Polim Potha, basic reports, 500-SKU migration, training, managed deployment.
+Every client receives the full Pro platform: POS, products, inventory, COD storefront, customers, Polim Potha, reports, Jarvis/agents, backups, updates, and managed deployment. Pricing varies by implementation size, migration scope, branch count, hardware, and support/SLA requirements — not by feature tier.
 
-### Business Growth - indicative LKR 250,000 + LKR 10,000/month
+### Vertical packs
 
-Up to three branches, transfers, WhatsApp configuration, social manager, Creative C0, vertical configuration, priority onboarding.
-
-### Enterprise - from indicative LKR 450,000 + LKR 20,000/month or AMC
-
-Five or more branches, warehouse, custom bridges, expanded finance, self-host/hybrid, SLA, custom vertical work.
+- Retail & Wholesale.
+- Electronics & Repairs.
+- Restaurant / Cafe.
+- Salon / Services.
+- Party / Events.
+- Grocery / Pharmacy later, only after dedicated certification.
 
 ### Add-ons
 
 - Payment gateway configuration.
 - Courier/provider integrations.
-- Service and salon operations.
-- Repair and warranty depth.
 - Creative C1/C2 credits.
 - Custom reports and migrations.
 - On-site hardware and training.
-- Multi-branch, wholesale, hire purchase, and advanced finance.
+- Large branch rollout, self-hosting, and custom workflow development.
 
 ## 7. Target Customers and Positioning
 

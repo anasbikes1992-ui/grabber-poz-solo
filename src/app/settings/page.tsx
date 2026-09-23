@@ -48,7 +48,6 @@ export default function SettingsPage() {
   const [verticalFlags, setVerticalFlags] = useState<VerticalFlags>(DEFAULT_VERTICAL_FLAGS);
   const [flagsSaveSuccess, setFlagsSaveSuccess] = useState(false);
   const [applyingPreset, setApplyingPreset] = useState<string | null>(null);
-  const [currentPlanMode, setCurrentPlanMode] = useState<'basic' | 'pro'>('pro');
 
   const loadSettings = useCallback(async () => {
     setProfileLoading(true);
@@ -76,30 +75,10 @@ export default function SettingsPage() {
       if (flagsData.success && flagsData.flags) {
         setVerticalFlags({ ...DEFAULT_VERTICAL_FLAGS, ...flagsData.flags });
       }
-
-      fetch('/api/config/plan')
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.success && d.mode) setCurrentPlanMode(d.mode);
-        })
-        .catch(() => {});
     } finally {
       setProfileLoading(false);
     }
   }, []);
-
-  const handleUpdatePlanMode = async (newMode: 'basic' | 'pro') => {
-    setCurrentPlanMode(newMode);
-    try {
-      await fetch('/api/config/plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: newMode }),
-      });
-    } catch {
-      /* ignore */
-    }
-  };
 
   useEffect(() => {
     void loadSettings();
@@ -299,68 +278,41 @@ export default function SettingsPage() {
       {/* TAB 1: General Profile & Tax Rules */}
       {activeTab === 'GENERAL' && (
         <form onSubmit={handleSaveProfile} className="space-y-5">
-          {/* Platform Plan & Edition Card */}
+          {/* Platform Edition Card */}
           <div className="p-6 rounded-2xl glass-card space-y-4 text-xs border border-purple-500/20 bg-purple-950/10">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
               <div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-purple-400" />
-                  <h3 className="font-bold text-sm text-foreground">Platform Edition & Plan Mode</h3>
+                  <h3 className="font-bold text-sm text-foreground">Grabber Business OS Pro</h3>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-extrabold uppercase">
-                    {currentPlanMode.toUpperCase()} MODE
+                    ACTIVE
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Choose between Basic (all POS & ERP features) and Pro (+ Jarvis AI Copilot, Storefront Studio, Marketing Suite).
+                  Every client receives the full Pro platform. Configure business category through vertical modules and provider credentials, not feature tiers.
                 </p>
-              </div>
-
-              {/* Mode Toggle Selector */}
-              <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-xl p-1 gap-1">
-                <button
-                  type="button"
-                  onClick={() => handleUpdatePlanMode('basic')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
-                    currentPlanMode === 'basic'
-                      ? 'bg-zinc-800 text-white shadow-xs'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  Basic Mode
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleUpdatePlanMode('pro')}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
-                    currentPlanMode === 'pro'
-                      ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                      : 'text-zinc-400 hover:text-purple-300'
-                  }`}
-                >
-                  <Sparkles className="h-3 w-3" />
-                  <span>Pro Mode (Jarvis AI)</span>
-                </button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div className={`p-3 rounded-xl border ${currentPlanMode === 'basic' ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-800/80 bg-zinc-900/30'}`}>
+              <div className="p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/5">
                 <div className="font-bold text-xs text-foreground flex items-center gap-1.5 mb-1">
                   <Check className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>Basic Edition Inclusions</span>
+                  <span>Included for every client</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Full Counter POS, Multi-Branch & Warehouses, Inventory Barcodes, Polim Potha Credit Ledger, Invoicing, Tax Reports, Shifts & Basic Storefront.
+                  POS, multi-branch inventory, barcodes, customers, Polim Potha, orders, reports, storefront, Jarvis, agents, backups, updates, and support.
                 </p>
               </div>
 
-              <div className={`p-3 rounded-xl border ${currentPlanMode === 'pro' ? 'border-purple-500/40 bg-purple-500/5' : 'border-zinc-800/80 bg-zinc-900/30'}`}>
+              <div className="p-3 rounded-xl border border-purple-500/40 bg-purple-500/5">
                 <div className="font-bold text-xs text-foreground flex items-center gap-1.5 mb-1">
                   <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-                  <span>Pro Edition Add-Ons</span>
+                  <span>Configured by vertical pack</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Everything in Basic + <strong>Jarvis Autonomous AI Copilot</strong> (Voice Assistant, Live DB Metrics, Restock Radar) + Storefront Studio & Company Marketing Suite.
+                  Retail & Wholesale, Electronics & Repairs, Restaurant/Cafe, Salon/Services, Party/Event, and future Grocery/Pharmacy readiness.
                 </p>
               </div>
             </div>

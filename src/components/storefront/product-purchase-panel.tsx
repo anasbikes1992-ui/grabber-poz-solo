@@ -46,6 +46,9 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
   const [selectedId, setSelectedId] = useState(lines[0]?.variantId || lines[0]?.productId || '');
   const [qty, setQty] = useState(1);
   const [msg, setMsg] = useState<string | null>(null);
+  const [customText, setCustomText] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [fulfillment, setFulfillment] = useState<'delivery' | 'pickup'>('delivery');
 
   const selected = lines.find((l) => (l.variantId || l.productId) === selectedId) || lines[0];
 
@@ -54,11 +57,34 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
     setMsg(null);
     try {
       const raw = localStorage.getItem('grabber_store_bag');
-      const bag = raw ? (JSON.parse(raw) as Array<Line & { qty: number; id: string }>) : [];
+      const bag = raw
+        ? (JSON.parse(raw) as Array<
+            Line & {
+              qty: number;
+              id: string;
+              customText?: string;
+              eventDate?: string;
+              fulfillment?: 'delivery' | 'pickup';
+            }
+          >)
+        : [];
       const lineId = selected.variantId || selected.productId;
       const existing = bag.find((b) => b.id === lineId);
-      if (existing) existing.qty += qty;
-      else bag.push({ ...selected, id: lineId, qty });
+      const optionPayload = {
+        customText: customText.trim() || undefined,
+        eventDate: eventDate || undefined,
+        fulfillment,
+      };
+      if (
+        existing &&
+        existing.customText === optionPayload.customText &&
+        existing.eventDate === optionPayload.eventDate &&
+        existing.fulfillment === optionPayload.fulfillment
+      ) {
+        existing.qty += qty;
+      } else {
+        bag.push({ ...selected, ...optionPayload, id: lineId, qty });
+      }
       localStorage.setItem('grabber_store_bag', JSON.stringify(bag));
       setMsg(`Added ${qty} to bag. View bag on the home page.`);
     } catch {
@@ -118,6 +144,50 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
           onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
           className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-sm"
         />
+      </div>
+
+      <div className="grid gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+        <div>
+          <label htmlFor="product-custom-text" className="mb-1 block text-xs font-semibold text-slate-600">
+            Custom text / note
+          </label>
+          <input
+            id="product-custom-text"
+            value={customText}
+            onChange={(event) => setCustomText(event.target.value)}
+            maxLength={120}
+            placeholder="Name, color theme, message, or special instruction"
+            className="w-full rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm"
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="product-event-date" className="mb-1 block text-xs font-semibold text-slate-600">
+              Event / needed date
+            </label>
+            <input
+              id="product-event-date"
+              type="date"
+              value={eventDate}
+              onChange={(event) => setEventDate(event.target.value)}
+              className="w-full rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="product-fulfillment" className="mb-1 block text-xs font-semibold text-slate-600">
+              Fulfillment
+            </label>
+            <select
+              id="product-fulfillment"
+              value={fulfillment}
+              onChange={(event) => setFulfillment(event.target.value === 'pickup' ? 'pickup' : 'delivery')}
+              className="w-full rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm"
+            >
+              <option value="delivery">Delivery / courier</option>
+              <option value="pickup">Pickup from store</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <BnplCalculator priceLkr={selected.unitPrice * qty} />

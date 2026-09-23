@@ -4,6 +4,9 @@ import { withSentryConfig } from '@sentry/nextjs';
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
+  experimental: {
+    cpus: 1,
+  },
   serverExternalPackages: ['better-sqlite3', 'node-thermal-printer', 'pdf-lib'],
   images: {
     remotePatterns: [

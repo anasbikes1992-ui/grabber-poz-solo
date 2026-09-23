@@ -386,7 +386,7 @@ export function CompanyLandingBelowFold({
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col justify-between">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Single Store</div>
-                <h3 className="text-2xl font-black text-white mb-2">Standard Edition</h3>
+                <h3 className="text-2xl font-black text-white mb-2">Vertical Setup</h3>
                 <p className="text-xs text-slate-400 mb-6">
                   Perfect for boutique shops, single-location retail, and growing retail stores.
                 </p>
@@ -397,9 +397,9 @@ export function CompanyLandingBelowFold({
                     'Fast touch POS & thermal receipts',
                     'Inventory with variants & barcodes',
                     'Customer database & purchase history',
-                    'Basic online storefront with catalog',
-                    'Basic promotions & discount codes',
-                    'Perpetual software license',
+                    'Online storefront with catalog',
+                    'Promotions & discount codes',
+                    'Configured as Grabber Business OS Pro',
                   ].map((feat) => (
                     <div key={feat} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -412,30 +412,30 @@ export function CompanyLandingBelowFold({
                 href="#contact"
                 className="w-full py-3 text-center rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-colors"
               >
-                Inquire for Standard
+                Choose Vertical Pack
               </a>
             </div>
 
-            {/* Pro Edition (Highlighted) */}
+            {/* Pro Plan (Highlighted) */}
             <div className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500 rounded-3xl p-8 flex flex-col justify-between relative shadow-2xl shadow-amber-500/10">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 text-xs font-black uppercase px-3 py-0.5 rounded-full shadow-md">
                 Most Popular for Retailers
               </div>
               <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-2">Multi-Branch Retail</div>
-                <h3 className="text-2xl font-black text-white mb-2">Pro Edition</h3>
+                <div className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-2">All-in-One Plan</div>
+                <h3 className="text-2xl font-black text-white mb-2">Business OS Pro</h3>
                 <p className="text-xs text-slate-400 mb-6">
                   For expanding businesses needing branch transfers, Polim Potha credit, and payment gateways.
                 </p>
                 <div className="space-y-3 text-sm text-slate-200 mb-8">
                   {[
-                    'Everything in Standard, plus:',
+                    'Every client receives:',
                     'Multi-branch & warehouse management',
                     'Inter-branch stock transfer requests & GRN',
                     'Polim Potha customer credit ledger',
                     'Advanced promotions engine (M5 popup/rules)',
-                    'Sri Lanka payment gateway integration',
-                    'WhatsApp automated commerce & orders',
+                    'Provider integrations when configured',
+                    'WhatsApp commerce when credentials are live',
                     'VAT & Tax invoice breakdown reports',
                   ].map((feat) => (
                     <div key={feat} className="flex items-start gap-2.5">
@@ -453,17 +453,17 @@ export function CompanyLandingBelowFold({
               </a>
             </div>
 
-            {/* Enterprise Edition */}
+            {/* Custom Scope */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col justify-between">
               <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Chains & Distributors</div>
-                <h3 className="text-2xl font-black text-white mb-2">Enterprise Edition</h3>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Large Implementations</div>
+                <h3 className="text-2xl font-black text-white mb-2">Custom Scope</h3>
                 <p className="text-xs text-slate-400 mb-6">
                   For retail chains, wholesale merchants, and businesses requiring customized deployment.
                 </p>
                 <div className="space-y-3 text-sm text-slate-300 mb-8">
                   {[
-                    'Everything in Pro, plus:',
+                    'Quoted separately when needed:',
                     'Custom business workflows & logic',
                     'ERP, accounting & custom API connectors',
                     'Dedicated hardware & deployment setup',
@@ -482,7 +482,7 @@ export function CompanyLandingBelowFold({
                 href="#contact"
                 className="w-full py-3 text-center rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-colors"
               >
-                Contact Enterprise Sales
+                Discuss Custom Scope
               </a>
             </div>
           </div>

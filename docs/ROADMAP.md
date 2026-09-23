@@ -3,6 +3,8 @@
 Sprint-based plan. **Sellable scope:** [`CLAIMS_AND_SCOPE.md`](./CLAIMS_AND_SCOPE.md) · [`STAGE_READINESS.md`](./STAGE_READINESS.md).  
 **No rebuild of POS.** Extend the existing commerce engine.
 
+**Commercial model:** one product only — **Grabber Business OS Pro**. All clients receive the same supported platform; implementation differs by vertical pack and provider readiness, not by feature-tier packages.
+
 Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 ---

@@ -1,6 +1,9 @@
 # Final Product Proposal — Grabber / MyPoz Consolidation
 
 **Date:** 2026-09-22
+
+> **Commercial update — 2026-09-23:** Use [`COMMERCIAL_MODEL.md`](./COMMERCIAL_MODEL.md) as the current SSOT. The product is sold as one all-in-one **Grabber Business OS Pro** plan with vertical packs, not as package tiers.
+
 **Reviewed projects:**
 
 - `D:\GRABBER POZ SOLO`
@@ -16,7 +19,7 @@ Build the final commercial product from **`D:\GRABBER POZ SOLO`** and treat the 
 
 Final product name:
 
-> **Grabber MyPoz Business OS — Solo Edition**
+> **Grabber Business OS Pro**
 
 Positioning:
 
@@ -366,7 +369,7 @@ npm run ops:smoke
 
 ## Commercial guide
 
-### Starter package
+### Grabber Business OS Pro package
 
 Sell first as:
 
@@ -403,7 +406,7 @@ Avoid promising:
 
 Use **`D:\GRABBER POZ SOLO` as the production trunk**.
 
-Rename/brand the commercial offering as **Grabber MyPoz Business OS — Solo Edition**.
+Brand the commercial offering as **Grabber Business OS Pro**.
 
 Keep:
 

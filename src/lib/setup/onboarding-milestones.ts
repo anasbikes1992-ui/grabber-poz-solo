@@ -91,7 +91,7 @@ export const ONBOARDING_WIZARD_STEPS: OnboardingWizardStepDef[] = [
   },
   {
     id: 'catalog',
-    title: 'Starter catalog',
+    title: 'Launch catalog',
     description: 'Seed products, registers, and chart of accounts for the preset.',
     order: 4,
     required: true,

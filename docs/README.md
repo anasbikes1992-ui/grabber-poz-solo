@@ -44,6 +44,7 @@ Welcome to the official documentation for **Grabber Solo / Grabber Business OS (
 | Playbook | Purpose | Key Content |
 | :--- | :--- | :--- |
 | **[02 Deployment & Onboarding](./02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md)** | **Client Onboarding Playbook** | 15-minute setup: Supabase DB, migrations bootstrap, Vercel/VPS deploy, DNS binding. |
+| **[Grabberpoz + ThePartyStore Launch](./GRABBERPOZ_AND_THEPARTYSTORE_LAUNCH.md)** | **Company + First Client Go-Live** | Runtime env, routing, and acceptance checks for `grabberpoz.com` and `thepartystore.grabberpoz.com`. |
 | **[03 Commerce & Operations](./03_COMMERCE_AND_OPERATIONS_PLAYBOOK.md)** | **Physical Operations Playbook** | Fast counter POS, barcode scanning, shift registers, Polim Potha customer credit, and GRN. |
 | **[04 Jarvis Autonomous OS](./04_JARVIS_AUTONOMOUS_OS_MANUAL.md)** | **Jarvis Operational Manual** | Closed-loop brain, Action Policy Matrix, Owner Morning Brief, SEO audit, and profit attribution. |
 | **[05 Vertical Intelligence](./05_VERTICAL_INTELLIGENCE_GUIDE.md)** | **Vertical Packs Guide** | Specialized domain parameters, KPIs, and prompt templates across active vertical packs. |

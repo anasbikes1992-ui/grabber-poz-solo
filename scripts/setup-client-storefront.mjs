@@ -1,5 +1,5 @@
 /**
- * GRABBER SOLO — Client business profile + storefront setup.
+ * GRABBER BUSINESS OS PRO — Client business profile + storefront setup.
  *
  * Usage:
  *   node scripts/setup-client-storefront.mjs --manifest clients/client-002.json --dry-run
@@ -27,6 +27,9 @@ if (!fs.existsSync(manifestPath)) {
 }
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+const enabledVerticalPacks = Array.isArray(manifest.enabledVerticalPacks)
+  ? manifest.enabledVerticalPacks
+  : [manifest.verticalPack || 'retail_wholesale'];
 
 const storefront = {
   theme: {
@@ -144,7 +147,7 @@ const profile = {
 };
 
 if (dryRun) {
-  console.log(JSON.stringify({ profile, storefront, verticalFlags }, null, 2));
+  console.log(JSON.stringify({ profile, storefront, verticalFlags, enabledVerticalPacks }, null, 2));
   process.exit(0);
 }
 
@@ -180,6 +183,8 @@ try {
   const [existingConfig] = await sql`SELECT id, config_json FROM business_config LIMIT 1`;
   const nextConfig = {
     ...((existingConfig?.config_json || {})),
+    planMode: 'pro',
+    verticalPacks: enabledVerticalPacks,
     storefront,
     verticalFlags,
   };

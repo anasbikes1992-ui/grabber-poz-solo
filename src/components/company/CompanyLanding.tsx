@@ -72,7 +72,7 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
       <div className="bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 text-slate-950 text-xs sm:text-sm font-bold py-2 px-4 text-center">
         <span className="inline-flex items-center gap-1.5">
           <Sparkles className="w-4 h-4 text-slate-950" />
-          <span>Grabber POZ Solo Edition is now available for Sri Lankan retail merchants.</span>
+          <span>Grabber Business OS Pro is now available for Sri Lankan SMEs.</span>
           <a href="#contact" className="underline underline-offset-2 hover:text-white ml-1">
             Book a Live Demo &rarr;
           </a>
