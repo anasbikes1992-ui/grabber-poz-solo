@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
-import { db, orders, customers, payments } from '@/db';
+import { db, orders, customers, payments, orderItems, products, productVariants } from '@/db';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 import {
   applyOrderTransitions,
@@ -55,11 +55,46 @@ export async function GET(req: Request) {
       orderIds.length > 0
         ? await db.select().from(payments).where(inArray(payments.orderId, orderIds))
         : [];
+    const itemRows =
+      orderIds.length > 0
+        ? await db
+            .select({
+              orderId: orderItems.orderId,
+              quantity: orderItems.quantity,
+              unitPrice: orderItems.unitPrice,
+              taxAmount: orderItems.taxAmount,
+              discountAmount: orderItems.discountAmount,
+              lineTotal: orderItems.lineTotal,
+              productName: products.name,
+              sku: products.sku,
+              variantName: productVariants.name,
+              variantSku: productVariants.sku,
+            })
+            .from(orderItems)
+            .leftJoin(products, eq(orderItems.productId, products.id))
+            .leftJoin(productVariants, eq(orderItems.variantId, productVariants.id))
+            .where(inArray(orderItems.orderId, orderIds))
+        : [];
     const paymentsByOrder = new Map<string, string[]>();
     for (const p of paymentRows) {
       const list = paymentsByOrder.get(p.orderId) || [];
       list.push(String(p.method));
       paymentsByOrder.set(p.orderId, list);
+    }
+    const itemsByOrder = new Map<string, Array<Record<string, unknown>>>();
+    for (const item of itemRows) {
+      const list = itemsByOrder.get(item.orderId) || [];
+      list.push({
+        name: item.productName || 'Item',
+        sku: item.variantSku || item.sku || '',
+        variant: item.variantName || '',
+        quantity: Number(item.quantity || 0),
+        unitPrice: Number(item.unitPrice || 0),
+        taxAmount: Number(item.taxAmount || 0),
+        discountAmount: Number(item.discountAmount || 0),
+        lineTotal: Number(item.lineTotal || 0),
+      });
+      itemsByOrder.set(item.orderId, list);
     }
 
     const customerIds = rows.map((r) => r.customerId).filter(Boolean) as string[];
@@ -87,6 +122,7 @@ export async function GET(req: Request) {
         deliveryAddress: c?.address || '',
         deliveryFee: 0,
         codFee: 0,
+        items: itemsByOrder.get(o.id) || [],
         createdAt: o.createdAt,
         saleStatus: o.orderStatus,
       };

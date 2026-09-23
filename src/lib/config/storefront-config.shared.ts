@@ -89,6 +89,8 @@ export type StorefrontTheme = {
   presetId?: string;
   /** White-label display name for the storefront shell/footer. */
   storeName?: string;
+  /** White-label storefront logo image URL. Falls back to storeName text when absent. */
+  logoUrl?: string;
   primaryColor: string;
   accentColor: string;
   secondaryColor?: string;

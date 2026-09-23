@@ -436,6 +436,8 @@ export function applyStorefrontThemePreset(
 
   const theme: StorefrontTheme = {
     ...preset.theme,
+    storeName: config.theme.storeName,
+    logoUrl: config.theme.logoUrl,
     whatsappNumber: config.theme.whatsappNumber,
   };
 

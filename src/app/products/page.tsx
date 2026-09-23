@@ -803,8 +803,171 @@ export default function ProductsCRUDPage() {
             </div>
           </div>
 
+          {/* Mobile Card List */}
+          <div className="space-y-3 lg:hidden">
+            <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-3 shadow-sm">
+              <button
+                type="button"
+                onClick={() => handleToggleSelectAll(filteredIds)}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-secondary px-3 text-xs font-bold text-foreground"
+                title={isAllSelected ? 'Deselect All' : 'Select All'}
+              >
+                {isAllSelected ? (
+                  <CheckSquare className="h-4 w-4 text-primary" />
+                ) : isSomeSelected ? (
+                  <MinusSquare className="h-4 w-4 text-primary" />
+                ) : (
+                  <Square className="h-4 w-4 text-muted-foreground" />
+                )}
+                {isAllSelected ? 'Deselect all' : 'Select all'}
+              </button>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {filteredProducts.length.toLocaleString()} visible
+              </span>
+            </div>
+
+            {filteredProducts.map((p) => {
+              const isSelected = selectedIds.has(p.id);
+              const hasVariants = (p.variants?.length || 0) > 0;
+              return (
+                <article
+                  key={p.id}
+                  className={`rounded-2xl border bg-card p-3 shadow-sm ${
+                    isSelected ? 'border-primary/60 ring-1 ring-primary/30' : 'border-border'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSelectRow(p.id)}
+                      className="mt-0.5 inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border bg-secondary text-foreground"
+                      aria-label={isSelected ? `Deselect ${p.name}` : `Select ${p.name}`}
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Square className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </button>
+
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt=""
+                        className="h-14 w-14 shrink-0 rounded-xl border border-border/50 bg-secondary object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-secondary/80 text-muted-foreground">
+                        <ImageIcon className="h-5 w-5" />
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-extrabold text-foreground">{p.name}</h3>
+                      {p.description && (
+                        <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
+                          {p.description.replace(/<[^>]*>?/gm, '')}
+                        </p>
+                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-1 text-[10px] font-bold text-foreground">
+                          <Tag className="h-3 w-3 text-primary" />
+                          {p.category || 'Uncategorized'}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                            p.stock > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'
+                          }`}
+                        >
+                          Stock {p.stock}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                          className="rounded-full bg-secondary px-2 py-1 text-[10px] font-bold text-foreground"
+                          aria-expanded={hasVariants ? expandedId === p.id : undefined}
+                        >
+                          {p.variantCount || p.variants?.length || 0} variants
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl bg-secondary/40 p-3 text-xs">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground">SKU / Barcode</p>
+                      <p className="truncate font-mono font-bold text-primary">{p.sku}</p>
+                      {p.barcode && p.barcode !== p.sku && (
+                        <p className="truncate text-[10px] text-muted-foreground">{p.barcode}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground">Price / Cost</p>
+                      <p className="font-mono font-extrabold text-foreground">
+                        Rs. {p.price.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                      <p className="font-mono text-[10px] text-muted-foreground">Cost Rs. {p.cost.toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  {expandedId === p.id && hasVariants && (
+                    <div className="mt-3 rounded-xl border border-border bg-secondary/50 p-3">
+                      <div className="space-y-2">
+                        {p.variants?.map((v) => (
+                          <div key={v.id} className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                            <span className="min-w-0 truncate">
+                              {v.name} · {v.sku}
+                            </span>
+                            <span className="shrink-0 font-mono">
+                              Rs. {v.price.toFixed(2)} · stock {v.stock}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVariantProductId(p.id);
+                        setVariantName('');
+                        setVariantSku(`${p.sku}-VAR`);
+                        setVariantStock('0');
+                        setVariantPrice(String(p.price));
+                        setVariantCost(String(p.cost));
+                        setVariantError(null);
+                      }}
+                      className="min-h-11 rounded-xl bg-primary/10 px-3 text-xs font-extrabold text-primary"
+                    >
+                      + Variant
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(p)}
+                      className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-border bg-secondary px-3 text-xs font-bold text-foreground"
+                    >
+                      <Edit2 className="h-4 w-4" /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteProduct(p.id)}
+                      className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-destructive/20 bg-destructive/10 px-3 text-xs font-bold text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" /> Delete
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
           {/* Table Container */}
-          <div className="p-4 rounded-2xl bg-card border border-border shadow-sm overflow-x-auto">
+          <div className="hidden lg:block p-4 rounded-2xl bg-card border border-border shadow-sm overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-border text-muted-foreground font-medium">

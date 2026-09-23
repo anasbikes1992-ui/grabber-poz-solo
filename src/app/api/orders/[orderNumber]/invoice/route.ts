@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db, customers, orderItems, orders, products } from '@/db';
+import { getSession } from '@/lib/auth/session';
 import { verifyOrderAccess } from '@/lib/tracking/order-tracker';
 
 type RouteCtx = { params: Promise<{ orderNumber: string }> };
@@ -12,6 +13,7 @@ export async function GET(req: Request, ctx: RouteCtx) {
     const { searchParams } = new URL(req.url);
     const phoneLast4 = searchParams.get('phoneLast4')?.trim();
     const token = searchParams.get('token')?.trim();
+    const staffSession = await getSession();
 
     const [order] = await db.select().from(orders).where(eq(orders.orderNumber, orderNumber)).limit(1);
     if (!order) return new NextResponse('Order not found', { status: 404 });
@@ -24,7 +26,7 @@ export async function GET(req: Request, ctx: RouteCtx) {
       customerName = cust?.name || customerName;
     }
 
-    if (!verifyOrderAccess(order, customerPhone, { phoneLast4, token })) {
+    if (!staffSession && !verifyOrderAccess(order, customerPhone, { phoneLast4, token })) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 

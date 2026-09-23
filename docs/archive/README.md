@@ -10,4 +10,10 @@ Moved 2026-09-11 during Coolify deploy recovery. Prefer live SSOT:
 | `PRODUCT_AUDIT.md` | [`VERTICAL_DEPTH_PLAN.md`](../VERTICAL_DEPTH_PLAN.md) · [`FULL_PROOF_PLAN.md`](../FULL_PROOF_PLAN.md) |
 | `Grabber Business OS — Repository Review…` | [`01_SYSTEM_ARCHITECTURE.md`](../01_SYSTEM_ARCHITECTURE.md) |
 
-Do not link these from runbooks. Delete permanently only after 30 days unused.
+Additional cleanup control:
+
+| Archived | Use instead |
+|----------|-------------|
+| `REFACTOR_DELETE_REGISTER_2026-09-23.md` | [`GRABBER_SYSTEM_REFACTOR_PLAN.md`](../GRABBER_SYSTEM_REFACTOR_PLAN.md) |
+
+Do not link archived snapshots from runbooks. Delete permanently only after 30 days unused.

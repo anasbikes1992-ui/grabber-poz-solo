@@ -62,8 +62,10 @@ export default function StoreBuilderPage() {
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
   const [uploadingSlide, setUploadingSlide] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [imageMetaMap, setImageMetaMap] = useState<Record<string, ImageMeta>>({});
   const slideFileInputRef = useRef<HTMLInputElement>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -187,6 +189,34 @@ export default function StoreBuilderPage() {
     } finally {
       setUploadingSlide(false);
       if (slideFileInputRef.current) slideFileInputRef.current.value = '';
+    }
+  };
+
+  const handleLogoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/storage/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Upload failed');
+
+      const uploadedUrl = data.relativePath || data.url;
+      setConfig((prev) => ({
+        ...prev,
+        theme: { ...prev.theme, logoUrl: uploadedUrl },
+      }));
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setUploadingLogo(false);
+      if (logoFileInputRef.current) logoFileInputRef.current.value = '';
     }
   };
 
@@ -393,6 +423,65 @@ export default function StoreBuilderPage() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* BRAND IDENTITY */}
+          <div className="space-y-3 pt-3 border-t border-border">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <ImageIcon className="h-4 w-4 text-primary" />
+              Store Logo & Name
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div className="space-y-2">
+                <label className="block font-medium text-muted-foreground">Storefront logo URL</label>
+                <input
+                  value={config.theme.logoUrl || ''}
+                  onChange={(e) =>
+                    setConfig((p) => ({ ...p, theme: { ...p.theme, logoUrl: e.target.value } }))
+                  }
+                  placeholder="/uploads/thepartystore-logo.png"
+                  className="w-full rounded-xl border border-border bg-secondary/50 px-3 py-2 font-mono text-[11px] text-foreground"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={logoFileInputRef}
+                  onChange={handleLogoFileUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => logoFileInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="flex min-h-11 items-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-xs hover:opacity-90 cursor-pointer disabled:opacity-50"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  <span>{uploadingLogo ? 'Uploading…' : 'Upload Logo'}</span>
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3">
+              {config.theme.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={config.theme.logoUrl}
+                  alt="Store logo preview"
+                  className="h-12 max-w-[180px] rounded-lg bg-white object-contain p-1"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                  <ImageIcon className="h-5 w-5" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground">{config.theme.storeName || 'Store name text fallback'}</p>
+                <p className="truncate text-[10px] text-muted-foreground">
+                  Logo appears in the public storefront header after Save & Publish.
+                </p>
+              </div>
             </div>
           </div>
 

@@ -2,6 +2,8 @@
 
 Welcome to the official documentation for **Grabber Solo / Grabber Business OS (Single-Business Edition)** and the **Jarvis Autonomous Business OS**.
 
+**Current refactor SSOT:** [`GRABBER_SYSTEM_REFACTOR_PLAN.md`](./GRABBER_SYSTEM_REFACTOR_PLAN.md) covers catalog, sales, invoices, storefront controls, and cleanup phases.
+
 **SSOT tip:** Schema = `src/db/schema.ts` (**92** tables). If a badge or older doc says otherwise, trust the schema.  
 **Gaps & next wave:** [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md) · **Ops:** [`WAVE_B3_OPS_CHECKLIST.md`](./WAVE_B3_OPS_CHECKLIST.md)
 

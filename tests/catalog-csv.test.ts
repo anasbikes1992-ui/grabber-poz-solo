@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   PRODUCT_CSV_HEADERS,
+  PRODUCT_CSV_V2_HEADERS,
   assertCsvSize,
   buildProductCsv,
+  buildProductCsvV2,
+  detectProductCsvVersion,
   escapeCsvField,
   MAX_PRODUCT_CSV_BYTES,
 } from '../src/lib/catalog/catalog-csv';
@@ -155,5 +158,31 @@ describe('catalog CSV import/export parity', () => {
     expect(preview).toHaveLength(2);
     expect(preview[1].status).toBe('COLLISION');
     expect(preview[1].note).toContain('Duplicate SKU in CSV');
+  });
+
+  it('keeps v1 headers as a stable prefix of v2', () => {
+    expect(PRODUCT_CSV_V2_HEADERS.slice(0, PRODUCT_CSV_HEADERS.length)).toEqual(PRODUCT_CSV_HEADERS);
+  });
+
+  it('detects enterprise v2 catalog headers', () => {
+    expect(detectProductCsvVersion('Name,Category,SKU,SalePrice\nA,B,C,1')).toBe('v1');
+    expect(detectProductCsvVersion('Name,Category,SKU,ProductType,ParentSKU,Attribute:Size\nA,B,C,Variant,P,S')).toBe('v2');
+  });
+
+  it('builds v2 CSV with advanced optional columns', () => {
+    const csv = buildProductCsvV2([
+      {
+        Name: 'Gold Balloons',
+        SKU: 'TPS-GOLD',
+        ProductType: 'Variant Product',
+        ParentSKU: 'TPS-GOLD-PARENT',
+        'Attribute:Color': 'Gold',
+        StorefrontStatus: 'published',
+      },
+    ]);
+
+    expect(csv.split('\n')[0]).toContain('ProductType');
+    expect(csv).toContain('TPS-GOLD-PARENT');
+    expect(csv).toContain('published');
   });
 });

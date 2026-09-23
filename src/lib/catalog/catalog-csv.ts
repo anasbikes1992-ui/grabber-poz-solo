@@ -12,6 +12,30 @@ export const PRODUCT_CSV_HEADERS = [
   'Description',
 ] as const;
 
+/** Optional richer schema for enterprise catalog imports/exports.
+ * V1 remains the default for compatibility with simple Excel/WooCommerce workflows.
+ */
+export const PRODUCT_CSV_V2_HEADERS = [
+  ...PRODUCT_CSV_HEADERS,
+  'ProductType',
+  'ParentSKU',
+  'Attribute:Size',
+  'Attribute:Color',
+  'Attribute:Theme',
+  'Attribute:PackQty',
+  'Supplier',
+  'WholesalePrice',
+  'ReorderLevel',
+  'MetaTitle',
+  'MetaDescription',
+  'StorefrontStatus',
+  'Tags',
+  'BundleComponents',
+] as const;
+
+export type ProductCsvHeader = (typeof PRODUCT_CSV_HEADERS)[number];
+export type ProductCsvV2Header = (typeof PRODUCT_CSV_V2_HEADERS)[number];
+
 export const MAX_PRODUCT_CSV_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export function escapeCsvField(value: string | number | null | undefined, key?: string): string {
@@ -37,6 +61,24 @@ export function buildProductCsv(rows: Record<(typeof PRODUCT_CSV_HEADERS)[number
     PRODUCT_CSV_HEADERS.map((h) => escapeCsvField(row[h], h)).join(','),
   );
   return [header, ...body].join('\n');
+}
+
+export function buildProductCsvV2(rows: Partial<Record<ProductCsvV2Header, string | number>>[]): string {
+  const header = PRODUCT_CSV_V2_HEADERS.join(',');
+  const body = rows.map((row) =>
+    PRODUCT_CSV_V2_HEADERS.map((h) => escapeCsvField(row[h], h)).join(','),
+  );
+  return [header, ...body].join('\n');
+}
+
+export function detectProductCsvVersion(csvText: string): 'v1' | 'v2' {
+  const firstLine = csvText.replace(/^\uFEFF/, '').split(/\r?\n/, 1)[0] || '';
+  const normalized = firstLine.toLowerCase().replace(/\s+/g, '');
+  return ['producttype', 'parentsku', 'attribute:size', 'bundlecomponents', 'storefrontstatus'].some((key) =>
+    normalized.includes(key),
+  )
+    ? 'v2'
+    : 'v1';
 }
 
 export function assertCsvSize(csvText: string): void {
