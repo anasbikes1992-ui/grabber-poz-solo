@@ -22,6 +22,7 @@ const PUBLIC_PREFIXES = [
   '/api/storefront/search',
   '/api/storefront/abandon-cart',
   '/api/config/flags',
+  '/api/config/plan',
   '/api/repairs/public',
   '/api/repairs/estimate',
   '/api/repairs/appointments',
