@@ -49,8 +49,11 @@ export type StorefrontBlock =
         imageUrl?: string;
         ctaLabel?: string;
         ctaHref?: string;
+        badge?: string;
       }>;
       autoplayMs?: number;
+      carouselEffect?: 'spring-showcase' | 'cyber-glow' | 'ken-burns' | 'parallax-wave' | 'kinetic-snap';
+      interactiveFx?: 'confetti' | 'neon' | 'gold' | 'bubbles' | 'ticker' | 'none';
       slot: 'HERO';
       enabled?: boolean;
     }
@@ -78,9 +81,11 @@ export type StorefrontBlock =
 export type StorefrontHeroStyle = 'classic' | 'cinematic' | 'glass' | 'minimal' | 'bold';
 export type StorefrontCardStyle = 'glass' | 'flat' | 'elevated';
 export type StorefrontColorScheme = 'light' | 'dark';
+export type StorefrontInteractiveFx = 'confetti' | 'neon' | 'gold' | 'bubbles' | 'ticker' | 'none';
+export type StorefrontCarouselEffect = 'spring-showcase' | 'cyber-glow' | 'ken-burns' | 'parallax-wave' | 'kinetic-snap';
 
 export type StorefrontTheme = {
-  /** Preset id from theme-presets.ts (grabber, spindrift, hearth, …). */
+  /** Preset id from theme-presets.ts (grabber, party-pop, neon-carnival, royal-gold, ...). */
   presetId?: string;
   /** White-label display name for the storefront shell/footer. */
   storeName?: string;
@@ -99,6 +104,12 @@ export type StorefrontTheme = {
   heroGradient?: string;
   cardStyle?: StorefrontCardStyle;
   colorScheme?: StorefrontColorScheme;
+  /** Dynamic interactive effect (/ui-ux-pro-max) */
+  interactiveFx?: StorefrontInteractiveFx;
+  /** Carousel animation & layout transition */
+  carouselEffect?: StorefrontCarouselEffect;
+  /** High-energy ticker banner string */
+  tickerText?: string;
 };
 
 export type StorefrontConfig = {

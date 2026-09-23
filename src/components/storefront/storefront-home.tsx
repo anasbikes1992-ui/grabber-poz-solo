@@ -330,7 +330,13 @@ export function StorefrontHome({
       <div>
         {heroSlider?.type === 'HERO_SLIDER' ? (
           <>
-            <HeroSlider slides={heroSlider.slides} autoplayMs={heroSlider.autoplayMs} />
+            <HeroSlider
+              slides={heroSlider.slides}
+              autoplayMs={heroSlider.autoplayMs}
+              interactiveFx={currentCms.theme.interactiveFx ?? heroSlider.interactiveFx}
+              carouselEffect={currentCms.theme.carouselEffect ?? heroSlider.carouselEffect}
+              tickerText={currentCms.theme.tickerText}
+            />
             <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
               <div className="storefront-hero-card rounded-3xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] p-6 shadow-xl backdrop-blur">
                 <div className="flex items-center justify-between">

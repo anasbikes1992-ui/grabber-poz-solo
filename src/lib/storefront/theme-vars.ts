@@ -69,6 +69,8 @@ export function storefrontThemeAttrs(theme: StorefrontTheme): Record<string, str
     'data-hero-style': t.heroStyle ?? 'classic',
     'data-card-style': t.cardStyle ?? 'elevated',
     'data-color-scheme': t.colorScheme ?? 'light',
+    'data-interactive-fx': t.interactiveFx ?? 'confetti',
+    'data-carousel-effect': t.carouselEffect ?? 'spring-showcase',
   };
 }
 

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { MessageCircle, Package, Search, ShoppingBag, Wrench } from 'lucide-react';
+import { Folder, MessageCircle, Package, Search, ShoppingBag, Wrench } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
 import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
@@ -126,6 +126,14 @@ export function StorefrontShell({
                 Repairs
               </Link>
             )}
+            <Link
+              href="/store/builder"
+              className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 font-medium text-[var(--sf-secondary)] hover:bg-[var(--sf-muted)]"
+              title="Storefront Builder, Slides & Media Folder"
+            >
+              <Folder className="h-4 w-4 text-amber-500" aria-hidden />
+              <span>Media & Themes</span>
+            </Link>
             {waLink && (
               <a
                 href={waLink}
