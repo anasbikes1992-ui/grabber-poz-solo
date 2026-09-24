@@ -349,39 +349,40 @@ export function StorefrontHome({
               carouselEffect={currentCms.theme.carouselEffect ?? heroSlider.carouselEffect}
               tickerText={currentCms.theme.tickerText}
             />
-            <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-              <div className="storefront-hero-card rounded-3xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] p-6 shadow-xl backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-secondary)]">Your bag</p>
-                  <span className="px-2.5 py-0.5 rounded-full bg-[var(--sf-accent)]/10 text-[var(--sf-accent)] text-xs font-bold font-mono">
-                    {totals.itemCount} item(s)
-                  </span>
+            {(totals.itemCount > 0 || msg) && (
+              <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+                <div className="storefront-hero-card flex flex-col gap-3 rounded-2xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-secondary)]">Your bag</p>
+                    <p className="mt-1 font-display text-2xl font-bold text-[var(--sf-on-surface)]">
+                      {money(totals.subtotal)} <span className="text-xs font-semibold text-[var(--sf-secondary)]">{totals.itemCount} item(s)</span>
+                    </p>
+                    {msg && (
+                      <p className="mt-1 text-sm text-[var(--sf-accent)]" role="status">
+                        {msg}
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid min-w-64 grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCartDrawerOpen(true)}
+                      className="min-h-10 cursor-pointer rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] py-2 text-xs font-bold text-[var(--sf-on-surface)]"
+                    >
+                      View bag
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || cart.length === 0}
+                      onClick={() => void checkout()}
+                      className="min-h-10 cursor-pointer rounded-full bg-[var(--sf-primary)] py-2 text-xs font-bold text-[var(--sf-on-primary)] disabled:opacity-40"
+                    >
+                      {busy ? 'Loading...' : shopper ? 'Checkout' : 'Sign in'}
+                    </button>
+                  </div>
                 </div>
-                <p className="mt-2 font-display text-3xl font-bold text-[var(--sf-on-surface)]">{money(totals.subtotal)}</p>
-                <div className="mt-5 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCartDrawerOpen(true)}
-                    className="w-full min-h-11 cursor-pointer rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] py-2.5 text-xs font-bold text-[var(--sf-on-surface)]"
-                  >
-                    View Bag
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy || cart.length === 0}
-                    onClick={() => void checkout()}
-                    className="w-full min-h-11 cursor-pointer rounded-full bg-[var(--sf-primary)] py-2.5 text-xs font-bold text-[var(--sf-on-primary)] disabled:opacity-40"
-                  >
-                    {busy ? 'Loading…' : shopper ? 'Checkout' : 'Sign in'}
-                  </button>
-                </div>
-                {msg && (
-                  <p className="mt-3 text-sm text-[var(--sf-accent)]" role="status">
-                    {msg}
-                  </p>
-                )}
               </div>
-            </div>
+            )}
           </>
         ) : (
         <section className="storefront-hero relative overflow-hidden border-b border-[var(--sf-border)]">

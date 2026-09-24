@@ -96,7 +96,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
   if (!selected) return null;
 
   return (
-    <div className="space-y-4 rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5 shadow-xl shadow-[var(--sf-primary)]/5 backdrop-blur sm:p-6">
+    <div className="space-y-4 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-4 shadow-xl shadow-[var(--sf-primary)]/5 backdrop-blur sm:p-5">
       {hasElectronicsAttrs && electronicsVariants.length > 0 ? (
         <ElectronicsVariantPicker
           productName={selected.name}
@@ -123,7 +123,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
                 );
               })}
             </select>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-3 grid max-h-56 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
               {lines.slice(0, 12).map((l) => {
                 const id = l.variantId || l.productId;
                 const active = id === selectedId;
@@ -132,7 +132,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
                     key={id}
                     type="button"
                     onClick={() => setSelectedId(id)}
-                    className={`min-h-11 rounded-2xl border px-3 py-2 text-left text-xs transition ${
+                    className={`min-h-10 rounded-xl border px-3 py-2 text-left text-xs transition ${
                       active
                         ? 'border-[var(--sf-accent)] bg-[var(--sf-accent)] text-[var(--sf-on-accent)] shadow-sm'
                         : 'border-[var(--sf-border)] bg-[var(--sf-background)] text-[var(--sf-foreground)] hover:border-[var(--sf-accent)]'
@@ -156,8 +156,8 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
         </p>
       )}
 
-      <p className="text-sm text-[var(--sf-secondary)]">
-        {selected.stock > 0 ? `${selected.stock} in stock` : 'Out of stock'}
+      <p className="text-sm font-semibold text-[var(--sf-secondary)]">
+        {selected.stock > 0 ? `${selected.stock} in stock` : 'Confirm availability'}
       </p>
 
       <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
         />
       </div>
 
-      <div className="grid gap-3 rounded-2xl border border-[var(--sf-accent)]/20 bg-[var(--sf-accent)]/10 p-4">
+      <div className="grid gap-3 rounded-2xl border border-[var(--sf-accent)]/20 bg-[var(--sf-accent)]/10 p-3">
         <div>
           <label htmlFor="product-custom-text" className="mb-1 block text-xs font-semibold text-[var(--sf-foreground)]">
             Custom text / note
@@ -183,7 +183,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
             onChange={(event) => setCustomText(event.target.value)}
             maxLength={120}
             placeholder="Name, color theme, message, or special instruction"
-            className="w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2 text-sm text-[var(--sf-foreground)]"
+          className="min-h-10 w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2 text-sm text-[var(--sf-foreground)]"
           />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -196,7 +196,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
               type="date"
               value={eventDate}
               onChange={(event) => setEventDate(event.target.value)}
-              className="w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2 text-sm text-[var(--sf-foreground)]"
+              className="min-h-10 w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2 text-sm text-[var(--sf-foreground)]"
             />
           </div>
           <div>
@@ -207,7 +207,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
               id="product-fulfillment"
               value={fulfillment}
               onChange={(event) => setFulfillment(event.target.value === 'pickup' ? 'pickup' : 'delivery')}
-              className="w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2 text-sm text-[var(--sf-foreground)]"
+              className="min-h-10 w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2 text-sm text-[var(--sf-foreground)]"
             >
               <option value="delivery">Delivery / courier</option>
               <option value="pickup">Pickup from store</option>
@@ -224,7 +224,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
         onClick={() => void addToBag()}
         className="min-h-12 w-full rounded-full bg-[var(--sf-primary)] py-3 text-sm font-semibold text-[var(--sf-on-primary)] shadow-lg shadow-[var(--sf-primary)]/20 transition hover:opacity-90 disabled:opacity-40"
       >
-        Add to bag
+        {selected.stock > 0 ? 'Add to bag' : 'Unavailable'}
       </button>
       {msg && (
         <p className="text-sm font-semibold text-[var(--sf-accent)]" role="status">

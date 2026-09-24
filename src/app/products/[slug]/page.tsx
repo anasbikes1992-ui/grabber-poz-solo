@@ -159,18 +159,18 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-12">
+        <section className="mx-auto grid max-w-7xl gap-7 px-4 py-7 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,0.74fr)] lg:items-start lg:py-10">
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-[2rem] border border-[var(--sf-border)] bg-[var(--sf-surface)] shadow-xl shadow-[var(--sf-primary)]/5">
+            <div className="overflow-hidden rounded-[1.5rem] border border-[var(--sf-border)] bg-[var(--sf-surface)] shadow-lg shadow-[var(--sf-primary)]/5">
               {heroImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={heroImage}
                   alt={product.name}
-                  className="aspect-square w-full object-contain p-8"
+                  className="aspect-[4/3] max-h-[560px] w-full object-contain p-6"
                 />
               ) : (
-                <div className="flex aspect-square items-center justify-center bg-[var(--sf-muted)] text-center text-sm font-semibold text-[var(--sf-secondary)]">
+                <div className="flex aspect-[4/3] items-center justify-center bg-[var(--sf-muted)] text-center text-sm font-semibold text-[var(--sf-secondary)]">
                   Product image coming soon
                 </div>
               )}
@@ -192,7 +192,7 @@ export default async function ProductDetailPage({ params }: Props) {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--sf-accent)]">
                 {product.category || 'Catalog'}
               </p>
-              <h1 className="font-display text-4xl font-black tracking-tight text-[var(--sf-foreground)] sm:text-5xl">
+              <h1 className="font-display text-3xl font-black leading-tight tracking-tight text-[var(--sf-foreground)] sm:text-4xl">
                 {product.name}
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-[var(--sf-secondary)]">{description}</p>
@@ -210,7 +210,7 @@ export default async function ProductDetailPage({ params }: Props) {
             </div>
 
             {variantGroupEntries.length > 0 && (
-              <section className="rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5">
+              <section className="rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-4">
                 <h2 className="font-display text-lg font-bold">Choose your options</h2>
                 <div className="mt-4 space-y-4">
                   {variantGroupEntries.map(([name, values]) => (
@@ -237,8 +237,8 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-6xl gap-5 px-4 pb-10 sm:px-6 lg:grid-cols-3">
-          <div className="rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5 shadow-sm lg:col-span-2">
+        <section className="mx-auto grid max-w-7xl gap-5 px-4 pb-10 sm:px-6 lg:grid-cols-3">
+          <div className="rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5 shadow-sm lg:col-span-2">
             <h2 className="font-display text-xl font-bold">Product options & details</h2>
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
               {[
@@ -281,7 +281,7 @@ export default async function ProductDetailPage({ params }: Props) {
             )}
           </div>
 
-          <aside className="rounded-3xl border border-[var(--sf-accent)]/20 bg-[var(--sf-accent)]/10 p-5 shadow-sm">
+          <aside className="rounded-2xl border border-[var(--sf-accent)]/20 bg-[var(--sf-accent)]/10 p-5 shadow-sm">
             <h2 className="font-display text-xl font-bold">Quick FAQ</h2>
             <div className="mt-4 space-y-3 text-sm">
               <div>
@@ -302,7 +302,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
         {relatedProducts.length > 0 && (
           <section className="border-y border-[var(--sf-border)] bg-[var(--sf-muted)]/30">
-            <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+            <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--sf-accent)]">Complete the setup</p>
@@ -317,7 +317,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   <Link
                     key={item.id}
                     href={`/products/${item.slug}`}
-                    className="group rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--sf-accent)]"
+                    className="group rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--sf-accent)]"
                   >
                     <div className="overflow-hidden rounded-2xl bg-[var(--sf-background)]">
                       {item.imageUrl ? (
@@ -339,7 +339,7 @@ export default async function ProductDetailPage({ params }: Props) {
           </section>
         )}
 
-        <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+        <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
           <ProductReviews productId={product.id} />
         </div>
       </main>

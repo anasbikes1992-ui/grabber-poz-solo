@@ -12,8 +12,11 @@ type FeaturedCatalogItem = {
   slug?: string;
   name: string;
   unitPrice: number;
+  unitPriceMax?: number;
   stock: number;
   variant?: string;
+  variantCount?: number;
+  imageUrl?: string | null;
   productId?: string;
   sku?: string;
   barcode?: string | null;
@@ -21,6 +24,16 @@ type FeaturedCatalogItem = {
 
 function money(n: number) {
   return `LKR ${n.toLocaleString('en-LK', { maximumFractionDigits: 0 })}`;
+}
+
+function priceLabel(item: FeaturedCatalogItem) {
+  if (item.unitPriceMax && item.unitPriceMax > item.unitPrice) {
+    return `${money(item.unitPrice)} - ${money(item.unitPriceMax)}`;
+  }
+  if (item.variantCount && item.variantCount > 0) {
+    return `From ${money(item.unitPrice)}`;
+  }
+  return money(item.unitPrice);
 }
 
 function MidBannerBlock({ block }: { block: Extract<StorefrontBlock, { type: 'MID_BANNER' }> }) {
@@ -124,25 +137,44 @@ export function StorefrontFeaturedSection({
   if (!picks.length) return null;
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <h2 className="font-display text-2xl font-bold text-[var(--sf-foreground)]">{featured.title}</h2>
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-5 grid gap-4 sm:grid-cols-3">
         {picks.map((item) => (
           <article
             key={item.id}
-            className="rounded-3xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] p-5 shadow-sm backdrop-blur transition-all duration-300 hover:shadow-lg hover:border-[var(--sf-accent)]/50"
+            className="overflow-hidden rounded-2xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] shadow-sm backdrop-blur transition-all duration-300 hover:border-[var(--sf-accent)]/50 hover:shadow-lg"
           >
-            <h3 className="font-semibold text-[var(--sf-foreground)]">{item.name}</h3>
-            <p className="mt-1 text-xs text-[var(--sf-secondary)]">{item.variant}</p>
-            <p className="mt-3 font-display text-lg font-bold text-[var(--sf-accent)]">{money(Number(item.unitPrice))}</p>
-            <button
-              type="button"
-              disabled={item.stock <= 0}
-              onClick={() => onAdd(item)}
-              className="mt-4 min-h-11 w-full cursor-pointer rounded-full bg-[var(--sf-accent)] py-2.5 text-sm font-semibold text-[var(--sf-on-accent)] transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Add to bag
-            </button>
+            {item.imageUrl && (
+              <Link href={item.slug ? `/products/${item.slug}` : '#'} className="block bg-[var(--sf-muted)]/35">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.imageUrl} alt={item.name} className="aspect-[4/3] w-full object-contain p-4" />
+              </Link>
+            )}
+            <div className="p-4">
+              <h3 className="line-clamp-2 font-semibold text-[var(--sf-foreground)]">{item.name}</h3>
+              <p className="mt-1 text-xs text-[var(--sf-secondary)]">
+                {item.variantCount && item.variantCount > 0 ? `${item.variantCount} options` : item.variant}
+              </p>
+              <p className="mt-3 font-display text-lg font-bold text-[var(--sf-accent)]">{priceLabel(item)}</p>
+              {item.variantCount && item.variantCount > 0 && item.slug ? (
+                <Link
+                  href={`/products/${item.slug}`}
+                  className="mt-4 block min-h-11 w-full cursor-pointer rounded-full bg-[var(--sf-accent)] py-2.5 text-center text-sm font-semibold text-[var(--sf-on-accent)] transition-opacity duration-200 hover:opacity-90"
+                >
+                  Choose options
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  disabled={item.stock <= 0}
+                  onClick={() => onAdd(item)}
+                  className="mt-4 min-h-11 w-full cursor-pointer rounded-full bg-[var(--sf-accent)] py-2.5 text-sm font-semibold text-[var(--sf-on-accent)] transition-opacity duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {item.stock > 0 ? 'Add to bag' : 'Unavailable'}
+                </button>
+              )}
+            </div>
           </article>
         ))}
       </div>

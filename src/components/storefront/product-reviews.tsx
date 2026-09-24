@@ -68,7 +68,7 @@ export function ProductReviews({ productId }: Props) {
   }
 
   return (
-    <section className="mt-10 space-y-6 border-t border-[var(--sf-border)] pt-8" aria-labelledby="reviews-heading">
+    <section className="mt-8 border-t border-[var(--sf-border)] pt-6" aria-labelledby="reviews-heading">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 id="reviews-heading" className="text-lg font-bold text-[var(--sf-foreground)]">
@@ -87,8 +87,9 @@ export function ProductReviews({ productId }: Props) {
         </div>
       </div>
 
-      <ul className="space-y-3">
-        {reviews.map((r) => (
+      {reviews.length > 0 && (
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+        {reviews.slice(0, 4).map((r) => (
           <li key={r.id} className="rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-4">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-[var(--sf-foreground)]">{r.customerName || 'Customer'}</p>
@@ -101,10 +102,12 @@ export function ProductReviews({ productId }: Props) {
             {r.body && <p className="mt-1 text-sm text-[var(--sf-secondary)]">{r.body}</p>}
           </li>
         ))}
-      </ul>
+        </ul>
+      )}
 
-      <form onSubmit={(e) => void submit(e)} className="space-y-3 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5">
-        <h3 className="text-sm font-bold text-[var(--sf-foreground)]">Write a review</h3>
+      <details className="mt-4 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-4">
+        <summary className="cursor-pointer text-sm font-bold text-[var(--sf-foreground)]">Write a review</summary>
+        <form onSubmit={(e) => void submit(e)} className="mt-4 space-y-3">
         <div>
           <label htmlFor="review-rating" className="mb-1 block text-xs font-semibold text-[var(--sf-secondary)]">
             Rating
@@ -165,7 +168,8 @@ export function ProductReviews({ productId }: Props) {
         >
           {busy ? 'Saving...' : 'Submit review'}
         </button>
-      </form>
+        </form>
+      </details>
     </section>
   );
 }

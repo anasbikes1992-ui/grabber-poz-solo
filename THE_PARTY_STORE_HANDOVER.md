@@ -136,6 +136,8 @@ Completed:
 - Variant families no longer expose a `variantId` at card level; exact variant selection stays on product detail.
 - `src/components/storefront/storefront-home.tsx` now shows `From ...` or price ranges and sends variable products to `Choose options`.
 - Added `tests/storefront-family-catalog.test.ts` to prove a multi-variant product becomes one public card.
+- Product detail polish: wider usable page canvas, shorter image frame, compact purchase panel, bounded variant chooser, lighter reviews, and less dominant empty-bag panel on home.
+- Featured home cards now show product images and send family products to option selection instead of direct add-to-bag.
 
 Still open:
 
