@@ -22,6 +22,7 @@ import {
   pickCatalogBadgePromo,
   type PublicPromo,
 } from '@/lib/storefront/public-promotions';
+import { storefrontStockState } from '@/lib/storefront/stock-label';
 import { CartDrawer } from '@/components/storefront/CartDrawer';
 import { CartFloatingBar } from '@/components/storefront/CartFloatingBar';
 import { HeroSlider } from '@/components/storefront/HeroSlider';
@@ -694,18 +695,18 @@ export function StorefrontHome({
 
                       {/* Stock Badge */}
                       <div className="absolute top-3 right-3">
-                        {item.stock > 3 ? (
+                        {storefrontStockState(item.stock) === 'in_stock' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/90 text-white text-[10px] font-bold shadow-sm backdrop-blur">
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                            In Stock ({item.stock})
+                            In stock
                           </span>
-                        ) : item.stock > 0 ? (
+                        ) : storefrontStockState(item.stock) === 'running_out_soon' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/90 text-white text-[10px] font-bold shadow-sm backdrop-blur">
-                            Low Stock ({item.stock})
+                            Running out soon
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-700/80 text-white text-[10px] font-bold shadow-sm backdrop-blur">
-                            Sold Out
+                            Out of stock
                           </span>
                         )}
                       </div>
@@ -754,7 +755,7 @@ export function StorefrontHome({
                         onClick={() => addToCart(item)}
                         className="w-full min-h-11 cursor-pointer rounded-2xl bg-[var(--sf-accent)] py-2.5 text-xs font-bold text-[var(--sf-on-accent)] shadow-sm transition-all duration-200 hover:opacity-95 transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
                       >
-                        {item.stock > 0 ? '+ Add to Bag' : 'Out of Stock'}
+                        {item.stock > 0 ? '+ Add to Bag' : 'Out of stock'}
                       </button>
                     )}
                     {item.slug && !(item.variantCount && item.variantCount > 0) && (

@@ -16,6 +16,7 @@ import {
   productDescription,
   productJsonLd,
 } from '@/lib/storefront/seo';
+import { storefrontStockLabel } from '@/lib/storefront/stock-label';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -201,7 +202,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   {priceLabel}
                 </span>
                 <span className="rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3 py-1.5">
-                  {product.stock > 0 ? `${product.stock} in stock` : 'Confirm availability'}
+                  {storefrontStockLabel(product.stock)}
                 </span>
                 <span className="rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3 py-1.5 font-mono">
                   {product.sku}
@@ -244,7 +245,7 @@ export default async function ProductDetailPage({ params }: Props) {
               {[
                 ['Available options', product.variants.length > 0 ? `${product.variants.length} variants` : 'Standard product'],
                 ['Order notes', 'Custom text, event date, delivery or pickup'],
-                ['Stock status', product.stock > 0 ? `${product.stock} units available` : 'Confirm availability'],
+                ['Stock status', storefrontStockLabel(product.stock)],
                 ['Need help?', 'WhatsApp the store after adding to bag'],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-2xl bg-[var(--sf-muted)]/45 p-4">
@@ -257,13 +258,13 @@ export default async function ProductDetailPage({ params }: Props) {
               <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--sf-border)]">
                 <div className="grid grid-cols-[1fr_auto_auto] gap-3 bg-[var(--sf-muted)]/45 px-3 py-2 text-xs font-bold uppercase text-[var(--sf-secondary)]">
                   <span>Variant</span>
-                  <span>Stock</span>
+                  <span>Availability</span>
                   <span>Price</span>
                 </div>
                 {product.variants.slice(0, 16).map((variant) => (
                   <div key={variant.id} className="grid grid-cols-[1fr_auto_auto] gap-3 border-t border-[var(--sf-border)] px-3 py-2 text-sm">
                     <span className="min-w-0 truncate font-semibold">{variant.name}</span>
-                    <span className="font-mono text-[var(--sf-secondary)]">{variant.stock}</span>
+                    <span className="font-semibold text-[var(--sf-secondary)]">{storefrontStockLabel(variant.stock)}</span>
                     <span className="font-bold text-[var(--sf-accent)]">LKR {variant.salePrice.toLocaleString('en-LK')}</span>
                   </div>
                 ))}

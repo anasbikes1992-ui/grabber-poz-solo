@@ -5,6 +5,7 @@ import { BnplCalculator } from '@/components/commerce/bnpl-calculator';
 import { ElectronicsVariantPicker } from '@/components/commerce/electronics-variant-picker';
 import { toElectronicsVariant } from '@/lib/electronics/variant-attrs';
 import { parseElectronicsAttrs } from '@/lib/electronics/variant-attrs';
+import { storefrontStockLabel } from '@/lib/storefront/stock-label';
 
 type Line = {
   productId: string;
@@ -118,7 +119,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
                 const id = l.variantId || l.productId;
                 return (
                   <option key={id} value={id}>
-                    {l.variantLabel} — LKR {l.unitPrice.toLocaleString()} ({l.stock} in stock)
+                    {l.variantLabel} - LKR {l.unitPrice.toLocaleString()} ({storefrontStockLabel(l.stock)})
                   </option>
                 );
               })}
@@ -140,7 +141,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
                   >
                     <span className="block font-bold">{l.variantLabel}</span>
                     <span className={active ? 'opacity-85' : 'text-[var(--sf-secondary)]'}>
-                      LKR {l.unitPrice.toLocaleString('en-LK')} · {l.stock} left
+                      LKR {l.unitPrice.toLocaleString('en-LK')} - {storefrontStockLabel(l.stock)}
                     </span>
                   </button>
                 );
@@ -157,7 +158,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
       )}
 
       <p className="text-sm font-semibold text-[var(--sf-secondary)]">
-        {selected.stock > 0 ? `${selected.stock} in stock` : 'Confirm availability'}
+        {storefrontStockLabel(selected.stock)}
       </p>
 
       <div className="flex items-center gap-2">

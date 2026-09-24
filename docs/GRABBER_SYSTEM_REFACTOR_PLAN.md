@@ -98,6 +98,7 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
 - **Status:** In progress.
 - Completed first branding step: store logo URL/upload is available in Store Builder and rendered on the public storefront header.
 - Completed first product-page consistency step: product detail pages now use storefront theme tokens, public storefront shell, richer variant display, image area, details, FAQ, reviews, and related-product upsells.
+- Customer-facing stock privacy decision: public storefront pages must show availability bands only (`In stock`, `Running out soon` below 10 units, `Out of stock`). Exact stock counts stay in staff/POS/admin surfaces and checkout validation.
 - Storefront catalog pages should render one public card per product family, with variants selected on the detail page and exact variant IDs passed into cart/checkout.
 - Add toggles per storefront section:
   - Hero
