@@ -11,14 +11,104 @@ export type StorefrontCatalogItem = {
   sku: string;
   barcode: string;
   unitPrice: number;
+  unitPriceMax?: number;
   unitCost: number;
   stock: number;
   variant: string;
+  variantCount?: number;
   imageUrl?: string | null;
   description?: string | null;
   category: string;
   categoryId?: string | null;
 };
+
+type CatalogProductRow = {
+  id: string;
+  slug: string;
+  name: string;
+  sku: string;
+  barcode: string | null;
+  salePrice: string | number;
+  costPrice: string | number;
+  imageUrl: string | null;
+  description: string | null;
+  categoryId: string | null;
+};
+
+type CatalogVariantRow = {
+  id: string;
+  productId: string;
+  name: string;
+  sku: string;
+  barcode: string | null;
+  salePrice: string | number | null;
+  costPrice: string | number | null;
+};
+
+export function buildStorefrontFamilyItems({
+  products: catalog,
+  variantsByProduct,
+  categoryMap,
+  stockMap,
+}: {
+  products: CatalogProductRow[];
+  variantsByProduct: Map<string, CatalogVariantRow[]>;
+  categoryMap: Map<string, string>;
+  stockMap: Map<string, number>;
+}): StorefrontCatalogItem[] {
+  const stockKey = (productId: string, variantId?: string | null) =>
+    `${productId}:${variantId || 'base'}`;
+
+  return catalog.map((p) => {
+    const pVariants = variantsByProduct.get(p.id) || [];
+    const catName = (p.categoryId && categoryMap.get(p.categoryId)) || 'Uncategorized';
+
+    if (pVariants.length > 0) {
+      const prices = pVariants.map((v) => Number(v.salePrice ?? p.salePrice));
+      const costs = pVariants.map((v) => Number(v.costPrice ?? p.costPrice));
+      const totalStock = pVariants.reduce((sum, v) => sum + (stockMap.get(stockKey(p.id, v.id)) ?? 0), 0);
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+
+      return {
+        id: p.id,
+        productId: p.id,
+        slug: p.slug,
+        name: p.name,
+        sku: p.sku,
+        barcode: p.barcode || p.sku,
+        unitPrice: minPrice,
+        unitPriceMax: maxPrice,
+        unitCost: Math.min(...costs),
+        stock: totalStock,
+        variant: `${pVariants.length} options`,
+        variantCount: pVariants.length,
+        imageUrl: p.imageUrl,
+        description: p.description,
+        category: catName,
+        categoryId: p.categoryId,
+      };
+    }
+
+    return {
+      id: p.id,
+      productId: p.id,
+      slug: p.slug,
+      name: p.name,
+      sku: p.sku,
+      barcode: p.barcode || p.sku,
+      unitPrice: Number(p.salePrice),
+      unitCost: Number(p.costPrice),
+      stock: stockMap.get(stockKey(p.id, null)) ?? 0,
+      variant: p.sku,
+      variantCount: 0,
+      imageUrl: p.imageUrl,
+      description: p.description,
+      category: catName,
+      categoryId: p.categoryId,
+    };
+  });
+}
 
 export async function loadStorefrontCatalog(branchIdParam?: string | null): Promise<{
   ok: boolean;
@@ -64,56 +154,16 @@ export async function loadStorefrontCatalog(branchIdParam?: string | null): Prom
     const stocks = branchId
       ? await db.select().from(stockBalances).where(eq(stockBalances.locationId, branchId))
       : [];
-    const stockKey = (productId: string, variantId?: string | null) =>
-      `${productId}:${variantId || 'base'}`;
     const stockMap = new Map(
-      stocks.map((s) => [stockKey(s.productId, s.variantId), Number(s.onHand ?? 0)]),
+      stocks.map((s) => [`${s.productId}:${s.variantId || 'base'}`, Number(s.onHand ?? 0)]),
     );
 
-    const items: StorefrontCatalogItem[] = [];
-
-    for (const p of catalog) {
-      const pVariants = variantsByProduct.get(p.id) || [];
-      const catName = (p.categoryId && catMap.get(p.categoryId)) || 'Uncategorized';
-      if (pVariants.length) {
-        for (const v of pVariants) {
-          items.push({
-            id: v.id,
-            productId: p.id,
-            variantId: v.id,
-            slug: p.slug,
-            name: p.name,
-            sku: v.sku,
-            barcode: v.barcode || v.sku,
-            unitPrice: Number(v.salePrice ?? p.salePrice),
-            unitCost: Number(v.costPrice ?? p.costPrice),
-            stock: stockMap.get(stockKey(p.id, v.id)) ?? 0,
-            variant: v.name,
-            imageUrl: p.imageUrl,
-            description: p.description,
-            category: catName,
-            categoryId: p.categoryId,
-          });
-        }
-      } else {
-        items.push({
-          id: p.id,
-          productId: p.id,
-          slug: p.slug,
-          name: p.name,
-          sku: p.sku,
-          barcode: p.barcode || p.sku,
-          unitPrice: Number(p.salePrice),
-          unitCost: Number(p.costPrice),
-          stock: stockMap.get(stockKey(p.id, null)) ?? 0,
-          variant: p.sku,
-          imageUrl: p.imageUrl,
-          description: p.description,
-          category: catName,
-          categoryId: p.categoryId,
-        });
-      }
-    }
+    const items = buildStorefrontFamilyItems({
+      products: catalog,
+      variantsByProduct,
+      categoryMap: catMap,
+      stockMap,
+    });
 
     return { ok: true, branchId, items };
   } catch (err: unknown) {

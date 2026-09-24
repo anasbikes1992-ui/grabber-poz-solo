@@ -35,9 +35,11 @@ type CatalogItem = {
   sku: string;
   barcode: string | null;
   unitPrice: number;
+  unitPriceMax?: number;
   unitCost?: number;
   stock: number;
   variant?: string;
+  variantCount?: number;
   taxRate?: number;
   imageUrl?: string | null;
   description?: string | null;
@@ -49,6 +51,16 @@ type CartLine = CatalogItem & { qty: number; productId: string };
 
 function money(n: number) {
   return `LKR ${n.toLocaleString('en-LK', { maximumFractionDigits: 0 })}`;
+}
+
+function priceLabel(item: CatalogItem) {
+  if (item.unitPriceMax && item.unitPriceMax > item.unitPrice) {
+    return `${money(Number(item.unitPrice))} - ${money(Number(item.unitPriceMax))}`;
+  }
+  if (item.variantCount && item.variantCount > 0) {
+    return `From ${money(Number(item.unitPrice))}`;
+  }
+  return money(Number(item.unitPrice));
 }
 
 const heroStagger = {
@@ -701,8 +713,8 @@ export function StorefrontHome({
                     {/* Product Details */}
                     <div className="p-4 space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="px-2 py-0.5 rounded-md bg-[var(--sf-muted)] text-[var(--sf-secondary)] text-[10px] font-mono font-medium truncate">
-                          {item.variant || item.sku}
+                        <span className="px-2 py-0.5 rounded-md bg-[var(--sf-muted)] text-[var(--sf-secondary)] text-[10px] font-medium truncate">
+                          {item.variantCount && item.variantCount > 0 ? `${item.variantCount} options` : item.variant || item.sku}
                         </span>
                       </div>
 
@@ -720,22 +732,31 @@ export function StorefrontHome({
                       </h3>
 
                       <p className="font-display text-xl font-black text-[var(--sf-accent)]">
-                        {money(Number(item.unitPrice))}
+                        {priceLabel(item)}
                       </p>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="p-4 pt-0 space-y-2">
-                    <button
-                      type="button"
-                      disabled={item.stock <= 0}
-                      onClick={() => addToCart(item)}
-                      className="w-full min-h-11 cursor-pointer rounded-2xl bg-[var(--sf-accent)] py-2.5 text-xs font-bold text-[var(--sf-on-accent)] shadow-sm transition-all duration-200 hover:opacity-95 transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
-                    >
-                      {item.stock > 0 ? '+ Add to Bag' : 'Out of Stock'}
-                    </button>
-                    {item.slug && (
+                    {item.variantCount && item.variantCount > 0 && item.slug ? (
+                      <Link
+                        href={`/products/${item.slug}`}
+                        className="block min-h-11 w-full cursor-pointer rounded-2xl bg-[var(--sf-accent)] py-2.5 text-center text-xs font-bold text-[var(--sf-on-accent)] shadow-sm transition-all duration-200 hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+                      >
+                        Choose options
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={item.stock <= 0}
+                        onClick={() => addToCart(item)}
+                        className="w-full min-h-11 cursor-pointer rounded-2xl bg-[var(--sf-accent)] py-2.5 text-xs font-bold text-[var(--sf-on-accent)] shadow-sm transition-all duration-200 hover:opacity-95 transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+                      >
+                        {item.stock > 0 ? '+ Add to Bag' : 'Out of Stock'}
+                      </button>
+                    )}
+                    {item.slug && !(item.variantCount && item.variantCount > 0) && (
                       <Link
                         href={`/products/${item.slug}`}
                         className="block text-center text-xs font-medium text-[var(--sf-secondary)] hover:text-[var(--sf-accent)] hover:underline"

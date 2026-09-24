@@ -97,7 +97,7 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
   const skuI = idx(['sku', 'skucode', 'itemcode', 'productcode', 'code', 'variantsku']);
   const idI = idx(['id', 'productid', 'postid', 'itemid']);
   const barcodeI = idx(['gtinupceanorisbn', 'gtin', 'upc', 'ean', 'isbn', 'barcode', 'barcodee', 'itembarcode', 'barcodevalue']);
-  const regPriceI = idx(['regularprice', 'price', 'retailprice', 'standardprice', 'msrp', 'unitprice']);
+  const regPriceI = idx(['regularprice', 'price', 'retailprice', 'standardprice', 'msrp', 'unitprice', 'variantprice']);
   const salePriceI = idx(['saleprice', 'specialprice', 'sellprice', 'discountedprice', 'promoprice']);
   const costI = idx(['costprice', 'cost', 'unitcost', 'purchaseprice', 'buyprice', 'supplierprice']);
   const stockI = idx(['stock', 'initialstock', 'quantity', 'qty', 'stockquantity', 'inventory', 'onhand']);

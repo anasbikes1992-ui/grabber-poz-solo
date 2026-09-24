@@ -1,7 +1,16 @@
 # GrabberPoz System Refactor Plan
 
 ## Decision
-GrabberPoz is one company platform and every customer runs **Grabber Business OS Pro**. Clients are configured by vertical pack, not by feature tier. ThePartyStore is the live party/events + retail/wholesale reference client.
+GrabberPoz is one company platform and every customer runs **Grabber Business OS Pro**. Clients are configured by vertical pack and import/source settings, not by feature tier. ThePartyStore is the live party/events + retail/wholesale reference client, but the core platform must stay reusable for WooCommerce, Shopify, standard CSV, and future source systems.
+
+## CTO Operating Mode
+- Keep the existing POS, ERP, checkout, stock ledger, payment, WhatsApp, Jarvis, and storefront foundation. The platform is already broad enough that a full rebuild would add risk instead of removing it.
+- Rebuild only weak areas as clean subsystems: catalog staging, source identity, product-family storefront projection, guided catalog UX, storefront theme controls, and release verification.
+- Every phase must have a small implementation slice, a rollback path, focused tests, and a written before/after note.
+- Never import external stock quantities into the authoritative ledger without an explicit stock-count or approved adjustment workflow.
+- Never mass-publish imported products. New external catalog records start as draft/review until operator approval.
+- Preserve historical product IDs, order rows, payments, GL entries, and stock movements unless an owner explicitly approves a migration.
+- Use reference clients to prove quality, but keep the capability source-system and namespace driven for any Grabber Business OS Pro merchant.
 
 ## Current Findings
 - Staff routes resolve correctly from the header and merchant hub; the latest route audit found no missing targets.
@@ -39,8 +48,11 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
 - Added order channel + status filtering so staff can separate POS, online, WhatsApp, pending, delivered, and cancelled orders.
 - Keep customer-facing invoice access protected by phone/token verification.
 
-## Phase 2 — Catalog Workspace
+## Phase 2 - Catalog Workspace
 - **Status:** In progress.
+- Backend decision: keep the current normalized inventory model because it is strong for POS, barcode, branches, variants, stock, and accounting; simplify the staff UX with guided workspaces instead of flattening the backend.
+- Customer-facing decision: product pages must hide ERP complexity and show clean variant choices, product media, live stock, customization notes, delivery/pickup, FAQ, reviews, and upsells.
+- CTO decision: add import staging and external source identity before any external catalog import is committed. The current generic importer remains useful for simple CSV loads, but it is not the approval-safe catalog migration path.
 - Replace the single long product modal with a guided editor:
   - Basics
   - Pricing
@@ -62,6 +74,7 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
 ## Phase 3 — CSV v2
 - **Status:** In progress.
 - Preserve the current simple CSV for compatibility.
+- Treat v2 and WooCommerce migrations as staging inputs first, not direct database writes.
 - Add a richer optional CSV schema:
   - ProductType
   - ParentSKU
@@ -78,11 +91,14 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
   - Tags
   - BundleComponents
 - Import preview must show duplicates, variant grouping, missing images, invalid prices, and category suggestions before commit.
+- Source-specific imports must preserve source ID, raw SKU, regular/sale prices, categories, tags, image URLs, and row warnings. WooCommerce parent-child relations must be preserved. No source import may infer numeric stock from a status flag like `In stock?`.
 - Completed first groundwork: v2 headers and version detection exist in the shared CSV module without changing v1 import/export behavior.
 
 ## Phase 4 — Storefront Theme Controls
 - **Status:** In progress.
 - Completed first branding step: store logo URL/upload is available in Store Builder and rendered on the public storefront header.
+- Completed first product-page consistency step: product detail pages now use storefront theme tokens, public storefront shell, richer variant display, image area, details, FAQ, reviews, and related-product upsells.
+- Storefront catalog pages should render one public card per product family, with variants selected on the detail page and exact variant IDs passed into cart/checkout.
 - Add toggles per storefront section:
   - Hero
   - Category tiles
@@ -134,6 +150,9 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
 - Typecheck must pass.
 - API auth coverage must pass.
 - Route-link audit must show no missing staff routes.
+- Focused tests for the touched phase must pass before moving to the next phase.
+- Import work must prove idempotence: same file and same decisions produce no duplicate products, variants, media links, or stock movements.
+- Storefront work must prove variant accuracy: cart and checkout hold exact variant IDs and server-side price/stock are recomputed.
 - Manual smoke must cover:
   - POS sale
   - Order invoice

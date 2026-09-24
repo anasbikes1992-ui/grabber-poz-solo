@@ -341,6 +341,66 @@ export const stockMovements = pgTable('stock_movements', {
   createdIdx: index('stock_movements_created_idx').on(t.createdAt),
 }));
 
+export const catalogImportRuns = pgTable('catalog_import_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sourceSystem: text('source_system').notNull(),
+  sourceNamespace: text('source_namespace').notNull(),
+  sourceFileHash: text('source_file_hash').notNull(),
+  fileName: text('file_name'),
+  mode: text('mode').notNull().default('DRY_RUN'), // DRY_RUN, APPROVE, APPLY
+  status: text('status').notNull().default('STAGED'), // STAGED, APPROVED, APPLIED, FAILED, CANCELLED
+  totalRows: integer('total_rows').notNull().default(0),
+  summaryJson: jsonb('summary_json').$type<Record<string, unknown>>().notNull().default({}),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  appliedAt: timestamp('applied_at', { withTimezone: true }),
+}, (t) => ({
+  sourceHashIdx: index('catalog_import_runs_source_hash_idx').on(t.sourceSystem, t.sourceNamespace, t.sourceFileHash),
+  createdIdx: index('catalog_import_runs_created_idx').on(t.createdAt),
+}));
+
+export const catalogImportRows = pgTable('catalog_import_rows', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  importRunId: uuid('import_run_id').notNull().references(() => catalogImportRuns.id, { onDelete: 'cascade' }),
+  rowIndex: integer('row_index').notNull(),
+  sourceSystem: text('source_system').notNull(),
+  sourceNamespace: text('source_namespace').notNull(),
+  sourceId: text('source_id').notNull(),
+  sourceHash: text('source_hash').notNull(),
+  rowType: text('row_type').notNull(),
+  parentSourceId: text('parent_source_id'),
+  internalSku: text('internal_sku'),
+  title: text('title').notNull(),
+  status: text('status').notNull().default('STAGED'), // STAGED, WARNING, APPROVED, APPLIED, SKIPPED, FAILED
+  rowJson: jsonb('row_json').$type<Record<string, unknown>>().notNull(),
+  warningsJson: jsonb('warnings_json').$type<string[]>().notNull().default([]),
+  decisionJson: jsonb('decision_json').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  runRowIdx: uniqueIndex('catalog_import_rows_run_row_idx').on(t.importRunId, t.rowIndex),
+  sourceIdx: index('catalog_import_rows_source_idx').on(t.sourceSystem, t.sourceNamespace, t.sourceId),
+  statusIdx: index('catalog_import_rows_status_idx').on(t.status),
+}));
+
+export const externalProductMappings = pgTable('external_product_mappings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sourceSystem: text('source_system').notNull(),
+  sourceNamespace: text('source_namespace').notNull(),
+  sourceId: text('source_id').notNull(),
+  sourceType: text('source_type').notNull().default('PRODUCT'),
+  sourceSku: text('source_sku'),
+  sourceHash: text('source_hash'),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }),
+  importRunId: uuid('import_run_id').references(() => catalogImportRuns.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  sourceUniqueIdx: uniqueIndex('external_product_mappings_source_unique_idx').on(t.sourceSystem, t.sourceNamespace, t.sourceId),
+  productIdx: index('external_product_mappings_product_idx').on(t.productId),
+  variantIdx: index('external_product_mappings_variant_idx').on(t.variantId),
+}));
+
 // ==========================================
 // 5. CUSTOMERS & POLIM POTHA (AR CREDIT)
 // ==========================================
