@@ -14,8 +14,10 @@ describe('creative media provider', () => {
   });
 
   it('falls back to dev placeholder without API keys', async () => {
+    const prevNodeEnv = process.env.NODE_ENV;
     const prevFal = process.env.FAL_KEY;
     const prevRep = process.env.REPLICATE_API_TOKEN;
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'test';
     delete process.env.FAL_KEY;
     delete process.env.REPLICATE_API_TOKEN;
 
@@ -24,6 +26,7 @@ describe('creative media provider', () => {
       aspectRatio: '9:16',
     });
 
+    (process.env as Record<string, string | undefined>).NODE_ENV = prevNodeEnv;
     process.env.FAL_KEY = prevFal;
     process.env.REPLICATE_API_TOKEN = prevRep;
 

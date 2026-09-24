@@ -62,7 +62,8 @@ describe('Phase 2 growth — GRW-03 wishlist & reviews', () => {
 
   it('PDP mounts wishlist and reviews', () => {
     const pdp = read('src/app/products/[slug]/page.tsx');
-    expect(pdp).toContain('ProductWishlistButton');
-    expect(pdp).toContain('ProductReviews');
+    const interactive = read('src/components/storefront/product-detail-interactive.tsx');
+    expect(pdp + interactive).toContain('ProductWishlistButton');
+    expect(pdp + interactive).toContain('ProductReviews');
   });
 });

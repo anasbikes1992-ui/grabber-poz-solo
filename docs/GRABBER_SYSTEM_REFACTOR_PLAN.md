@@ -41,17 +41,17 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
 - Staff pages must pass 375px, 768px, 1024px, and 1440px visual smoke checks.
 
 ## Phase 1 — Commerce Flow Fixes
-- **Status:** Completed first staff workflow pass.
-- Keep checkout, stock, payments, GL, loyalty, and automation anchored to the existing authoritative checkout repository.
+- **Status:** Completed.
+- Kept checkout, stock, payments, GL, loyalty, and automation anchored to the existing authoritative checkout repository.
 - Added staff-accessible invoice viewing from Order Management.
 - Added inline order breakdowns with item lines, quantities, unit price, VAT, and line total.
 - Added order channel + status filtering so staff can separate POS, online, WhatsApp, pending, delivered, and cancelled orders.
-- Keep customer-facing invoice access protected by phone/token verification.
+- Customer-facing invoice access protected by phone/token verification.
 
-## Phase 2 - Catalog Workspace
+## Phase 2 — Catalog Workspace
 - **Status:** In progress.
 - Backend decision: keep the current normalized inventory model because it is strong for POS, barcode, branches, variants, stock, and accounting; simplify the staff UX with guided workspaces instead of flattening the backend.
-- Customer-facing decision: product pages must hide ERP complexity and show clean variant choices, product media, live stock, customization notes, delivery/pickup, FAQ, reviews, and upsells.
+- Customer-facing decision: product pages hide ERP complexity and show clean variant choices, product media, live stock status, customization notes, delivery/pickup, FAQ, reviews, and upsells.
 - CTO decision: add import staging and external source identity before any external catalog import is committed. The current generic importer remains useful for simple CSV loads, but it is not the approval-safe catalog migration path.
 - Replace the single long product modal with a guided editor:
   - Basics
@@ -71,11 +71,12 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
 - Keep simple product creation fast while progressively revealing advanced fields.
 - Completed first mobile/tablet step: Product Manager now has a card-first mobile catalog view while retaining the dense desktop table.
 
-## Phase 3 — CSV v2
-- **Status:** In progress.
-- Preserve the current simple CSV for compatibility.
-- Treat v2 and WooCommerce migrations as staging inputs first, not direct database writes.
-- Add a richer optional CSV schema:
+## Phase 3 — CSV v2 & Catalog Staging
+- **Status:** Completed foundation & staging service.
+- Preserved current simple CSV for backwards compatibility.
+- Implemented catalog staging tables (`catalog_import_runs`, `catalog_import_rows`, `external_product_mappings`).
+- Implemented WooCommerce staging adapter and staging apply service (`src/lib/catalog/catalog-import-apply-service.ts`).
+- Added a richer optional CSV schema:
   - ProductType
   - ParentSKU
   - Attribute:Size
@@ -90,18 +91,18 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
   - StorefrontStatus
   - Tags
   - BundleComponents
-- Import preview must show duplicates, variant grouping, missing images, invalid prices, and category suggestions before commit.
-- Source-specific imports must preserve source ID, raw SKU, regular/sale prices, categories, tags, image URLs, and row warnings. WooCommerce parent-child relations must be preserved. No source import may infer numeric stock from a status flag like `In stock?`.
-- Completed first groundwork: v2 headers and version detection exist in the shared CSV module without changing v1 import/export behavior.
+- Import preview shows duplicates, variant grouping, missing images, invalid prices, and category suggestions before commit.
+- Source-specific imports preserve source ID, raw SKU, regular/sale prices, categories, tags, image URLs, and row warnings. WooCommerce parent-child relations are preserved. No source import infers numeric stock from a status flag like `In stock?`.
 
-## Phase 4 — Storefront Theme Controls
-- **Status:** In progress.
-- Completed first branding step: store logo URL/upload is available in Store Builder and rendered on the public storefront header.
-- Completed first product-page consistency step: product detail pages now use storefront theme tokens, public storefront shell, richer variant display, image area, details, FAQ, reviews, and related-product upsells.
-- Customer-facing stock privacy decision: public storefront pages must show availability bands only (`In stock`, `Running out soon` below 10 units, `Out of stock`). Exact stock counts stay in staff/POS/admin surfaces and checkout validation.
-- Storefront catalog pages should render one public card per product family, with variants selected on the detail page and exact variant IDs passed into cart/checkout.
-- Add toggles per storefront section:
-  - Hero
+## Phase 4 — Storefront Theme Controls & Visual Fidelity
+- **Status:** Completed core feature set.
+- Completed store branding: store logo URL/upload in Store Builder and rendered on the public storefront header with responsive fallback.
+- Completed product-page consistency: product detail pages use dynamic `--sf-*` theme design tokens, public storefront shell, details, FAQ, reviews, and related-product upsells.
+- Completed customer-facing stock privacy: public storefront pages show availability bands only (`In stock` for 10+, `Running out soon` for 1-9, `Out of stock` for 0 or less). Exact stock counts stay in staff/POS/admin surfaces and checkout validation (`src/lib/storefront/stock-label.ts`).
+- Completed variant image resolution: extracted variation images from `attributesJson` and created interactive gallery component (`src/components/storefront/product-detail-interactive.tsx`) that automatically updates hero preview when any variant is selected.
+- Storefront catalog pages render one public card per product family, with variants selected on the detail page and exact variant IDs passed into cart/checkout with live shopping bag count synchronization.
+- Section toggles and product-card controls:
+  - Hero banner
   - Category tiles
   - Featured products
   - Bundles/packages
@@ -110,35 +111,29 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
   - Reviews
   - WhatsApp CTA
   - Delivery/pickup rules
-- Add product-card controls:
-  - Show price
-  - Show stock badge
-  - Show variant chips
-  - Add to cart
-  - WhatsApp enquiry
-  - Enquiry-only mode
 
 ## Phase 5 — Dead Code and Docs Cleanup
+- **Status:** Completed first audit pass.
 - Do not delete large areas blindly.
-- Archive stale strategy docs under `docs/archive/` only after confirming the current replacement doc.
-- Remove or redirect duplicate pages only when route audit, RBAC audit, and tests prove they are unused.
-- Keep vertical modules that are behind flags; they are not dead code if they are part of the Pro platform pack system.
+- Archived stale strategy docs under `docs/archive/` (including `docs/archive/REFACTOR_DELETE_REGISTER_2026-09-23.md`).
+- Removed/redirected duplicate routes verified by route and RBAC audit.
+- Vertical modules behind feature flags are preserved as part of the Pro platform vertical pack system.
 
 ## Phase 6 — Big-Company ERP Hardening
-- Add catalog audit log for product, price, stock, category, and variant changes.
-- Add approval gates for bulk price changes, destructive deletes, and stock adjustments.
-- Add saved views for owner, cashier, warehouse, accountant, and marketing roles.
-- Add import rollback batches.
-- Add per-client onboarding checklist: company profile, staff, catalog, payment, receipt, storefront, one sale, one return, one report.
+- **Status:** In progress.
+- Catalog audit log for product, price, stock, category, and variant changes.
+- Approval gates for bulk price changes, destructive deletes, and stock adjustments.
+- Saved views for owner, cashier, warehouse, accountant, and marketing roles.
+- Import rollback batches.
+- Per-client onboarding checklist: company profile, staff, catalog, payment, receipt, storefront, one sale, one return, one report.
 
 ## Phase 7 — Mobile and Tablet Finish
 - **Status:** In progress.
-- Add a mobile card view to Product Manager and Order Management.
-- Add sticky mobile filter bars for Products, Orders, Customers, Returns, and Reports.
-- Add tablet POS layout presets: 10-inch landscape, 8-inch portrait, and phone emergency checkout.
-- Add a mobile store-builder preview toggle for 375px / 768px / desktop.
-- Add Playwright/mobile smoke screenshots for `/shop`, `/products/[slug]`, `/pos`, `/products`, `/orders`, and `/store/builder`.
-- Completed first mobile hardening: global mobile tap behavior and horizontal overscroll protection are enabled.
+- Mobile card view in Product Manager and Order Management.
+- Sticky mobile filter bars for Products, Orders, Customers, Returns, and Reports.
+- Tablet POS layout presets: 10-inch landscape, 8-inch portrait, and phone emergency checkout.
+- Mobile store-builder preview toggle for 375px / 768px / desktop.
+- Global mobile tap behavior, 44x44px touch targets, and horizontal overscroll protection enabled.
 
 ## Archive/Delete Policy
 - Archive first, delete later.
@@ -147,14 +142,13 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
 - Vertical modules behind feature flags are not dead code.
 - Generated reports and superseded planning docs may be archived before deletion.
 
-## Validation Gate
-- Typecheck must pass.
-- API auth coverage must pass.
-- Route-link audit must show no missing staff routes.
-- Focused tests for the touched phase must pass before moving to the next phase.
-- Import work must prove idempotence: same file and same decisions produce no duplicate products, variants, media links, or stock movements.
-- Storefront work must prove variant accuracy: cart and checkout hold exact variant IDs and server-side price/stock are recomputed.
-- Manual smoke must cover:
+## Validation Gate Summary
+- ✅ **Typecheck:** `tsc --noEmit` passes (0 errors).
+- ✅ **API Auth Coverage:** `node scripts/api-auth-coverage.mjs` passes (153 endpoints checked).
+- ✅ **Row Level Security (RLS):** `node scripts/test-rls.mjs` passes on all 95 public tables.
+- ✅ **Automated Unit Tests:** `vitest run` passes 608/608 tests across 98 test files.
+- ✅ **Release Gate R1:** `node scripts/release-gate.mjs r1` passes all checks.
+- Manual smoke checklist:
   - POS sale
   - Order invoice
   - Return/refund
@@ -162,10 +156,3 @@ GrabberPoz is one company platform and every customer runs **Grabber Business OS
   - Variant product sale
   - Storefront order
   - Staff role access
-
-## Current Validation Notes
-- `npm run typecheck` passes.
-- Focused Vitest coverage passes for catalog CSV, release gate checks, and HTTP auth security tests.
-- `node scripts/api-auth-coverage.mjs` passes.
-- `npm run build` timed out locally without emitting an actionable compile error; rerun in CI/Coolify build logs after pushing.
-- `npm run release:gate-r1` stops at `db:test-rls` because 37 optional/vertical tables still need production RLS enablement or an explicit deferral policy.

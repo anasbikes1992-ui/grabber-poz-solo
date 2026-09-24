@@ -228,12 +228,12 @@ export async function validateImportRows(rows: ImportRowInput[]): Promise<Import
     let status: ImportRowPreview['status'] = 'VALID';
     let note: string | undefined;
 
-    if (existingProductId) {
-      status = 'COLLISION';
-      note = 'SKU exists in DB — will update existing product';
-    } else if (seenInBatch.has(skuKey)) {
+    if (seenInBatch.has(skuKey)) {
       status = 'COLLISION';
       note = 'Duplicate SKU in CSV — will merge/update with earlier row';
+    } else if (existingProductId) {
+      status = 'COLLISION';
+      note = 'SKU exists in DB — will update existing product';
     } else if (!row.barcode) {
       status = 'WARNING';
       note = 'Missing barcode — will use SKU as barcode';

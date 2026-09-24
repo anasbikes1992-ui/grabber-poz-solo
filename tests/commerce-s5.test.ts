@@ -15,6 +15,7 @@ describe('storefront seo helpers', () => {
   });
 
   it('builds metadata with canonical url', () => {
+    delete process.env.APP_URL;
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com';
     const meta = buildProductMetadata({
       name: 'Linen Shirt',
@@ -27,6 +28,7 @@ describe('storefront seo helpers', () => {
   });
 
   it('emits Product JSON-LD', () => {
+    delete process.env.APP_URL;
     process.env.NEXT_PUBLIC_APP_URL = 'https://example.com';
     const json = productJsonLd({
       name: 'Linen Shirt',
@@ -42,6 +44,7 @@ describe('storefront seo helpers', () => {
   });
 
   it('resolves site base url from env', () => {
+    delete process.env.APP_URL;
     process.env.NEXT_PUBLIC_APP_URL = 'https://grabber-poz-solo.vercel.app/';
     expect(siteBaseUrl()).toBe('https://grabber-poz-solo.vercel.app');
   });
