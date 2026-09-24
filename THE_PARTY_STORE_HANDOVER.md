@@ -85,19 +85,39 @@ Real Woo file staged:
 
 Next Phase 1 slice:
 
-- Add idempotence checks against `external_product_mappings`.
-- Add review/apply service that creates products, variants, media references, and source mappings only from approved staged rows.
 - Add import rollback batch metadata before any apply path reaches production.
+- Add review UI for staged rows, warning resolution, category decisions, and approved source IDs.
+- Add media references after the owned-media pipeline is implemented.
 - Keep existing `/api/products/import` behavior unchanged until the staging UI is ready.
 
 Latest verification:
 
 ```bash
 npm run typecheck
-npm test -- tests/catalog-import-staging.test.ts tests/woocommerce-staging.test.ts tests/storefront-family-catalog.test.ts tests/catalog-csv.test.ts tests/stock-service.test.ts tests/commerce-integrity.test.ts
+npm test -- tests/catalog-import-apply-plan.test.ts tests/catalog-import-staging.test.ts tests/woocommerce-staging.test.ts tests/storefront-family-catalog.test.ts tests/catalog-csv.test.ts tests/stock-service.test.ts tests/commerce-integrity.test.ts
 ```
 
-Result: pass, 105 focused tests.
+Result: pass, 108 focused tests.
+
+## Phase 3 Apply Progress
+Completed:
+
+- Added `src/lib/catalog/catalog-import-apply-plan.ts`, a pure planner for idempotent apply decisions.
+- Added `src/lib/catalog/catalog-import-apply-service.ts`, which applies approved staged rows into draft products/variants.
+- Added `POST /api/products/import/staging/[runId]/apply`.
+- Added `tests/catalog-import-apply-plan.test.ts`.
+- Existing external mappings are skipped for safe re-apply.
+- SKU conflicts without a source mapping block the batch.
+- Variant rows require an approved or already-mapped parent.
+- Applied products and variants are created inactive/draft by default.
+- Catalog apply creates source mappings but does not create stock balances or stock movements.
+
+Still open before production apply:
+
+- Review UI to explicitly approve staged rows and category mappings.
+- Rollback batch metadata and operator-facing rollback flow.
+- Owned media copy before publishing imported records.
+- Full E2E with one Woo family, one Shopify/simple CSV item, and checkout variant selection.
 
 ## Grabber Poz Solo Core Next Phases
 1. Generic import review UI: one admin surface for WooCommerce, Shopify, and standard CSV dry-runs, using `sourceSystem` and `sourceNamespace`.
