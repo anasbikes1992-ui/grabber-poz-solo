@@ -68,20 +68,20 @@ export function ProductReviews({ productId }: Props) {
   }
 
   return (
-    <section className="mt-10 space-y-6 border-t border-slate-200 pt-8" aria-labelledby="reviews-heading">
+    <section className="mt-10 space-y-6 border-t border-[var(--sf-border)] pt-8" aria-labelledby="reviews-heading">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 id="reviews-heading" className="text-lg font-bold text-slate-900">
+          <h2 id="reviews-heading" className="text-lg font-bold text-[var(--sf-foreground)]">
             Customer reviews
           </h2>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-[var(--sf-secondary)]">
             {count > 0 ? (
               <>
-                <span className="font-semibold text-slate-900">{average.toFixed(1)}</span> / 5 · {count}{' '}
+                <span className="font-semibold text-[var(--sf-foreground)]">{average.toFixed(1)}</span> / 5 - {count}{' '}
                 {count === 1 ? 'review' : 'reviews'}
               </>
             ) : (
-              'No reviews yet — be the first.'
+              'No reviews yet - be the first.'
             )}
           </p>
         </div>
@@ -89,31 +89,31 @@ export function ProductReviews({ productId }: Props) {
 
       <ul className="space-y-3">
         {reviews.map((r) => (
-          <li key={r.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+          <li key={r.id} className="rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-4">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-slate-900">{r.customerName || 'Customer'}</p>
-              <p className="text-xs font-bold text-amber-700" aria-label={`${r.rating} out of 5 stars`}>
+              <p className="text-sm font-semibold text-[var(--sf-foreground)]">{r.customerName || 'Customer'}</p>
+              <p className="text-xs font-bold text-[var(--sf-accent)]" aria-label={`${r.rating} out of 5 stars`}>
                 {'★'.repeat(r.rating)}
                 {'☆'.repeat(5 - r.rating)}
               </p>
             </div>
-            {r.title && <p className="mt-1 text-sm font-medium text-slate-800">{r.title}</p>}
-            {r.body && <p className="mt-1 text-sm text-slate-600">{r.body}</p>}
+            {r.title && <p className="mt-1 text-sm font-medium text-[var(--sf-foreground)]">{r.title}</p>}
+            {r.body && <p className="mt-1 text-sm text-[var(--sf-secondary)]">{r.body}</p>}
           </li>
         ))}
       </ul>
 
-      <form onSubmit={(e) => void submit(e)} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
-        <h3 className="text-sm font-bold text-slate-900">Write a review</h3>
+      <form onSubmit={(e) => void submit(e)} className="space-y-3 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5">
+        <h3 className="text-sm font-bold text-[var(--sf-foreground)]">Write a review</h3>
         <div>
-          <label htmlFor="review-rating" className="text-xs font-semibold text-slate-600 block mb-1">
+          <label htmlFor="review-rating" className="mb-1 block text-xs font-semibold text-[var(--sf-secondary)]">
             Rating
           </label>
           <select
             id="review-rating"
             value={rating}
             onChange={(e) => setRating(Number(e.target.value))}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2 text-sm text-[var(--sf-foreground)]"
           >
             {[5, 4, 3, 2, 1].map((n) => (
               <option key={n} value={n}>
@@ -123,18 +123,18 @@ export function ProductReviews({ productId }: Props) {
           </select>
         </div>
         <div>
-          <label htmlFor="review-title" className="text-xs font-semibold text-slate-600 block mb-1">
+          <label htmlFor="review-title" className="mb-1 block text-xs font-semibold text-[var(--sf-secondary)]">
             Title (optional)
           </label>
           <input
             id="review-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2 text-sm text-[var(--sf-foreground)]"
           />
         </div>
         <div>
-          <label htmlFor="review-body" className="text-xs font-semibold text-slate-600 block mb-1">
+          <label htmlFor="review-body" className="mb-1 block text-xs font-semibold text-[var(--sf-secondary)]">
             Review (optional)
           </label>
           <textarea
@@ -142,28 +142,28 @@ export function ProductReviews({ productId }: Props) {
             rows={3}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2 text-sm text-[var(--sf-foreground)]"
           />
         </div>
         {needAuth && (
-          <p className="text-xs text-slate-600">
-            <Link href="/shop/login" className="font-semibold text-emerald-700 hover:underline">
+          <p className="text-xs text-[var(--sf-secondary)]">
+            <Link href="/shop/login" className="font-semibold text-[var(--sf-accent)] hover:underline">
               Sign in
             </Link>{' '}
             to post a review.
           </p>
         )}
         {msg && (
-          <p role="status" className="text-xs text-emerald-700">
+          <p role="status" className="text-xs text-[var(--sf-accent)]">
             {msg}
           </p>
         )}
         <button
           type="submit"
           disabled={busy}
-          className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+          className="rounded-xl bg-[var(--sf-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--sf-on-primary)] hover:opacity-90 disabled:opacity-50"
         >
-          {busy ? 'Saving…' : 'Submit review'}
+          {busy ? 'Saving...' : 'Submit review'}
         </button>
       </form>
     </section>

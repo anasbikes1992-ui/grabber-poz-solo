@@ -43,15 +43,23 @@ export function StorefrontShell({
   const logoUrl = cms.theme.logoUrl?.trim();
 
   useEffect(() => {
-    try {
+    const syncBagCount = () => {
+      try {
       const raw = localStorage.getItem('grabber_store_bag');
       if (raw) {
         const bag = JSON.parse(raw) as Array<{ qty: number }>;
         setBagCount(bag.reduce((s, l) => s + l.qty, 0));
+      } else {
+        setBagCount(0);
       }
-    } catch {
-      /* ignore */
-    }
+      } catch {
+        setBagCount(0);
+      }
+    };
+
+    syncBagCount();
+    window.addEventListener('storage', syncBagCount);
+    window.addEventListener('grabber:bag-updated', syncBagCount);
 
     // Auto-capture UTM and Campaign parameters for ROAS attribution
     try {
@@ -74,6 +82,11 @@ export function StorefrontShell({
     } catch {
       /* ignore */
     }
+
+    return () => {
+      window.removeEventListener('storage', syncBagCount);
+      window.removeEventListener('grabber:bag-updated', syncBagCount);
+    };
   }, []);
 
   const isProducts = pathname === '/' || pathname.startsWith('/products') || pathname.startsWith('/categories');

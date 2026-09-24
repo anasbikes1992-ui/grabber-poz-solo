@@ -67,15 +67,15 @@ export function ProductWishlistButton({ productId }: Props) {
         className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
           wished
             ? 'border-rose-300 bg-rose-50 text-rose-700'
-            : 'border-slate-200 bg-white text-slate-700 hover:border-rose-200 hover:text-rose-600'
+            : 'border-[var(--sf-border)] bg-[var(--sf-surface)] text-[var(--sf-foreground)] hover:border-[var(--sf-accent)] hover:text-[var(--sf-accent)]'
         } disabled:opacity-50`}
       >
         <Heart className={`h-4 w-4 ${wished ? 'fill-current' : ''}`} aria-hidden />
         {wished ? 'Saved to wishlist' : 'Add to wishlist'}
       </button>
       {needAuth && (
-        <p className="text-xs text-slate-600">
-          <Link href="/shop/login" className="font-semibold text-emerald-700 hover:underline">
+        <p className="text-xs text-[var(--sf-secondary)]">
+          <Link href="/shop/login" className="font-semibold text-[var(--sf-accent)] hover:underline">
             Sign in
           </Link>{' '}
           to save items.

@@ -1,4 +1,4 @@
-import { and, eq, or, sql } from 'drizzle-orm';
+import { and, eq, ne, or, sql } from 'drizzle-orm';
 import { db, branches, categories, products, productVariants, stockBalances } from '@/db';
 
 export type StorefrontVariant = {
@@ -21,10 +21,23 @@ export type StorefrontProduct = {
   salePrice: number;
   costPrice: number;
   imageUrl: string | null;
+  description: string | null;
+  metaDescription: string | null;
   category: string | null;
   stock: number;
   variants: StorefrontVariant[];
   updatedAt: Date;
+};
+
+export type StorefrontRelatedProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  salePrice: number;
+  imageUrl: string | null;
+  description: string | null;
+  category: string | null;
 };
 
 export async function listPublishedProductSlugs(limit = 500) {
@@ -84,11 +97,62 @@ export async function getStorefrontProductBySlug(slug: string): Promise<Storefro
     salePrice: Number(product.salePrice),
     costPrice: Number(product.costPrice),
     imageUrl: product.imageUrl,
+    description: product.description,
+    metaDescription: product.metaDescription,
     category,
     stock: totalStock,
     variants,
     updatedAt: product.updatedAt,
   };
+}
+
+export async function listRelatedStorefrontProducts(
+  product: StorefrontProduct,
+  limit = 8,
+): Promise<StorefrontRelatedProduct[]> {
+  const [source] = await db.select().from(products).where(eq(products.id, product.id)).limit(1);
+  if (!source) return [];
+
+  const rows = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      slug: products.slug,
+      sku: products.sku,
+      salePrice: products.salePrice,
+      imageUrl: products.imageUrl,
+      description: products.description,
+      categoryId: products.categoryId,
+    })
+    .from(products)
+    .where(
+      and(
+        eq(products.isActive, true),
+        ne(products.id, product.id),
+        source.categoryId ? eq(products.categoryId, source.categoryId) : ne(products.slug, product.slug),
+      ),
+    )
+    .limit(limit);
+
+  if (!rows.length) return [];
+
+  const categoryIds = [...new Set(rows.map((r) => r.categoryId).filter(Boolean))] as string[];
+  const categoryRows =
+    categoryIds.length > 0
+      ? await db.select().from(categories).where(or(...categoryIds.map((id) => eq(categories.id, id))))
+      : [];
+  const categoryMap = new Map(categoryRows.map((c) => [c.id, c.name]));
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    sku: r.sku,
+    salePrice: Number(r.salePrice),
+    imageUrl: r.imageUrl,
+    description: r.description,
+    category: r.categoryId ? categoryMap.get(r.categoryId) ?? null : null,
+  }));
 }
 
 export async function listCategorySlugs(limit = 100) {
