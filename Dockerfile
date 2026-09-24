@@ -9,7 +9,11 @@
 # 1. Base Stage
 FROM node:20-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
+RUN for attempt in 1 2 3 4 5; do \
+        apk add --no-cache libc6-compat && break; \
+        if [ "$attempt" = "5" ]; then exit 1; fi; \
+        sleep $((attempt * 10)); \
+    done
 
 # 2. Dependencies Stage
 FROM base AS deps
