@@ -2,8 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { StorefrontShell } from '@/components/storefront/storefront-shell';
-import { ProductPurchasePanel } from '@/components/storefront/product-purchase-panel';
-import { ProductWishlistButton } from '@/components/storefront/product-wishlist-button';
+import { ProductDetailInteractive } from '@/components/storefront/product-detail-interactive';
 import { ProductReviews } from '@/components/storefront/product-reviews';
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import {
@@ -86,6 +85,7 @@ export default async function ProductDetailPage({ params }: Props) {
           unitPrice: variant.salePrice,
           unitCost: variant.costPrice,
           stock: variant.stock,
+          imageUrl: variant.imageUrl || null,
           attributesJson: variant.attributesJson,
         }))
       : [
@@ -96,6 +96,7 @@ export default async function ProductDetailPage({ params }: Props) {
             unitPrice: product.salePrice,
             unitCost: product.costPrice,
             stock: product.stock,
+            imageUrl: product.imageUrl || null,
           },
         ];
 
@@ -133,8 +134,7 @@ export default async function ProductDetailPage({ params }: Props) {
     }
   }
   const variantGroupEntries = Array.from(variantGroups.entries()).slice(0, 4);
-  const heroImage = product.imageUrl || relatedProducts.find((item) => item.imageUrl)?.imageUrl || null;
-  const thumbnailImages = [heroImage, ...relatedProducts.map((item) => item.imageUrl)].filter(Boolean).slice(0, 3);
+  const relatedImages = relatedProducts.map((item) => item.imageUrl).filter(Boolean) as string[];
 
   const jsonLd = productJsonLd({
     name: product.name,
@@ -160,83 +160,21 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-7xl gap-7 px-4 py-7 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,0.74fr)] lg:items-start lg:py-10">
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-[1.5rem] border border-[var(--sf-border)] bg-[var(--sf-surface)] shadow-lg shadow-[var(--sf-primary)]/5">
-              {heroImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={heroImage}
-                  alt={product.name}
-                  className="aspect-[4/3] max-h-[560px] w-full object-contain p-6"
-                />
-              ) : (
-                <div className="flex aspect-[4/3] items-center justify-center bg-[var(--sf-muted)] text-center text-sm font-semibold text-[var(--sf-secondary)]">
-                  Product image coming soon
-                </div>
-              )}
-            </div>
-            {thumbnailImages.length > 0 && (
-              <div className="grid grid-cols-3 gap-3">
-                {thumbnailImages.map((imageUrl, index) => (
-                  <div key={`${imageUrl}-${index}`} className="rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imageUrl as string} alt="" className="aspect-square w-full object-contain" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-            <div className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--sf-accent)]">
-                {product.category || 'Catalog'}
-              </p>
-              <h1 className="font-display text-3xl font-black leading-tight tracking-tight text-[var(--sf-foreground)] sm:text-4xl">
-                {product.name}
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-[var(--sf-secondary)]">{description}</p>
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                <span className="rounded-full bg-[var(--sf-primary)] px-3 py-1.5 text-[var(--sf-on-primary)]">
-                  {priceLabel}
-                </span>
-                <span className="rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3 py-1.5">
-                  {storefrontStockLabel(product.stock)}
-                </span>
-                <span className="rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3 py-1.5 font-mono">
-                  {product.sku}
-                </span>
-              </div>
-            </div>
-
-            {variantGroupEntries.length > 0 && (
-              <section className="rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-4">
-                <h2 className="font-display text-lg font-bold">Choose your options</h2>
-                <div className="mt-4 space-y-4">
-                  {variantGroupEntries.map(([name, values]) => (
-                    <div key={name}>
-                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--sf-secondary)]">{name}</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {values.map((value) => (
-                          <span
-                            key={`${name}-${value}`}
-                            className="rounded-full border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-1.5 text-xs font-semibold"
-                          >
-                            {value}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <ProductPurchasePanel lines={purchaseLines} />
-            <ProductWishlistButton productId={product.id} />
-          </div>
-        </section>
+        <ProductDetailInteractive
+          product={{
+            id: product.id,
+            name: product.name,
+            sku: product.sku,
+            category: product.category,
+            imageUrl: product.imageUrl,
+            description,
+            stock: product.stock,
+            priceLabel,
+          }}
+          purchaseLines={purchaseLines}
+          relatedImages={relatedImages}
+          variantGroupEntries={variantGroupEntries}
+        />
 
         <section className="mx-auto grid max-w-7xl gap-5 px-4 pb-10 sm:px-6 lg:grid-cols-3">
           <div className="rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-5 shadow-sm lg:col-span-2">

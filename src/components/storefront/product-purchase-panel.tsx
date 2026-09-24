@@ -7,7 +7,7 @@ import { toElectronicsVariant } from '@/lib/electronics/variant-attrs';
 import { parseElectronicsAttrs } from '@/lib/electronics/variant-attrs';
 import { storefrontStockLabel } from '@/lib/storefront/stock-label';
 
-type Line = {
+export type PurchaseLine = {
   productId: string;
   variantId?: string;
   name: string;
@@ -15,10 +15,23 @@ type Line = {
   unitPrice: number;
   unitCost: number;
   stock: number;
+  imageUrl?: string | null;
   attributesJson?: Record<string, string>;
 };
 
-export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
+export type ProductPurchasePanelProps = {
+  lines: PurchaseLine[];
+  selectedId?: string;
+  onSelectedIdChange?: (id: string) => void;
+  onVariantChange?: (line: PurchaseLine) => void;
+};
+
+export function ProductPurchasePanel({
+  lines,
+  selectedId: controlledSelectedId,
+  onSelectedIdChange,
+  onVariantChange,
+}: ProductPurchasePanelProps) {
   const electronicsVariants = useMemo(
     () =>
       lines
@@ -44,7 +57,20 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
     [lines],
   );
 
-  const [selectedId, setSelectedId] = useState(lines[0]?.variantId || lines[0]?.productId || '');
+  const [internalSelectedId, setInternalSelectedId] = useState(
+    lines[0]?.variantId || lines[0]?.productId || '',
+  );
+  const selectedId = controlledSelectedId !== undefined ? controlledSelectedId : internalSelectedId;
+
+  const handleSelect = (id: string) => {
+    setInternalSelectedId(id);
+    onSelectedIdChange?.(id);
+    const targetLine = lines.find((l) => (l.variantId || l.productId) === id);
+    if (targetLine) {
+      onVariantChange?.(targetLine);
+    }
+  };
+
   const [qty, setQty] = useState(1);
   const [msg, setMsg] = useState<string | null>(null);
   const [customText, setCustomText] = useState('');
@@ -60,7 +86,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
       const raw = localStorage.getItem('grabber_store_bag');
       const bag = raw
         ? (JSON.parse(raw) as Array<
-            Line & {
+            PurchaseLine & {
               qty: number;
               id: string;
               customText?: string;
@@ -102,7 +128,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
         <ElectronicsVariantPicker
           productName={selected.name}
           variants={electronicsVariants}
-          onSelect={(v) => setSelectedId(v.id)}
+          onSelect={(v) => handleSelect(v.id)}
         />
       ) : (
         lines.length > 1 && (
@@ -112,7 +138,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
             </label>
             <select
               value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
+              onChange={(e) => handleSelect(e.target.value)}
               className="w-full rounded-xl border border-[var(--sf-border)] bg-[var(--sf-background)] px-3 py-2.5 text-sm text-[var(--sf-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
             >
               {lines.map((l) => {
@@ -132,7 +158,7 @@ export function ProductPurchasePanel({ lines }: { lines: Line[] }) {
                   <button
                     key={id}
                     type="button"
-                    onClick={() => setSelectedId(id)}
+                    onClick={() => handleSelect(id)}
                     className={`min-h-10 rounded-xl border px-3 py-2 text-left text-xs transition ${
                       active
                         ? 'border-[var(--sf-accent)] bg-[var(--sf-accent)] text-[var(--sf-on-accent)] shadow-sm'

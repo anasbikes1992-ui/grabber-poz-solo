@@ -9,6 +9,7 @@ export type StorefrontVariant = {
   salePrice: number;
   costPrice: number;
   stock: number;
+  imageUrl?: string | null;
   attributesJson?: Record<string, string>;
 };
 
@@ -73,16 +74,29 @@ export async function getStorefrontProductBySlug(slug: string): Promise<Storefro
     .from(productVariants)
     .where(and(eq(productVariants.productId, product.id), eq(productVariants.active, true)));
 
-  const variants: StorefrontVariant[] = variantRows.map((v) => ({
-    id: v.id,
-    name: v.name,
-    sku: v.sku,
-    barcode: v.barcode,
-    salePrice: Number(v.salePrice ?? product.salePrice),
-    costPrice: Number(v.costPrice ?? product.costPrice),
-    stock: stockMap.get(stockKey(product.id, v.id)) ?? 0,
-    attributesJson: (v.attributesJson as Record<string, string>) || {},
-  }));
+  const variants: StorefrontVariant[] = variantRows.map((v) => {
+    const attrs = (v.attributesJson as Record<string, string>) || {};
+    const variantImageUrl =
+      attrs.imageUrl ||
+      attrs.image ||
+      attrs.image_url ||
+      attrs.img ||
+      attrs.featured_image ||
+      attrs.thumbnail ||
+      null;
+
+    return {
+      id: v.id,
+      name: v.name,
+      sku: v.sku,
+      barcode: v.barcode,
+      salePrice: Number(v.salePrice ?? product.salePrice),
+      costPrice: Number(v.costPrice ?? product.costPrice),
+      stock: stockMap.get(stockKey(product.id, v.id)) ?? 0,
+      imageUrl: variantImageUrl,
+      attributesJson: attrs,
+    };
+  });
 
   const baseStock = stockMap.get(stockKey(product.id, null)) ?? 0;
   const totalStock =
