@@ -45,7 +45,7 @@ export async function GET() {
     ts: new Date().toISOString(),
     sentry: isSentryEnabled() ? 'configured' : 'off',
     build: build ? String(build).slice(0, 12) : 'unknown',
-    landingMode: (process.env.LANDING_MODE || process.env.NEXT_PUBLIC_LANDING_MODE || 'auto').toLowerCase(),
+    landingMode: (process.env.LANDING_MODE || process.env.NEXT_PUBLIC_LANDING_MODE || 'unset').toLowerCase(),
   };
 
   if (!hasDatabaseUrl()) {

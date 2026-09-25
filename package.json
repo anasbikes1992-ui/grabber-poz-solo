@@ -47,6 +47,7 @@
     "client:import": "node scripts/import-client-catalog.mjs",
     "ops:inspect-db": "node scripts/inspect-db-tables.mjs",
     "seed:vertical": "tsx scripts/seed-vertical.ts",
+    "demo:seed": "tsx scripts/setup-demo-storefront.ts",
     "push:poz-solo": "git push poz-solo main"
   },
   "dependencies": {

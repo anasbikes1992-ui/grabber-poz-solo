@@ -24,8 +24,16 @@ import {
   PartyPopper,
   SlidersHorizontal,
 } from 'lucide-react';
-import type { StorefrontBlock, StorefrontConfig } from '@/lib/config/storefront-config.shared';
-import { DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
+import type {
+  StorefrontBlock,
+  StorefrontConfig,
+  StorefrontLayoutTemplate,
+} from '@/lib/config/storefront-config.shared';
+import {
+  DEFAULT_STOREFRONT,
+  STOREFRONT_LAYOUT_TEMPLATES,
+  resolveStorefrontLayoutTemplate,
+} from '@/lib/config/storefront-config.shared';
 import type { HeroSlide } from '@/components/storefront/HeroSlider';
 import {
   applyStorefrontThemePreset,
@@ -259,6 +267,7 @@ export default function StoreBuilderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storefront: {
+            layoutTemplate: resolveStorefrontLayoutTemplate(config.layoutTemplate, config.theme.presetId),
             theme: config.theme,
             blocks,
           },
@@ -284,9 +293,17 @@ export default function StoreBuilderPage() {
   const presets = listStorefrontThemePresets();
   const resolvedTheme = resolveStorefrontTheme(config.theme);
   const activePresetId = config.theme.presetId || 'party-pop';
+  const activeLayoutTemplate = resolveStorefrontLayoutTemplate(
+    config.layoutTemplate,
+    config.theme.presetId,
+  );
 
   function selectPreset(presetId: string, updateHeroCopy: boolean) {
     setConfig((prev) => applyStorefrontThemePreset(prev, presetId, { updateHeroCopy }));
+  }
+
+  function selectLayoutTemplate(layoutTemplate: StorefrontLayoutTemplate) {
+    setConfig((prev) => ({ ...prev, layoutTemplate }));
   }
 
   const activeMeta = activeSlide?.imageUrl ? imageMetaMap[activeSlide.imageUrl] : undefined;
@@ -347,14 +364,53 @@ export default function StoreBuilderPage() {
           onSubmit={handleSave}
           className="space-y-6 rounded-2xl border border-border bg-card p-5 text-xs lg:col-span-6"
         >
+          {/* LAYOUT TEMPLATE SECTION */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
+                <Layers className="h-4 w-4 text-primary" />
+                Industry Layout Template
+              </h3>
+              <span className="text-[11px] font-semibold text-emerald-500">Changes structure, not only colors</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {STOREFRONT_LAYOUT_TEMPLATES.map((template) => {
+                const active = activeLayoutTemplate === template.id;
+                return (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => selectLayoutTemplate(template.id)}
+                    className={`rounded-2xl border p-3 text-left transition-all cursor-pointer ${
+                      active
+                        ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/30'
+                        : 'border-border bg-card hover:border-primary/40 hover:bg-secondary/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-foreground">{template.label}</p>
+                      {active && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-[10px] leading-tight text-muted-foreground">
+                      {template.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* THEMES SECTION */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
                 <Palette className="h-4 w-4 text-primary" />
-                5 Interactive Themes (/ui-ux-pro-max)
+                Visual Presets & Effects
               </h3>
-              <span className="text-[11px] font-semibold text-rose-500">Live Effects & Transitions</span>
+              <span className="text-[11px] font-semibold text-rose-500">
+                {presets.length} token presets
+              </span>
             </div>
 
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">

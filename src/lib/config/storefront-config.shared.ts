@@ -1,6 +1,26 @@
 /** Client-safe storefront CMS types and defaults (no DB imports). */
 
 export type StorefrontSlot = 'TOP' | 'HERO' | 'MID' | 'PRE_CATALOG' | 'FOOTER';
+export type StorefrontLayoutTemplate =
+  | 'party'
+  | 'fashion'
+  | 'tech_repair'
+  | 'jewelry'
+  | 'energy'
+  | 'retail_wholesale';
+
+export const STOREFRONT_LAYOUT_TEMPLATES: Array<{
+  id: StorefrontLayoutTemplate;
+  label: string;
+  description: string;
+}> = [
+  { id: 'party', label: 'Party / Events', description: 'Occasion packs, playful hero, celebration-first catalog.' },
+  { id: 'fashion', label: 'Fashion / Lifestyle', description: 'Dark editorial header, lookbook hero, clean product grid.' },
+  { id: 'tech_repair', label: 'Tech + Repairs', description: 'Device retail, service trust cues, repair-friendly CTAs.' },
+  { id: 'jewelry', label: 'Jewelry / Luxury', description: 'Sparse gallery, refined cards, high-value product focus.' },
+  { id: 'energy', label: 'Energy / Beverage', description: 'Brand-first campaign hero and bold lifestyle merchandising.' },
+  { id: 'retail_wholesale', label: 'Retail + Wholesale', description: 'Dense practical catalog with B2B-ready cues.' },
+];
 
 export type StorefrontBlock =
   | {
@@ -116,10 +136,30 @@ export type StorefrontTheme = {
 
 export type StorefrontConfig = {
   theme: StorefrontTheme;
+  layoutTemplate?: StorefrontLayoutTemplate;
   blocks: StorefrontBlock[];
 };
 
+export function resolveStorefrontLayoutTemplate(
+  value?: unknown,
+  presetId?: string,
+  flags?: { repairs?: boolean },
+): StorefrontLayoutTemplate {
+  if (typeof value === 'string' && STOREFRONT_LAYOUT_TEMPLATES.some((t) => t.id === value)) {
+    return value as StorefrontLayoutTemplate;
+  }
+
+  const id = String(presetId || '').toLowerCase();
+  if (['party-pop', 'neon-carnival', 'pastel-wonderland', 'cyber-kinetic'].includes(id)) return 'party';
+  if (['vibe', 'octaboot', 'spindrift'].includes(id)) return 'fashion';
+  if (id === 'volta') return flags?.repairs ? 'tech_repair' : 'retail_wholesale';
+  if (['royal-gold'].includes(id)) return 'jewelry';
+  if (['ocean'].includes(id)) return 'energy';
+  return 'retail_wholesale';
+}
+
 export const DEFAULT_STOREFRONT: StorefrontConfig = {
+  layoutTemplate: 'retail_wholesale',
   theme: {
     presetId: 'grabber',
     primaryColor: '#1C1917',

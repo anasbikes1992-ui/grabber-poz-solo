@@ -4,6 +4,7 @@ import { resolveStorefrontTheme } from '@/lib/storefront/theme-presets';
 import {
   DEFAULT_STOREFRONT,
   normalizeBlock,
+  resolveStorefrontLayoutTemplate,
   type StorefrontBlock,
   type StorefrontConfig,
 } from '@/lib/config/storefront-config.shared';
@@ -11,10 +12,17 @@ import {
 export type {
   StorefrontBlock,
   StorefrontConfig,
+  StorefrontLayoutTemplate,
   StorefrontSlot,
   StorefrontTheme,
 } from '@/lib/config/storefront-config.shared';
-export { DEFAULT_STOREFRONT, blocksForSlot, normalizeBlock } from '@/lib/config/storefront-config.shared';
+export {
+  DEFAULT_STOREFRONT,
+  STOREFRONT_LAYOUT_TEMPLATES,
+  blocksForSlot,
+  normalizeBlock,
+  resolveStorefrontLayoutTemplate,
+} from '@/lib/config/storefront-config.shared';
 
 export async function readStorefrontConfig(): Promise<StorefrontConfig> {
   try {
@@ -30,6 +38,7 @@ export async function readStorefrontConfig(): Promise<StorefrontConfig> {
       : DEFAULT_STOREFRONT.blocks;
     return {
       theme: mergedTheme,
+      layoutTemplate: resolveStorefrontLayoutTemplate(raw.layoutTemplate, mergedTheme.presetId),
       blocks: (blocks.length ? blocks : DEFAULT_STOREFRONT.blocks) as StorefrontBlock[],
     };
   } catch {
@@ -40,6 +49,10 @@ export async function readStorefrontConfig(): Promise<StorefrontConfig> {
 export async function writeStorefrontConfig(input: Partial<StorefrontConfig>) {
   const current = await readStorefrontConfig();
   const next: StorefrontConfig = {
+    layoutTemplate: resolveStorefrontLayoutTemplate(
+      input.layoutTemplate ?? current.layoutTemplate,
+      input.theme?.presetId ?? current.theme.presetId,
+    ),
     theme: { ...current.theme, ...(input.theme || {}) },
     blocks: input.blocks?.length ? input.blocks : current.blocks,
   };

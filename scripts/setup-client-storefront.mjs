@@ -32,6 +32,7 @@ const enabledVerticalPacks = Array.isArray(manifest.enabledVerticalPacks)
   : [manifest.verticalPack || 'retail_wholesale'];
 
 const storefront = {
+  layoutTemplate: 'party',
   theme: {
     presetId: 'party-pop',
     storeName: manifest.businessName,

@@ -26,6 +26,7 @@ import { storefrontStockState } from '@/lib/storefront/stock-label';
 import { CartDrawer } from '@/components/storefront/CartDrawer';
 import { CartFloatingBar } from '@/components/storefront/CartFloatingBar';
 import { HeroSlider } from '@/components/storefront/HeroSlider';
+import { DemoThemePicker } from '@/components/storefront/DemoThemePicker';
 
 type CatalogItem = {
   id: string;
@@ -651,13 +652,13 @@ export function StorefrontHome({
           ) : (
             <motion.div
               {...gridMotionProps}
-              className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              className="storefront-catalog-grid mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             >
               {visibleItems.map((item) => (
                 <motion.article
                   key={item.id}
                   variants={reduceMotion ? undefined : gridItem}
-                  className="group flex flex-col justify-between rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] overflow-hidden shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[var(--sf-accent)]/50 hover:-translate-y-1"
+                  className="storefront-product-card group flex flex-col justify-between overflow-hidden rounded-3xl border border-[var(--sf-border)] bg-[var(--sf-surface)] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--sf-accent)]/50 hover:shadow-xl"
                 >
                   <div>
                     {/* Image / Thumbnail Container */}
@@ -798,6 +799,7 @@ export function StorefrontHome({
             subtotal={totals.subtotal}
             onOpenDrawer={() => setCartDrawerOpen(true)}
           />
+          <DemoThemePicker cms={currentCms} onChange={setCurrentCms} />
         </section>
 
         <StorefrontFooterCta cms={currentCms} />

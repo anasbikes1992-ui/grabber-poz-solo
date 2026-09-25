@@ -4,7 +4,7 @@ Welcome to the official documentation for **Grabber Solo / Grabber Business OS (
 
 **Current refactor SSOT:** [`GRABBER_SYSTEM_REFACTOR_PLAN.md`](./GRABBER_SYSTEM_REFACTOR_PLAN.md) covers catalog, sales, invoices, storefront controls, and cleanup phases.
 
-**SSOT tip:** Schema = `src/db/schema.ts` (**92** tables). If a badge or older doc says otherwise, trust the schema.  
+**SSOT tip:** Schema = `src/db/schema.ts` (**99** tables). If a badge or older doc says otherwise, trust the schema.  
 **Gaps & next wave:** [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md) · **Ops:** [`WAVE_B3_OPS_CHECKLIST.md`](./WAVE_B3_OPS_CHECKLIST.md)
 
 ---
@@ -21,7 +21,7 @@ Welcome to the official documentation for **Grabber Solo / Grabber Business OS (
 
 | Document | Title & Focus | Scope & Highlights |
 | :--- | :--- | :--- |
-| **[01 System Architecture](./01_SYSTEM_ARCHITECTURE.md)** | **Master System Architecture & Tech Stack** | Single-business database topology, **92** PostgreSQL tables (see `schema.ts`), double-entry GL, and HMAC security. |
+| **[01 System Architecture](./01_SYSTEM_ARCHITECTURE.md)** | **Master System Architecture & Tech Stack** | Single-business database topology, **99** PostgreSQL tables (see `schema.ts`), double-entry GL, and HMAC security. |
 | **[Domain Architecture](./GRABBER_DOMAIN_ARCHITECTURE.md)** | **Canonical Domain Engine Specifications** | Server-authoritative pricing, immutable stock ledger, and unified multi-channel commerce core. |
 | **[Offline POS Subsystem](./GRABBER_OFFLINE_POS.md)** | **5-Store IndexedDB Offline Architecture** | Catalog snapshots, customer cache, transaction journal, sequence UUIDs, and reconnect backoff sync. |
 | **[Returns & Reverse Commerce](./GRABBER_RETURNS_REFUNDS.md)** | **Itemized Returns & Pro-Rata Accounting** | `orderReturnLines` schema, discount/tax proration, grading/restocking, and Polim Potha credit refunds. |

@@ -6,7 +6,11 @@ import { useEffect, useState } from 'react';
 import { MessageCircle, Package, Search, ShoppingBag, Wrench } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import type { StorefrontConfig } from '@/lib/config/storefront-config.shared';
-import { blocksForSlot, DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
+import {
+  blocksForSlot,
+  DEFAULT_STOREFRONT,
+  resolveStorefrontLayoutTemplate,
+} from '@/lib/config/storefront-config.shared';
 import { DEFAULT_VERTICAL_FLAGS, type VerticalFlags } from '@/lib/config/vertical-flags';
 import { storefrontThemeStyle, storefrontThemeAttrs, whatsappHref } from '@/lib/storefront/theme-vars';
 import { useShopperSession } from '@/hooks/use-shopper-session';
@@ -92,11 +96,17 @@ export function StorefrontShell({
   const isProducts = pathname === '/' || pathname.startsWith('/products') || pathname.startsWith('/categories');
   const isRepairs = pathname.startsWith('/shop/repairs');
   const showRepairs = Boolean(verticalFlags.repairs);
+  const layoutTemplate = resolveStorefrontLayoutTemplate(
+    cms.layoutTemplate,
+    cms.theme.presetId,
+    verticalFlags,
+  );
 
   return (
     <div
       data-surface="storefront"
       {...storefrontThemeAttrs(cms.theme)}
+      data-layout-template={layoutTemplate}
       style={storefrontThemeStyle(cms.theme)}
       className="storefront min-h-screen bg-[var(--sf-background)] pb-[calc(5rem+env(safe-area-inset-bottom))] text-[var(--sf-foreground)] md:pb-0"
     >

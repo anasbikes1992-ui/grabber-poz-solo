@@ -2,7 +2,7 @@
 **Single-Business Edition: Commerce Core + Physical Operations + Jarvis Autonomous Business OS**
 
 [![Tests](https://img.shields.io/badge/Tests-556%2B%20Passing-emerald)](https://github.com/)
-[![Database](https://img.shields.io/badge/Database-92%20Tables%20Drizzle-blue)](https://github.com/)
+[![Database](https://img.shields.io/badge/Database-99%20Tables%20Drizzle-blue)](https://github.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-Single%20Business%20Solo-purple)](https://github.com/)
 [![Auth](https://img.shields.io/badge/Security-Dual%20Session%20HMAC-green)](https://github.com/)
 
@@ -53,7 +53,7 @@ Useful: `npm run typecheck` · `npm run analyze:sizes` · `npm run release:gate`
 | M8 A11y + PWA | Closed |
 | **Next: M7** Client onboarding wizard | S1 shell in progress (`/setup` wizardSteps) |
 
-Landing: `LANDING_MODE=company|storefront|auto` — HQ marketing vs client shop at `/`.
+Landing: `LANDING_MODE=company|storefront` — HQ marketing vs client shop at `/`; when unset, host fallback decides.
 
 ---
 

@@ -17,8 +17,8 @@ import { runMobileRepairSetup } from '@/lib/repairs/mobilerepair-setup';
 import { runDatabaseSeed, type SeedInput, type SeedResult } from '@/lib/setup/seed-service';
 import { markPresetApplied, markSeedComplete } from '@/lib/setup/onboarding-milestones';
 import { mergeConfigJson } from '@/lib/config/business-settings';
-import { DEFAULT_STOREFRONT } from '@/lib/config/storefront-config.shared';
 import { writeStorefrontConfig } from '@/lib/config/storefront-config';
+import { buildStorefrontSeedConfig, type StorefrontSeedMode } from '@/lib/setup/storefront-seed-config';
 
 type CatalogItem = {
   sku: string;
@@ -209,37 +209,15 @@ async function seedRestaurantFloor(branchId: string | null) {
   return { reused: false, count: rows.length };
 }
 
-async function seedStorefrontForPreset(presetId: VerticalPresetId, storeName: string) {
+async function seedStorefrontForPreset(presetId: VerticalPresetId, storeName: string, mode: StorefrontSeedMode) {
   const preset = VERTICAL_PRESETS[presetId];
-  const heroTitle =
-    presetId === 'mobilerepair' || presetId === 'electronics'
-      ? `${storeName} — Devices & Repairs`
-      : presetId === 'restaurant'
-        ? `Welcome to ${storeName}`
-        : `${storeName} — Shop Online`;
-
-  const blocks = DEFAULT_STOREFRONT.blocks.map((b) => {
-    if (b.type === 'HERO') {
-      return { ...b, title: heroTitle, subtitle: preset.description };
-    }
-    if (b.type === 'VERTICAL_PROMO' && preset.flags.repairs) {
-      return { ...b, enabled: true };
-    }
-    return b;
-  });
-
-  await writeStorefrontConfig({
-    theme: {
-      ...DEFAULT_STOREFRONT.theme,
-      presetId: presetId === 'restaurant' ? 'hearth' : presetId === 'grocery' ? 'spindrift' : 'grabber',
-    },
-    blocks,
-  });
+  await writeStorefrontConfig(buildStorefrontSeedConfig(presetId, preset, storeName, mode));
   await mergeConfigJson({ storefrontSavedAt: new Date().toISOString() });
 }
 
 export type DynamicSeedInput = SeedInput & {
   preset?: VerticalPresetId;
+  demoMode?: boolean;
 };
 
 export type DynamicSeedResult = SeedResult & {
@@ -279,7 +257,7 @@ export async function runDynamicSeed(input: DynamicSeedInput): Promise<DynamicSe
     restaurantFloor = await seedRestaurantFloor(base.branchId ?? null);
   }
 
-  await seedStorefrontForPreset(presetId, input.storeName);
+  await seedStorefrontForPreset(presetId, input.storeName, input.demoMode ? 'demo' : 'standard');
   await markSeedComplete(presetId);
 
   return {

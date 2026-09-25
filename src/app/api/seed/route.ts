@@ -51,6 +51,7 @@ export async function POST(req: Request) {
       slug: body.slug || 'solo',
       sessionUserId: session?.userId,
       preset,
+      demoMode: body.demo === true || body.demoMode === true,
     });
 
     return NextResponse.json({

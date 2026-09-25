@@ -56,7 +56,7 @@ The finished system must allow a business to:
 
 ## 3. Current Baseline
 
-The repository currently contains approximately 71 relational tables, 138 API route files, and 83 test files. The strongest implemented areas are authoritative checkout, inventory movement, returns, promotions, offline POS, restaurant KDS, repairs, approval-based Jarvis, and deployment/security gates.
+The repository currently contains 99 relational tables in `src/db/schema.ts`; treat the schema as the source of truth over older counts. The strongest implemented areas are authoritative checkout, inventory movement, returns, promotions, offline POS, restaurant KDS, repairs, approval-based Jarvis, and deployment/security gates.
 
 The main incompleteness pattern is not a missing page. It is a missing operational lifecycle, relational ledger, external-provider proof, or production control behind a feature that already has UI/configuration.
 

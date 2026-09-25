@@ -38,7 +38,7 @@ Solo multi-vertical **commerce OS** on **Next.js App Router** + **Drizzle → Po
 | Agents | `docs/AGENTS.md`, `src/lib/agents/*` |
 | Print | `docs/PRINT_THERMAL.md`, `globals.css` print, `src/lib/print/*` |
 | Ops readiness | `docs/PRODUCTION_READY.md` |
-| Root `/` landing | `src/lib/config/landing-mode.ts` — `LANDING_MODE=company\|storefront\|auto` |
+| Root `/` landing | `src/lib/config/landing-mode.ts` — `LANDING_MODE=company\|storefront`; unset uses host fallback |
 | Storefront CMS | `storefront-config` + `--sf-*` tokens; Wave B blocks (`HERO_SLIDER`, rich `ANNOUNCEMENT`) |
 | Onboarding | `src/lib/setup/onboarding-milestones.ts` (`wizardSteps` + milestones) |
 | ERP gaps / next | `docs/ERP_GAPS_AND_NEXT_WAVE.md` |

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DEFAULT_STOREFRONT } from '../src/lib/config/storefront-config.shared';
+import { resolveStorefrontLayoutTemplate } from '../src/lib/config/storefront-config.shared';
 import {
   applyStorefrontThemePreset,
   getStorefrontThemePreset,
@@ -14,6 +15,8 @@ describe('storefront theme presets', () => {
     expect(ids).toContain('grabber');
     expect(ids).toContain('spindrift');
     expect(ids).toContain('volta');
+    expect(ids).toContain('vibe');
+    expect(ids).toContain('ocean');
     expect(ids.length).toBeGreaterThanOrEqual(6);
   });
 
@@ -37,6 +40,14 @@ describe('storefront theme presets', () => {
     expect(attrs['data-theme-preset']).toBe('octaboot');
     expect(attrs['data-hero-style']).toBe('bold');
     expect(attrs['data-color-scheme']).toBe('dark');
+  });
+
+  it('infers layout templates without requiring old configs to change', () => {
+    expect(resolveStorefrontLayoutTemplate(undefined, 'party-pop')).toBe('party');
+    expect(resolveStorefrontLayoutTemplate(undefined, 'vibe')).toBe('fashion');
+    expect(resolveStorefrontLayoutTemplate(undefined, 'ocean')).toBe('energy');
+    expect(resolveStorefrontLayoutTemplate(undefined, 'volta', { repairs: true })).toBe('tech_repair');
+    expect(resolveStorefrontLayoutTemplate(undefined, 'volta')).toBe('retail_wholesale');
   });
 
   it('applies preset while keeping whatsapp number', () => {
