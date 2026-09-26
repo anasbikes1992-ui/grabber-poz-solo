@@ -71,6 +71,17 @@ when they are onboarded.
   `DATABASE_URL` (Supabase pooler), `POSTGRES_URL_NON_POOLING` (Supabase direct
   URL, used for migrations). **No `LANDING_MODE`.**
 - Persistent storage: `/app/public/uploads`. Health check: `/api/health`.
+- If a separate Coolify Supabase service appears `Exited` under the POZ project,
+  do not assume the demo app is down. First check the `grabber-demo` runtime env
+  and `/api/health`: this app is intentionally allowed to use the existing
+  Supabase cloud `DATABASE_URL`. Only provision a new POZ database if the app has
+  no valid `DATABASE_URL` or `/api/health` reports `db` as disconnected.
+- To refresh the public demo storefront without touching merchant tenants:
+  ```bash
+  npm run demo:seed -- --env-file=.env
+  ```
+  This seeds/refreshes the Grabber Demo catalog and storefront config against the
+  demo app database. Do not run it with ThePartyStore's env file.
 - After deploy, in the container terminal:
   ```bash
   node scripts/bootstrap-db.mjs              # idempotent

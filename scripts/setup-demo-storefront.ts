@@ -6,6 +6,7 @@
  *   tsx scripts/setup-demo-storefront.ts --env-file=.env.demo --preset=fashion
  */
 import { config as loadEnv } from 'dotenv';
+import { generateRandomPin } from '../src/lib/auth/session';
 import { runDynamicSeed } from '../src/lib/setup/dynamic-seed';
 import { VERTICAL_PRESETS, type VerticalPresetId } from '../src/lib/config/vertical-presets';
 
@@ -29,7 +30,7 @@ try {
     preset,
     slug: 'demo',
     ownerEmail: 'owner@demo.grabber.local',
-    ownerPin: '1234',
+    ownerPin: generateRandomPin(),
     demoMode: true,
   });
 

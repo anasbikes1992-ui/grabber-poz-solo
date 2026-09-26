@@ -234,6 +234,7 @@ export async function runDynamicSeed(input: DynamicSeedInput): Promise<DynamicSe
   const base = await runDatabaseSeed({
     ...input,
     includeDefaultCatalog: useDefaultFashion,
+    includeDemoPurchaseOrder: !input.demoMode,
   });
 
   await applyVerticalFlags(presetId);

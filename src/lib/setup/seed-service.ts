@@ -31,6 +31,8 @@ export type SeedInput = {
   sessionUserId?: string;
   /** When false, skips default apparel demo SKUs (use preset catalog instead). */
   includeDefaultCatalog?: boolean;
+  /** Demo storefront refreshes do not need back-office purchase-order samples. */
+  includeDemoPurchaseOrder?: boolean;
 };
 
 export type SeedResult = {
@@ -362,7 +364,7 @@ export async function runDatabaseSeed(input: SeedInput): Promise<SeedResult> {
     let demoPo: { id: string; poNumber: string } | null = null;
     const [wh] = await tx.select().from(warehouses).limit(1);
     const oxford = seededProducts.find((p) => p.sku === 'DEMO-OXFORD-M') || seededProducts[0];
-    if (wh && oxford) {
+    if (input.includeDemoPurchaseOrder !== false && wh && oxford) {
       let [supplier] = await tx.select().from(suppliers).where(eq(suppliers.phone, '+94770000001')).limit(1);
       if (!supplier) {
         [supplier] = await tx
@@ -408,17 +410,27 @@ export async function runDatabaseSeed(input: SeedInput): Promise<SeedResult> {
               totalAmount: '140000.00',
               createdBy: ownerUser?.id || null,
             })
+            .onConflictDoNothing({ target: purchaseOrders.poNumber })
             .returning();
-          if (po) {
+          const safePo =
+            po ||
+            (
+              await tx
+                .select()
+                .from(purchaseOrders)
+                .where(eq(purchaseOrders.poNumber, 'PO-2026-002'))
+                .limit(1)
+            )[0];
+          if (safePo) {
             await tx.insert(purchaseOrderLines).values({
-              poId: po.id,
+              poId: safePo.id,
               productId: oxford.id,
               orderedQty: 50,
               receivedQty: 0,
               unitCost: '2800.00',
               totalCost: '140000.00',
             });
-            demoPo = { id: po.id, poNumber: po.poNumber };
+            demoPo = { id: safePo.id, poNumber: safePo.poNumber };
           }
         }
       }
