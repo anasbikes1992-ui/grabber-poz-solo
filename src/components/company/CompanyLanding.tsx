@@ -91,7 +91,7 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
               <a href="#polim-potha" className="hover:text-amber-400 transition-colors">Polim Potha</a>
               <a href="#hardware" className="hover:text-amber-400 transition-colors">Hardware</a>
               <a href="#payments" className="hover:text-amber-400 transition-colors">Payments</a>
-              <a href="#pricing" className="hover:text-amber-400 transition-colors">Pricing</a>
+              <a href="#pricing" className="hover:text-amber-400 transition-colors">Pro Package</a>
               <a href="#demos" className="hover:text-amber-400 transition-colors">Live Demos</a>
             </nav>
           </div>
@@ -109,7 +109,7 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
               className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs font-bold text-amber-400 hover:bg-amber-500/20 transition-colors"
             >
               <Store className="w-3.5 h-3.5" aria-hidden />
-              <span>Storefront Demo</span>
+              <span>Demo Storefront</span>
             </Link>
             <a
               href="#contact"
@@ -141,10 +141,10 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
               ['#polim-potha', 'Polim Potha'],
               ['#hardware', 'Hardware'],
               ['#payments', 'Payments'],
-              ['#pricing', 'Pricing'],
+              ['#pricing', 'Pro Package'],
               ['#demos', 'Live Demos'],
               ['#contact', 'Contact'],
-              ['/shop', 'Storefront Demo'],
+              [`${demoUrl}/shop`, 'Demo Storefront'],
             ].map(([href, label]) =>
               href.startsWith('#') ? (
                 <a
@@ -261,10 +261,10 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
             <span>&copy; 2026 Grabber POZ. Precision Retail & Commerce OS.</span>
           </div>
           <div className="flex flex-wrap items-center gap-6">
-            <Link href={`${demoUrl}/shop`} className="hover:text-white transition-colors">Storefront Demo</Link>
+            <Link href={`${demoUrl}/shop`} className="hover:text-white transition-colors">Demo Storefront</Link>
             <Link href={`${demoUrl}/adminpoz`} className="hover:text-white transition-colors">Staff Portal</Link>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pro Package</a>
             <a href="#contact" className="hover:text-white transition-colors">Contact Sales</a>
           </div>
         </div>

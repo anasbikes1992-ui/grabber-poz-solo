@@ -1,6 +1,6 @@
 # Demo Theme Layout Plan
 
-Status: Approved implementation SSOT.
+Status: Implemented for demo recovery and template/preset architecture. Keep this as the SSOT for future template polish.
 
 ## Product Decisions
 
@@ -12,14 +12,16 @@ Status: Approved implementation SSOT.
   - `verticalPack`: operational feature flags and domain workflows.
 - Do not rewrite commerce, POS, stock, checkout APIs, or schema for theme work.
 - ThePartyStore remains `layoutTemplate=party` and `presetId=party-pop`.
+- `vibe` and `ocean` are implemented visual presets. `vibe` maps to `fashion`; `ocean` maps to `energy`.
+- Six layout templates are implemented as root `data-layout-template` values with CSS differentiation: `party`, `fashion`, `tech_repair`, `retail_wholesale`, `jewelry`, and `energy`.
 
 ## Milestones
 
-1. Demo recovery: seed demo catalog, brand as Grabber Demo, use `LANDING_MODE=storefront`, route company CTAs to the working demo.
-2. Theme architecture: add `layoutTemplate`, root `data-layout-template`, Vibe/Ocean presets, and builder selectors.
-3. Six templates: party, fashion, tech repair, retail wholesale, jewelry, energy.
-4. Demo picker and checkout chrome: demo-only picker via host/env/query and checkout on storefront visual tokens.
-5. Safe cleanup and docs: quarantine before delete, deprecate legacy import paths, label vertical readiness.
+1. Demo recovery: DONE. Demo catalog is non-empty, branded as Grabber Demo, and company CTAs route to the working demo host.
+2. Theme architecture: DONE. `layoutTemplate`, root `data-layout-template`, Vibe/Ocean presets, and builder selectors exist.
+3. Six templates: IMPLEMENTED. Keep future work to visual refinement, not commerce/API rewrites.
+4. Demo picker and checkout chrome: IMPLEMENTED. Demo-only picker uses host/env/query/localStorage, and checkout loads under the storefront shell/API model.
+5. Safe cleanup and docs: IN PROGRESS. Quarantine before delete, deprecate legacy import paths, and label vertical readiness.
 
 ## Default Resolution
 
@@ -52,10 +54,10 @@ Never delete vertical modules only because ThePartyStore does not use them.
 Run against the demo database only:
 
 ```bash
-npm run demo:seed -- --env-file=.env.demo
+npm run demo:seed -- --env-file=.env
 ```
 
 Demo host env:
 
-- `LANDING_MODE=storefront`
+- `LANDING_MODE` unset for the shared company/demo app. Host routing sends `grabberpoz.com` to the company landing and `demo.grabberpoz.com` to storefront.
 - `NEXT_PUBLIC_DEMO_THEME_PICKER=1`

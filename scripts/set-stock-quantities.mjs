@@ -1,6 +1,11 @@
 import postgres from 'postgres';
+import { randomUUID } from 'crypto';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:uDICQ4PfPnsUpHJbzK3vIJi0B9bgpHtc0GmD2OKW2iKkheD4iRcV33jMwAtJrMJJ@109.123.246.84:15432/thepartystore';
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL or POSTGRES_URL is required.');
+  process.exit(1);
+}
 
 async function main() {
   console.log('Connecting to database:', DATABASE_URL.replace(/:[^:@]+@/, ':****@'));
@@ -49,7 +54,7 @@ async function main() {
       for (const p of missingStock) {
         await sql`
           INSERT INTO stock_balances (id, product_id, branch_id, on_hand, reserved, damaged, created_at, updated_at)
-          VALUES (${crypto.randomUUID()}, ${p.id}, ${defaultBranchId}, 10, 0, 0, NOW(), NOW())
+          VALUES (${randomUUID()}, ${p.id}, ${defaultBranchId}, 10, 0, 0, NOW(), NOW())
           ON CONFLICT (product_id, branch_id) DO UPDATE SET on_hand = 10
         `;
       }

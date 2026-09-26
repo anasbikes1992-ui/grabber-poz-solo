@@ -60,5 +60,5 @@ export default async function HomePage() {
   }
 
   const { CompanyLanding } = await import('@/components/company/CompanyLanding');
-  return <CompanyLanding />;
+  return <CompanyLanding demoUrl={process.env.COMPANY_DEMO_URL || 'https://demo.grabberpoz.com'} />;
 }

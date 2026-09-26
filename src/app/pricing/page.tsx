@@ -40,7 +40,7 @@ export default function PricingPage() {
         </h1>
         <p className="text-base sm:text-lg text-stone-400 max-w-2xl mx-auto">
           No confusing package tiers. Pricing changes by implementation size, migration,
-          branches, hardware, and SLA — not by locking features away.
+          branches, hardware, integrations, and SLA — not by locking features away.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export default function PricingPage() {
         <aside className="rounded-3xl border border-stone-800 bg-stone-900 p-6">
           <h3 className="text-lg font-bold text-white">Vertical packs</h3>
           <p className="mt-2 text-xs text-stone-400">
-            Pick the business category. The core Pro system stays the same.
+            Pick the business category in settings. The full Pro system stays the same.
           </p>
           <div className="mt-5 space-y-2">
             {verticalPacks.map((pack) => (
@@ -100,7 +100,7 @@ export default function PricingPage() {
           <div className="p-4 rounded-xl bg-stone-900 border border-stone-800 space-y-1.5">
             <h4 className="font-bold text-stone-200">What changes the price?</h4>
             <p className="text-stone-400 leading-relaxed">
-              Migration size, branch count, hardware, custom reports, provider setup, onsite training, and SLA.
+              Migration size, branch count, hardware, custom reports, provider setup, onsite training, and SLA. The software package remains Pro.
             </p>
           </div>
           <div className="p-4 rounded-xl bg-stone-900 border border-stone-800 space-y-1.5">

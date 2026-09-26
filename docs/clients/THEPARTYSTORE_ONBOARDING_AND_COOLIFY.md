@@ -4,6 +4,15 @@
 
 The best win-win path is to keep Grabber as one reusable **Grabber Business OS Pro** product, then onboard each merchant with a small manifest, a repeatable catalog import, a storefront preset, and client-specific assets. For ThePartyStore, use the Party/Event + Retail pack with party-specific categories, product images matched by product name, and a white-label `party-pop` storefront theme.
 
+## Live Handover Status
+
+Updated 2026-09-26:
+
+- `https://thepartystore.grabberpoz.com`, `/shop`, `/adminpoz`, and `/api/health` return HTTP 200.
+- `/api/health` reports the database connected.
+- The storefront renders ThePartyStore branding, `party-pop` visual preset, party categories, product links, and WhatsApp.
+- Coolify still reports `running:unknown` because the health check path is `/`; set it to `/api/health` during the next maintenance pass.
+
 ## What Is Configured
 
 - Client manifest: `clients/client-002.json`
@@ -72,11 +81,14 @@ npm run ops:smoke
 
 ## Final Acceptance Checklist
 
-- Storefront loads `/shop` with ThePartyStore branding
-- Hero/banner images render from `/uploads/clients/thepartystore/products`
-- Catalog count is close to 4,061 products after import
-- Category filters show the party categories
-- Products with duplicate WooCommerce SKUs import with unique generated SKUs
-- POS checkout prints 80mm receipt with order number, counter, operator, payment, and change
-- 58mm print preset does not overflow columns
-- `/api/health`, `npm run client:certify`, and `npm run ops:smoke` pass
+- [x] Storefront loads `/shop` with ThePartyStore branding
+- [x] Storefront uses `party-pop` preset and party layout
+- [x] Category/content signals show party categories
+- [x] `/api/health` returns connected
+- [ ] Hero/banner images render from `/uploads/clients/thepartystore/products` after a redeploy
+- [ ] Catalog count is close to 4,061 products after import, verified from the tenant database
+- [ ] Products with duplicate WooCommerce SKUs import with unique generated SKUs
+- [ ] POS checkout prints 80mm receipt with order number, counter, operator, payment, and change
+- [ ] 58mm print preset does not overflow columns
+- [ ] `npm run client:certify` and `npm run ops:smoke` pass against the tenant
+- [ ] Backup/export and restore drill completed before handover

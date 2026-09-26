@@ -1,7 +1,18 @@
-import { scryptSync, randomBytes } from 'crypto';
+import { randomUUID, scryptSync, randomBytes } from 'crypto';
 import postgres from 'postgres';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:uDICQ4PfPnsUpHJbzK3vIJi0B9bgpHtc0GmD2OKW2iKkheD4iRcV33jMwAtJrMJJ@109.123.246.84:15432/thepartystore';
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL or POSTGRES_URL is required.');
+  process.exit(1);
+}
+const OWNER_EMAIL = process.env.OWNER_EMAIL;
+const OWNER_TEMP_PIN = process.env.OWNER_TEMP_PIN;
+const OWNER_NAME = process.env.OWNER_NAME || 'Owner';
+if (!OWNER_EMAIL || !OWNER_TEMP_PIN) {
+  console.error('OWNER_EMAIL and OWNER_TEMP_PIN are required.');
+  process.exit(1);
+}
 
 function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
@@ -13,10 +24,9 @@ async function main() {
   console.log('Connecting to database:', DATABASE_URL.replace(/:[^:@]+@/, ':****@'));
   const sql = postgres(DATABASE_URL);
 
-  const email = 'anasazeez1992@gmail.com';
-  const rawPassword = 'Aa123456';
-  const hashedPin = hashPassword(rawPassword);
-  const name = 'Anas Azeez';
+  const email = OWNER_EMAIL;
+  const hashedPin = hashPassword(OWNER_TEMP_PIN);
+  const name = OWNER_NAME;
   const role = 'OWNER';
 
   // Check if user already exists
@@ -34,15 +44,15 @@ async function main() {
         updated_at = NOW()
       WHERE email = ${email}
     `;
-    console.log(`User ${email} updated successfully with role ${role} and password ${rawPassword}.`);
+    console.log(`User ${email} updated successfully with role ${role}.`);
   } else {
     console.log(`Creating new owner user ${email}...`);
-    const newId = crypto.randomUUID();
+    const newId = randomUUID();
     await sql`
       INSERT INTO users (id, email, name, role, active, hashed_pin, created_at, updated_at)
       VALUES (${newId}, ${email}, ${name}, ${role}, true, ${hashedPin}, NOW(), NOW())
     `;
-    console.log(`User ${email} created successfully (id: ${newId}) with role ${role} and password ${rawPassword}.`);
+    console.log(`User ${email} created successfully (id: ${newId}) with role ${role}.`);
   }
 
   // Also check other owner users

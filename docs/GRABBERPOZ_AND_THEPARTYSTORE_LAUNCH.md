@@ -1,6 +1,7 @@
 # Grabberpoz.com + ThePartyStore Launch Checklist
 
 **Date:** 2026-09-23  
+**Updated:** 2026-09-26  
 **Commercial model:** one product, **Grabber Business OS Pro**.  
 **Deployment model:** one isolated app/database per business.
 
@@ -18,7 +19,7 @@ Required runtime:
 
 ```env
 NODE_ENV=production
-LANDING_MODE=company
+# Leave LANDING_MODE unset on the shared company/demo app.
 APP_URL=https://grabberpoz.com
 NEXT_PUBLIC_APP_URL=https://grabberpoz.com
 STORE_NAME=Grabber Business OS Pro
@@ -32,13 +33,21 @@ Acceptance checks:
 
 - `/` shows the Grabber company landing.
 - `/pricing` shows one all-in-one Pro plan, not feature tiers.
-- Company CTA routes to demo/contact, not ThePartyStore.
+- Company CTA routes to `https://demo.grabberpoz.com` or contact, not ThePartyStore.
+- Topbar and mobile nav expose `Demo Storefront` and `Staff Portal` against `COMPANY_DEMO_URL`.
 - OpenGraph metadata uses `https://grabberpoz.com`.
 - `/api/health` returns healthy.
 
 ## 2. Client Site — `thepartystore.grabberpoz.com`
 
 Purpose: production client app for ThePartyStore.
+
+Current live status on 2026-09-26:
+
+- App health: `db:"connected"`.
+- Coolify app: `thepartystore-app`, branch `codex/thepartystore-onboarding`, status `running:unknown` because its Coolify health path is `/`.
+- Public routes checked: `/`, `/shop`, `/adminpoz`, and `/api/health` return HTTP 200.
+- Storefront signals checked: ThePartyStore branding, `party-pop` preset, party categories, product links, and WhatsApp are present.
 
 Required routing:
 
@@ -86,8 +95,8 @@ Acceptance checks:
 
 ## 3. Remaining Before Real Payment Collection
 
-- Point DNS for both domains to the correct Coolify applications.
-- Add persistent storage for ThePartyStore uploads at `/app/public/uploads`.
-- Rotate and paste production secrets from a secure password manager.
+- Confirm Coolify health check path for ThePartyStore should be `/api/health` instead of `/`; current public health is OK but Coolify status remains `running:unknown`.
+- Confirm persistent storage for ThePartyStore uploads at `/app/public/uploads` is mounted and included in backup scope.
+- Rotate and paste production secrets from a secure password manager if any setup credentials or old build logs were exposed.
 - Run one real POS sale and one real storefront order in front of the client.
 - Confirm backup/export and restore drill before handover.
