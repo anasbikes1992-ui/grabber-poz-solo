@@ -9,6 +9,13 @@
 
 Purpose: public company website for Grabber Business OS Pro.
 
+Database verdict from 2026-09-26 audit:
+
+- The running `grabberpoz.com` / `demo.grabberpoz.com` Coolify app is healthy and points at the active Supabase cloud Postgres.
+- The active database probe reported 99 public tables and a non-empty product catalog.
+- The exited Coolify Supabase service in the POZ project is not the serving database for the company/demo app.
+- Do not create or switch to a new POZ database during launch polish. If full Coolify-owned database control is required later, run it as a separate migration with backup, restore rehearsal, DNS/env cutover, and rollback.
+
 Required routing:
 
 - `https://grabberpoz.com` → company landing page.
@@ -100,3 +107,11 @@ Acceptance checks:
 - Rotate and paste production secrets from a secure password manager if any setup credentials or old build logs were exposed.
 - Run one real POS sale and one real storefront order in front of the client.
 - Confirm backup/export and restore drill before handover.
+
+## 4. CEO/CTO Finalization Plan
+
+1. Finish public trust polish: company profile copy, one Pro package positioning, `Demo Storefront` CTA clarity, and live demo smoke checks.
+2. Freeze database ownership for launch: keep current company/demo DB and ThePartyStore DB unchanged; quarantine the exited POZ Supabase service until a controlled migration is explicitly scheduled.
+3. Complete ThePartyStore handover readiness: verify storefront catalog, image persistence, staff login, receipt preview, COD checkout, one POS sale, one storefront order, backup, and restore rehearsal.
+4. Promote only proven changes: typecheck, focused tests, production build, browser smoke at 375/768/1024/1440, then commit, push, and deploy.
+5. After launch, decide whether POZ should migrate from Supabase cloud to a Coolify-owned Postgres. Treat that as infrastructure work, not UI polish.

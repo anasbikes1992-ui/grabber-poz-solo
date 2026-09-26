@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Package, Search } from 'lucide-react';
+import { Package, Search, X } from 'lucide-react';
 import { StorefrontShell } from '@/components/storefront/storefront-shell';
 import {
   StorefrontFeaturedSection,
@@ -283,6 +283,7 @@ export function StorefrontHome({
   function persistBag(next: CartLine[]) {
     setCart(next);
     localStorage.setItem('grabber_store_bag', JSON.stringify(next));
+    window.dispatchEvent(new Event('grabber:bag-updated'));
   }
 
   useEffect(() => {
@@ -547,7 +548,7 @@ export function StorefrontHome({
                     id="storefront-search"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search name, SKU, category…"
+                    placeholder="Search name, SKU, category..."
                     aria-label="Search products"
                     className="w-full min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] pl-4 pr-10 py-2.5 text-sm shadow-sm outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]"
                   />
@@ -555,10 +556,11 @@ export function StorefrontHome({
                     <button
                       type="button"
                       onClick={() => setQ('')}
-                      className="absolute right-3 top-3 text-xs font-bold text-[var(--sf-secondary)] hover:text-[var(--sf-foreground)]"
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-[var(--sf-secondary)] transition-colors hover:bg-[var(--sf-muted)] hover:text-[var(--sf-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
                       title="Clear search"
                     >
-                      ✕
+                      <X className="h-4 w-4" aria-hidden />
                     </button>
                   ) : null}
                 </div>

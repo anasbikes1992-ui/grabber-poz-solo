@@ -1,18 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft,
   ChevronRight,
-  Sparkles,
   ArrowRight,
   PartyPopper,
   Zap,
   Crown,
   Heart,
   Flame,
+  Pause,
+  Play,
 } from 'lucide-react';
 import type {
   StorefrontCarouselEffect,
@@ -139,7 +140,7 @@ function FloatingBubblesLayer() {
 
 function KineticTicker({ text }: { text?: string }) {
   const defaultText =
-    '⚡ MEGA CELEBRATION SALE • 10% OFF ON ORDERS OVER LKR 5,000 • SAME DAY DISPATCH • LIVE POS STOCK • 4,000+ PARTY ITEMS';
+    'MEGA CELEBRATION SALE - 10% OFF ON ORDERS OVER LKR 5,000 - SAME DAY DISPATCH - LIVE POS STOCK - 4,000+ PARTY ITEMS';
   const display = text || defaultText;
 
   return (
@@ -175,7 +176,6 @@ export function HeroSlider({
   const [paused, setPaused] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [progress, setProgress] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -216,10 +216,18 @@ export function HeroSlider({
     return () => clearInterval(interval);
   }, [autoplayMs, go, paused, reduceMotion, safe.length]);
 
-  if (!safe.length) return null;
+  const currentIdx = safe.length ? Math.min(index, safe.length - 1) : 0;
+  const slide = safe[currentIdx];
+  const imageSrc = useMemo(() => {
+    if (!slide?.imageUrl) return undefined;
+    try {
+      return encodeURI(decodeURI(slide.imageUrl));
+    } catch {
+      return slide.imageUrl;
+    }
+  }, [slide?.imageUrl]);
 
-  const currentIdx = Math.min(index, safe.length - 1);
-  const slide = safe[currentIdx]!;
+  if (!slide) return null;
 
   const fxThemeIcon = () => {
     switch (interactiveFx) {
@@ -245,11 +253,11 @@ export function HeroSlider({
       onMouseLeave={() => setPaused(false)}
     >
       {/* 1. Translucent Ambient Backdrop Glow (Real Image Colors Blend) */}
-      {slide.imageUrl && (
+      {imageSrc && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={encodeURI(decodeURI(slide.imageUrl))}
+            src={imageSrc}
             alt=""
             className="h-full w-full object-cover opacity-25 filter blur-3xl scale-125 transition-all duration-1000 ease-out"
           />
@@ -278,19 +286,20 @@ export function HeroSlider({
         <AnimatePresence initial={false}>
           <motion.div
             key={currentIdx}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10, position: 'absolute', pointerEvents: 'none' }}
+            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -10, position: 'absolute', pointerEvents: 'none' }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            aria-live="polite"
             className={`grid w-full items-center gap-8 lg:gap-12 ${
-              slide.imageUrl ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1'
+              imageSrc ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1'
             }`}
           >
             {/* Left Column: Headlines, Badge, & CTAs */}
-            <div className={`space-y-6 ${slide.imageUrl ? 'lg:col-span-7' : 'max-w-3xl mx-auto text-center'}`}>
+            <div className={`space-y-6 ${imageSrc ? 'lg:col-span-7' : 'max-w-3xl mx-auto text-center'}`}>
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] px-3.5 py-1 text-xs font-bold tracking-wide text-[var(--sf-accent)] backdrop-blur-md shadow-xs">
                 {fxThemeIcon()}
-                <span>{slide.badge || 'Official Store · Live Catalog'}</span>
+                <span>{slide.badge || 'Official Store - Live Catalog'}</span>
               </div>
 
               <h1 className="font-display text-4xl font-extrabold tracking-tight text-[var(--sf-foreground)] sm:text-5xl lg:text-6xl drop-shadow-xs leading-[1.1]">
@@ -304,7 +313,7 @@ export function HeroSlider({
               )}
 
               {/* Action Buttons */}
-              <div className={`flex flex-wrap items-center gap-3 pt-2 ${slide.imageUrl ? '' : 'justify-center'}`}>
+              <div className={`flex flex-wrap items-center gap-3 pt-2 ${imageSrc ? '' : 'justify-center'}`}>
                 <Link
                   href={slide.ctaHref || '/shop#catalog'}
                   className="inline-flex min-h-12 cursor-pointer items-center gap-2 rounded-full bg-[var(--sf-primary)] px-7 py-3 text-sm font-bold text-[var(--sf-on-primary)] shadow-lg shadow-[var(--sf-primary)]/20 transition-all duration-200 hover:scale-[1.02] hover:opacity-95 active:scale-95"
@@ -323,26 +332,27 @@ export function HeroSlider({
             </div>
 
             {/* Right Column: High-Res Visual Showcase Card */}
-            {slide.imageUrl && (
+            {imageSrc && (
               <div className="relative flex justify-center lg:col-span-5">
                 <motion.div
-                  initial={{ scale: 0.96, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
+                  initial={reduceMotion ? false : { scale: 0.96, opacity: 0 }}
+                  animate={reduceMotion ? undefined : { scale: 1, opacity: 1 }}
                   transition={{ duration: 0.4, ease: 'easeOut' }}
                   className="group relative w-full max-w-md overflow-hidden rounded-3xl border-2 border-white/60 bg-white/40 p-2.5 shadow-2xl backdrop-blur-md transition-all duration-300 hover:shadow-3xl dark:border-white/10 dark:bg-black/40"
                 >
                   <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl bg-black/5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={encodeURI(decodeURI(slide.imageUrl))}
+                      src={imageSrc}
                       alt={slide.title}
                       className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                       loading="eager"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
                     <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
-                      <span className="rounded-full bg-black/40 px-3 py-1 text-[11px] font-bold backdrop-blur-sm">
-                        🎉 Featured Package
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-[11px] font-bold backdrop-blur-sm">
+                        <PartyPopper className="h-3 w-3" aria-hidden />
+                        Featured Package
                       </span>
                       <span className="text-[11px] font-semibold tracking-wider uppercase opacity-90">
                         Islandwide Delivery
@@ -368,9 +378,19 @@ export function HeroSlider({
             type="button"
             aria-label="Previous slide"
             onClick={() => go(-1)}
-            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)]/90 text-[var(--sf-foreground)] backdrop-blur shadow-sm transition-all duration-200 hover:scale-105 active:scale-95"
+            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)]/90 text-[var(--sf-foreground)] backdrop-blur shadow-sm transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden />
+          </button>
+
+          <button
+            type="button"
+            aria-label={paused ? 'Resume slides' : 'Pause slides'}
+            aria-pressed={paused}
+            onClick={() => setPaused((value) => !value)}
+            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)]/90 text-[var(--sf-foreground)] backdrop-blur shadow-sm transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
+          >
+            {paused ? <Play className="h-4 w-4" aria-hidden /> : <Pause className="h-4 w-4" aria-hidden />}
           </button>
 
           {/* Dots & Progress Indicator */}
@@ -396,7 +416,7 @@ export function HeroSlider({
                 }}
                 className={`relative h-2 cursor-pointer overflow-hidden rounded-full transition-all duration-300 ${
                   i === currentIdx ? 'w-8 bg-[var(--sf-secondary)]/20' : 'w-2 bg-[var(--sf-secondary)]/30 hover:bg-[var(--sf-secondary)]/60'
-                }`}
+                } focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]`}
               >
                 {i === currentIdx && (
                   <motion.div
@@ -412,7 +432,7 @@ export function HeroSlider({
             type="button"
             aria-label="Next slide"
             onClick={() => go(1)}
-            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)]/90 text-[var(--sf-foreground)] backdrop-blur shadow-sm transition-all duration-200 hover:scale-105 active:scale-95"
+            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)]/90 text-[var(--sf-foreground)] backdrop-blur shadow-sm transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--sf-ring)]"
           >
             <ChevronRight className="h-4 w-4" aria-hidden />
           </button>

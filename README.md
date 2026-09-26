@@ -44,16 +44,21 @@ Useful: `npm run typecheck` · `npm run analyze:sizes` · `npm run release:gate`
 
 ---
 
-## Current product position (2026-09-18)
+## Current product position (2026-09-26)
 
 | Track | Status |
 |-------|--------|
-| Waves A–C (perf, storefront restore, safe splits) | Done |
-| Wave B3 Contabo ops | Checklist ready — redeploy Contabo for health `build`/`landingMode` |
+| Waves A-C (perf, storefront restore, safe splits) | Done |
+| Company site | Live on Coolify at `grabberpoz.com`; company/demo host split is active |
+| Demo storefront | Live at `demo.grabberpoz.com` with seeded catalog and theme picker |
+| ThePartyStore | Live client storefront on its dedicated app/database; final handover checks remain |
+| Wave B3 Contabo ops | Checklist ready; use `/api/health` for Coolify health checks |
 | M8 A11y + PWA | Closed |
-| **Next: M7** Client onboarding wizard | S1 shell in progress (`/setup` wizardSteps) |
+| **Next** | Client handover checklist, backup/restore drill, and supervised first sale/order |
 
-Landing: `LANDING_MODE=company|storefront` — HQ marketing vs client shop at `/`; when unset, host fallback decides.
+Landing: `LANDING_MODE=company|storefront` - HQ marketing vs client shop at `/`; when unset, host fallback decides.
+
+Database note: the active company/demo app currently uses the configured Supabase cloud Postgres. The exited Coolify Supabase service in the POZ project is not the live serving database; do not replace it during launch polish without a backup-first migration plan.
 
 ---
 

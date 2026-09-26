@@ -214,7 +214,7 @@
 }
 
 .storefront[data-hero-style='cinematic'] .storefront-hero h1 {
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 
 .storefront[data-hero-style='minimal'] .storefront-hero {
@@ -223,7 +223,7 @@
 
 .storefront[data-hero-style='bold'] .storefront-hero h1 {
   text-transform: uppercase;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .storefront[data-card-style='glass'] .storefront-hero-card {

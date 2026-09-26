@@ -266,7 +266,7 @@ export function StorefrontShell({
               </a>
             )
           )}
-          <Link href="/#catalog" className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-[var(--sf-secondary)]">
+          <Link href="/shop#catalog" className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-[var(--sf-secondary)]">
             <ShoppingBag className="h-5 w-5" aria-hidden />
             Bag
           </Link>
