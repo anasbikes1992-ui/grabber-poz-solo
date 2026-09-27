@@ -13,7 +13,7 @@ Measure after deploy. Targets from RELEASE_GATE / Phase 1:
 
 ```powershell
 # Requires Chrome. Uses npx (no permanent dep required).
-$env:BASE = "https://grabber-poz-solo.vercel.app"
+$env:BASE = "https://grabberpoz.com"
 npm run lighthouse:shop
 npm run lighthouse:product   # uses /products demo slug or LH_PRODUCT_SLUG
 npm run lighthouse:checkout

@@ -4,11 +4,9 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 import { getAppUrl, getSupabaseUrl } from '@/lib/config/app-url';
+import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
+import { safeUploadBucket, validateUploadFile } from '@/lib/security/upload-validation';
 
-/**
- * Storage upload — writes to local public/uploads when Supabase is not configured.
- * Never returns fabricated remote CDN URLs.
- */
 export async function POST(req: Request) {
   try {
     const session = await getSession();
@@ -17,75 +15,72 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const file = form.get('file');
     if (!file || !(file instanceof File)) {
-      return NextResponse.json({ success: false, error: 'file required' }, { status: 400 });
+      return validationErrorResponse('file required');
     }
-    if (file.size > 8 * 1024 * 1024) {
-      return NextResponse.json({ success: false, error: 'Max 8MB' }, { status: 400 });
-    }
+
+    const upload = await validateUploadFile(file, 8 * 1024 * 1024);
+    const sizeFormatted = upload.bytes.length > 1024 * 1024
+      ? `${(upload.bytes.length / (1024 * 1024)).toFixed(1)} MB`
+      : `${(upload.bytes.length / 1024).toFixed(1)} KB`;
 
     const supabaseUrl = getSupabaseUrl();
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    const sizeFormatted = file.size > 1024 * 1024
-      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-      : `${(file.size / 1024).toFixed(1)} KB`;
-
     if (supabaseUrl && serviceKey) {
-      const bucket = String(form.get('bucket') || 'products');
-      const ext = file.name.split('.').pop() || 'bin';
-      const objectPath = `${randomUUID()}.${ext}`;
-      const bytes = Buffer.from(await file.arrayBuffer());
+      const bucket = safeUploadBucket(form.get('bucket'), 'products');
+      const objectPath = `${randomUUID()}.${upload.extension}`;
       const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`;
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${serviceKey}`,
-          'Content-Type': file.type || 'application/octet-stream',
+          'Content-Type': upload.mimeType,
           'x-upsert': 'true',
         },
-        body: bytes,
+        body: new Blob([new Uint8Array(upload.bytes)], { type: upload.mimeType }),
       });
+
       if (!res.ok) {
-        const text = await res.text();
-        return NextResponse.json(
-          { success: false, error: `Supabase upload failed: ${text}` },
-          { status: 502 }
-        );
+        console.error('Supabase upload failed', { status: res.status, body: await res.text().catch(() => '') });
+        return NextResponse.json({ success: false, error: 'Upload provider failed' }, { status: 502 });
       }
+
       const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
       return NextResponse.json({
         success: true,
         url: publicUrl,
         provider: 'supabase',
-        name: file.name,
-        sizeBytes: file.size,
+        name: upload.originalName,
+        sizeBytes: upload.bytes.length,
         sizeFormatted,
         relativePath: publicUrl,
       });
     }
 
-    // Local fallback — real file on disk
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ success: false, error: 'Upload storage is not configured' }, { status: 503 });
+    }
+
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
     await mkdir(uploadsDir, { recursive: true });
-    const ext = file.name.split('.').pop() || 'bin';
-    const filename = `${randomUUID()}.${ext}`;
+    const filename = `${randomUUID()}.${upload.extension}`;
     const dest = path.join(uploadsDir, filename);
-    await writeFile(dest, Buffer.from(await file.arrayBuffer()));
-    const base = getAppUrl();
+    await writeFile(dest, upload.bytes);
+
     const relativePath = `/uploads/${filename}`;
-    const url = `${base}${relativePath}`;
     return NextResponse.json({
       success: true,
-      url,
+      url: `${getAppUrl()}${relativePath}`,
       relativePath,
-      name: file.name,
-      sizeBytes: file.size,
+      name: upload.originalName,
+      sizeBytes: upload.bytes.length,
       sizeFormatted,
       provider: 'local',
-      warning: 'Stored under public/uploads',
     });
   } catch (err: unknown) {
-    const e = err as { message?: string };
-    return NextResponse.json({ success: false, error: e.message || 'Upload failed' }, { status: 500 });
+    if (err instanceof Error && /upload|file|jpg|png|webp|gif|max/i.test(err.message)) {
+      return validationErrorResponse(err.message);
+    }
+    return publicErrorResponse(err, { message: 'Upload failed', logMessage: 'Storage upload failed' });
   }
 }

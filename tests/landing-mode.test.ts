@@ -23,7 +23,6 @@ describe('resolveLandingMode', () => {
     delete process.env.NEXT_PUBLIC_LANDING_MODE;
     expect(resolveLandingMode('grabberpoz.com')).toBe('company');
     expect(resolveLandingMode('www.grabberpoz.com')).toBe('company');
-    expect(resolveLandingMode('grabber-poz-solo.vercel.app')).toBe('company');
   });
 
   it('defaults unknown client hosts to storefront', () => {

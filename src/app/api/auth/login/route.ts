@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
 import { db, users } from '@/db';
 import {
   clearSessionCookie,
@@ -9,26 +10,68 @@ import {
   verifyPin,
   type SessionRole,
 } from '@/lib/auth/session';
+import {
+  checkAuthAccountRateLimit,
+  checkAuthBackoff,
+  clientIpFromRequest,
+  clearAuthFailures,
+  rateLimitResponse,
+  recordAuthFailure,
+} from '@/lib/security/rate-limit';
+import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
+
+const loginSchema = z.object({
+  email: z.string().trim().email().max(254).optional().or(z.literal('')),
+  pin: z.string().trim().regex(/^\d{4,12}$/, 'PIN must be 4 to 12 digits'),
+  role: z.string().trim().max(32).optional(),
+});
+
+const rotateSchema = z.object({
+  email: z.string().trim().email().max(254),
+  currentPin: z.string().trim().regex(/^\d{4,12}$/),
+  newPin: z.string().trim().regex(/^\d{4,12}$/),
+});
+
+function genericAuthError(status = 401) {
+  return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status });
+}
 
 export async function POST(req: Request) {
+  let accountKey = '';
   try {
-    const body = await req.json();
-    const { email, pin, role } = body as { email?: string; pin?: string; role?: string };
-
-    if (!pin || String(pin).length < 4) {
-      return NextResponse.json({ success: false, error: 'PIN required (min 4 digits)' }, { status: 400 });
+    const parsed = loginSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return validationErrorResponse(parsed.error.issues[0]?.message || 'Invalid login request');
     }
+    const { email, pin, role } = parsed.data;
 
     // Normalize role string (e.g. 'CREATIVE' -> 'MARKETING')
     const normalizedRole: SessionRole | undefined = role
       ? role.toUpperCase() === 'CREATIVE'
         ? 'MARKETING'
-        : (role.toUpperCase() as SessionRole)
+      : (role.toUpperCase() as SessionRole)
       : undefined;
 
     // Prefer email lookup; fallback to first active user matching role
     let user;
     const cleanEmail = email?.trim()?.toLowerCase();
+    accountKey = cleanEmail || normalizedRole || clientIpFromRequest(req);
+
+    const accountLimited = checkAuthAccountRateLimit(accountKey);
+    if (!accountLimited.ok) {
+      return NextResponse.json(rateLimitResponse(accountLimited.retryAfterSec).body, {
+        status: 429,
+        headers: rateLimitResponse(accountLimited.retryAfterSec).headers,
+      });
+    }
+
+    const backoff = checkAuthBackoff(accountKey);
+    if (!backoff.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Too many failed attempts', retryAfterSec: backoff.retryAfterSec },
+        { status: 429, headers: { 'Retry-After': String(backoff.retryAfterSec) } },
+      );
+    }
 
     if (cleanEmail) {
       const [row] = await db.select().from(users).where(eq(users.email, cleanEmail)).limit(1);
@@ -36,13 +79,8 @@ export async function POST(req: Request) {
 
       // Strict role enforcement: reject role claim mismatch
       if (user && normalizedRole && user.role !== normalizedRole) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Role mismatch: account '${cleanEmail}' is registered as '${user.role}', but '${role}' was requested.`,
-          },
-          { status: 401 }
-        );
+        recordAuthFailure(accountKey);
+        return genericAuthError();
       }
     } else if (normalizedRole) {
       const rows = await db.select().from(users).where(eq(users.role, normalizedRole)).limit(10);
@@ -75,19 +113,18 @@ export async function POST(req: Request) {
     }
 
     if (!user) {
-      const roleMsg = normalizedRole ? ` for role '${normalizedRole}'` : '';
-      return NextResponse.json(
-        { success: false, error: `User account not found${roleMsg}. Please seed staff accounts or verify login credentials.` },
-        { status: 401 }
-      );
+      recordAuthFailure(accountKey);
+      return genericAuthError();
     }
 
     if (!user.active) {
-      return NextResponse.json({ success: false, error: 'User inactive' }, { status: 403 });
+      recordAuthFailure(accountKey);
+      return genericAuthError(403);
     }
 
     if (!verifyPin(String(pin), user.hashedPin)) {
-      return NextResponse.json({ success: false, error: 'Invalid PIN' }, { status: 401 });
+      recordAuthFailure(accountKey);
+      return genericAuthError();
     }
 
     const mustRotate = isTemporaryCredential(user.hashedPin);
@@ -98,6 +135,7 @@ export async function POST(req: Request) {
       role: user.role as SessionRole,
       mustRotateCredentials: mustRotate,
     });
+    clearAuthFailures(accountKey);
 
     return NextResponse.json({
       success: true,
@@ -105,8 +143,7 @@ export async function POST(req: Request) {
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
     });
   } catch (err: unknown) {
-    const e = err as { message?: string };
-    return NextResponse.json({ success: false, error: e.message || 'Login failed' }, { status: 500 });
+    return publicErrorResponse(err, { message: 'Login failed', logMessage: 'Login failed' });
   }
 }
 
@@ -118,11 +155,11 @@ export async function DELETE() {
 /** Rotate temporary PIN */
 export async function PATCH(req: Request) {
   try {
-    const body = await req.json();
-    const { email, currentPin, newPin } = body as { email?: string; currentPin?: string; newPin?: string };
-    if (!email || !currentPin || !newPin || String(newPin).length < 4) {
-      return NextResponse.json({ success: false, error: 'email, currentPin, newPin required' }, { status: 400 });
+    const parsed = rotateSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return validationErrorResponse(parsed.error.issues[0]?.message || 'Invalid request');
     }
+    const { email, currentPin, newPin } = parsed.data;
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
     if (!user || !verifyPin(currentPin, user.hashedPin)) {
       return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 });
@@ -140,7 +177,6 @@ export async function PATCH(req: Request) {
     });
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    const e = err as { message?: string };
-    return NextResponse.json({ success: false, error: e.message || 'Rotate failed' }, { status: 500 });
+    return publicErrorResponse(err, { message: 'Rotate failed', logMessage: 'PIN rotate failed' });
   }
 }

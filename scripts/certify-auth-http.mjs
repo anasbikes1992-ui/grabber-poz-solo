@@ -3,7 +3,7 @@
  * Live HTTP auth regression — privileged APIs must reject garbage/missing staff cookies.
  *
  * Usage:
- *   CERTIFY_HTTP_BASE_URL=https://grabber-poz-solo.vercel.app npm run client:certify:auth
+ *   CERTIFY_HTTP_BASE_URL=https://grabberpoz.com npm run client:certify:auth
  */
 const base = (
   process.env.CERTIFY_HTTP_BASE_URL ||

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Grabber POZ</title>
+  <desc id="desc">All-in-one retail and commerce OS for Sri Lanka</desc>
+  <rect width="1200" height="630" fill="#050816"/>
+  <circle cx="920" cy="130" r="220" fill="#ff8a00" opacity="0.24"/>
+  <circle cx="240" cy="520" r="260" fill="#7cff1d" opacity="0.14"/>
+  <rect x="88" y="92" width="1024" height="446" rx="36" fill="#0f172a" stroke="#24314d" stroke-width="3"/>
+  <text x="142" y="205" fill="#8cff2f" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="900">GRABBER POZ</text>
+  <text x="142" y="308" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="800">Retail &amp; Commerce OS</text>
+  <text x="142" y="382" fill="#fbbf24" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="800">for Sri Lanka</text>
+  <text x="142" y="462" fill="#cbd5e1" font-family="Arial, Helvetica, sans-serif" font-size="30">POS · Inventory · Polim Potha · Storefront · Payments</text>
+</svg>

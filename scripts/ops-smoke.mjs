@@ -5,7 +5,7 @@
  *
  * Usage:
  *   npm run ops:smoke
- *   CERTIFY_HTTP_BASE_URL=https://grabber-poz-solo.vercel.app npm run ops:smoke
+ *   CERTIFY_HTTP_BASE_URL=https://grabberpoz.com npm run ops:smoke
  *   npm run ops:smoke -- --env-file .env.prod.txt
  */
 import { spawnSync } from 'child_process';
@@ -20,7 +20,7 @@ const envFile = envIdx !== -1 ? process.argv[envIdx + 1] : null;
 const base =
   process.env.CERTIFY_HTTP_BASE_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
-  'https://grabber-poz-solo.vercel.app';
+  'https://grabberpoz.com';
 
 function run(label, cmd, args) {
   console.log(`\n── ${label} ──`);

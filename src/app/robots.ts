@@ -1,5 +1,8 @@
 import type { MetadataRoute } from 'next';
-import { siteBaseUrl } from '@/lib/storefront/seo';
+import { headers } from 'next/headers';
+import { siteBaseUrlFromHost } from '@/lib/storefront/seo';
+
+export const dynamic = 'force-dynamic';
 
 /** Staff surfaces that must not be indexed (POL-05). */
 const STAFF_DISALLOW = [
@@ -46,8 +49,14 @@ const STAFF_DISALLOW = [
   '/accounts',
 ];
 
-export default function robots(): MetadataRoute.Robots {
-  const base = siteBaseUrl();
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  let base = siteBaseUrlFromHost();
+  try {
+    const h = await headers();
+    base = siteBaseUrlFromHost(h.get('host') || h.get('x-forwarded-host'));
+  } catch {
+    // Unit tests can call robots() outside a Next request scope.
+  }
   return {
     rules: [
       {

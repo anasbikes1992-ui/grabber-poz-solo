@@ -31,7 +31,7 @@ const withHttp = args.has('--http');
 const baseUrl = (
   process.env.CERTIFY_HTTP_BASE_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
-  'https://grabber-poz-solo.vercel.app'
+  'https://grabberpoz.com'
 ).replace(/\/$/, '');
 
 const results = [];

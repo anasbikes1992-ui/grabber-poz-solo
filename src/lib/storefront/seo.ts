@@ -1,11 +1,27 @@
 import type { Metadata } from 'next';
 import { getConfiguredAppUrl } from '@/lib/config/app-url';
 
+export const DEFAULT_PUBLIC_BASE_URL = 'https://grabberpoz.com';
+export const DEFAULT_OG_IMAGE = '/og-image.svg';
+
 export function siteBaseUrl(): string {
   const fromEnv = getConfiguredAppUrl() || process.env.CERTIFY_HTTP_BASE_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, '');
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  if (process.env.NODE_ENV === 'production') return DEFAULT_PUBLIC_BASE_URL;
   return 'http://localhost:3000';
+}
+
+export function siteBaseUrlFromHost(host?: string | null): string {
+  const cleanHost = host?.split(',')[0]?.trim();
+  if (!cleanHost) return siteBaseUrl();
+  const hostname = cleanHost.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const protocol = hostname.startsWith('localhost') || hostname.startsWith('127.0.0.1') ? 'http' : 'https';
+  return `${protocol}://${hostname}`;
+}
+
+export function absoluteUrl(path: string, base = siteBaseUrl()): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
 export function productDescription(input: {
@@ -27,6 +43,7 @@ export function buildProductMetadata(input: {
   imageUrl?: string | null;
 }): Metadata {
   const url = `${siteBaseUrl()}/products/${input.slug}`;
+  const image = input.imageUrl || absoluteUrl(DEFAULT_OG_IMAGE);
   return {
     title: `${input.name} | Grabber Store`,
     description: input.description,
@@ -36,13 +53,13 @@ export function buildProductMetadata(input: {
       description: input.description,
       url,
       type: 'website',
-      images: input.imageUrl ? [{ url: input.imageUrl, alt: input.name }] : undefined,
+      images: [{ url: image, alt: input.name }],
     },
     twitter: {
-      card: input.imageUrl ? 'summary_large_image' : 'summary',
+      card: 'summary_large_image',
       title: input.name,
       description: input.description,
-      images: input.imageUrl ? [input.imageUrl] : undefined,
+      images: [image],
     },
   };
 }
@@ -97,6 +114,7 @@ export function buildCategoryMetadata(input: {
       name: input.name,
       productCount: input.productCount ?? 0,
     });
+  const image = input.imageUrl || absoluteUrl(DEFAULT_OG_IMAGE);
 
   return {
     title: `${input.name} Collection | Grabber Store`,
@@ -107,13 +125,13 @@ export function buildCategoryMetadata(input: {
       description: desc,
       url,
       type: 'website',
-      images: input.imageUrl ? [{ url: input.imageUrl, alt: input.name }] : undefined,
+      images: [{ url: image, alt: input.name }],
     },
     twitter: {
-      card: input.imageUrl ? 'summary_large_image' : 'summary',
+      card: 'summary_large_image',
       title: `${input.name} | Grabber Store`,
       description: desc,
-      images: input.imageUrl ? [input.imageUrl] : undefined,
+      images: [image],
     },
   };
 }

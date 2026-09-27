@@ -1,9 +1,18 @@
 import type { MetadataRoute } from 'next';
+import { headers } from 'next/headers';
 import { listCategorySlugs, listPublishedProductSlugs } from '@/lib/storefront/catalog-server';
-import { siteBaseUrl } from '@/lib/storefront/seo';
+import { siteBaseUrlFromHost } from '@/lib/storefront/seo';
+
+export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = siteBaseUrl();
+  let base = siteBaseUrlFromHost();
+  try {
+    const h = await headers();
+    base = siteBaseUrlFromHost(h.get('host') || h.get('x-forwarded-host'));
+  } catch {
+    // Unit tests call sitemap() outside a Next request scope.
+  }
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [

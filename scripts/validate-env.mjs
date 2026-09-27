@@ -114,7 +114,7 @@ export async function runEnvironmentValidation() {
       console.log(`  ✓ NEXT_PUBLIC_APP_URL:      ${appUrl}`);
       if (isProduction && /-[a-z0-9]{8,}-[a-z0-9-]+\.vercel\.app$/i.test(appUrl)) {
         p1Warnings.push(
-          'NEXT_PUBLIC_APP_URL looks like a Vercel preview deployment. Use the production alias (e.g. grabber-poz-solo.vercel.app) for webhooks and receipts.',
+          'NEXT_PUBLIC_APP_URL looks like a Vercel preview deployment. Use the production domain (e.g. grabberpoz.com) for webhooks and receipts.',
         );
         console.log(`    ↳ Warning:                Preview URL detected — use production alias`);
       }

@@ -11,7 +11,7 @@ Status legend: `DONE` · `IN_PROGRESS` · `TODO` · `DEFERRED`
 
 ## Current position (baseline)
 
-**Live:** `grabber-poz-solo.vercel.app` · Supabase connected · storefront catalog live  
+**Live:** `grabberpoz.com` · tenant databases connected · storefront catalog live  
 **Staff login:** `/adminpoz` only (not on public storefront)
 
 **Productization freeze (2026-09-03):** architecture KEEP · no rewrite.

@@ -58,7 +58,7 @@ function appUrl() {
   return (
     getConfiguredAppUrl()?.trim() ||
     process.env.CERTIFY_HTTP_BASE_URL?.trim() ||
-    'https://grabber-poz-solo.vercel.app'
+    'https://demo.grabberpoz.com'
   ).replace(/\/$/, '');
 }
 

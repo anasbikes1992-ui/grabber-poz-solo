@@ -4,6 +4,8 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { assertCanMutateCommerce, requireStaffSession } from '@/lib/auth/session';
 import { getAppUrl, getSupabaseUrl } from '@/lib/config/app-url';
+import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
+import { safeUploadBucket, validateUploadFile } from '@/lib/security/upload-validation';
 import {
   createMediaAssetRecord,
   deleteMediaAssetRecord,
@@ -18,7 +20,10 @@ export async function GET() {
     return NextResponse.json({ success: true, assets });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message || 'Load failed' }, { status: e.status || 500 });
+    if (e.status && e.status < 500) {
+      return NextResponse.json({ success: false, error: e.message || 'Request failed' }, { status: e.status });
+    }
+    return publicErrorResponse(err, { message: 'Load failed', logMessage: 'Media load failed' });
   }
 }
 
@@ -31,15 +36,12 @@ export async function POST(req: Request) {
     const autoAlign = form.get('autoAlign') === 'true' || form.get('autoAlign') === '1';
 
     if (!file || !(file instanceof File)) {
-      return NextResponse.json({ success: false, error: 'file required' }, { status: 400 });
+      return validationErrorResponse('file required');
     }
-    if (file.size > 15 * 1024 * 1024) {
-      return NextResponse.json({ success: false, error: 'Max 15MB' }, { status: 400 });
-    }
+    const upload = await validateUploadFile(file, 15 * 1024 * 1024);
 
-    const originalFilename = file.name;
-    const ext = originalFilename.split('.').pop() || 'png';
-    const uniqueName = `${randomUUID()}.${ext}`;
+    const originalFilename = upload.originalName;
+    const uniqueName = `${randomUUID()}.${upload.extension}`;
 
     const supabaseUrl = getSupabaseUrl();
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -48,31 +50,35 @@ export async function POST(req: Request) {
     let provider = 'local';
 
     if (supabaseUrl && serviceKey) {
-      const bucket = String(form.get('bucket') || 'products');
-      const bytes = Buffer.from(await file.arrayBuffer());
+      const bucket = safeUploadBucket(form.get('bucket'), 'products');
       const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${uniqueName}`;
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${serviceKey}`,
-          'Content-Type': file.type || 'application/octet-stream',
+          'Content-Type': upload.mimeType,
           'x-upsert': 'true',
         },
-        body: bytes,
+        body: new Blob([new Uint8Array(upload.bytes)], { type: upload.mimeType }),
       });
 
       if (res.ok) {
         publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${uniqueName}`;
         provider = 'supabase';
+      } else {
+        console.error('Supabase media upload failed', { status: res.status, body: await res.text().catch(() => '') });
       }
     }
 
     if (!publicUrl) {
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ success: false, error: 'Upload storage is not configured' }, { status: 503 });
+      }
       // Local fallback in public/uploads
       const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
       await mkdir(uploadsDir, { recursive: true });
       const dest = path.join(uploadsDir, uniqueName);
-      await writeFile(dest, Buffer.from(await file.arrayBuffer()));
+      await writeFile(dest, upload.bytes);
       const base = getAppUrl();
       publicUrl = `${base}/uploads/${uniqueName}`;
       provider = 'local';
@@ -82,8 +88,8 @@ export async function POST(req: Request) {
     const asset = await createMediaAssetRecord({
       title: originalFilename,
       fileUrl: publicUrl,
-      mimeType: file.type || 'image/jpeg',
-      sizeBytes: file.size,
+      mimeType: upload.mimeType,
+      sizeBytes: upload.bytes.length,
       source: provider === 'supabase' ? 'SUPABASE_STORAGE' : 'LOCAL_UPLOAD',
     });
 
@@ -99,8 +105,10 @@ export async function POST(req: Request) {
       autoAlign: autoAlignResult,
     });
   } catch (err: unknown) {
-    const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message || 'Upload failed' }, { status: e.status || 500 });
+    if (err instanceof Error && /upload|file|jpg|png|webp|gif|max/i.test(err.message)) {
+      return validationErrorResponse(err.message);
+    }
+    return publicErrorResponse(err, { message: 'Upload failed', logMessage: 'Media upload failed' });
   }
 }
 
@@ -115,6 +123,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true, deleted });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 400 });
+    if (e.status && e.status < 500) {
+      return NextResponse.json({ success: false, error: e.message || 'Request failed' }, { status: e.status });
+    }
+    return publicErrorResponse(err, { message: 'Delete failed', logMessage: 'Media delete failed' });
   }
 }

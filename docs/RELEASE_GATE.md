@@ -212,7 +212,7 @@ ORDER_CREATED → automation engine → WhatsApp template → automationLogs
 **Meta webhook:**
 
 ```text
-Callback URL:  https://grabber-poz-solo.vercel.app/api/webhooks/whatsapp
+Callback URL:  https://grabberpoz.com/api/webhooks/whatsapp
 Verify token:  (WHATSAPP_VERIFY_TOKEN on Vercel)
 ```
 

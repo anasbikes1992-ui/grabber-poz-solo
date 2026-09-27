@@ -38,20 +38,20 @@ No LLM required for v1 — agents **READ** live data and **propose** actions; st
 
 ```powershell
 # List registry + enabled agents
-curl https://grabber-poz-solo.vercel.app/api/agents/run
+curl https://grabberpoz.com/api/agents/run
 
 # Run one agent (staff session in production)
-curl -X POST https://grabber-poz-solo.vercel.app/api/agents/run `
+curl -X POST https://grabberpoz.com/api/agents/run `
  -H "Content-Type: application/json" `
  -d '{"agent":"REPAIR","prompt":"Daily briefing"}'
 
 # Run all enabled agents
-curl -X POST https://grabber-poz-solo.vercel.app/api/agents/run `
+curl -X POST https://grabberpoz.com/api/agents/run `
  -H "Content-Type: application/json" `
  -d '{"all":true}'
 
 # Combined daily brief (GET, staff session)
-curl https://grabber-poz-solo.vercel.app/api/agents/brief
+curl https://grabberpoz.com/api/agents/brief
 ```
 
 Logs append to `business_config.agentLogs` (last 200 entries).

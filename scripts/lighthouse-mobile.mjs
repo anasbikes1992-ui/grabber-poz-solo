@@ -15,7 +15,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const target = process.argv[2] || 'shop';
-const base = (process.env.BASE || process.env.CERTIFY_HTTP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://grabber-poz-solo.vercel.app').replace(
+const base = (process.env.BASE || process.env.CERTIFY_HTTP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://grabberpoz.com').replace(
   /\/$/,
   '',
 );

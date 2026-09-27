@@ -71,7 +71,7 @@
     "next": "^15.1.7",
     "pdf-lib": "^1.17.1",
     "postgres": "^3.4.5",
-    "postcss": "^8.5.3",
+    "postcss": "^8.5.23",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^2.0.1",
@@ -91,6 +91,9 @@
     "eslint": "^9.21.0",
     "eslint-config-next": "^15.1.7",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.0.7"
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "postcss": "^8.5.23"
   }
 }

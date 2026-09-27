@@ -14,7 +14,6 @@ export type LandingMode = 'company' | 'storefront';
 const DEFAULT_COMPANY_HOSTS = [
   'grabberpoz.com',
   'www.grabberpoz.com',
-  'grabber-poz-solo.vercel.app',
   'localhost',
   '127.0.0.1',
 ];

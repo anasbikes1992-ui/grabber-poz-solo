@@ -4,7 +4,9 @@ import './globals.css';
 import { AppShell } from '@/components/layout/app-shell';
 import { StorefrontAnalytics } from '@/components/storefront/storefront-analytics';
 import { resolveMarketingPixels } from '@/lib/config/resolve-marketing';
-import { siteBaseUrl } from '@/lib/storefront/seo';
+import { DEFAULT_OG_IMAGE, absoluteUrl, siteBaseUrl } from '@/lib/storefront/seo';
+
+const baseUrl = siteBaseUrl();
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -25,10 +27,28 @@ const nunitoSans = Nunito_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteBaseUrl()),
-  title: 'Grabber — Store & Business OS',
+  metadataBase: new URL(baseUrl),
+  title: {
+    default: 'Grabber POZ | Retail & Commerce OS',
+    template: '%s | Grabber POZ',
+  },
   description:
     'Online storefront for shoppers + staff POS, inventory, Polim Potha, and vertical operations.',
+  alternates: { canonical: baseUrl },
+  openGraph: {
+    title: 'Grabber POZ | Retail & Commerce OS',
+    description: 'POS, inventory, customer credit, storefront, and Sri Lankan payments in one standalone system.',
+    url: baseUrl,
+    siteName: 'Grabber POZ',
+    type: 'website',
+    images: [{ url: absoluteUrl(DEFAULT_OG_IMAGE, baseUrl), alt: 'Grabber POZ retail and commerce OS' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Grabber POZ | Retail & Commerce OS',
+    description: 'POS, inventory, customer credit, storefront, and Sri Lankan payments in one standalone system.',
+    images: [absoluteUrl(DEFAULT_OG_IMAGE, baseUrl)],
+  },
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Grabber' },
 };
