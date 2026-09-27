@@ -89,6 +89,12 @@ function accountCodeForMethod(method: ReturnType<typeof normalizePayMethod>) {
   return '1010';
 }
 
+export function assertCreditCheckoutHasCustomer(method: CheckoutPaymentMethod, customerId?: string) {
+  if (normalizePayMethod(method) === 'CREDIT' && !customerId) {
+    throw Object.assign(new Error('Customer ID is required for credit checkout'), { status: 400 });
+  }
+}
+
 async function resolveAccountId(tx: typeof db, code: string) {
   const [row] = await tx.select({ id: chartOfAccounts.id }).from(chartOfAccounts).where(eq(chartOfAccounts.code, code)).limit(1);
   if (!row) throw new Error(`Chart of accounts missing code ${code}`);
@@ -98,6 +104,7 @@ async function resolveAccountId(tx: typeof db, code: string) {
 export async function durableCheckout(input: CheckoutInput) {
   if (!input.items?.length) throw new Error('Cart is empty');
   if (!input.branchId) throw new Error('branchId is required');
+  assertCreditCheckoutHasCustomer(input.paymentMethod, input.customerId);
 
   const result = await db.transaction(async (tx) => {
     // Idempotency: existing payment key or client uuid
@@ -304,10 +311,25 @@ export async function durableCheckout(input: CheckoutInput) {
         idempotencyKey: input.idempotencyKey,
       });
 
-      await tx
+      const creditWhere =
+        auth.ruleApplied === 'STANDARD_CREDIT_SALE'
+          ? and(
+              eq(polimPothaAccounts.customerId, input.customerId),
+              sql`${polimPothaAccounts.currentBalance} + ${grandTotal} <= ${polimPothaAccounts.creditLimit}`,
+            )
+          : and(
+              eq(polimPothaAccounts.customerId, input.customerId),
+              eq(polimPothaAccounts.currentBalance, acct.currentBalance),
+            );
+
+      const [updatedAccount] = await tx
         .update(polimPothaAccounts)
         .set({ currentBalance: String(auth.newBalance.toFixed(2)), updatedAt: new Date() })
-        .where(eq(polimPothaAccounts.customerId, input.customerId));
+        .where(creditWhere)
+        .returning();
+      if (!updatedAccount) {
+        throw Object.assign(new Error('Credit balance changed during checkout; retry the sale'), { status: 409 });
+      }
       await tx.insert(polimPothaEntries).values({
         customerId: input.customerId,
         orderId: order.id,
@@ -319,8 +341,8 @@ export async function durableCheckout(input: CheckoutInput) {
       });
     }
 
-    // Loyalty Point Accrual: if customer has active loyalty membership, award 1 pt per 100 LKR
-    if (paymentSuccess && input.customerId) {
+    // Loyalty: redemption is committed at checkout so COD orders cannot reuse the same points while pending.
+    if (input.customerId && (paymentSuccess || (input.redeemLoyaltyPoints && input.redeemLoyaltyPoints > 0))) {
       const [member] = await tx
         .select()
         .from(loyaltyMembers)
@@ -331,16 +353,20 @@ export async function durableCheckout(input: CheckoutInput) {
         // A. Handle point redemption if points were redeemed for this sale
         let currentPoints = member.points;
         if (input.redeemLoyaltyPoints && input.redeemLoyaltyPoints > 0) {
-          const pointsToRedeem = Math.min(currentPoints, input.redeemLoyaltyPoints);
+          const pointsToRedeem = input.redeemLoyaltyPoints;
           currentPoints -= pointsToRedeem;
-          await tx
+          const [redeemedMember] = await tx
             .update(loyaltyMembers)
             .set({
               points: sql`${loyaltyMembers.points} - ${pointsToRedeem}`,
               lastVisitAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(eq(loyaltyMembers.id, member.id));
+            .where(and(eq(loyaltyMembers.id, member.id), sql`${loyaltyMembers.points} >= ${pointsToRedeem}`))
+            .returning();
+          if (!redeemedMember) {
+            throw Object.assign(new Error('Insufficient loyalty points for redemption'), { status: 400 });
+          }
 
           await tx.insert(loyaltyTransactions).values({
             memberId: member.id,
@@ -353,7 +379,7 @@ export async function durableCheckout(input: CheckoutInput) {
         }
 
         // B. Handle point accrual on paid net grandTotal
-        const earnedPoints = Math.floor(grandTotal / 100);
+        const earnedPoints = paymentSuccess ? Math.floor(grandTotal / 100) : 0;
         if (earnedPoints > 0) {
           const newTotalSpent = Number(member.totalSpent) + grandTotal;
           const newTier = newTotalSpent >= 100000 ? 'PLATINUM' : newTotalSpent >= 25000 ? 'GOLD' : 'SILVER';

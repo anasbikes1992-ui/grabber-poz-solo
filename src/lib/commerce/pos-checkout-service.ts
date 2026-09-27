@@ -64,6 +64,16 @@ export type PosCheckoutInput = {
   utmCampaign?: string;
 };
 
+export function resolveCheckoutCustomerId(input: Pick<PosCheckoutInput, 'channel' | 'customerId' | 'shopperCustomerId'>) {
+  const isStorefront = (input.channel || 'POS') === 'STOREFRONT';
+  if (!isStorefront) return input.customerId;
+
+  if (input.customerId && input.shopperCustomerId && input.customerId !== input.shopperCustomerId) {
+    throw Object.assign(new Error('Storefront customer identity mismatch'), { status: 403 });
+  }
+  return input.shopperCustomerId;
+}
+
 export async function processPosCheckout(body: PosCheckoutInput) {
   const channel = body.channel || 'POS';
   const isStorefront = channel === 'STOREFRONT';
@@ -108,7 +118,8 @@ export async function processPosCheckout(body: PosCheckoutInput) {
   const rules = await listPromotions();
 
   let customerSegment: string | undefined;
-  const customerIdPreview = body.customerId || (isStorefront ? body.shopperCustomerId : undefined);
+  const customerId = resolveCheckoutCustomerId(body);
+  const customerIdPreview = customerId;
   if (customerIdPreview) {
     const [cust] = await db.select().from(customers).where(eq(customers.id, customerIdPreview)).limit(1);
     customerSegment = cust?.segment;
@@ -148,7 +159,6 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     tradeInCredit = Number(v.appraisalValue);
   }
 
-  const customerId = body.customerId || (isStorefront ? body.shopperCustomerId : undefined);
   let loyaltyDiscount = 0;
 
   if (body.redeemLoyaltyPoints && body.redeemLoyaltyPoints > 0) {
@@ -253,7 +263,7 @@ export async function processPosCheckout(body: PosCheckoutInput) {
     clientUuid: body.clientUuid,
     idempotencyKey: body.idempotencyKey || body.clientUuid,
     actorId: body.actorId,
-    staffRole: (body.staffRole as any) || (isStorefront ? 'OWNER' : 'CASHIER'),
+    staffRole: (body.staffRole as any) || 'CASHIER',
     discountTotal,
     promoRuleId,
     terminalId: body.terminalId,
