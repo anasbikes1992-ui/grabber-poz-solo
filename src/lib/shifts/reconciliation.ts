@@ -3,6 +3,7 @@ import {
   chartOfAccounts,
   journalEntries,
   journalLines,
+  orderReturns,
   orders,
   payments,
   shifts,
@@ -26,6 +27,7 @@ export type ReconcileSummary = {
   creditSales: number;
   cashPaidIn?: number;
   cashPaidOut?: number;
+  cashRefunds?: number;
   expectedCash: number;
   closingCash: number;
   cashVariance: number;
@@ -34,6 +36,56 @@ export type ReconcileSummary = {
   polimVariance: number;
   totalVariance: number;
 };
+
+type ShiftPaymentRow = {
+  method: string;
+  amount: number | string;
+  status?: string | null;
+};
+
+export function assertPositiveCashMovementAmount(amount: number) {
+  const value = Number(amount);
+  if (!Number.isFinite(value) || value <= 0) {
+    throw Object.assign(new Error('Cash movement amount must be greater than 0'), { status: 400 });
+  }
+  return value;
+}
+
+export function summarizeCapturedShiftPayments(payRows: ShiftPaymentRow[]) {
+  const summary = {
+    cashSales: 0,
+    cardSales: 0,
+    payhereSales: 0,
+    polimSales: 0,
+    creditSales: 0,
+  };
+
+  for (const p of payRows) {
+    const status = String(p.status || 'SUCCESS').toUpperCase();
+    if (!['SUCCESS', 'CAPTURED', 'PAID'].includes(status)) continue;
+
+    const amt = Number(p.amount);
+    if (p.method === 'CASH' || p.method === 'COD') summary.cashSales += amt;
+    else if (p.method === 'CARD' || p.method === 'WEBXPAY') summary.cardSales += amt;
+    else if (p.method === 'PAYHERE') summary.payhereSales += amt;
+    else if (p.method === 'CREDIT') {
+      summary.creditSales += amt;
+      summary.polimSales += amt;
+    }
+  }
+
+  return summary;
+}
+
+export function expectedCashForShift(params: {
+  openingFloat: number;
+  cashSales: number;
+  cashPaidIn: number;
+  cashPaidOut: number;
+  cashRefunds: number;
+}) {
+  return params.openingFloat + params.cashSales + params.cashPaidIn - params.cashPaidOut - params.cashRefunds;
+}
 
 async function resolveAccountId(
   tx: Parameters<typeof ensureDefaultChartOfAccounts>[0] & {
@@ -55,20 +107,21 @@ export async function recordShiftCashMovement(params: {
   actorId?: string;
 }) {
   const { db } = await import('@/db');
+  const amount = assertPositiveCashMovementAmount(params.amount);
   const [shift] = await db.select().from(shifts).where(eq(shifts.id, params.shiftId)).limit(1);
   if (!shift) throw Object.assign(new Error('Shift not found'), { status: 404 });
   if (shift.status === 'CLOSED') throw Object.assign(new Error('Cannot add movement to closed shift'), { status: 409 });
 
   const prevRec = (shift.reconciliationJson as Record<string, any>) || {};
   const prevMovements = Array.isArray(prevRec.cashMovements) ? prevRec.cashMovements : [];
-  const cashPaidIn = Number(prevRec.cashPaidIn || 0) + (params.type === 'PAID_IN' ? params.amount : 0);
-  const cashPaidOut = Number(prevRec.cashPaidOut || 0) + (params.type === 'PAID_OUT' ? params.amount : 0);
+  const cashPaidIn = Number(prevRec.cashPaidIn || 0) + (params.type === 'PAID_IN' ? amount : 0);
+  const cashPaidOut = Number(prevRec.cashPaidOut || 0) + (params.type === 'PAID_OUT' ? amount : 0);
 
   const newMovements = [
     ...prevMovements,
     {
       type: params.type,
-      amount: params.amount,
+      amount,
       reason: params.reason,
       actorId: params.actorId || null,
       timestamp: new Date().toISOString(),
@@ -110,23 +163,24 @@ export async function closeShiftWithReconciliation(input: ReconcileInput) {
 
     if (orderIds.length) {
       const payRows = await tx.select().from(payments).where(inArray(payments.orderId, orderIds));
-      for (const p of payRows) {
-        const amt = Number(p.amount);
-        if (p.method === 'CASH' || p.method === 'COD') cashSales += amt;
-        else if (p.method === 'CARD' || p.method === 'WEBXPAY') cardSales += amt;
-        else if (p.method === 'PAYHERE') payhereSales += amt;
-        else if (p.method === 'CREDIT') {
-          creditSales += amt;
-          polimSales += amt;
-        }
-      }
+      const paymentSummary = summarizeCapturedShiftPayments(payRows);
+      cashSales = paymentSummary.cashSales;
+      cardSales = paymentSummary.cardSales;
+      payhereSales = paymentSummary.payhereSales;
+      polimSales = paymentSummary.polimSales;
+      creditSales = paymentSummary.creditSales;
     }
 
     const prevRec = (shift.reconciliationJson as Record<string, any>) || {};
     const cashPaidIn = Number(prevRec.cashPaidIn || 0);
     const cashPaidOut = Number(prevRec.cashPaidOut || 0);
+    const cashRefunds = orderIds.length
+      ? (await tx.select().from(orderReturns).where(inArray(orderReturns.originalOrderId, orderIds)))
+          .filter((ret) => ret.refundDestination === 'CASH')
+          .reduce((sum, ret) => sum + Number(ret.refundAmount), 0)
+      : 0;
     const openingFloat = Number(shift.openingFloat);
-    const expectedCash = openingFloat + cashSales + cashPaidIn - cashPaidOut;
+    const expectedCash = expectedCashForShift({ openingFloat, cashSales, cashPaidIn, cashPaidOut, cashRefunds });
     const cashVariance = input.closingCash - expectedCash;
     const cardVariance = (input.actualCard ?? cardSales) - cardSales;
     const payhereVariance = (input.actualPayhere ?? payhereSales) - payhereSales;
@@ -142,6 +196,7 @@ export async function closeShiftWithReconciliation(input: ReconcileInput) {
       creditSales,
       cashPaidIn,
       cashPaidOut,
+      cashRefunds,
       expectedCash,
       cashVariance,
       cardVariance,
@@ -212,6 +267,7 @@ export async function closeShiftWithReconciliation(input: ReconcileInput) {
       creditSales,
       cashPaidIn,
       cashPaidOut,
+      cashRefunds,
       expectedCash,
       closingCash: input.closingCash,
       cashVariance,

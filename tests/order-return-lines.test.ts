@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { processOrderReturn } from '@/lib/returns/returns-service';
+import { processOrderReturn, refundPayoutAccountCode } from '@/lib/returns/returns-service';
+import { recordDamage } from '@/lib/inventory/stock-service';
 
-const { orderReturnsDb, orderReturnLinesDb, journalEntriesDb } = vi.hoisted(() => ({
+const { orderReturnsDb, orderReturnLinesDb, journalEntriesDb, journalLinesDb, orderState, paymentsDb } = vi.hoisted(() => ({
   orderReturnsDb: [] as any[],
   orderReturnLinesDb: [] as any[],
   journalEntriesDb: [] as any[],
+  journalLinesDb: [] as any[],
+  orderState: { paymentStatus: 'PAID', item1TaxAmount: '0.00' },
+  paymentsDb: [{ id: 'pay-1', method: 'CASH', amount: '1500.00', status: 'CAPTURED' }] as any[],
 }));
 
 vi.mock('@/db', () => {
@@ -25,7 +29,7 @@ vi.mock('@/db', () => {
           customerId: '00000000-0000-0000-0000-000000000099',
           grandTotal: '1500.00',
           orderStatus: 'CONFIRMED',
-          paymentStatus: 'PAID',
+          paymentStatus: orderState.paymentStatus,
         },
       ];
     }
@@ -40,7 +44,7 @@ vi.mock('@/db', () => {
           quantity: 4,
           unitPrice: '250.00',
           discountAmount: '0.00',
-          taxAmount: '0.00',
+          taxAmount: orderState.item1TaxAmount,
           unitCost: '180.00',
         },
         {
@@ -62,6 +66,9 @@ vi.mock('@/db', () => {
     }
     if (table._name === 'order_return_lines') {
       return orderReturnLinesDb;
+    }
+    if (table._name === 'payments') {
+      return paymentsDb;
     }
     if (table._name === 'chart_of_accounts') {
       return [{ id: 'coa-mock-id' }];
@@ -93,8 +100,14 @@ vi.mock('@/db', () => {
       from: (table: any) => createQueryChain(table),
     }),
     insert: (table: any) => ({
-      values: (val: any) => ({
-        returning: () => {
+      values: (val: any) => {
+        if (table._name === 'journal_lines') {
+          const rows = Array.isArray(val) ? val : [val];
+          journalLinesDb.push(...rows);
+        }
+
+        return {
+          returning: () => {
           if (table._name === 'order_returns') {
             const row = { id: `ret-${Date.now()}`, ...val };
             orderReturnsDb.push(row);
@@ -113,7 +126,8 @@ vi.mock('@/db', () => {
           return Promise.resolve([{ id: 'mock-id', ...val }]);
         },
         then: (cb: any) => cb(),
-      }),
+        };
+      },
     }),
     update: (table: any) => ({
       set: (val: any) => ({
@@ -131,6 +145,7 @@ vi.mock('@/db', () => {
     orderItems: { _name: 'order_items' },
     orderReturns: { _name: 'order_returns' },
     orderReturnLines: { _name: 'order_return_lines' },
+    payments: { _name: 'payments' },
     journalEntries: { _name: 'journal_entries' },
     journalLines: { _name: 'journal_lines' },
     chartOfAccounts: { _name: 'chart_of_accounts' },
@@ -158,6 +173,12 @@ describe('Returns & Refunds Domain Engine (Odoo-Class)', () => {
     orderReturnsDb.length = 0;
     orderReturnLinesDb.length = 0;
     journalEntriesDb.length = 0;
+    journalLinesDb.length = 0;
+    orderState.paymentStatus = 'PAID';
+    orderState.item1TaxAmount = '0.00';
+    paymentsDb.length = 0;
+    paymentsDb.push({ id: 'pay-1', method: 'CASH', amount: '1500.00', status: 'CAPTURED' });
+    vi.mocked(recordDamage).mockClear();
   });
 
   it('processes partial return of 2 units out of 4 with balanced refund and restock', async () => {
@@ -198,6 +219,39 @@ describe('Returns & Refunds Domain Engine (Odoo-Class)', () => {
     ).rejects.toThrow(/Maximum returnable quantity is 4/);
   });
 
+  it('rejects client-supplied refund amount overrides', async () => {
+    await expect(
+      processOrderReturn({
+        orderId: testOrderId,
+        refundAmount: 1500,
+        lines: [
+          {
+            orderItemId: testItemId1,
+            quantity: 1,
+          },
+        ],
+      }),
+    ).rejects.toThrow(/cannot be overridden/);
+  });
+
+  it('rejects refund attempts when no captured payment exists', async () => {
+    orderState.paymentStatus = 'PENDING';
+    paymentsDb.length = 0;
+    paymentsDb.push({ id: 'pay-cod', method: 'COD', amount: '250.00', status: 'PENDING' });
+
+    await expect(
+      processOrderReturn({
+        orderId: testOrderId,
+        lines: [
+          {
+            orderItemId: testItemId1,
+            quantity: 1,
+          },
+        ],
+      }),
+    ).rejects.toThrow(/has been captured/);
+  });
+
   it('handles damaged grading by tagging line as DAMAGED for write-off', async () => {
     const result = await processOrderReturn({
       orderId: testOrderId,
@@ -213,5 +267,29 @@ describe('Returns & Refunds Domain Engine (Odoo-Class)', () => {
 
     expect(result.lines[0].gradingStatus).toBe('DAMAGED');
     expect(result.summary.refundAmount).toBe(250);
+    expect(recordDamage).not.toHaveBeenCalled();
+  });
+
+  it('posts VAT reversal separately from revenue when returned item includes tax', async () => {
+    orderState.item1TaxAmount = '72.00';
+
+    await processOrderReturn({
+      orderId: testOrderId,
+      lines: [
+        {
+          orderItemId: testItemId1,
+          quantity: 1,
+        },
+      ],
+    });
+
+    expect(journalLinesDb.some((line) => line.memo === 'VAT payable reversed for returned goods' && line.debit === '18.00')).toBe(true);
+  });
+
+  it('maps card and bank refunds away from cash', () => {
+    expect(refundPayoutAccountCode('CASH')).toBe('1010');
+    expect(refundPayoutAccountCode('CARD')).toBe('1020');
+    expect(refundPayoutAccountCode('BANK_TRANSFER')).toBe('1020');
+    expect(refundPayoutAccountCode('ORIGINAL')).toBe('1020');
   });
 });

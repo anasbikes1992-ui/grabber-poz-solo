@@ -15,6 +15,12 @@ import {
 import { assertCanMutateCommerce, getSession, isDemoUserId } from '@/lib/auth/session';
 import { recordPurchaseReceipt } from '@/lib/inventory/stock-service';
 import { receiveStockLot } from '@/lib/inventory/fefo';
+import {
+  assertCanReceiveLine,
+  assertReceivablePurchaseOrder,
+  nextWeightedAverageCost,
+  normalizeGrnQuantity,
+} from '@/lib/purchasing/grn-invariants';
 
 export async function POST(req: Request) {
   try {
@@ -35,8 +41,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'poIdOrNumber and items required' }, { status: 400 });
     }
 
-    const actorId =
-      receivedBy || (session && !isDemoUserId(session.userId) ? session.userId : undefined);
+    const actorId = session && !isDemoUserId(session.userId) ? session.userId : undefined;
 
     const result = await db.transaction(async (tx) => {
       let [po] = await tx.select().from(purchaseOrders).where(eq(purchaseOrders.poNumber, poIdOrNumber)).limit(1);
@@ -44,14 +49,16 @@ export async function POST(req: Request) {
         [po] = await tx.select().from(purchaseOrders).where(eq(purchaseOrders.id, poIdOrNumber)).limit(1);
       }
       if (!po) throw new Error('Purchase order not found');
+      assertReceivablePurchaseOrder(po.status);
 
       const lines = await tx.select().from(purchaseOrderLines).where(eq(purchaseOrderLines.poId, po.id));
       let totalCost = 0;
 
       for (const item of items) {
-        const line = lines.find((l) => l.productId === item.productId);
+        const quantity = normalizeGrnQuantity(item.quantity);
+        const line = assertCanReceiveLine(lines.find((l) => l.productId === item.productId), item.productId, quantity);
         const unitCost = Number(item.unitCost ?? line?.unitCost ?? 0);
-        totalCost += unitCost * item.quantity;
+        totalCost += unitCost * quantity;
 
         await recordPurchaseReceipt(
           tx,
@@ -59,7 +66,7 @@ export async function POST(req: Request) {
           {
             productId: item.productId,
             variantId: line?.variantId || null,
-            quantity: item.quantity,
+            quantity,
             unitCost,
           },
           {
@@ -76,25 +83,20 @@ export async function POST(req: Request) {
             variantId: line?.variantId || null,
             locationType: 'WAREHOUSE',
             locationId: po.warehouseId,
-            qty: item.quantity,
+            qty: quantity,
             expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
           });
         }
 
-        const [bal] = await tx
+        const balances = await tx
           .select()
           .from(stockBalances)
-          .where(eq(stockBalances.productId, item.productId))
-          .limit(1);
-        const onHandAfter = Number(bal?.onHand ?? item.quantity);
-        const onHandBefore = Math.max(0, onHandAfter - item.quantity);
+          .where(eq(stockBalances.productId, item.productId));
+        const onHandAfter = balances.reduce((sum, bal) => sum + Number(bal.onHand || 0), 0);
         const [prod] = await tx.select().from(products).where(eq(products.id, item.productId)).limit(1);
         if (prod) {
           const oldCost = Number(prod.costPrice);
-          const wavg =
-            onHandAfter > 0
-              ? (oldCost * onHandBefore + unitCost * item.quantity) / onHandAfter
-              : unitCost;
+          const wavg = nextWeightedAverageCost(oldCost, onHandAfter, quantity, unitCost);
           await tx
             .update(products)
             .set({ costPrice: wavg.toFixed(2), updatedAt: new Date() })
@@ -102,7 +104,7 @@ export async function POST(req: Request) {
         }
 
         if (line) {
-          const newReceived = (Number(line.receivedQty) || 0) + item.quantity;
+          const newReceived = (Number(line.receivedQty) || 0) + quantity;
           await tx
             .update(purchaseOrderLines)
             .set({ receivedQty: newReceived })
@@ -117,7 +119,7 @@ export async function POST(req: Request) {
 
       await tx
         .update(purchaseOrders)
-        .set({ status: nextPoStatus, totalAmount: String(totalCost.toFixed(2)) })
+        .set({ status: nextPoStatus })
         .where(eq(purchaseOrders.id, po.id));
 
       const [acct] = await tx

@@ -5,7 +5,6 @@ import { encodeSession, assertRole } from '../src/lib/auth/session';
 import { payHereWebhookSecretRequired } from '../src/lib/payments/payhere-signature';
 import { GET as cronGet } from '../src/app/api/cron/process-jobs/route';
 import { POST as payHerePost } from '../src/app/api/webhooks/payhere/route';
-import { scanApiAuthCoverage } from '../scripts/api-auth-coverage.mjs';
 
 /** NODE_ENV is typed read-only; tests still need to toggle it. */
 function setNodeEnv(value: string | undefined) {
@@ -170,10 +169,15 @@ describe('security HTTP auth — WhatsApp send / seed / cron / PayHere', () => {
 });
 
 describe('security — API auth coverage inventory', () => {
-  it('classifies every /api route with zero UNCLASSIFIED', () => {
-    const result = scanApiAuthCoverage();
-    expect(result.unclassified, JSON.stringify(result.unclassified, null, 2)).toEqual([]);
-    expect(result.total).toBeGreaterThan(50);
+  it('classifies every /api route with zero UNCLASSIFIED', async () => {
+    const { execFileSync } = await import('node:child_process');
+    const output = execFileSync(process.execPath, ['scripts/api-auth-coverage.mjs'], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+    });
+    expect(output).toContain('AUTH COVERAGE: PASS');
+    const total = Number(output.match(/TOTAL\s+(\d+)/)?.[1] || 0);
+    expect(total).toBeGreaterThan(50);
   });
 });
 
