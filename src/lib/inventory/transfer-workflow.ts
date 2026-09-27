@@ -9,6 +9,27 @@ export type TransferItem = {
   receivedQty?: number;
 };
 
+export function normalizeTransferQuantity(quantity: number, label = 'Transfer quantity') {
+  const qty = Number(quantity);
+  if (!Number.isFinite(qty) || qty <= 0 || !Number.isInteger(qty)) {
+    throw new Error(`${label} must be a positive integer`);
+  }
+  return qty;
+}
+
+export function resolveReceivedTransferQuantity(dispatchedQty: number, receivedQty?: number) {
+  const dispatched = normalizeTransferQuantity(dispatchedQty, 'Dispatched quantity');
+  const received = receivedQty == null ? dispatched : normalizeTransferQuantity(receivedQty, 'Received quantity');
+
+  if (received > dispatched) {
+    throw new Error(`Cannot receive ${received}; dispatched quantity is ${dispatched}`);
+  }
+  if (received < dispatched) {
+    throw new Error('Short transfer receipts require an explicit variance workflow before stock can be received');
+  }
+  return received;
+}
+
 export async function createDraftTransfer(
   tx: Parameters<typeof recordTransfer>[0],
   input: {
@@ -39,11 +60,12 @@ export async function createDraftTransfer(
     .returning();
 
   for (const item of input.items) {
+    const quantity = normalizeTransferQuantity(item.quantity);
     await tx.insert(transferLines).values({
       transferId: tr.id,
       productId: item.productId,
       variantId: item.variantId || null,
-      quantity: item.quantity,
+      quantity,
     });
   }
   return tr;
@@ -70,7 +92,7 @@ export async function dispatchTransfer(
       {
         productId: line.productId,
         variantId: line.variantId,
-        quantity: line.quantity,
+        quantity: normalizeTransferQuantity(line.quantity),
       },
       { referenceType: 'TRANSFER_DISPATCH', referenceId: transferId, actorId: actorId || null },
       { skipDestinationCredit: true },
@@ -104,7 +126,7 @@ export async function receiveTransfer(
   for (const line of lines) {
     const key = `${line.productId}:${line.variantId || ''}`;
     const recv = receivedMap.get(key);
-    const receivedQty = recv?.receivedQty ?? recv?.quantity ?? line.quantity;
+    const receivedQty = resolveReceivedTransferQuantity(line.quantity, recv?.receivedQty ?? recv?.quantity);
     const varianceQty = receivedQty - line.quantity;
 
     await recordTransfer(
@@ -158,4 +180,3 @@ export async function cancelTransfer(
     .returning();
   return updated;
 }
-
