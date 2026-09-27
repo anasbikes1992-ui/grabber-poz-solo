@@ -182,6 +182,29 @@ export const businessConfig = pgTable('business_config', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const companyLeads = pgTable('company_leads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  businessName: text('business_name').notNull(),
+  ownerName: text('owner_name').notNull(),
+  phone: text('phone').notNull(),
+  email: text('email').notNull(),
+  businessType: text('business_type').notNull().default('General Retail'),
+  branchCount: text('branch_count').notNull().default('1'),
+  message: text('message').notNull().default(''),
+  status: text('status').notNull().default('NEW'),
+  source: text('source').notNull().default('company_landing'),
+  notes: text('notes').notNull().default(''),
+  nextAction: text('next_action'),
+  assignedTo: uuid('assigned_to'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  lastContactedAt: timestamp('last_contacted_at', { withTimezone: true }),
+}, (table) => ({
+  statusIdx: index('company_leads_status_idx').on(table.status),
+  createdIdx: index('company_leads_created_idx').on(table.createdAt),
+  emailIdx: index('company_leads_email_idx').on(table.email),
+}));
+
 // ==========================================
 // 2. USERS, ROLES & LOCATION ASSIGNMENTS
 // ==========================================

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db, businessConfig, auditLogs } from '@/db';
+import { db, businessConfig, auditLogs, companyLeads } from '@/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     }
     const body = parsed.data;
 
-    const leadId = `lead_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    let leadId = `lead_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const now = new Date().toISOString();
 
     const leadRecord = {
@@ -51,13 +51,33 @@ export async function POST(req: Request) {
       createdAt: now,
     };
 
-    // Store in businessConfig configJson under commercial leads list
+    try {
+      const [lead] = await db
+        .insert(companyLeads)
+        .values({
+          businessName: leadRecord.businessName,
+          ownerName: leadRecord.ownerName,
+          phone: leadRecord.phone,
+          email: leadRecord.email,
+          businessType: leadRecord.businessType,
+          branchCount: leadRecord.branchCount,
+          message: leadRecord.message,
+          status: 'NEW',
+          source: 'company_landing',
+        })
+        .returning({ id: companyLeads.id });
+      if (lead?.id) leadId = lead.id;
+    } catch (err) {
+      console.error('Company lead table write failed; falling back to config JSON', err);
+    }
+
+    // Legacy backup store in businessConfig configJson under commercial leads list.
     try {
       const [row] = await db.select().from(businessConfig).limit(1);
       if (row) {
         const cfg = (row.configJson || {}) as Record<string, any>;
         const leads = (cfg.commercialLeads as Array<any> | undefined) || [];
-        leads.push(leadRecord);
+        leads.push({ ...leadRecord, id: leadId });
 
         await db
           .update(businessConfig)
@@ -77,7 +97,7 @@ export async function POST(req: Request) {
         action: 'COMPANY_LEAD_SUBMITTED',
         entity: 'commercial_lead',
         entityId: leadId,
-        afterState: leadRecord,
+        afterState: { ...leadRecord, id: leadId },
       });
     } catch {
       /* ignore audit write failure */

@@ -141,6 +141,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     { href: '/orders', label: t('orders', lang), icon: ShoppingBag, desc: 'Live counter & online orders' },
     { href: '/returns', label: t('returns', lang), icon: RotateCcw, desc: 'Return authorizations & refunds' },
     { href: '/customers', label: t('customers', lang), icon: Users, desc: 'Customer accounts & history' },
+    { href: '/company/leads', label: 'Company Leads', icon: Briefcase, desc: 'Prospects, demos & onboarding' },
     { href: '/store/builder', label: 'Storefront CMS', icon: Palette, desc: 'Online theme & hero layout' },
     { href: '/shop', label: 'Live Storefront', icon: ExternalLink, desc: 'View customer-facing catalog', external: true },
   ];

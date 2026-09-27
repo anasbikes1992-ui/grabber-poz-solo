@@ -73,6 +73,7 @@ const STAFF_PREFIXES = [
   '/purchasing',
   '/suppliers',
   '/customers',
+  '/company',
   '/polim-potha',
   '/accounts',
   '/settings',
