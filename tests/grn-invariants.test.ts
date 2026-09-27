@@ -4,7 +4,7 @@ import {
   assertReceivablePurchaseOrder,
   nextWeightedAverageCost,
   normalizeGrnQuantity,
-} from '@/app/api/purchasing/grn/route';
+} from '@/lib/purchasing/grn-invariants';
 
 describe('GRN invariants', () => {
   it('rejects non-positive and fractional receipt quantities', () => {
