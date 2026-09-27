@@ -5,6 +5,7 @@ import {
   orderItems,
   orderReturns,
   orderReturnLines,
+  payments,
   journalEntries,
   journalLines,
   chartOfAccounts,
@@ -13,7 +14,7 @@ import {
   polimPothaEntries,
 } from '@/db';
 import { ensureDefaultChartOfAccounts } from '@/lib/commerce/ensure-coa';
-import { recordReturn, recordDamage } from '@/lib/inventory/stock-service';
+import { recordReturn } from '@/lib/inventory/stock-service';
 
 export type ReturnLineInput = {
   orderItemId: string;
@@ -35,6 +36,22 @@ export type ProcessReturnInput = {
   refundAmount?: number;
   actorId?: string | null;
 };
+
+export function refundPayoutAccountCode(destination: NonNullable<ProcessReturnInput['refundDestination']>) {
+  switch (destination) {
+    case 'CASH':
+      return '1010';
+    case 'CUSTOMER_CREDIT':
+      return '1100';
+    case 'STORE_CREDIT':
+      return '2320';
+    case 'CARD':
+    case 'BANK_TRANSFER':
+    case 'ORIGINAL':
+    default:
+      return '1020';
+  }
+}
 
 export async function processOrderReturn(input: ProcessReturnInput) {
   const {
@@ -124,7 +141,7 @@ export async function processOrderReturn(input: ProcessReturnInput) {
         const unitDiscount = item.quantity > 0 ? Number(item.discountAmount) / item.quantity : 0;
         const unitTax = item.quantity > 0 ? Number(item.taxAmount) / item.quantity : 0;
         const unitNet = Math.max(0, unitPrice - unitDiscount + unitTax);
-        const unitRefund = reqLine.unitRefund != null ? Number(reqLine.unitRefund) : unitNet;
+        const unitRefund = unitNet;
         const unitCost = Number(item.unitCost || 0);
 
         resolvedLines.push({
@@ -180,8 +197,11 @@ export async function processOrderReturn(input: ProcessReturnInput) {
 
     // 4. Calculate total refund and cost
     const calculatedRefund = resolvedLines.reduce((sum, l) => sum + l.unitRefund * l.quantity, 0);
-    const finalRefund = customRefundAmount != null ? Math.max(0, Number(customRefundAmount)) : calculatedRefund;
-    
+    if (customRefundAmount != null && Math.abs(Number(customRefundAmount) - calculatedRefund) > 0.01) {
+      throw Object.assign(new Error('Refund amount is calculated from returned order lines and cannot be overridden'), { status: 400 });
+    }
+    const finalRefund = calculatedRefund;
+
     // Invariant: total refunds cannot exceed order grandTotal
     const previousTotalRefunds = existingReturns.reduce((sum, r) => sum + Number(r.refundAmount), 0);
     const maxPermittedRefund = Math.max(0, Number(order.grandTotal) - previousTotalRefunds);
@@ -191,6 +211,24 @@ export async function processOrderReturn(input: ProcessReturnInput) {
         { status: 400 },
       );
     }
+
+    if (finalRefund > 0) {
+      const capturedPayments = await tx.select().from(payments).where(eq(payments.orderId, orderId));
+      const capturedTotal = capturedPayments
+        .filter((p) => ['SUCCESS', 'CAPTURED', 'PAID'].includes(String(p.status).toUpperCase()))
+        .reduce((sum, p) => sum + Number(p.amount), 0);
+      const refundableCaptured = Math.max(0, capturedTotal - previousTotalRefunds);
+
+      if (refundableCaptured + 0.01 < finalRefund) {
+        throw Object.assign(
+          new Error(`Cannot refund ${finalRefund.toFixed(2)} because only ${refundableCaptured.toFixed(2)} has been captured`),
+          { status: 400 },
+        );
+      }
+    }
+
+    const revenueRefund = resolvedLines.reduce((sum, l) => sum + Math.max(0, l.unitPrice - l.unitDiscount) * l.quantity, 0);
+    const taxRefund = resolvedLines.reduce((sum, l) => sum + l.unitTax * l.quantity, 0);
 
     const totalRestockedCost = resolvedLines
       .filter((l) => l.gradingStatus === 'RESTOCKED' || l.gradingStatus === 'GRADED_A' || l.gradingStatus === 'GRADED_B')
@@ -259,23 +297,6 @@ export async function processOrderReturn(input: ProcessReturnInput) {
               notes: `Line return (${line.gradingStatus}) - ${line.reason || 'Restocked'}`,
             },
           );
-        } else if (line.gradingStatus === 'DAMAGED' || line.gradingStatus === 'EXPIRED' || line.gradingStatus === 'SCRAP') {
-          await recordDamage(
-            tx,
-            { locationType: 'BRANCH', locationId: order.branchId },
-            {
-              productId: line.productId,
-              variantId: line.variantId || undefined,
-              quantity: line.quantity,
-              unitCost: line.unitCost,
-            },
-            {
-              referenceType: 'ORDER_RETURN',
-              referenceId: ret.id,
-              actorId: actorId || null,
-              notes: `Damaged line return (${line.gradingStatus})`,
-            },
-          );
         }
       }
     }
@@ -314,8 +335,10 @@ export async function processOrderReturn(input: ProcessReturnInput) {
       return a.id;
     };
 
-    const aCash = await resolveAccount('1010');
+    const payoutAccountCode = refundPayoutAccountCode(refundDestination);
+    const aPayout = await resolveAccount(payoutAccountCode);
     const aRev = await resolveAccount('4000');
+    const aTax = await resolveAccount('2100');
     const aCogs = await resolveAccount('5000');
     const aInv = await resolveAccount('1200');
 
@@ -335,18 +358,28 @@ export async function processOrderReturn(input: ProcessReturnInput) {
       {
         journalEntryId: je.id,
         accountId: aRev,
-        debit: finalRefund.toFixed(2),
+        debit: revenueRefund.toFixed(2),
         credit: '0.00',
         memo: `Sales return reversal (${returnNumber})`,
       },
       {
         journalEntryId: je.id,
-        accountId: aCash,
+        accountId: aPayout,
         debit: '0.00',
         credit: finalRefund.toFixed(2),
         memo: `Refund payout via ${refundDestination}`,
       },
     ];
+
+    if (taxRefund > 0) {
+      jLines.push({
+        journalEntryId: je.id,
+        accountId: aTax,
+        debit: taxRefund.toFixed(2),
+        credit: '0.00',
+        memo: 'VAT payable reversed for returned goods',
+      });
+    }
 
     if (totalRestockedCost > 0) {
       jLines.push(
