@@ -14,6 +14,8 @@ ALTER TABLE tax_rates ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT no
 --> statement-breakpoint
 ALTER TABLE tax_rates ADD COLUMN IF NOT EXISTS rate_percentage numeric(7,4);
 --> statement-breakpoint
+ALTER TABLE tax_rates ADD COLUMN IF NOT EXISTS rate numeric(7,4);
+--> statement-breakpoint
 DO $$
 BEGIN
   IF EXISTS (
@@ -32,7 +34,11 @@ ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS active boolean DEFAULT true NOT N
 --> statement-breakpoint
 ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS warehouse_id uuid;
 --> statement-breakpoint
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS destination_warehouse_id uuid;
+--> statement-breakpoint
 ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS total_amount numeric(12,2) DEFAULT '0.00';
+--> statement-breakpoint
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS total_cost numeric(12,2) DEFAULT '0.00';
 --> statement-breakpoint
 ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS approved_by uuid;
 --> statement-breakpoint
@@ -56,11 +62,19 @@ END $$;
 --> statement-breakpoint
 ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS po_id uuid;
 --> statement-breakpoint
+ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS purchase_order_id uuid;
+--> statement-breakpoint
 ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS ordered_qty integer;
+--> statement-breakpoint
+ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS ordered_quantity integer;
 --> statement-breakpoint
 ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS received_qty integer DEFAULT 0;
 --> statement-breakpoint
+ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS received_quantity integer DEFAULT 0;
+--> statement-breakpoint
 ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS total_cost numeric(12,2);
+--> statement-breakpoint
+ALTER TABLE purchase_order_lines ADD COLUMN IF NOT EXISTS line_cost numeric(12,2);
 --> statement-breakpoint
 DO $$
 BEGIN
