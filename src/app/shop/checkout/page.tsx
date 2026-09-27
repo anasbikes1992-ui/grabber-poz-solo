@@ -508,6 +508,7 @@ export default function ShopCheckoutPage() {
                       aria-checked={payMethod === 'PAYHERE'}
                       disabled={!payhereReady}
                       aria-disabled={!payhereReady}
+                      aria-describedby={!payhereReady ? 'payhere-unavailable-note' : undefined}
                       onClick={() => {
                         if (payhereReady) setPayMethod('PAYHERE');
                       }}
@@ -523,11 +524,17 @@ export default function ShopCheckoutPage() {
                         <CreditCard className="h-4 w-4" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <p className="font-bold text-xs text-zinc-200">Visa / Mastercard / Frimi</p>
-                          {!payhereReady && <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">Gateway off</span>}
+                          {!payhereReady && (
+                            <span className="rounded-full border border-zinc-700 bg-zinc-900 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-zinc-400">
+                              Setup pending
+                            </span>
+                          )}
                         </div>
-                        <p className="text-[10px] text-zinc-400 mt-0.5">Instant secure payment via PayHere</p>
+                        <p id={!payhereReady ? 'payhere-unavailable-note' : undefined} className="text-[10px] text-zinc-400 mt-0.5">
+                          {payhereReady ? 'Instant secure payment via PayHere' : 'Online card payments open after merchant gateway approval'}
+                        </p>
                       </div>
                     </button>
                   </div>

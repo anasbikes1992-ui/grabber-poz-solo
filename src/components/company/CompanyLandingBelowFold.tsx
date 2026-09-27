@@ -92,10 +92,10 @@ export function CompanyLandingBelowFold({
                   <span className="w-3 h-3 rounded-full bg-rose-500" />
                   <span className="w-3 h-3 rounded-full bg-amber-500" />
                   <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                  <span className="text-xs font-mono text-slate-400 ml-2">Grabber POS â€” Register 01 (Colombo 03)</span>
+                  <span className="text-xs font-mono text-slate-400 ml-2">Grabber POS - Register 01 (Colombo 03)</span>
                 </div>
                 <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                  ONLINE Â· SHIFT OPEN
+                  ONLINE | SHIFT OPEN
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -159,9 +159,9 @@ export function CompanyLandingBelowFold({
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-amber-400" />
-                  <span className="font-bold text-sm text-white">Polim Potha â€” Customer Credit Account</span>
+                  <span className="font-bold text-sm text-white">Polim Potha - Customer Credit Account</span>
                 </div>
-                <span className="text-xs font-mono font-bold text-slate-300">Nimal Perera Â· 0771234567</span>
+                <span className="text-xs font-mono font-bold text-slate-300">Nimal Perera | 0771234567</span>
               </div>
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
@@ -181,14 +181,14 @@ export function CompanyLandingBelowFold({
                 <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/40 flex justify-between items-center">
                   <div>
                     <div className="font-bold text-slate-200">Invoice #INV-1092 (Credit Sale)</div>
-                    <div className="text-[11px] text-slate-400">2026-09-01 Â· 3 items</div>
+                    <div className="text-[11px] text-slate-400">2026-09-01 | 3 items</div>
                   </div>
                   <span className="font-mono font-bold text-rose-400">+LKR 8,500</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/40 flex justify-between items-center">
                   <div>
                     <div className="font-bold text-slate-200">Payment Received (Cash at Counter)</div>
-                    <div className="text-[11px] text-slate-400">2026-08-28 Â· Rec #REC-554</div>
+                    <div className="text-[11px] text-slate-400">2026-08-28 | Rec #REC-554</div>
                   </div>
                   <span className="font-mono font-bold text-emerald-400">-LKR 10,000</span>
                 </div>
@@ -201,7 +201,7 @@ export function CompanyLandingBelowFold({
                 <span>Sri Lankan Retail Tradition Digitized</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-                Polim Potha â€” Customer Credit & Payment Ledger
+                Polim Potha - Customer Credit & Payment Ledger
               </h2>
               <p className="text-slate-300 leading-relaxed text-base">
                 Sri Lankan retail thrives on trusted customer credit. Grabber POZ replaces handwritten paper books with an authoritative digital ledger that enforces strict credit limits, tracks partial repayments, and maintains an unalterable audit trail.
@@ -365,41 +365,40 @@ export function CompanyLandingBelowFold({
         </div>
       </section>
 
-      {/* Pricing / Packages Section */}
+      {/* Pro Platform Section */}
       <section id="pricing" className="py-24 border-t border-slate-800/80 bg-slate-900/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase mb-4">
               <Boxes className="w-3.5 h-3.5" />
-              <span>Transparent Software Editions</span>
+              <span>One Pro Platform</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
-              Choose the Edition That Fits Your Business
+              Every Client Gets Grabber Business OS Pro
             </h2>
             <p className="text-slate-300 text-base">
-              Perpetual standalone license with dedicated Postgres database for every single installation. No multi-tenant data sharing.
+              No feature tiers and no shared tenant database. Each business receives the full platform, then selects the vertical pack, payment providers, storefront style, and onboarding scope that match its operation.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-            {/* Standard Edition */}
+            {/* Included core */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col justify-between">
               <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Single Store</div>
-                <h3 className="text-2xl font-black text-white mb-2">Vertical Setup</h3>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Included Core</div>
+                <h3 className="text-2xl font-black text-white mb-2">Full Pro Platform</h3>
                 <p className="text-xs text-slate-400 mb-6">
-                  Perfect for boutique shops, single-location retail, and growing retail stores.
+                  The operating system is complete from day one. Onboarding configures the business shape.
                 </p>
                 <div className="space-y-3 text-sm text-slate-300 mb-8">
                   {[
-                    '1 retail branch location',
-                    'Unlimited cashier counter terminals',
                     'Fast touch POS & thermal receipts',
-                    'Inventory with variants & barcodes',
-                    'Customer database & purchase history',
-                    'Online storefront with catalog',
-                    'Promotions & discount codes',
-                    'Configured as Grabber Business OS Pro',
+                    'Products, variants, barcodes & media',
+                    'Inventory, branches, warehouses & GRN',
+                    'Customers, orders, returns & quotations',
+                    'Polim Potha credit ledger',
+                    'Online storefront with live catalog',
+                    'Promotions, reports, backups & support',
                   ].map((feat) => (
                     <div key={feat} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -412,31 +411,30 @@ export function CompanyLandingBelowFold({
                 href="#contact"
                 className="w-full py-3 text-center rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-colors"
               >
-                Choose Vertical Pack
+                Book Pro Walkthrough
               </a>
             </div>
 
-            {/* Pro Plan (Highlighted) */}
+            {/* Vertical packs */}
             <div className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500 rounded-3xl p-8 flex flex-col justify-between relative shadow-2xl shadow-amber-500/10">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 text-xs font-black uppercase px-3 py-0.5 rounded-full shadow-md">
-                Most Popular for Retailers
+                Selected in Settings
               </div>
               <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-2">All-in-One Plan</div>
-                <h3 className="text-2xl font-black text-white mb-2">Business OS Pro</h3>
+                <div className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-2">Business Configuration</div>
+                <h3 className="text-2xl font-black text-white mb-2">Vertical Packs</h3>
                 <p className="text-xs text-slate-400 mb-6">
-                  For expanding businesses needing branch transfers, Polim Potha credit, and payment gateways.
+                  Turn on the workflows that match the client business without changing the product tier.
                 </p>
                 <div className="space-y-3 text-sm text-slate-200 mb-8">
                   {[
-                    'Every client receives:',
-                    'Multi-branch & warehouse management',
-                    'Inter-branch stock transfer requests & GRN',
-                    'Polim Potha customer credit ledger',
-                    'Advanced promotions engine (M5 popup/rules)',
-                    'Provider integrations when configured',
-                    'WhatsApp commerce when credentials are live',
-                    'VAT & Tax invoice breakdown reports',
+                    'Retail & wholesale operations',
+                    'Party/event catalog and package selling',
+                    'Electronics repair tickets and parts issue',
+                    'Restaurant/cafe menu and KDS readiness',
+                    'Salon/services appointment readiness',
+                    'WhatsApp, courier, and payment providers',
+                    'Jarvis agents with approval controls',
                   ].map((feat) => (
                     <div key={feat} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -449,27 +447,26 @@ export function CompanyLandingBelowFold({
                 href="#contact"
                 className="w-full py-3.5 text-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/20 transition-all"
               >
-                Start with Pro
+                Configure My Pro Instance
               </a>
             </div>
 
-            {/* Custom Scope */}
+            {/* Implementation scope */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col justify-between">
               <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Large Implementations</div>
-                <h3 className="text-2xl font-black text-white mb-2">Custom Scope</h3>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Quote Drivers</div>
+                <h3 className="text-2xl font-black text-white mb-2">Implementation Scope</h3>
                 <p className="text-xs text-slate-400 mb-6">
-                  For retail chains, wholesale merchants, and businesses requiring customized deployment.
+                  Pricing changes by setup effort, migration, hardware, and SLA; not by locking features away.
                 </p>
                 <div className="space-y-3 text-sm text-slate-300 mb-8">
                   {[
-                    'Quoted separately when needed:',
-                    'Custom business workflows & logic',
-                    'ERP, accounting & custom API connectors',
-                    'Dedicated hardware & deployment setup',
-                    'Custom domain & custom whitelabel branding',
-                    'On-site staff onboarding & training',
-                    'Dedicated SLA & priority engineering support',
+                    'Branch count and warehouse setup',
+                    'Catalog migration and media cleanup',
+                    'Hardware, printers, scanners, and labels',
+                    'Custom domain and brand handover',
+                    'Provider account setup and credentials',
+                    'Staff onboarding and support SLA',
                   ].map((feat) => (
                     <div key={feat} className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -482,7 +479,7 @@ export function CompanyLandingBelowFold({
                 href="#contact"
                 className="w-full py-3 text-center rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-colors"
               >
-                Discuss Custom Scope
+                Discuss Scope
               </a>
             </div>
           </div>
@@ -538,7 +535,7 @@ export function CompanyLandingBelowFold({
       </section>
 
       {/* Lead Capture / Contact Section */}
-      <section id="contact" className="py-24 border-t border-slate-800/80 bg-slate-900/60">
+      <section id="contact" className="scroll-mt-28 py-24 border-t border-slate-800/80 bg-slate-900/60">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase mb-4">
@@ -559,7 +556,7 @@ export function CompanyLandingBelowFold({
                 <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h3 className="text-2xl font-bold text-white">Thank you for your interest!</h3>
+                <h3 className="text-2xl font-bold text-white">Inquiry received</h3>
                 <p className="text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
                   We have received your business inquiry. A Grabber POZ deployment specialist will reach out to you via WhatsApp or phone shortly.
                 </p>
@@ -568,7 +565,7 @@ export function CompanyLandingBelowFold({
                     href={`${demoUrl}/shop`}
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm"
                   >
-                    <span>Explore Storefront Demo in the meantime</span>
+                    <span>Open Demo Storefront</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -645,6 +642,7 @@ export function CompanyLandingBelowFold({
                       className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
                       <option value="Fashion & Apparel">Fashion & Apparel</option>
+                      <option value="Party & Events">Party & Events</option>
                       <option value="Electronics & Mobile Repair">Electronics & Mobile Repair</option>
                       <option value="Grocery & Supermarket">Grocery & Supermarket</option>
                       <option value="Pharmacy & Health">Pharmacy & Health</option>
@@ -662,8 +660,8 @@ export function CompanyLandingBelowFold({
                       className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
                       <option value="1">1 Location (Single Store)</option>
-                      <option value="2-3">2 â€“ 3 Locations</option>
-                      <option value="4-10">4 â€“ 10 Locations</option>
+                      <option value="2-3">2-3 Locations</option>
+                      <option value="4-10">4-10 Locations</option>
                       <option value="10+">10+ Locations (Chain)</option>
                     </select>
                   </div>

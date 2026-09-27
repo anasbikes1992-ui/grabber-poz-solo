@@ -91,7 +91,7 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
               <a href="#polim-potha" className="hover:text-amber-400 transition-colors">Polim Potha</a>
               <a href="#hardware" className="hover:text-amber-400 transition-colors">Hardware</a>
               <a href="#payments" className="hover:text-amber-400 transition-colors">Payments</a>
-              <a href="#pricing" className="hover:text-amber-400 transition-colors">Pricing</a>
+              <a href="#pricing" className="hover:text-amber-400 transition-colors">Pro Platform</a>
               <a href="#demos" className="hover:text-amber-400 transition-colors">Live Demos</a>
             </nav>
           </div>
@@ -141,7 +141,7 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
               ['#polim-potha', 'Polim Potha'],
               ['#hardware', 'Hardware'],
               ['#payments', 'Payments'],
-              ['#pricing', 'Pricing'],
+              ['#pricing', 'Pro Platform'],
               ['#demos', 'Live Demos'],
               ['#contact', 'Contact'],
               ['/shop', 'Storefront Demo'],
@@ -264,7 +264,7 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
             <Link href={`${demoUrl}/shop`} className="hover:text-white transition-colors">Storefront Demo</Link>
             <Link href={`${demoUrl}/adminpoz`} className="hover:text-white transition-colors">Staff Portal</Link>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pro Platform</a>
             <a href="#contact" className="hover:text-white transition-colors">Contact Sales</a>
           </div>
         </div>
