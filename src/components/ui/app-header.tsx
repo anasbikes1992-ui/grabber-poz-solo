@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   Share2,
   ExternalLink,
+  ListChecks,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -195,6 +196,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     { href: '/shifts', label: 'Cash Drawer Shifts', icon: Clock, desc: 'Register open & close counts' },
     { href: '/company/admin', label: 'SuperAdmin', icon: ShieldCheck, desc: 'Company owner/admin command center' },
     { href: '/company/settings', label: 'Company Settings', icon: Building2, desc: 'Company logo & public profile' },
+    { href: '/company/roadmap', label: 'Company Roadmap', icon: ListChecks, desc: 'Milestones, SOP & next work order' },
     { href: '/settings', label: 'Business Settings', icon: Settings, desc: 'Company profile & tax defaults' },
     { href: '/settings/installation', label: 'Cloud & License', icon: Briefcase, desc: 'Dedicated host & status' },
   ];

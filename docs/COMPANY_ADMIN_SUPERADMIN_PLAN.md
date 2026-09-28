@@ -9,6 +9,7 @@ Status: active SSOT for the Grabberpoz.com company admin workstream.
 - `/company` is the company admin dashboard.
 - `/company/settings` edits company profile and logo URL.
 - `/company/admin` is the SuperAdmin command center over existing CRUD areas.
+- `/company/roadmap` is the in-app CEO/CTO roadmap and acceptance checklist.
 - The POZ company/demo app uses the existing Supabase cloud Postgres database.
 - ThePartyStore remains isolated on its own database.
 
@@ -40,11 +41,13 @@ Implemented scope:
 - `/company` command dashboard with profile, pipeline metrics, and recent leads.
 - `/company/settings` profile/logo editor.
 - `/company/admin` SuperAdmin command center.
+- `/company/roadmap` in-app roadmap and command links.
 - Navigation links under Commerce and Settings.
 - Existing `/settings` page can also edit `logoUrl`.
 
 Exit criteria:
 - Owner/Admin can reach company leads, settings, staff, storefront builder, ops, and backups from one place.
+- Owner/Admin can reach the roadmap from `/company`, `/company/admin`, and the Settings nav.
 - Company logo URL persists through `business_profile.logo_url`.
 - No dead links in the admin command center.
 
@@ -64,8 +67,28 @@ Recommended new tables later:
 - `company_clients`
 - `company_deployments`
 - `company_onboarding_tasks`
+- `forecast_runs`
+- `forecast_items`
+- `sku_classifications`
+- `replenishment_recommendations`
 
 Do not add these until the UI and workflow are approved.
+
+## Milestone 4 - Inventory Demand Planning
+
+Build only after the SuperAdmin CRUD workflow is accepted.
+
+Recommended order:
+1. Read-only planner from existing sales, stock, purchasing, and supplier data.
+2. ABC/XYZ classification and service-level defaults.
+3. Safety stock and reorder point recommendations.
+4. Suggested PO review queue with owner/admin approval.
+5. Forecast accuracy reporting using WMAPE and bias.
+
+Non-goals:
+- No automatic PO creation in the first planning release.
+- No ML forecast before deterministic baseline metrics are visible.
+- No stock mutation outside existing inventory and purchasing services.
 
 ## UI and Motion Rules
 
@@ -84,4 +107,4 @@ Do not add these until the UI and workflow are approved.
 3. Confirm `/api/health` build starts with latest commit.
 4. Submit one lead on `grabberpoz.com`.
 5. Confirm it appears in `/company/leads`.
-6. Confirm `/company`, `/company/settings`, and `/company/admin` render for Owner/Admin.
+6. Confirm `/company`, `/company/settings`, `/company/admin`, and `/company/roadmap` render for Owner/Admin.

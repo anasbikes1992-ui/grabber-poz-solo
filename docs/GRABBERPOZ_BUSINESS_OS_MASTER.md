@@ -83,6 +83,7 @@ Do NOT refactor:
 - Admin CRM at `/company/leads` (search, filter, edit, archive, status pipeline)
 - Company settings at `/company/settings` (profile, tax, receipt, logo URL)
 - SuperAdmin command center at `/company/admin` (Owner/Admin entry point for company CRUD areas)
+- Company roadmap at `/company/roadmap` (CEO/CTO milestones, SOP links, acceptance checks)
 - RBAC-protected: Owner/Admin/Manager/Marketing by route and action
 - Lead statuses: NEW -> CONTACTED -> DEMO_SCHEDULED -> PROPOSAL_SENT -> WON/LOST/ARCHIVED
 
@@ -251,12 +252,29 @@ npm run release:gate-r1       # R1 automated gate
 ## 9. ROADMAP
 
 ### Immediate (Deploy now)
-- [ ] Trigger Coolify redeploy from main (latest commit)
+- [x] Trigger Coolify redeploy from main (latest commit)
 - [x] Apply `company_leads` migration on POZ company DB
 - [x] Smoke: lead form -> /company/leads -> verify saved
-- [ ] Smoke: /company, /company/settings, /company/admin after redeploy
+- [x] Smoke: /company, /company/settings, /company/admin after redeploy
+- [ ] Smoke: /company/roadmap after next deploy
 - [ ] Smoke: /adminpoz login -> POS sale -> report
 - [ ] Smoke: /shop -> checkout COD
+
+### Phase 0 -- Company Admin Completion
+- [x] Company lead CRM with status pipeline
+- [x] Company profile/logo settings route
+- [x] SuperAdmin command center over existing CRUD surfaces
+- [x] In-app CEO/CTO roadmap route
+- [ ] Client provisioning register after workflow approval
+- [ ] Deployment register after Coolify API/token approval
+- [ ] Company admin audit trail view
+
+### Phase 1 -- Inventory Demand Planning
+- [ ] Read-only planner from sales, stock, purchasing, and supplier data
+- [ ] ABC/XYZ SKU classification
+- [ ] Safety stock and reorder point recommendations
+- [ ] Suggested PO review queue
+- [ ] Forecast accuracy reporting using WMAPE and bias
 
 ### Phase A -- Catalog Workspace
 - [ ] Guided product creation wizard
@@ -305,6 +323,7 @@ npm run release:gate-r1       # R1 automated gate
 | `src/middleware.ts` | Edge auth, RBAC, rate limits |
 | `src/components/company/CompanyLanding.tsx` | Company marketing page |
 | `src/app/company/leads/page.tsx` | Admin lead CRM |
+| `src/app/company/roadmap/page.tsx` | Company admin roadmap |
 | `src/components/ui/app-header.tsx` | Staff nav (all nav groups) |
 | `drizzle/migrations/0022_company_leads.sql` | Latest migration |
 | `docs/SYSTEM_SSOT_AND_ROBUSTNESS.md` | Technical SSOT |

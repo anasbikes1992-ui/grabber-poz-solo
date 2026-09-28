@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Briefcase, Building2, CheckCircle2, Clock3, Database, Settings, ShieldCheck, Users } from 'lucide-react';
+import { ArrowRight, Briefcase, Building2, CheckCircle2, Clock3, Database, ListChecks, Settings, ShieldCheck, Users } from 'lucide-react';
 
 type CompanyLead = {
   id: string;
@@ -92,6 +92,10 @@ export default function CompanyDashboardPage() {
               <Settings className="h-4 w-4" />
               Company Settings
             </Link>
+            <Link href="/company/roadmap" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-4 text-sm font-bold text-foreground transition duration-200 hover:border-emerald-400 hover:text-emerald-200 active:scale-[0.98]">
+              <ListChecks className="h-4 w-4" />
+              Roadmap
+            </Link>
           </div>
         </div>
       </section>
@@ -140,6 +144,7 @@ export default function CompanyDashboardPage() {
         <aside className="space-y-3">
           {[
             { href: '/company/admin', label: 'SuperAdmin Command Center', desc: 'Owner/admin routes for CRM, staff, settings, backups.', icon: ShieldCheck },
+            { href: '/company/roadmap', label: 'Roadmap & SOP', desc: 'Milestones, acceptance checks, and next work order.', icon: ListChecks },
             { href: '/settings/staff', label: 'Staff & Roles', desc: 'User CRUD, roles, and access control.', icon: Users },
             { href: '/ops', label: 'Ops Health', desc: 'Runtime status and database checks.', icon: Database },
           ].map(({ href, label, desc, icon: Icon }) => (

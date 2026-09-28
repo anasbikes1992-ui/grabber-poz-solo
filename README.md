@@ -46,7 +46,7 @@ Useful: `npm run typecheck` | `npm run analyze:sizes` | `npm run release:gate`
 
 ---
 
-## Current product position (2026-09-27)
+## Current product position (2026-09-28)
 
 | Track | Status |
 |-------|--------|
@@ -56,13 +56,13 @@ Useful: `npm run typecheck` | `npm run analyze:sizes` | `npm run release:gate`
 | ThePartyStore | Live client storefront on its dedicated app/database; final handover checks remain |
 | Wave B3 Contabo ops | Checklist ready; use `/api/health` for Coolify health checks |
 | M8 A11y + PWA | Closed |
-| **Next** | Company landing polish, client handover checklist, backup/restore drill, and supervised first sale/order |
+| **Next** | Company admin acceptance smoke, client provisioning register, backup/restore drill, and supervised first sale/order |
 
 Landing: `LANDING_MODE=company|storefront` controls HQ marketing vs client shop at `/`; when unset, host fallback decides. There is no `auto` mode.
 
 Database note: the active company/demo app currently uses the configured Supabase cloud Postgres. The exited Coolify Supabase service in the POZ project is not the live serving database; do not replace it during launch polish without a backup-first migration plan.
 
-Company admin note: `/company` is the company dashboard, `/company/leads` is the prospect CRM, `/company/settings` controls company profile/logo, and `/company/admin` is the Owner/Admin command center. See [`docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md`](docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md).
+Company admin note: `/company` is the company dashboard, `/company/leads` is the prospect CRM, `/company/settings` controls company profile/logo, `/company/admin` is the Owner/Admin command center, and `/company/roadmap` is the in-app CEO/CTO milestone guide. See [`docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md`](docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md).
 
 ---
 

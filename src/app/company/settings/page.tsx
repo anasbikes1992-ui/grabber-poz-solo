@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Building2, ImageIcon, Save, Settings } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, DatabaseBackup, ImageIcon, Save, Settings, ShieldCheck, Store, Warehouse } from 'lucide-react';
 
 type BusinessProfileForm = {
   name: string;
@@ -25,6 +25,39 @@ const emptyProfile: BusinessProfileForm = {
   currency: 'LKR',
   timezone: 'Asia/Colombo',
 };
+
+const settingRoutes = [
+  {
+    href: '/settings',
+    label: 'Business Settings',
+    desc: 'Tax defaults, integrations, vertical modules, and backup vault.',
+    icon: Settings,
+  },
+  {
+    href: '/settings/staff',
+    label: 'Staff & Roles',
+    desc: 'Users, roles, active status, PINs, and owner/admin access.',
+    icon: ShieldCheck,
+  },
+  {
+    href: '/store/builder',
+    label: 'Storefront Builder',
+    desc: 'Customer-facing theme, hero, product sections, and storefront logo.',
+    icon: Store,
+  },
+  {
+    href: '/settings/warehouses',
+    label: 'Warehouses',
+    desc: 'Branches, locations, and stock control points.',
+    icon: Warehouse,
+  },
+  {
+    href: '/settings/installation',
+    label: 'Cloud & License',
+    desc: 'Dedicated instance status, install identity, and handover readiness.',
+    icon: DatabaseBackup,
+  },
+];
 
 export default function CompanySettingsPage() {
   const [profile, setProfile] = useState<BusinessProfileForm>(emptyProfile);
@@ -168,6 +201,38 @@ export default function CompanySettingsPage() {
           </div>
         </aside>
       </form>
+
+      <section className="rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-black">Connected Settings Routes</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Company profile stays here. Operational settings continue to use the existing mature routes below.
+            </p>
+          </div>
+          <Link href="/company/admin" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide text-emerald-300 hover:text-emerald-200">
+            SuperAdmin
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {settingRoutes.map(({ href, label, desc, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group rounded-lg border border-border bg-background/40 p-3 transition duration-200 hover:border-emerald-500/40 hover:bg-muted/30 active:scale-[0.98]"
+            >
+              <Icon className="mb-3 h-5 w-5 text-emerald-300" />
+              <p className="text-sm font-black">{label}</p>
+              <p className="mt-1 min-h-12 text-xs text-muted-foreground">{desc}</p>
+              <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wide text-emerald-300">
+                Open
+                <ArrowRight className="h-3 w-3 transition duration-200 group-hover:translate-x-0.5" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
