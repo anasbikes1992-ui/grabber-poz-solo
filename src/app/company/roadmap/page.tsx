@@ -6,6 +6,7 @@ import {
   FileText,
   LineChart,
   LockKeyhole,
+  Server,
   ShieldCheck,
   Store,
 } from 'lucide-react';
@@ -50,6 +51,7 @@ const milestones = [
 
 const links = [
   { href: '/company/leads', label: 'Lead CRM', icon: Store },
+  { href: '/company/clients', label: 'Client Provisioning', icon: Server },
   { href: '/company/settings', label: 'Company Settings', icon: FileText },
   { href: '/settings/staff', label: 'Staff & Roles', icon: ShieldCheck },
   { href: '/settings/installation', label: 'Cloud & License', icon: Database },

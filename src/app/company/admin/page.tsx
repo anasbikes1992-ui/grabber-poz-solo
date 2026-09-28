@@ -7,6 +7,7 @@ import {
   DatabaseBackup,
   FileText,
   ListChecks,
+  Server,
   Settings,
   ShieldCheck,
   Store,
@@ -27,6 +28,13 @@ const sections = [
     href: '/company/settings',
     cta: 'Edit settings',
     icon: Settings,
+  },
+  {
+    title: 'Client Provisioning',
+    desc: 'Track won clients, isolated app/database readiness, and handover checklist.',
+    href: '/company/clients',
+    cta: 'Open register',
+    icon: Server,
   },
   {
     title: 'Staff & Roles',

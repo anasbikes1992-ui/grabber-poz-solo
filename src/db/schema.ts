@@ -205,6 +205,51 @@ export const companyLeads = pgTable('company_leads', {
   emailIdx: index('company_leads_email_idx').on(table.email),
 }));
 
+export const companyClients = pgTable('company_clients', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  leadId: uuid('lead_id'),
+  businessName: text('business_name').notNull(),
+  ownerName: text('owner_name').notNull(),
+  phone: text('phone').notNull().default(''),
+  email: text('email').notNull().default(''),
+  industry: text('industry').notNull().default('General Retail'),
+  branchCount: integer('branch_count').notNull().default(1),
+  status: text('status').notNull().default('PROSPECT'),
+  targetDomain: text('target_domain'),
+  coolifyAppName: text('coolify_app_name'),
+  databaseName: text('database_name'),
+  appStatus: text('app_status').notNull().default('NOT_STARTED'),
+  databaseStatus: text('database_status').notNull().default('NOT_STARTED'),
+  handoverStatus: text('handover_status').notNull().default('NOT_READY'),
+  verticalPreset: text('vertical_preset').notNull().default('general-retail'),
+  layoutTemplate: text('layout_template').notNull().default('retail_wholesale'),
+  notes: text('notes').notNull().default(''),
+  nextAction: text('next_action'),
+  targetLaunchAt: timestamp('target_launch_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  statusIdx: index('company_clients_status_idx').on(table.status),
+  createdIdx: index('company_clients_created_idx').on(table.createdAt),
+  emailIdx: index('company_clients_email_idx').on(table.email),
+}));
+
+export const companyOnboardingTasks = pgTable('company_onboarding_tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  clientId: uuid('client_id').notNull(),
+  taskKey: text('task_key').notNull(),
+  label: text('label').notNull(),
+  status: text('status').notNull().default('PENDING'),
+  owner: text('owner').notNull().default('Ops'),
+  notes: text('notes').notNull().default(''),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  clientIdx: index('company_onboarding_tasks_client_idx').on(table.clientId),
+  taskUnique: uniqueIndex('company_onboarding_tasks_client_task_key_idx').on(table.clientId, table.taskKey),
+}));
+
 // ==========================================
 // 2. USERS, ROLES & LOCATION ASSIGNMENTS
 // ==========================================

@@ -84,6 +84,7 @@ Do NOT refactor:
 - Company settings at `/company/settings` (profile, tax, receipt, logo URL)
 - SuperAdmin command center at `/company/admin` (Owner/Admin entry point for company CRUD areas)
 - Company roadmap at `/company/roadmap` (CEO/CTO milestones, SOP links, acceptance checks)
+- Client provisioning register at `/company/clients` (isolated app/DB readiness and handover checklist)
 - RBAC-protected: Owner/Admin/Manager/Marketing by route and action
 - Lead statuses: NEW -> CONTACTED -> DEMO_SCHEDULED -> PROPOSAL_SENT -> WON/LOST/ARCHIVED
 
@@ -265,7 +266,7 @@ npm run release:gate-r1       # R1 automated gate
 - [x] Company profile/logo settings route
 - [x] SuperAdmin command center over existing CRUD surfaces
 - [x] In-app CEO/CTO roadmap route
-- [ ] Client provisioning register after workflow approval
+- [x] Client provisioning register with default handover checklist
 - [ ] Deployment register after Coolify API/token approval
 - [ ] Company admin audit trail view
 
@@ -323,7 +324,9 @@ npm run release:gate-r1       # R1 automated gate
 | `src/middleware.ts` | Edge auth, RBAC, rate limits |
 | `src/components/company/CompanyLanding.tsx` | Company marketing page |
 | `src/app/company/leads/page.tsx` | Admin lead CRM |
+| `src/app/company/clients/page.tsx` | Client provisioning register |
 | `src/app/company/roadmap/page.tsx` | Company admin roadmap |
+| `drizzle/migrations/0023_company_client_provisioning.sql` | Client provisioning tables |
 | `src/components/ui/app-header.tsx` | Staff nav (all nav groups) |
 | `drizzle/migrations/0022_company_leads.sql` | Latest migration |
 | `docs/SYSTEM_SSOT_AND_ROBUSTNESS.md` | Technical SSOT |

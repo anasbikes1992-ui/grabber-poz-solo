@@ -62,7 +62,7 @@ Landing: `LANDING_MODE=company|storefront` controls HQ marketing vs client shop 
 
 Database note: the active company/demo app currently uses the configured Supabase cloud Postgres. The exited Coolify Supabase service in the POZ project is not the live serving database; do not replace it during launch polish without a backup-first migration plan.
 
-Company admin note: `/company` is the company dashboard, `/company/leads` is the prospect CRM, `/company/settings` controls company profile/logo, `/company/admin` is the Owner/Admin command center, and `/company/roadmap` is the in-app CEO/CTO milestone guide. See [`docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md`](docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md).
+Company admin note: `/company` is the company dashboard, `/company/leads` is the prospect CRM, `/company/clients` is the isolated client provisioning register, `/company/settings` controls company profile/logo, `/company/admin` is the Owner/Admin command center, and `/company/roadmap` is the in-app CEO/CTO milestone guide. See [`docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md`](docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md).
 
 ---
 

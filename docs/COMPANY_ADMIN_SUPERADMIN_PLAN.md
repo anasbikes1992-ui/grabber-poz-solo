@@ -10,6 +10,7 @@ Status: active SSOT for the Grabberpoz.com company admin workstream.
 - `/company/settings` edits company profile and logo URL.
 - `/company/admin` is the SuperAdmin command center over existing CRUD areas.
 - `/company/roadmap` is the in-app CEO/CTO roadmap and acceptance checklist.
+- `/company/clients` is the client provisioning register and handover checklist.
 - The POZ company/demo app uses the existing Supabase cloud Postgres database.
 - ThePartyStore remains isolated on its own database.
 
@@ -53,26 +54,31 @@ Exit criteria:
 
 ## Milestone 3 - Proper SuperAdmin CRUD
 
-Build only after Milestone 2 is accepted.
+Status: started. Client provisioning register is now implemented; Coolify automation remains future work.
 
 CRUD modules:
 - Leads: already live at `/company/leads`.
 - Staff/users: use `/settings/staff` unless a dedicated `/company/admin/users` wrapper is approved.
 - Company profile: `/company/settings`.
-- Tenant provisioning register: create a dedicated table only after approval.
+- Client provisioning register: `/company/clients`, backed by `company_clients` and `company_onboarding_tasks`.
 - Deployment register: read-only first, then write controls only if Coolify API credentials are available.
 - Audit trail: expose filtered `audit_logs` view for company admin actions.
 
 Recommended new tables later:
-- `company_clients`
 - `company_deployments`
-- `company_onboarding_tasks`
 - `forecast_runs`
 - `forecast_items`
 - `sku_classifications`
 - `replenishment_recommendations`
 
 Do not add these until the UI and workflow are approved.
+
+Implemented client provisioning fields:
+- Client status: PROSPECT, DEMO, WON, PROVISIONING, LIVE, ON_HOLD, LOST.
+- Isolated app readiness: app status, database status, target domain, Coolify app name, database name.
+- Client configuration: vertical preset, layout template, branch count.
+- Handover state: NOT_READY, IN_PROGRESS, READY, HANDED_OVER.
+- Default onboarding checklist: app, DB, env, bootstrap, seed, vertical, branding, smoke, handover.
 
 ## Milestone 4 - Inventory Demand Planning
 
