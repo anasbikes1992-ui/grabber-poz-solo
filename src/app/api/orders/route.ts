@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
-import { db, orders, customers, payments, orderItems, products, productVariants } from '@/db';
+import { db, orders, customers, payments, orderItems, products, productVariants, deliveries } from '@/db';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 import {
   applyOrderTransitions,
@@ -8,6 +8,7 @@ import {
   type OrderTransitionInput,
 } from '@/lib/commerce/order-lifecycle';
 import { InvalidStateTransitionError } from '@/lib/commerce/order-state-machine';
+import { buildOrderAutomationTimeline, summarizeOrderAutomationTimeline } from '@/lib/orders/automation-timeline';
 
 function formatPaymentMethod(methods: string[]) {
   if (methods.length > 1) return 'SPLIT';
@@ -55,6 +56,11 @@ export async function GET(req: Request) {
       orderIds.length > 0
         ? await db.select().from(payments).where(inArray(payments.orderId, orderIds))
         : [];
+    const deliveryRows =
+      orderIds.length > 0
+        ? await db.select().from(deliveries).where(inArray(deliveries.orderId, orderIds))
+        : [];
+    const deliveryByOrder = new Map(deliveryRows.map((d) => [d.orderId, d]));
     const itemRows =
       orderIds.length > 0
         ? await db
@@ -107,6 +113,29 @@ export async function GET(req: Request) {
     const mapped = rows.map((o) => {
       const c = o.customerId ? customerMap.get(o.customerId) : undefined;
       const payMethods = paymentsByOrder.get(o.id) || [];
+      const itemList = itemsByOrder.get(o.id) || [];
+      const delivery = deliveryByOrder.get(o.id);
+      const automationSteps = buildOrderAutomationTimeline({
+        orderId: o.id,
+        orderNumber: o.orderNumber,
+        channel: o.channel,
+        orderStatus: o.orderStatus,
+        paymentStatus: o.paymentStatus,
+        fulfillmentStatus: o.fulfillmentStatus,
+        grandTotal: Number(o.grandTotal || 0),
+        lineCount: itemList.length,
+        customerName: c?.name,
+        customerPhone: c?.phone,
+        customerAddress: c?.address,
+        paymentMethods: payMethods,
+        delivery: delivery
+          ? {
+              courierPartner: delivery.courierPartner,
+              trackingNumber: delivery.trackingNumber,
+              status: delivery.status,
+            }
+          : null,
+      });
       return {
         id: o.id,
         receiptNo: o.orderNumber,
@@ -122,7 +151,9 @@ export async function GET(req: Request) {
         deliveryAddress: c?.address || '',
         deliveryFee: 0,
         codFee: 0,
-        items: itemsByOrder.get(o.id) || [],
+        items: itemList,
+        automationSummary: summarizeOrderAutomationTimeline(automationSteps),
+        automationSteps,
         createdAt: o.createdAt,
         saleStatus: o.orderStatus,
       };

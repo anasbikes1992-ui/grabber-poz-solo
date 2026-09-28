@@ -1,0 +1,125 @@
+# Grabber Business OS Pro Remaining Milestones
+
+Last updated: 2026-09-28
+
+## Commercial Rule
+
+Grabber sells one software product: **Grabber Business OS Pro**.
+
+Every client gets the full supported platform. Differences between clients are implementation scope, vertical pack, providers, data migration size, hardware, branch count, and handover depth. These are not feature tiers.
+
+## Current Foundation
+
+- Single app and single isolated database per client.
+- POS, storefront, orders, invoices, stock ledger, GRN, transfers, returns, shifts, customers, credit, loyalty, suppliers, demand planning, vertical packs, and storefront themes are present.
+- Universal catalog import staging is present for WooCommerce-style, POS-style, Shopify-like, and standard CSV sources.
+- Product import support tables exist for metadata, media links, and supplier preferences.
+- Products from customer CSV files must still go through staging, review, approval, and apply. Do not import blindly.
+
+## Milestone 1 - Order Automation Timeline
+
+Goal: make the “8 jobs, zero clicks” workflow visible and auditable per order.
+
+Scope:
+- Durable order automation event table.
+- Derived order checklist from current order, payment, fulfillment, delivery, and customer state.
+- Staff API to read one order’s automation timeline.
+- No checkout payload changes.
+- No stock mutation changes.
+
+Done when:
+- Staff can inspect whether invoice, stock posting, ledger posting, receipt, pick/pack, delivery dispatch, bank match, and review request are done, ready, pending, blocked, or failed.
+- Missing data is shown as a blocked/readiness state, not hidden.
+
+## Milestone 2 - Fulfillment Pack
+
+Goal: turn storefront/POS orders into operational work.
+
+Scope:
+- Pick list view per order.
+- Packing slip print surface.
+- Delivery note print surface.
+- Courier manifest queue.
+- Barcode-label queue from orders, GRN, and catalog import review.
+
+Done when:
+- A staff member can open an order, pick products, print packing slip, prepare delivery note, dispatch courier, and see the order timeline update.
+
+## Milestone 3 - Customer Communication Pack
+
+Goal: automate customer messages without overclaiming provider readiness.
+
+Scope:
+- Receipt send job.
+- Review request scheduled after delivery.
+- Daily owner summary digest.
+- Customer lifetime value calculation.
+- WhatsApp/email provider health clearly shown.
+
+Done when:
+- Communication jobs are idempotent, logged, retryable, and visible in Ops Health.
+
+## Milestone 4 - Bank And Reconciliation Pack
+
+Goal: match the video vision for cash position and bank matching, while staying honest about provider access.
+
+Scope:
+- Manual/imported bank feed matching first.
+- Provider adapter interface for future LankaPay/CEFTS/open-banking connections.
+- Live cash position dashboard from configured sources.
+- Bank-match automation event linked to orders/payments.
+
+Done when:
+- Manual CSV/API bank feed entries can match payments without changing canonical checkout logic.
+
+## Milestone 5 - ERP Completion
+
+Goal: finish purchasing and planning control loops.
+
+Scope:
+- Full purchase approval state machine before GRN/payment.
+- Forecast accuracy reporting using WMAPE and bias.
+- Supplier scorecards.
+- Cost price variance alerts.
+- Multi-currency display where needed.
+- Payroll final export.
+
+Done when:
+- Purchasing and demand planning are audit-safe and owner-approved before money or stock moves.
+
+## Milestone 6 - Security And Ops Hardening
+
+Goal: make the platform safer to hand over repeatedly.
+
+Scope:
+- Endpoint-specific rate limits.
+- Strict input schemas on remaining public/staff APIs.
+- Secret scan and frontend exposure check.
+- Dependency audit and safe upgrades.
+- Generic user-facing errors with full server-side logs.
+- Upload content/type/size validation.
+- Live read-only smoke script.
+
+Done when:
+- Release gates document and enforce the production safety checks.
+
+## Milestone 7 - Client Handover Polish
+
+Goal: make onboarding repeatable for ThePartyStore and every future client.
+
+Scope:
+- ThePartyStore handover smoke: catalog/images, staff login, POS sale, storefront COD, receipt, return, report, backup, restore rehearsal.
+- Mobile/tablet admin smoke at 375/768/1024/1440.
+- Brand/logo/settings completeness.
+- Client provisioning register tied to handover checklist.
+
+Done when:
+- A client can be provisioned, tested, trained, and handed over from one SOP without tribal knowledge.
+
+## Guardrails
+
+- No multi-tenant shared database.
+- No direct blind import into live client catalog.
+- No checkout, stock, POS, or payment rewrite inside these milestones.
+- No new paid feature tiers.
+- Provider integrations must be labelled configured, stub, or unavailable.

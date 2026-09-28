@@ -810,6 +810,22 @@ export const deliveries = pgTable('deliveries', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const orderAutomationEvents = pgTable('order_automation_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  eventKey: text('event_key').notNull(),
+  label: text('label').notNull(),
+  status: text('status').notNull().default('PENDING'),
+  idempotencyKey: text('idempotency_key'),
+  detailJson: jsonb('detail_json').$type<Record<string, unknown>>().notNull().default({}),
+  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  orderIdx: index('order_automation_events_order_idx').on(t.orderId, t.createdAt),
+  statusIdx: index('order_automation_events_status_idx').on(t.status),
+}));
+
 export const orderReturns = pgTable('order_returns', {
   id: uuid('id').primaryKey().defaultRandom(),
   originalOrderId: uuid('original_order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),

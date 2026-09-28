@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, RefreshCw, ArrowLeft, Filter, FileText, ChevronDown } from 'lucide-react';
+import { ShoppingBag, RefreshCw, ArrowLeft, Filter, FileText, ChevronDown, Workflow } from 'lucide-react';
 
 type Order = {
   id: string;
@@ -26,6 +26,29 @@ type Order = {
     discountAmount: number;
     lineTotal: number;
   }>;
+  automationSummary?: {
+    total: number;
+    done: number;
+    ready: number;
+    pending: number;
+    blocked: number;
+    failed: number;
+  };
+  automationSteps?: Array<{
+    key: string;
+    label: string;
+    status: 'done' | 'ready' | 'pending' | 'blocked' | 'failed';
+    detail: string;
+    actionHref?: string;
+  }>;
+};
+
+const stepTone = {
+  done: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  ready: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300',
+  pending: 'border-zinc-700 bg-zinc-900 text-zinc-400',
+  blocked: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+  failed: 'border-red-500/30 bg-red-500/10 text-red-300',
 };
 
 export default function OrdersPage() {
@@ -140,10 +163,15 @@ export default function OrdersPage() {
                 <div className="flex gap-1 mt-2 flex-wrap">
                   <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] uppercase">{o.orderStatus}</span>
                   <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] uppercase">{o.paymentStatus}</span>
-                  <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] uppercase">
-                    {o.items?.length || 0} line(s)
+                <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] uppercase">
+                  {o.items?.length || 0} line(s)
+                </span>
+                {o.automationSummary && (
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 text-[10px] uppercase">
+                    {o.automationSummary.done}/{o.automationSummary.total} automated
                   </span>
-                </div>
+                )}
+              </div>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase">
@@ -213,38 +241,73 @@ export default function OrdersPage() {
               </div>
             </div>
             {expandedOrderId === o.id && (
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-3">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <h2 className="text-xs font-extrabold uppercase tracking-wider text-zinc-300">Invoice breakdown</h2>
-                  <span className="text-[10px] font-bold text-zinc-500">{o.items?.length || 0} item line(s)</span>
+              <div className="grid gap-3 lg:grid-cols-[1fr_0.9fr]">
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <h2 className="text-xs font-extrabold uppercase tracking-wider text-zinc-300">Invoice breakdown</h2>
+                    <span className="text-[10px] font-bold text-zinc-500">{o.items?.length || 0} item line(s)</span>
+                  </div>
+                  {o.items?.length ? (
+                    <div className="space-y-2">
+                      {o.items.map((item, idx) => (
+                        <div
+                          key={`${o.id}-${idx}`}
+                          className="grid gap-2 rounded-xl bg-zinc-900/70 p-3 text-xs sm:grid-cols-[1fr_auto] sm:items-center"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-bold text-white">{item.name}</p>
+                            <p className="truncate text-[10px] text-zinc-500">
+                              {[item.variant, item.sku].filter(Boolean).join(' - ') || 'Standard item'}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-right font-mono text-[11px] text-zinc-300 sm:grid-cols-4">
+                            <span>Qty {item.quantity}</span>
+                            <span>Unit {item.unitPrice.toLocaleString()}</span>
+                            <span>VAT {item.taxAmount.toLocaleString()}</span>
+                            <span className="font-extrabold text-emerald-400">LKR {item.lineTotal.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-xl bg-zinc-900/70 p-3 text-xs text-zinc-500">
+                      No item details found for this order. Older imported orders may only have totals.
+                    </p>
+                  )}
                 </div>
-                {o.items?.length ? (
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <h2 className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-zinc-300">
+                      <Workflow className="h-3.5 w-3.5 text-emerald-400" />
+                      Automation timeline
+                    </h2>
+                    {o.automationSummary && (
+                      <span className="text-[10px] font-bold text-zinc-500">
+                        {o.automationSummary.ready} ready / {o.automationSummary.blocked} blocked
+                      </span>
+                    )}
+                  </div>
                   <div className="space-y-2">
-                    {o.items.map((item, idx) => (
-                      <div
-                        key={`${o.id}-${idx}`}
-                        className="grid gap-2 rounded-xl bg-zinc-900/70 p-3 text-xs sm:grid-cols-[1fr_auto] sm:items-center"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate font-bold text-white">{item.name}</p>
-                          <p className="truncate text-[10px] text-zinc-500">
-                            {[item.variant, item.sku].filter(Boolean).join(' - ') || 'Standard item'}
-                          </p>
+                    {(o.automationSteps || []).map((step) => (
+                      <div key={step.key} className={`rounded-xl border p-3 ${stepTone[step.status]}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-extrabold text-white">{step.label}</p>
+                          <span className="text-[10px] font-black uppercase">{step.status}</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-right font-mono text-[11px] text-zinc-300 sm:grid-cols-4">
-                          <span>Qty {item.quantity}</span>
-                          <span>Unit {item.unitPrice.toLocaleString()}</span>
-                          <span>VAT {item.taxAmount.toLocaleString()}</span>
-                          <span className="font-extrabold text-emerald-400">LKR {item.lineTotal.toLocaleString()}</span>
-                        </div>
+                        <p className="mt-1 text-[11px] leading-5 text-zinc-300">{step.detail}</p>
+                        {step.actionHref && step.status !== 'blocked' && (
+                          <Link
+                            href={step.actionHref}
+                            target="_blank"
+                            className="mt-2 inline-flex text-[10px] font-bold uppercase text-cyan-300 hover:text-cyan-200"
+                          >
+                            Open
+                          </Link>
+                        )}
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="rounded-xl bg-zinc-900/70 p-3 text-xs text-zinc-500">
-                    No item details found for this order. Older imported orders may only have totals.
-                  </p>
-                )}
+                </div>
               </div>
             )}
           </div>
