@@ -13,6 +13,7 @@ Status: active SSOT for the Grabberpoz.com company admin workstream.
 - `/company/clients` is the client provisioning register and handover checklist.
 - `/company/deployments` is the app/database/domain deployment register.
 - `/company/audit` is the Owner/Admin/Manager read-only audit trail over `audit_logs`.
+- `/ai/demand` is the read-only demand planning workbench backed by forecast snapshots and replenishment recommendations.
 - The POZ company/demo app uses the existing Supabase cloud Postgres database.
 - ThePartyStore remains isolated on its own database.
 
@@ -59,7 +60,7 @@ Exit criteria:
 
 ## Milestone 3 - Proper SuperAdmin CRUD
 
-Status: started. Client provisioning register, deployment register, and company audit trail are now implemented; Coolify automation remains future work.
+Status: started. Client provisioning register, deployment register, company audit trail, and demand planning foundation are now implemented; Coolify automation remains future work.
 
 CRUD modules:
 - Leads: already live at `/company/leads`.
@@ -69,13 +70,11 @@ CRUD modules:
 - Deployment register: `/company/deployments`, backed by `company_deployments`.
 - Audit trail: `/company/audit`, backed by `audit_logs`.
 
-Recommended new tables later:
+Implemented demand planning tables:
 - `forecast_runs`
 - `forecast_items`
 - `sku_classifications`
 - `replenishment_recommendations`
-
-Do not add these until the UI and workflow are approved.
 
 Implemented client provisioning fields:
 - Client status: PROSPECT, DEMO, WON, PROVISIONING, LIVE, ON_HOLD, LOST.
@@ -92,14 +91,18 @@ Implemented deployment register fields:
 
 ## Milestone 4 - Inventory Demand Planning
 
-Build only after the SuperAdmin CRUD workflow is accepted.
+Status: foundation live. The first release is intentionally read-only for commerce operations: it computes and stores forecast evidence, SKU classifications, and draft replenishment recommendations without creating purchase orders or mutating stock.
 
-Recommended order:
-1. Read-only planner from existing sales, stock, purchasing, and supplier data.
-2. ABC/XYZ classification and service-level defaults.
+Implemented:
+1. Read-only planner from existing sales, order lines, products, and stock balances.
+2. ABC/XYZ classification baseline.
 3. Safety stock and reorder point recommendations.
-4. Suggested PO review queue with owner/admin approval.
-5. Forecast accuracy reporting using WMAPE and bias.
+4. Snapshot persistence into forecast and replenishment tables.
+
+Remaining:
+1. Supplier-aware suggested PO review queue with owner/admin approval.
+2. Forecast accuracy reporting using WMAPE and bias.
+3. Cost variance and supplier scorecards.
 
 Non-goals:
 - No automatic PO creation in the first planning release.
@@ -126,3 +129,4 @@ Non-goals:
 6. Confirm `/company`, `/company/settings`, `/company/admin`, and `/company/roadmap` render for Owner/Admin.
 7. Confirm `/company/audit` renders recent logs for Owner/Admin/Manager.
 8. Confirm `/company/deployments` renders and can create a manual deployment record after migration 0024.
+9. Confirm `/ai/demand` renders and can save a forecast snapshot after migration 0025.

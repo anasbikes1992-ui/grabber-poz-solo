@@ -439,6 +439,70 @@ export const stockMovements = pgTable('stock_movements', {
   createdIdx: index('stock_movements_created_idx').on(t.createdAt),
 }));
 
+export const forecastRuns = pgTable('forecast_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  status: text('status').notNull().default('COMPLETED'),
+  method: text('method').notNull().default('DETERMINISTIC_BASELINE'),
+  lookbackDays: integer('lookback_days').notNull().default(30),
+  leadTimeDays: integer('lead_time_days').notNull().default(7),
+  serviceLevel: text('service_level').notNull().default('MEDIUM'),
+  summaryJson: jsonb('summary_json').$type<Record<string, unknown>>().notNull().default({}),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  createdIdx: index('forecast_runs_created_idx').on(t.createdAt),
+}));
+
+export const forecastItems = pgTable('forecast_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  runId: uuid('run_id').notNull().references(() => forecastRuns.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  sku: text('sku').notNull(),
+  name: text('name').notNull(),
+  avgDailyDemand: numeric('avg_daily_demand', { precision: 12, scale: 4 }).notNull().default('0.0000'),
+  demand30d: integer('demand_30d').notNull().default(0),
+  onHand: integer('on_hand').notNull().default(0),
+  reserved: integer('reserved').notNull().default(0),
+  available: integer('available').notNull().default(0),
+  safetyStock: integer('safety_stock').notNull().default(0),
+  reorderPoint: integer('reorder_point').notNull().default(0),
+  suggestedOrderQty: integer('suggested_order_qty').notNull().default(0),
+  stockoutRisk: text('stockout_risk').notNull().default('LOW'),
+  classification: text('classification').notNull().default('C-Z'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  runIdx: index('forecast_items_run_idx').on(t.runId),
+  productIdx: index('forecast_items_product_idx').on(t.productId),
+  riskIdx: index('forecast_items_risk_idx').on(t.stockoutRisk),
+}));
+
+export const skuClassifications = pgTable('sku_classifications', {
+  productId: uuid('product_id').primaryKey().references(() => products.id, { onDelete: 'cascade' }),
+  abcClass: text('abc_class').notNull().default('C'),
+  xyzClass: text('xyz_class').notNull().default('Z'),
+  velocityScore: numeric('velocity_score', { precision: 12, scale: 4 }).notNull().default('0.0000'),
+  revenueShare: numeric('revenue_share', { precision: 12, scale: 4 }).notNull().default('0.0000'),
+  demandCv: numeric('demand_cv', { precision: 12, scale: 4 }).notNull().default('0.0000'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  abcIdx: index('sku_classifications_abc_idx').on(t.abcClass),
+}));
+
+export const replenishmentRecommendations = pgTable('replenishment_recommendations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  forecastItemId: uuid('forecast_item_id').references(() => forecastItems.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  status: text('status').notNull().default('DRAFT'),
+  suggestedOrderQty: integer('suggested_order_qty').notNull().default(0),
+  reason: text('reason').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+}, (t) => ({
+  productIdx: index('replenishment_recommendations_product_idx').on(t.productId),
+  statusIdx: index('replenishment_recommendations_status_idx').on(t.status),
+}));
+
 export const catalogImportRuns = pgTable('catalog_import_runs', {
   id: uuid('id').primaryKey().defaultRandom(),
   sourceSystem: text('source_system').notNull(),

@@ -26,7 +26,7 @@ Last updated: 2026-09-01
 | Feature | Class | Location | Notes |
 |---------|-------|----------|-------|
 | Single-business model | KEEP | `business_profile`, `business_config` | No tenant/org_id in app |
-| Drizzle schema (49 tables) | KEEP | `src/db/schema.ts` | SSOT |
+| Drizzle schema (107 tables) | KEEP | `src/db/schema.ts` | SSOT |
 | DB connection (pooler + SSL) | KEEP | `src/db/index.ts` | |
 | Atomic checkout | KEEP | `src/lib/db/repositories/checkout-repo.ts` | Idempotent sales |
 | Commerce services | KEEP | `src/lib/commerce/*` | Pricing, tax, inventory, credit, GL |
@@ -108,7 +108,7 @@ Last updated: 2026-09-01
 | Jarvis drawer UI | KEEP | `src/components/ai/jarvis-drawer.tsx` | Wire to tools |
 | Agents | PARTIAL | `src/lib/agents/*`, `/ai/agents` | R6 — 12 agents live |
 | Creative generate | COMPLETE | `/api/creative/generate`, `/creative` | No approval workflow |
-| AI demand | COMPLETE | `/ai/demand` | Placeholder |
+| Demand planning | KEEP | `/ai/demand`, `/api/inventory/demand` | Read-only forecast snapshots and draft replenishment recommendations |
 
 ---
 

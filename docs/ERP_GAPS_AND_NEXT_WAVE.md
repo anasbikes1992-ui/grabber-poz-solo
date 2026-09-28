@@ -1,8 +1,8 @@
 # ERP Gaps, SSOT Verification & Next Wave
 
 **Updated:** 2026-09-28
-**Schema SSOT:** `src/db/schema.ts` + migrations `0018_erp_verticals.sql` through `0024_company_deployments.sql`
-**Current schema footprint:** 103 table definitions in `src/db/schema.ts`
+**Schema SSOT:** `src/db/schema.ts` + migrations `0018_erp_verticals.sql` through `0025_inventory_demand_planning.sql`
+**Current schema footprint:** 107 table definitions in `src/db/schema.ts`
 
 ---
 
@@ -15,6 +15,7 @@
 | HR / payroll | Employees, attendance, leave requests, payroll runs, payroll lines, EPF/ETF/PAYE stub, wage payment, statutory remittance, and payroll exports exist. |
 | Vertical ERP depth | Pharmacy FEFO/controlled-drug logs, rental assets/contracts/deposits, restaurant KDS/menu/recipes, auto-parts fitment, repairs, warranties, and jewelry/watch vertical pack exist. |
 | Company admin | Leads CRM, clients provisioning register, deployment register, company settings, SuperAdmin command center, roadmap, and audit trail are live. |
+| Demand planning foundation | Forecast runs, forecast items, SKU classifications, replenishment recommendations, read-only planner UI, and snapshot persistence are live. |
 | Compliance foundation | E-invoice submissions, email templates, and webhook event tables exist. |
 
 ---
@@ -23,18 +24,16 @@
 
 These are the remaining ERP gaps before claiming “full ERP complete”:
 
-1. **Inventory demand planning**
-   - `forecast_runs`
-   - `forecast_items`
-   - `sku_classifications`
-   - `replenishment_recommendations`
-   - ABC/XYZ classification, safety stock, reorder point, WMAPE/bias reporting
-
-2. **Purchase approval and supplier intelligence**
+1. **Purchase approval and supplier intelligence**
    - Purchase order approval workflow on top of existing PO/GRN/AP tables
    - Supplier scorecards
    - Cost price variance alerts
    - Suggested PO review queue
+
+2. **Forecast accuracy and planning maturity**
+   - WMAPE and bias reporting
+   - Supplier-aware lead-time defaults
+   - Owner/Admin approval flow from recommendation to purchase order
 
 3. **Compliance certification**
    - Certified IRD e-invoice provider integration
@@ -62,19 +61,15 @@ These are the remaining ERP gaps before claiming “full ERP complete”:
 
 ## Next Build Order
 
-1. **Demand planning read-only first**
-   - Use existing products, stock balances, stock movements, purchases, suppliers, and sales data.
-   - Do not auto-create purchase orders in the first release.
-
-2. **PO approval workflow**
+1. **PO approval workflow**
    - Add approval state and controlled transitions around existing `purchase_orders`.
    - Wire Owner/Admin/Manager approval before GRN/payment where required.
 
-3. **Cost variance and supplier scorecards**
+2. **Cost variance and supplier scorecards**
    - Compare purchase order cost, GRN cost, AP invoice cost, and last weighted average cost.
    - Surface alerts first; no automatic price mutation.
 
-4. **Compliance pack**
+3. **Compliance pack**
    - Replace PAYE stub with official tables after source confirmation.
    - Wire certified IRD/e-invoice provider once credentials and provider contract are approved.
 

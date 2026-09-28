@@ -74,6 +74,7 @@ export const ROLE_ROUTE_PERMISSIONS: Record<SessionRole, string[]> = {
     '/grocery',
     '/wholesale',
     '/shifts',
+    '/ai',
     '/settings/warehouses',
   ],
 

@@ -7,6 +7,7 @@ import {
   Cloud,
   DatabaseBackup,
   FileText,
+  LineChart,
   ListChecks,
   ScrollText,
   Server,
@@ -44,6 +45,13 @@ const sections = [
     href: '/company/deployments',
     cta: 'Open deployments',
     icon: Cloud,
+  },
+  {
+    title: 'Demand Planning',
+    desc: 'Review SKU velocity, stockout risk, and draft replenishment recommendations.',
+    href: '/ai/demand',
+    cta: 'Open planner',
+    icon: LineChart,
   },
   {
     title: 'Staff & Roles',
@@ -89,8 +97,9 @@ const milestones = [
   { label: 'Client onboarding register', state: 'Live', tone: 'emerald' },
   { label: 'Company audit trail view', state: 'Live', tone: 'emerald' },
   { label: 'Deployment register', state: 'Live', tone: 'emerald' },
+  { label: 'Read-only demand planning', state: 'Live', tone: 'emerald' },
   { label: 'Coolify API hooks', state: 'Planned', tone: 'zinc' },
-  { label: 'Inventory demand planning', state: 'Planned', tone: 'zinc' },
+  { label: 'PO review workflow from forecasts', state: 'Planned', tone: 'zinc' },
 ];
 
 const operatingRules = [
