@@ -16,7 +16,11 @@ export type JobType =
   | 'CREATIVE_RENDER'
   | 'CREATIVE_PDF'
   | 'EMAIL_SEND'
-  | 'EINVOICE_SUBMIT';
+  | 'EINVOICE_SUBMIT'
+  | 'SEND_ORDER_RECEIPT'
+  | 'SEND_REVIEW_REQUEST'
+  | 'SEND_DAILY_OWNER_SUMMARY'
+  | 'REFRESH_CUSTOMER_METRICS';
 
 export type EnqueueInput = {
   type: JobType;

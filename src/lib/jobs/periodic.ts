@@ -11,6 +11,8 @@ export async function ensurePeriodicJobs() {
     { type: 'RECONCILE_STOCK' as const, key: `reconcile_stock_${dayKey}` },
     { type: 'NEAR_EXPIRY_PROMO' as const, key: `near_expiry_${dayKey}` },
     { type: 'AGENT_BRIEF' as const, key: `agent_brief_${dayKey}` },
+    { type: 'SEND_DAILY_OWNER_SUMMARY' as const, key: `daily_owner_summary_${dayKey}` },
+    { type: 'REFRESH_CUSTOMER_METRICS' as const, key: `refresh_customer_metrics_${dayKey}` },
   ];
 
   let enqueued = 0;

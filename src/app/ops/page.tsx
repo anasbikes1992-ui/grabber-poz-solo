@@ -8,6 +8,8 @@ type Health = {
   failedWebhooks: number;
   automationFailed: number;
   stockDriftSkus: number;
+  customerComms?: { sent: number; failed: number; skipped: number };
+  providers?: { whatsappConfigured: boolean };
   deadJobRows?: Array<{ id: string; type: string; lastError?: string | null }>;
   stockDrift?: Array<{ productId: string; drift: number }>;
 };
@@ -84,6 +86,10 @@ export default function OpsHealthPage() {
             { label: 'Failed webhooks', value: data.failedWebhooks, warn: data.failedWebhooks > 0 },
             { label: 'Automation failed', value: data.automationFailed, warn: data.automationFailed > 0 },
             { label: 'Stock drift SKUs', value: data.stockDriftSkus, warn: data.stockDriftSkus > 0 },
+            { label: 'Comms failed', value: data.customerComms?.failed || 0, warn: Boolean(data.customerComms?.failed) },
+            { label: 'Comms skipped', value: data.customerComms?.skipped || 0, warn: Boolean(data.customerComms?.skipped) },
+            { label: 'Comms sent', value: data.customerComms?.sent || 0, warn: false },
+            { label: 'WhatsApp provider', value: data.providers?.whatsappConfigured ? 'Ready' : 'Needs setup', warn: !data.providers?.whatsappConfigured },
           ].map((c) => (
             <div key={c.label} className={`p-4 rounded-2xl border ${c.warn ? 'border-amber-500/40 bg-amber-500/5' : 'border-border bg-card'}`}>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{c.label}</p>

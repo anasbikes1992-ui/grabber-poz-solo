@@ -13,6 +13,12 @@ import { processCreativeRenderJob } from '@/lib/creative/creative-job-processor'
 import { generateAndCachePdf, processCreativePdfJob } from '@/lib/creative/creative-pdf-processor';
 import { sendEmail } from '@/lib/integrations/email';
 import { submitEinvoice } from '@/lib/compliance/einvoice';
+import {
+  processDailyOwnerSummaryJob,
+  processOrderReceiptJob,
+  processReviewRequestJob,
+  refreshCustomerMetrics,
+} from '@/lib/customers/communication-pack';
 import type { JobType } from './outbox';
 
 export async function handleJob(type: JobType, payload: Record<string, unknown>): Promise<void> {
@@ -142,6 +148,22 @@ export async function handleJob(type: JobType, payload: Record<string, unknown>)
       if (!id) throw new Error('EINVOICE_SUBMIT requires id');
       const row = await submitEinvoice(id);
       if (row.status === 'REJECTED') throw new Error(row.errorMessage || 'E-invoice rejected');
+      break;
+    }
+    case 'SEND_ORDER_RECEIPT': {
+      await processOrderReceiptJob(payload);
+      break;
+    }
+    case 'SEND_REVIEW_REQUEST': {
+      await processReviewRequestJob(payload);
+      break;
+    }
+    case 'SEND_DAILY_OWNER_SUMMARY': {
+      await processDailyOwnerSummaryJob(payload);
+      break;
+    }
+    case 'REFRESH_CUSTOMER_METRICS': {
+      await refreshCustomerMetrics(payload.customerId ? String(payload.customerId) : undefined);
       break;
     }
     default:

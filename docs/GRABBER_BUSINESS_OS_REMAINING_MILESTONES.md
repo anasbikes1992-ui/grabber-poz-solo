@@ -1,6 +1,6 @@
 # Grabber Business OS Pro Remaining Milestones
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 ## Commercial Rule
 
@@ -56,6 +56,15 @@ Done when:
 
 ## Milestone 3 - Customer Communication Pack
 
+Status: foundation implemented.
+
+Implemented foundation:
+- `customer_communication_events` audit table.
+- `customer_metrics` lifetime value table.
+- Idempotent jobs for order receipts, post-delivery review requests, daily owner summaries, and customer metric refresh.
+- Staff API to queue receipt/review sends and refresh customer metrics.
+- Ops Health counters for sent/failed/skipped communication events and WhatsApp provider readiness.
+
 Goal: automate customer messages without overclaiming provider readiness.
 
 Scope:
@@ -67,6 +76,11 @@ Scope:
 
 Done when:
 - Communication jobs are idempotent, logged, retryable, and visible in Ops Health.
+
+Remaining polish:
+- Add a staff UI panel for recent communication events and customer CLV.
+- Auto-queue receipt/review jobs from approved order lifecycle hooks after a final live smoke.
+- Add email fallback when WhatsApp is not configured.
 
 ## Milestone 4 - Bank And Reconciliation Pack
 

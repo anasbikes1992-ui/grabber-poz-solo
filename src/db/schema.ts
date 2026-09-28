@@ -764,6 +764,38 @@ export const orders = pgTable('orders', {
   campaignIdx: index('orders_campaign_id_idx').on(t.campaignId),
 }));
 
+export const customerMetrics = pgTable('customer_metrics', {
+  customerId: uuid('customer_id').primaryKey().references(() => customers.id, { onDelete: 'cascade' }),
+  lifetimeSpend: numeric('lifetime_spend', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  orderCount: integer('order_count').notNull().default(0),
+  lastOrderId: uuid('last_order_id').references(() => orders.id, { onDelete: 'set null' }),
+  lastOrderAt: timestamp('last_order_at', { withTimezone: true }),
+  lastChannel: text('last_channel'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  lastOrderIdx: index('customer_metrics_last_order_idx').on(t.lastOrderAt),
+}));
+
+export const customerCommunicationEvents = pgTable('customer_communication_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'cascade' }),
+  eventType: text('event_type').notNull(),
+  channel: text('channel').notNull().default('WHATSAPP'),
+  status: text('status').notNull().default('PENDING'),
+  toAddress: text('to_address'),
+  messagePreview: text('message_preview'),
+  idempotencyKey: text('idempotency_key').notNull().unique(),
+  providerRef: text('provider_ref'),
+  detailJson: jsonb('detail_json').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  customerIdx: index('customer_communication_events_customer_idx').on(t.customerId, t.createdAt),
+  orderIdx: index('customer_communication_events_order_idx').on(t.orderId, t.createdAt),
+  statusIdx: index('customer_communication_events_status_idx').on(t.status, t.createdAt),
+}));
+
 export const orderItems = pgTable('order_items', {
   id: uuid('id').primaryKey().defaultRandom(),
   orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
