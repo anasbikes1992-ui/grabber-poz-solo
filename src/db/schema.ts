@@ -250,6 +250,36 @@ export const companyOnboardingTasks = pgTable('company_onboarding_tasks', {
   taskUnique: uniqueIndex('company_onboarding_tasks_client_task_key_idx').on(table.clientId, table.taskKey),
 }));
 
+export const companyDeployments = pgTable('company_deployments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  clientId: uuid('client_id'),
+  businessName: text('business_name').notNull(),
+  appName: text('app_name').notNull(),
+  environment: text('environment').notNull().default('production'),
+  domain: text('domain'),
+  databaseName: text('database_name'),
+  coolifyProjectId: text('coolify_project_id'),
+  coolifyServiceId: text('coolify_service_id'),
+  repository: text('repository').notNull().default('anasbikes1992-ui/grabber-poz-solo'),
+  branch: text('branch').notNull().default('main'),
+  commitSha: text('commit_sha'),
+  appStatus: text('app_status').notNull().default('NOT_STARTED'),
+  databaseStatus: text('database_status').notNull().default('NOT_STARTED'),
+  deployStatus: text('deploy_status').notNull().default('NOT_STARTED'),
+  healthStatus: text('health_status').notNull().default('UNKNOWN'),
+  notes: text('notes').notNull().default(''),
+  nextAction: text('next_action'),
+  lastDeployedAt: timestamp('last_deployed_at', { withTimezone: true }),
+  lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  clientIdx: index('company_deployments_client_idx').on(table.clientId),
+  statusIdx: index('company_deployments_status_idx').on(table.deployStatus),
+  domainIdx: index('company_deployments_domain_idx').on(table.domain),
+  createdIdx: index('company_deployments_created_idx').on(table.createdAt),
+}));
+
 // ==========================================
 // 2. USERS, ROLES & LOCATION ASSIGNMENTS
 // ==========================================

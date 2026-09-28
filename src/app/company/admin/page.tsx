@@ -4,6 +4,7 @@ import {
   Briefcase,
   CheckCircle2,
   ClipboardCheck,
+  Cloud,
   DatabaseBackup,
   FileText,
   ListChecks,
@@ -36,6 +37,13 @@ const sections = [
     href: '/company/clients',
     cta: 'Open register',
     icon: Server,
+  },
+  {
+    title: 'Deployment Register',
+    desc: 'Track Coolify app, domain, database, deploy status, health, and next ops action.',
+    href: '/company/deployments',
+    cta: 'Open deployments',
+    icon: Cloud,
   },
   {
     title: 'Staff & Roles',
@@ -80,7 +88,8 @@ const milestones = [
   { label: 'Company profile/logo settings', state: 'Live', tone: 'emerald' },
   { label: 'Client onboarding register', state: 'Live', tone: 'emerald' },
   { label: 'Company audit trail view', state: 'Live', tone: 'emerald' },
-  { label: 'Deployment register + Coolify hooks', state: 'Planned', tone: 'zinc' },
+  { label: 'Deployment register', state: 'Live', tone: 'emerald' },
+  { label: 'Coolify API hooks', state: 'Planned', tone: 'zinc' },
   { label: 'Inventory demand planning', state: 'Planned', tone: 'zinc' },
 ];
 

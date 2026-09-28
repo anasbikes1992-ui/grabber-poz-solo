@@ -31,8 +31,8 @@ const milestones = [
     title: 'Milestone 3 - Client Provisioning Register',
     status: 'Done',
     owner: 'CEO/CTO',
-    goal: 'Track prospects from lead to won client to isolated app/database handover.',
-    checks: ['Client status pipeline', 'Provisioning checklist', 'DB/app/env checklist', 'Handover notes'],
+    goal: 'Track prospects from lead to won client to isolated app/database handover and deployment readiness.',
+    checks: ['Client status pipeline', 'Provisioning checklist', 'Deployment register', 'DB/app/env checklist'],
   },
   {
     title: 'Milestone 4 - ERP Readiness & Demand Planning',
@@ -53,6 +53,7 @@ const milestones = [
 const links = [
   { href: '/company/leads', label: 'Lead CRM', icon: Store },
   { href: '/company/clients', label: 'Client Provisioning', icon: Server },
+  { href: '/company/deployments', label: 'Deployments', icon: Database },
   { href: '/company/audit', label: 'Audit Trail', icon: ScrollText },
   { href: '/company/settings', label: 'Company Settings', icon: FileText },
   { href: '/settings/staff', label: 'Staff & Roles', icon: ShieldCheck },
@@ -65,7 +66,7 @@ const erpStatus = [
   { area: 'POS, Orders, Stock Ledger', status: 'Certified core', detail: 'Checkout, COD, split payments, stock ledger, returns, shifts, transfers, and GL invariants are covered by tests.' },
   { area: 'Purchasing / GRN / AP', status: 'Implemented foundation', detail: 'Purchase orders, GRN, supplier accounts, AP invoices/payments, and AP journal posting exist. Remaining: PO approval workflow and supplier scorecards.' },
   { area: 'HR / Payroll', status: 'Implemented foundation', detail: 'Employees, attendance, leave, payroll runs/lines, EPF/ETF/PAYE stub, wage payment, statutory remittance, and exports exist. Remaining: official IRD PAYE table certification and biometric clocks.' },
-  { area: 'Company Admin', status: 'Live', detail: 'Lead CRM, clients register, settings, roadmap, SuperAdmin command center, and audit trail are live.' },
+  { area: 'Company Admin', status: 'Live', detail: 'Lead CRM, clients register, deployment register, settings, roadmap, SuperAdmin command center, and audit trail are live.' },
   { area: 'Forecast / Replenishment', status: 'Next build', detail: 'Current /ai/demand is signal-only. Remaining: forecast tables, SKU classifications, reorder suggestions, and PO review queue.' },
   { area: 'Compliance', status: 'Foundation only', detail: 'E-invoice submissions table exists. Remaining: certified IRD gateway, VAT return pack, and production provider certification.' },
 ];
@@ -73,7 +74,7 @@ const erpStatus = [
 const recommendations = [
   {
     title: 'Run DB bootstrap after each company deploy',
-    detail: 'This keeps company_leads, company_clients, onboarding tasks, and future company admin tables aligned before UI smoke testing.',
+    detail: 'This keeps company_leads, company_clients, onboarding tasks, company_deployments, and future company admin tables aligned before UI smoke testing.',
   },
   {
     title: 'Build demand planning as read-only recommendations first',

@@ -1,8 +1,8 @@
 # ERP Gaps, SSOT Verification & Next Wave
 
 **Updated:** 2026-09-28
-**Schema SSOT:** `src/db/schema.ts` + migrations `0018_erp_verticals.sql` through `0023_company_client_provisioning.sql`
-**Current schema footprint:** 102 table definitions in `src/db/schema.ts`
+**Schema SSOT:** `src/db/schema.ts` + migrations `0018_erp_verticals.sql` through `0024_company_deployments.sql`
+**Current schema footprint:** 103 table definitions in `src/db/schema.ts`
 
 ---
 
@@ -14,7 +14,7 @@
 | Purchasing / GRN / AP | Purchase orders, purchase order lines, supplier accounts, supplier entries, AP invoices, AP payments, and AP journal posting exist. |
 | HR / payroll | Employees, attendance, leave requests, payroll runs, payroll lines, EPF/ETF/PAYE stub, wage payment, statutory remittance, and payroll exports exist. |
 | Vertical ERP depth | Pharmacy FEFO/controlled-drug logs, rental assets/contracts/deposits, restaurant KDS/menu/recipes, auto-parts fitment, repairs, warranties, and jewelry/watch vertical pack exist. |
-| Company admin | Leads CRM, clients provisioning register, company settings, SuperAdmin command center, roadmap, and audit trail are live. |
+| Company admin | Leads CRM, clients provisioning register, deployment register, company settings, SuperAdmin command center, roadmap, and audit trail are live. |
 | Compliance foundation | E-invoice submissions, email templates, and webhook event tables exist. |
 
 ---
@@ -52,6 +52,7 @@ These are the remaining ERP gaps before claiming “full ERP complete”:
 
 - `/company/leads`: live lead CRM.
 - `/company/clients`: live client provisioning register.
+- `/company/deployments`: live manual deployment register backed by `company_deployments`.
 - `/company/settings`: live company profile/logo settings.
 - `/company/admin`: live Owner/Admin command center.
 - `/company/roadmap`: live readiness and roadmap surface.

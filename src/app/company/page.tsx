@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Briefcase, Building2, CheckCircle2, Clock3, Database, ListChecks, Server, Settings, ShieldCheck, Users } from 'lucide-react';
+import { ArrowRight, Briefcase, Building2, CheckCircle2, Clock3, Cloud, Database, ListChecks, Server, Settings, ShieldCheck, Users } from 'lucide-react';
 
 type CompanyLead = {
   id: string;
@@ -92,6 +92,10 @@ export default function CompanyDashboardPage() {
               <Server className="h-4 w-4" />
               Clients
             </Link>
+            <Link href="/company/deployments" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-4 text-sm font-bold text-foreground transition duration-200 hover:border-emerald-400 hover:text-emerald-200 active:scale-[0.98]">
+              <Cloud className="h-4 w-4" />
+              Deployments
+            </Link>
             <Link href="/company/settings" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-4 text-sm font-bold text-foreground transition duration-200 hover:border-emerald-400 hover:text-emerald-200 active:scale-[0.98]">
               <Settings className="h-4 w-4" />
               Company Settings
@@ -149,6 +153,7 @@ export default function CompanyDashboardPage() {
           {[
             { href: '/company/admin', label: 'SuperAdmin Command Center', desc: 'Owner/admin routes for CRM, staff, settings, backups.', icon: ShieldCheck },
             { href: '/company/clients', label: 'Client Provisioning', desc: 'Won clients, isolated DB readiness, and handover checklist.', icon: Server },
+            { href: '/company/deployments', label: 'Deployment Register', desc: 'App, database, domain, deploy status, and health tracking.', icon: Cloud },
             { href: '/company/roadmap', label: 'Roadmap & SOP', desc: 'Milestones, acceptance checks, and next work order.', icon: ListChecks },
             { href: '/settings/staff', label: 'Staff & Roles', desc: 'User CRUD, roles, and access control.', icon: Users },
             { href: '/ops', label: 'Ops Health', desc: 'Runtime status and database checks.', icon: Database },

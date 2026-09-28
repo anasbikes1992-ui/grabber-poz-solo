@@ -1,6 +1,6 @@
 # GRABBER BUSINESS OS PRO — MASTER REFERENCE
 **GrabberPOZ.com | Single-Tenant Commerce & Operations Platform**
-_Last updated: 2026-09-28 | Branch: main | Tests: 629/629_
+_Last updated: 2026-09-28 | Branch: main | Tests: 631/631_
 
 ---
 
@@ -85,6 +85,7 @@ Do NOT refactor:
 - SuperAdmin command center at `/company/admin` (Owner/Admin entry point for company CRUD areas)
 - Company roadmap at `/company/roadmap` (CEO/CTO milestones, SOP links, acceptance checks)
 - Client provisioning register at `/company/clients` (isolated app/DB readiness and handover checklist)
+- Deployment register at `/company/deployments` (app, DB, domain, deploy status, health, next action)
 - Company audit trail at `/company/audit` (read-only action history from `audit_logs`)
 - RBAC-protected: Owner/Admin/Manager/Marketing by route and action
 - Lead statuses: NEW -> CONTACTED -> DEMO_SCHEDULED -> PROPOSAL_SENT -> WON/LOST/ARCHIVED
@@ -144,7 +145,7 @@ NEXT_PUBLIC_APP_URL=   # Full domain URL
 
 ### After Each Deploy
 ```bash
-npm run db:bootstrap   # Apply all pending migrations (including 0022_company_leads)
+npm run db:bootstrap   # Apply all pending migrations (including company admin 0022-0024)
 POST /api/seed         # If fresh install: { demo: false }
 GET /api/health        # Verify
 GET /api/ops/health    # Verify integrations
@@ -249,7 +250,7 @@ npm run release:gate-r1       # R1 automated gate
 | Returns / order lines | 7 |
 | Vertical packs | 5+6 |
 | All others | ~514 |
-| **Total** | **629** |
+| **Total** | **631** |
 
 ---
 
@@ -271,7 +272,8 @@ npm run release:gate-r1       # R1 automated gate
 - [x] In-app CEO/CTO roadmap route
 - [x] Client provisioning register with default handover checklist
 - [x] Company admin audit trail view
-- [ ] Deployment register after Coolify API/token approval
+- [x] Deployment register manual CRUD
+- [ ] Coolify API/token automation hooks
 - [x] Jewelry & Watches vertical preset, storefront preset, and intelligence pack
 
 ### Phase 1 -- Inventory Demand Planning
@@ -329,10 +331,12 @@ npm run release:gate-r1       # R1 automated gate
 | `src/components/company/CompanyLanding.tsx` | Company marketing page |
 | `src/app/company/leads/page.tsx` | Admin lead CRM |
 | `src/app/company/clients/page.tsx` | Client provisioning register |
+| `src/app/company/deployments/page.tsx` | Deployment register |
 | `src/app/company/roadmap/page.tsx` | Company admin roadmap |
 | `drizzle/migrations/0023_company_client_provisioning.sql` | Client provisioning tables |
+| `drizzle/migrations/0024_company_deployments.sql` | Company deployment register |
 | `src/components/ui/app-header.tsx` | Staff nav (all nav groups) |
-| `drizzle/migrations/0022_company_leads.sql` | Latest migration |
+| `drizzle/migrations/0022_company_leads.sql` | Company leads migration |
 | `docs/SYSTEM_SSOT_AND_ROBUSTNESS.md` | Technical SSOT |
 | `docs/COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md` | Provisioning guide |
 | `goaldoc.md` | Long-form milestone doc |
