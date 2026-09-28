@@ -95,7 +95,7 @@ export async function POST(req: Request) {
           poNumber,
           supplierId,
           warehouseId: warehouseId!,
-          status: body.status || 'APPROVED',
+          status: body.status || 'SUBMITTED',
           totalAmount: total.toFixed(2),
           createdBy: actorId || null,
         })

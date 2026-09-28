@@ -54,7 +54,7 @@ export async function POST(req: Request) {
           poNumber,
           supplierId,
           warehouseId,
-          status: 'APPROVED',
+          status: body.status || 'SUBMITTED',
           totalAmount: String(summary.totalCost.toFixed(2)),
           createdBy: actorId || null,
         })

@@ -16,8 +16,10 @@ describe('GRN invariants', () => {
 
   it('rejects cancelled or already closed purchase orders', () => {
     expect(() => assertReceivablePurchaseOrder('CANCELLED')).toThrow(/cannot receive/);
+    expect(() => assertReceivablePurchaseOrder('SUBMITTED')).toThrow(/until approved/);
     expect(() => assertReceivablePurchaseOrder('RECEIVED')).toThrow(/cannot receive/);
     expect(() => assertReceivablePurchaseOrder('APPROVED')).not.toThrow();
+    expect(() => assertReceivablePurchaseOrder('PARTIALLY_RECEIVED')).not.toThrow();
   });
 
   it('caps receipts to remaining ordered quantity', () => {

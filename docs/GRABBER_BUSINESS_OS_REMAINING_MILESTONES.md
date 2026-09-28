@@ -84,6 +84,15 @@ Remaining polish:
 
 ## Milestone 4 - Bank And Reconciliation Pack
 
+Status: foundation implemented.
+
+Implemented foundation:
+- Bank account and reconciliation UI already existed.
+- Added bank statement line staging.
+- Added payment match proposals and approval records.
+- Approved bank matches update the order automation timeline `bank_match` step.
+- Existing reconciliation completion still requires the statement balance equation to hold.
+
 Goal: match the video vision for cash position and bank matching, while staying honest about provider access.
 
 Scope:
@@ -95,7 +104,20 @@ Scope:
 Done when:
 - Manual CSV/API bank feed entries can match payments without changing canonical checkout logic.
 
+Remaining polish:
+- Add CSV upload UI for bank feeds.
+- Add bank feed provider adapters only after provider credentials/contracts are real.
+- Add cash-position dashboard cards over the new bank feed/match data.
+
 ## Milestone 5 - ERP Completion
+
+Status: foundation implemented.
+
+Implemented foundation:
+- Purchase approval event trail and staff API.
+- Forecast accuracy snapshots with WMAPE and bias.
+- Supplier scorecard snapshots.
+- Cost variance alert snapshots.
 
 Goal: finish purchasing and planning control loops.
 
@@ -110,7 +132,19 @@ Scope:
 Done when:
 - Purchasing and demand planning are audit-safe and owner-approved before money or stock moves.
 
+Remaining polish:
+- PO creation now defaults to `SUBMITTED`; keep seed/demo POs explicit when they must be receivable.
+- Render scorecards, variance alerts, and forecast accuracy in the purchasing/demand UI.
+- GRN is approval-gated; payment approval remains a separate owner workflow.
+
 ## Milestone 6 - Security And Ops Hardening
+
+Status: foundation implemented.
+
+Implemented foundation:
+- Configurable rate-limit foundations already exist.
+- Upload MIME, size, extension, and magic-byte validation already exist.
+- Added `npm run security:audit` to check auth coverage, rate-limit config, upload validation, source-map exposure, hardcoded secret patterns, and raw 500 error leakage.
 
 Goal: make the platform safer to hand over repeatedly.
 
@@ -125,6 +159,11 @@ Scope:
 
 Done when:
 - Release gates document and enforce the production safety checks.
+
+Remaining polish:
+- Clean all remaining staff API raw 500 error responses and promote `security:audit` into `npm run check`.
+- Run dependency audit and apply safe package upgrades in a separate low-risk patch.
+- Add live read-only smoke script coverage for bank match, ERP control, and provider health.
 
 ## Milestone 7 - Client Handover Polish
 

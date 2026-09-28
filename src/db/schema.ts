@@ -554,6 +554,21 @@ export const replenishmentRecommendations = pgTable('replenishment_recommendatio
   poIdx: index('replenishment_recommendations_po_idx').on(t.approvedPoId),
 }));
 
+export const forecastAccuracySnapshots = pgTable('forecast_accuracy_snapshots', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  forecastRunId: uuid('forecast_run_id').references(() => forecastRuns.id, { onDelete: 'set null' }),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }),
+  horizonDays: integer('horizon_days').notNull().default(30),
+  forecastQty: numeric('forecast_qty', { precision: 12, scale: 4 }).notNull().default('0.0000'),
+  actualQty: numeric('actual_qty', { precision: 12, scale: 4 }).notNull().default('0.0000'),
+  wmape: numeric('wmape', { precision: 8, scale: 4 }).notNull().default('0.0000'),
+  bias: numeric('bias', { precision: 8, scale: 4 }).notNull().default('0.0000'),
+  method: text('method').notNull().default('DETERMINISTIC_BASELINE'),
+  measuredAt: timestamp('measured_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  runIdx: index('forecast_accuracy_snapshots_run_idx').on(t.forecastRunId, t.measuredAt),
+}));
+
 export const catalogImportRuns = pgTable('catalog_import_runs', {
   id: uuid('id').primaryKey().defaultRandom(),
   sourceSystem: text('source_system').notNull(),
@@ -952,6 +967,52 @@ export const purchaseOrderLines = pgTable('purchase_order_lines', {
   unitCost: numeric('unit_cost', { precision: 12, scale: 2 }).notNull(),
   totalCost: numeric('total_cost', { precision: 12, scale: 2 }).notNull(),
 });
+
+export const purchaseApprovalEvents = pgTable('purchase_approval_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  purchaseOrderId: uuid('purchase_order_id').notNull().references(() => purchaseOrders.id, { onDelete: 'cascade' }),
+  fromStatus: text('from_status'),
+  toStatus: text('to_status').notNull(),
+  decision: text('decision').notNull(),
+  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  poIdx: index('purchase_approval_events_po_idx').on(t.purchaseOrderId, t.createdAt),
+}));
+
+export const supplierScorecards = pgTable('supplier_scorecards', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  supplierId: uuid('supplier_id').notNull().references(() => suppliers.id, { onDelete: 'cascade' }),
+  periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
+  periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
+  totalPos: integer('total_pos').notNull().default(0),
+  onTimeRate: numeric('on_time_rate', { precision: 6, scale: 4 }).notNull().default('0.0000'),
+  fillRate: numeric('fill_rate', { precision: 6, scale: 4 }).notNull().default('0.0000'),
+  costVarianceRate: numeric('cost_variance_rate', { precision: 8, scale: 4 }).notNull().default('0.0000'),
+  score: numeric('score', { precision: 6, scale: 2 }).notNull().default('0.00'),
+  detailJson: jsonb('detail_json').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  supplierIdx: index('supplier_scorecards_supplier_idx').on(t.supplierId, t.periodEnd),
+}));
+
+export const costVarianceAlerts = pgTable('cost_variance_alerts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  supplierId: uuid('supplier_id').references(() => suppliers.id, { onDelete: 'set null' }),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }),
+  purchaseOrderId: uuid('purchase_order_id').references(() => purchaseOrders.id, { onDelete: 'set null' }),
+  expectedCost: numeric('expected_cost', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  actualCost: numeric('actual_cost', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  variancePercent: numeric('variance_percent', { precision: 8, scale: 4 }).notNull().default('0.0000'),
+  severity: text('severity').notNull().default('INFO'),
+  status: text('status').notNull().default('OPEN'),
+  detailJson: jsonb('detail_json').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+}, (t) => ({
+  statusIdx: index('cost_variance_alerts_status_idx').on(t.status, t.severity, t.createdAt),
+}));
 
 export const transfers = pgTable('transfers', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -1850,6 +1911,40 @@ export const bankReconciliationLines = pgTable('bank_reconciliation_lines', {
   cleared: boolean('cleared').notNull().default(false),
 }, (t) => ({
   reconIdx: index('bank_recon_lines_recon_idx').on(t.reconciliationId),
+}));
+
+export const bankStatementLines = pgTable('bank_statement_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  accountId: uuid('account_id').notNull().references(() => bankAccounts.id, { onDelete: 'cascade' }),
+  statementDate: timestamp('statement_date', { withTimezone: true }).notNull(),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  currency: text('currency').notNull().default('LKR'),
+  description: text('description'),
+  bankReference: text('bank_reference'),
+  direction: text('direction').notNull().default('CREDIT'),
+  status: text('status').notNull().default('UNMATCHED'),
+  rawJson: jsonb('raw_json').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  accountRefIdx: uniqueIndex('bank_statement_lines_account_ref_idx').on(t.accountId, t.bankReference),
+  statusIdx: index('bank_statement_lines_status_idx').on(t.status, t.statementDate),
+}));
+
+export const bankPaymentMatches = pgTable('bank_payment_matches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  statementLineId: uuid('statement_line_id').notNull().references(() => bankStatementLines.id, { onDelete: 'cascade' }),
+  paymentId: uuid('payment_id').references(() => payments.id, { onDelete: 'set null' }),
+  matchStatus: text('match_status').notNull().default('PROPOSED'),
+  confidence: numeric('confidence', { precision: 6, scale: 4 }).notNull().default('0.0000'),
+  differenceAmount: numeric('difference_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
+  rule: text('rule').notNull().default('MANUAL'),
+  approvedBy: uuid('approved_by').references(() => users.id, { onDelete: 'set null' }),
+  approvedAt: timestamp('approved_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  lineIdx: index('bank_payment_matches_line_idx').on(t.statementLineId),
+  paymentIdx: index('bank_payment_matches_payment_idx').on(t.paymentId),
 }));
 
 export const employees = pgTable('employees', {

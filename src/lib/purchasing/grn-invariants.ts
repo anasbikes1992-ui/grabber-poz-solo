@@ -8,8 +8,9 @@ export type GrnLine = {
 };
 
 export function assertReceivablePurchaseOrder(status: string) {
-  if (['CANCELLED', 'RECEIVED', 'CLOSED'].includes(status.toUpperCase())) {
-    throw Object.assign(new Error(`Purchase order status ${status} cannot receive GRN`), { status: 400 });
+  const normalized = status.toUpperCase();
+  if (!['APPROVED', 'PARTIALLY_RECEIVED'].includes(normalized)) {
+    throw Object.assign(new Error(`Purchase order status ${status} cannot receive GRN until approved`), { status: 400 });
   }
 }
 

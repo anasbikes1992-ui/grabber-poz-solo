@@ -29,6 +29,7 @@
     "creative:start": "python creative-engine/main.py",
     "env:validate": "node scripts/validate-env.mjs",
     "auth:coverage": "node scripts/api-auth-coverage.mjs",
+    "security:audit": "node scripts/security-hardening-audit.mjs",
     "client:provision": "node scripts/provision-client.mjs",
     "client:certify": "node scripts/certify-client.mjs",
     "client:certify:http": "node scripts/certify-http.mjs",

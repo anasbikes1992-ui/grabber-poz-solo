@@ -8,6 +8,13 @@ import {
   listAccounts,
   listReconciliations,
 } from '@/lib/finance/bank';
+import {
+  approveBankPaymentMatch,
+  importBankStatementLines,
+  listBankFeed,
+  proposeBankPaymentMatches,
+} from '@/lib/finance/bank-matching';
+import { publicErrorResponse } from '@/lib/api/http-errors';
 
 async function actor() {
   let session = await getSession();
@@ -24,14 +31,14 @@ export async function GET(req: Request) {
     await actor();
     const { searchParams } = new URL(req.url);
     const accountId = searchParams.get('accountId') || undefined;
-    const accounts = await listAccounts();
-    const reconciliations = await listReconciliations(accountId);
-    return NextResponse.json({ success: true, accounts, reconciliations });
+    const [accounts, reconciliations, bankFeed] = await Promise.all([
+      listAccounts(),
+      listReconciliations(accountId),
+      listBankFeed(),
+    ]);
+    return NextResponse.json({ success: true, accounts, reconciliations, bankFeed });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { success: false, error: (err as Error).message, accounts: [], reconciliations: [] },
-      { status: 500 },
-    );
+    return publicErrorResponse(err, { message: 'Could not load bank reconciliation', logMessage: 'Bank reconciliation load failed' });
   }
 }
 
@@ -49,15 +56,32 @@ export async function POST(req: Request) {
     const account = await createBankAccount(body);
     return NextResponse.json({ success: true, account });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return publicErrorResponse(err, { message: 'Could not create bank account or reconciliation', logMessage: 'Bank create failed', status: 400 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
-    await actor();
+    const session = await actor();
     const body = await req.json();
     const action = String(body.action || '').toLowerCase();
+
+    if (action === 'import_feed') {
+      const lines = Array.isArray(body.lines) ? body.lines : [];
+      const result = await importBankStatementLines(lines);
+      return NextResponse.json({ success: true, ...result });
+    }
+
+    if (action === 'propose_matches') {
+      const result = await proposeBankPaymentMatches(body.statementLineId ? String(body.statementLineId) : undefined);
+      return NextResponse.json({ success: true, ...result });
+    }
+
+    if (action === 'approve_match') {
+      if (!body.matchId) return NextResponse.json({ success: false, error: 'matchId required' }, { status: 400 });
+      const match = await approveBankPaymentMatch(String(body.matchId), session.userId);
+      return NextResponse.json({ success: true, match });
+    }
 
     if (action === 'add_line' || action === 'addline') {
       if (!body.reconciliationId) {
@@ -75,8 +99,8 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: true, reconciliation });
     }
 
-    return NextResponse.json({ success: false, error: 'action must be add_line|complete' }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'action must be import_feed|propose_matches|approve_match|add_line|complete' }, { status: 400 });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return publicErrorResponse(err, { message: 'Could not update bank reconciliation', logMessage: 'Bank reconciliation update failed', status: 400 });
   }
 }
