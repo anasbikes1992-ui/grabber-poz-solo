@@ -69,6 +69,20 @@ Core workflows:
 8. View reports and tax summaries.
 9. Configure vertical modules based on business type.
 
+## Client Catalog Onboarding
+
+Grabber POZ can onboard a client's existing catalog through one universal import flow.
+
+It supports:
+
+- WooCommerce product exports.
+- Existing POS CSV exports like WowThings.
+- General product CSVs.
+- Products, variants, and service-style catalog rows.
+- Cost, selling price, wholesale price, supplier, category, barcode, images, and stock review.
+
+The importer does not blindly trust old data. It stages the catalog first, shows warnings, and only applies risky stock or generated SKUs after staff approval. This is important for client handover because opening stock, duplicate barcodes, missing SKUs, and bad expiry dates must be reviewed before the system becomes the client's live source of truth.
+
 ## Current Business Logic Position
 
 The core business idea is aligned:
@@ -131,6 +145,11 @@ Grabber POZ replaces the shop counter system, stock book, credit book, basic onl
    - Keep a small set of current SSOT docs.
    - Move old planning docs into `docs/archive`.
    - Keep this file as the plain business overview.
+
+7. Catalog import workspace polish.
+   - Better review UI for generated SKUs, duplicate barcodes, negative stock, and media galleries.
+   - Import rollback batches.
+   - Client-specific dry-run reports before go-live.
 
 ## Current Verdict
 

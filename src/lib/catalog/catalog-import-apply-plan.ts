@@ -1,4 +1,4 @@
-import type { WooStagedRow } from './woocommerce-staging';
+import type { UniversalStagedCatalogRow } from './universal-catalog';
 
 export type CatalogImportApplyRow = {
   id?: string;
@@ -9,7 +9,7 @@ export type CatalogImportApplyRow = {
   parentSourceId?: string | null;
   internalSku?: string | null;
   title: string;
-  rowJson: WooStagedRow;
+  rowJson: UniversalStagedCatalogRow;
   warningsJson?: string[];
 };
 

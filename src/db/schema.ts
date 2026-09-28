@@ -406,6 +406,49 @@ export const productVariants = pgTable('product_variants', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const productImportMetadata = pgTable('product_import_metadata', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }),
+  sourceSystem: text('source_system').notNull(),
+  sourceNamespace: text('source_namespace').notNull(),
+  sourceId: text('source_id').notNull(),
+  brandName: text('brand_name'),
+  tagsJson: jsonb('tags_json').$type<string[]>().notNull().default([]),
+  warrantyMonths: integer('warranty_months'),
+  maxDiscountAmount: numeric('max_discount_amount', { precision: 12, scale: 2 }),
+  singleDiscount: boolean('single_discount'),
+  discountPercent: numeric('discount_percent', { precision: 7, scale: 4 }),
+  weightValue: numeric('weight_value', { precision: 12, scale: 4 }),
+  weightUnit: text('weight_unit'),
+  lengthCm: numeric('length_cm', { precision: 12, scale: 4 }),
+  widthCm: numeric('width_cm', { precision: 12, scale: 4 }),
+  heightCm: numeric('height_cm', { precision: 12, scale: 4 }),
+  rawJson: jsonb('raw_json').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  sourceIdx: uniqueIndex('product_import_metadata_source_idx').on(t.sourceSystem, t.sourceNamespace, t.sourceId, t.variantId),
+  productIdx: index('product_import_metadata_product_idx').on(t.productId),
+  variantIdx: index('product_import_metadata_variant_idx').on(t.variantId),
+  brandIdx: index('product_import_metadata_brand_idx').on(t.brandName),
+}));
+
+export const productMediaLinks = pgTable('product_media_links', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }),
+  sourceUrl: text('source_url').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  altText: text('alt_text'),
+  sourceSystem: text('source_system').notNull().default('catalog_import'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  productIdx: index('product_media_links_product_idx').on(t.productId),
+  variantIdx: index('product_media_links_variant_idx').on(t.variantId),
+  productUrlIdx: uniqueIndex('product_media_links_product_url_idx').on(t.productId, t.variantId, t.sourceUrl),
+}));
+
 export const stockBalances = pgTable('stock_balances', {
   id: uuid('id').primaryKey().defaultRandom(),
   locationType: locationTypeEnum('location_type').notNull(), // BRANCH or WAREHOUSE
@@ -648,6 +691,22 @@ export const supplierEntries = pgTable('supplier_entries', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   supplierIdIdx: index('supplier_entries_supplier_id_idx').on(t.supplierId),
+}));
+
+export const productSupplierPreferences = pgTable('product_supplier_preferences', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }),
+  supplierId: uuid('supplier_id').references(() => suppliers.id, { onDelete: 'set null' }),
+  supplierName: text('supplier_name').notNull(),
+  isPrimary: boolean('is_primary').notNull().default(true),
+  lastCost: numeric('last_cost', { precision: 12, scale: 2 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  productIdx: index('product_supplier_preferences_product_idx').on(t.productId),
+  supplierIdx: index('product_supplier_preferences_supplier_idx').on(t.supplierId),
+  productSupplierIdx: uniqueIndex('product_supplier_preferences_unique_idx').on(t.productId, t.variantId, t.supplierName),
 }));
 
 // ==========================================

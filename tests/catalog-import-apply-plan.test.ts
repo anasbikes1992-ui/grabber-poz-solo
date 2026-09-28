@@ -3,8 +3,9 @@ import {
   buildCatalogImportApplyPlan,
   type CatalogImportApplyRow,
 } from '../src/lib/catalog/catalog-import-apply-plan';
+import type { UniversalCatalogRowType } from '../src/lib/catalog/universal-catalog';
 
-function row(partial: Partial<CatalogImportApplyRow> & { sourceId: string; rowType: string; title?: string }): CatalogImportApplyRow {
+function row(partial: Partial<CatalogImportApplyRow> & { sourceId: string; rowType: UniversalCatalogRowType; title?: string }): CatalogImportApplyRow {
   return {
     sourceSystem: 'woocommerce',
     sourceNamespace: 'client-a',
@@ -20,16 +21,36 @@ function row(partial: Partial<CatalogImportApplyRow> & { sourceId: string; rowTy
       rawSku: `SKU-${partial.sourceId}`,
       internalSku: `SKU-${partial.sourceId}`,
       parentRaw: null,
+      barcode: null,
+      costPrice: null,
+      wholesalePrice: null,
       regularPrice: 100,
       salePrice: null,
       currentPrice: 100,
       categories: [],
       tags: [],
       images: [],
+      brandName: null,
+      supplierName: null,
+      expiryDate: null,
+      warrantyMonths: null,
+      maxDiscountAmount: null,
+      singleDiscount: null,
+      discountPercent: null,
+      dimensions: {
+        weightValue: null,
+        weightUnit: null,
+        lengthCm: null,
+        widthCm: null,
+        heightCm: null,
+      },
       description: null,
       shortDescription: null,
       attributes: {},
       publishedInSource: true,
+      itemType: 'PHYSICAL',
+      reviewRequired: false,
+      raw: {},
       stock: { status: 'unknown', quantity: null, inStockFlag: null },
       warnings: [],
     },

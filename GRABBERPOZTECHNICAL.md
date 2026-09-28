@@ -62,12 +62,14 @@ Relevant recent migrations:
 | `0024_company_deployments.sql` | Deployment register |
 | `0025_inventory_demand_planning.sql` | Forecast runs, forecast items, SKU classifications, replenishment recommendations |
 | `0026_replenishment_review_workflow.sql` | Supplier, warehouse, unit cost, notes, and draft PO linkage on recommendations |
+| `0027_catalog_import_alignment.sql` | Universal catalog import metadata, media gallery links, and supplier preferences |
 
 `scripts/bootstrap-db.mjs` reads `drizzle/migrations`, filters only files ending in `.sql`, sorts them by filename, and applies them in order. Therefore:
 
 - `0023` runs before `0024`.
 - `0024` runs before `0025`.
 - `0025` runs before `0026`.
+- `0026` runs before `0027`.
 - `0013_drop_legacy_triggers.sql.pending` is skipped by design because it does not end in `.sql`.
 
 This is correct.
@@ -101,6 +103,7 @@ Expected result:
 - `forecast_items` exists.
 - `sku_classifications` exists.
 - `replenishment_recommendations` has the new review columns from `0026`.
+- `product_import_metadata`, `product_media_links`, and `product_supplier_preferences` exist.
 
 ## Business Logic Review
 
@@ -172,6 +175,33 @@ Expected result:
 3. Stock ledger remains the source of inventory movement truth.
 4. Reports read from orders, payments, stock, shifts, and journals.
 
+### Universal Catalog Import
+
+All store catalog sources now enter one universal staging model.
+
+Supported source shapes:
+
+- WooCommerce exports.
+- Shopify-like CSV exports.
+- Standard POS CSV exports such as WowThings.
+- Future service catalogs.
+
+The parser may use source-specific adapters at the edge, but staging and apply are shared:
+
+1. CSV is parsed into universal staged rows.
+2. Source row, source ID, SKU, family/variant relation, price, cost, category, image URLs, supplier, brand, warranty, expiry, tags, and raw row data are preserved.
+3. Risky rows are marked for review:
+   - Missing source SKU.
+   - Duplicate barcode.
+   - Negative stock.
+   - Stock quantity needing physical-count approval.
+   - Invalid dates like `0000-00-00`.
+4. Apply creates products, variants, or services through the same flow.
+5. Imported stock is applied only for approved rows and creates a stock count movement.
+6. Valid expiry dates create stock lots.
+7. Multi-image galleries are stored in product media links.
+8. Supplier names create supplier preferences without overloading the product table.
+
 ## Monetization Fit
 
 The codebase supports a service-led SaaS model:
@@ -209,6 +239,7 @@ The current weakest areas are:
 - Purchase approval workflow not yet formalized
 - Forecast quality not yet measurable
 - Security hardening still needs a focused pass
+- Catalog import is now staged through a universal row model; remaining work is UI polish and import rollback tooling.
 
 ## Caveman Review Findings
 

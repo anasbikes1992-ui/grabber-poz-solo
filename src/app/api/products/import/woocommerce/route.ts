@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 import { assertCsvSize } from '@/lib/catalog/catalog-csv';
 import { stageWooCommerceCatalog } from '@/lib/catalog/woocommerce-staging';
-import { persistWooCommerceStagingRun } from '@/lib/catalog/woocommerce-import-staging-service';
+import { persistCatalogStagingRun } from '@/lib/catalog/catalog-import-staging-service';
 
 function warningCounts(rows: { warnings: string[] }[]) {
   const counts: Record<string, number> = {};
@@ -45,8 +45,9 @@ export async function POST(req: Request) {
     const fileName = body.fileName ? String(body.fileName) : undefined;
     const persisted =
       action === 'persist-dry-run'
-        ? await persistWooCommerceStagingRun({
+        ? await persistCatalogStagingRun({
             csv,
+            sourceSystem: 'woocommerce',
             sourceNamespace,
             fileName,
             createdBy: actorId,

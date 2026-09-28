@@ -1,19 +1,27 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import {
   catalogImportRows,
   catalogImportRuns,
+  branches,
   categories,
   db,
   externalProductMappings,
+  productImportMetadata,
+  productMediaLinks,
+  productSupplierPreferences,
   productVariants,
   products,
+  stockBalances,
+  stockLots,
+  stockMovements,
+  suppliers,
   taxProfiles,
 } from '@/db';
 import {
   buildCatalogImportApplyPlan,
   type CatalogImportApplyRow,
 } from './catalog-import-apply-plan';
-import type { WooStagedRow } from './woocommerce-staging';
+import type { UniversalStagedCatalogRow } from './universal-catalog';
 
 export type ApplyCatalogImportInput = {
   importRunId: string;
@@ -77,12 +85,16 @@ async function resolveCategoryId(
   return currentId;
 }
 
-function rowPrice(row: WooStagedRow, fallback = 0): string {
+function rowPrice(row: UniversalStagedCatalogRow, fallback = 0): string {
   return Number(row.currentPrice ?? row.regularPrice ?? fallback).toFixed(2);
 }
 
-function rowCost(): string {
-  return '0.00';
+function rowCostPrice(row: UniversalStagedCatalogRow): string {
+  return Number(row.costPrice ?? 0).toFixed(2);
+}
+
+function rowWholesalePrice(row: UniversalStagedCatalogRow): string | null {
+  return row.wholesalePrice == null ? null : Number(row.wholesalePrice).toFixed(2);
 }
 
 function selectedRows(
@@ -94,6 +106,129 @@ function selectedRows(
     return rows.filter((row) => approved.has(row.sourceId));
   }
   return rows.filter((row) => row.warningsJson?.length === 0);
+}
+
+async function resolveSupplierId(tx: typeof db, supplierName: string | null | undefined): Promise<string | null> {
+  const name = supplierName?.trim();
+  if (!name) return null;
+  const [existing] = await tx.select({ id: suppliers.id }).from(suppliers).where(eq(suppliers.name, name)).limit(1);
+  if (existing) return existing.id;
+  const [created] = await tx.insert(suppliers).values({ name }).returning({ id: suppliers.id });
+  return created.id;
+}
+
+async function persistCatalogExtensions(
+  tx: typeof db,
+  params: {
+    row: CatalogImportApplyRow;
+    productId: string;
+    variantId?: string | null;
+    branchId?: string | null;
+    sourceSystem: string;
+    sourceNamespace: string;
+  },
+): Promise<void> {
+  const row = params.row.rowJson;
+  await tx.insert(productImportMetadata).values({
+    productId: params.productId,
+    variantId: params.variantId || null,
+    sourceSystem: params.sourceSystem,
+    sourceNamespace: params.sourceNamespace,
+    sourceId: params.row.sourceId,
+    brandName: row.brandName || null,
+    tagsJson: row.tags || [],
+    warrantyMonths: row.warrantyMonths || null,
+    maxDiscountAmount: row.maxDiscountAmount == null ? null : Number(row.maxDiscountAmount).toFixed(2),
+    singleDiscount: row.singleDiscount,
+    discountPercent: row.discountPercent == null ? null : Number(row.discountPercent).toFixed(4),
+    weightValue: row.dimensions.weightValue == null ? null : Number(row.dimensions.weightValue).toFixed(4),
+    weightUnit: row.dimensions.weightUnit,
+    lengthCm: row.dimensions.lengthCm == null ? null : Number(row.dimensions.lengthCm).toFixed(4),
+    widthCm: row.dimensions.widthCm == null ? null : Number(row.dimensions.widthCm).toFixed(4),
+    heightCm: row.dimensions.heightCm == null ? null : Number(row.dimensions.heightCm).toFixed(4),
+    rawJson: row.raw,
+  }).onConflictDoNothing();
+
+  if (row.images.length > 1) {
+    await tx.insert(productMediaLinks).values(
+      row.images.map((url, index) => ({
+        productId: params.productId,
+        variantId: params.variantId || null,
+        sourceUrl: url,
+        sortOrder: index,
+        altText: row.title,
+        sourceSystem: `${params.sourceSystem}:catalog_import`,
+      })),
+    ).onConflictDoNothing();
+  }
+
+  const supplierId = await resolveSupplierId(tx, row.supplierName);
+  if (row.supplierName) {
+    await tx.insert(productSupplierPreferences).values({
+      productId: params.productId,
+      variantId: params.variantId || null,
+      supplierId,
+      supplierName: row.supplierName,
+      lastCost: row.costPrice == null ? null : Number(row.costPrice).toFixed(2),
+    }).onConflictDoNothing();
+  }
+
+  const qty = row.stock.status === 'provided' ? row.stock.quantity || 0 : 0;
+  if (!params.branchId || qty <= 0) return;
+
+  const [bal] = await tx
+    .select()
+    .from(stockBalances)
+    .where(
+      and(
+        eq(stockBalances.locationType, 'BRANCH'),
+        eq(stockBalances.locationId, params.branchId),
+        eq(stockBalances.productId, params.productId),
+        params.variantId ? eq(stockBalances.variantId, params.variantId) : isNull(stockBalances.variantId),
+      ),
+    )
+    .limit(1);
+  const previousQty = bal?.onHand || 0;
+  if (bal) {
+    await tx.update(stockBalances).set({ onHand: qty, updatedAt: new Date() }).where(eq(stockBalances.id, bal.id));
+  } else {
+    await tx.insert(stockBalances).values({
+      locationType: 'BRANCH',
+      locationId: params.branchId,
+      productId: params.productId,
+      variantId: params.variantId || null,
+      onHand: qty,
+      reserved: 0,
+      damaged: 0,
+    });
+  }
+  const delta = qty - previousQty;
+  if (delta !== 0) {
+    await tx.insert(stockMovements).values({
+      locationType: 'BRANCH',
+      locationId: params.branchId,
+      productId: params.productId,
+      variantId: params.variantId || null,
+      type: 'COUNT',
+      delta,
+      unitCost: row.costPrice == null ? null : Number(row.costPrice).toFixed(2),
+      referenceType: 'CATALOG_IMPORT',
+      referenceId: params.row.sourceId,
+      notes: 'Approved catalog import initial stock',
+    });
+  }
+
+  if (row.expiryDate) {
+    await tx.insert(stockLots).values({
+      batchCode: `IMPORT-${params.row.sourceId}`.slice(0, 64),
+      productId: params.productId,
+      variantId: params.variantId || null,
+      locationType: 'BRANCH',
+      locationId: params.branchId,
+      qtyOnHand: qty,
+      expiryDate: new Date(`${row.expiryDate}T00:00:00.000Z`),
+    });
+  }
 }
 
 export async function applyCatalogImportRun(
@@ -123,7 +258,7 @@ export async function applyCatalogImportRun(
       parentSourceId: row.parentSourceId,
       internalSku: row.internalSku,
       title: row.title,
-      rowJson: row.rowJson as unknown as WooStagedRow,
+      rowJson: row.rowJson as unknown as UniversalStagedCatalogRow,
       warningsJson: row.warningsJson as string[],
     })),
     input.approvedSourceIds,
@@ -173,6 +308,7 @@ export async function applyCatalogImportRun(
 
   await db.transaction(async (tx) => {
     const [tax] = await tx.select().from(taxProfiles).limit(1);
+    const [branch] = await tx.select({ id: branches.id }).from(branches).limit(1);
     const productIdBySource = new Map<string, string>();
     for (const mapping of existingMappings) {
       if (mapping.productId) productIdBySource.set(mapping.sourceId, mapping.productId);
@@ -195,15 +331,16 @@ export async function applyCatalogImportRun(
           name: action.row.title,
           slug: productSlug(action.row),
           sku: action.row.internalSku || action.row.rowJson.internalSku,
-          barcode: null,
-          costPrice: rowCost(),
+          barcode: action.row.rowJson.barcode || null,
+          costPrice: rowCostPrice(action.row.rowJson),
           salePrice: rowPrice(action.row.rowJson),
+          wholesalePrice: rowWholesalePrice(action.row.rowJson),
           imageUrl: action.row.rowJson.images[0] || null,
           description: action.row.rowJson.description || action.row.rowJson.shortDescription || null,
           taxProfileId: tax?.id || null,
           categoryId,
           isActive: false,
-          itemType: 'PHYSICAL',
+          itemType: action.row.rowJson.itemType || 'PHYSICAL',
         })
         .returning({ id: products.id });
 
@@ -221,6 +358,13 @@ export async function applyCatalogImportRun(
         importRunId: input.importRunId,
       });
       sourceMappings++;
+      await persistCatalogExtensions(tx as typeof db, {
+        row: action.row,
+        productId: created.id,
+        sourceSystem,
+        sourceNamespace,
+        branchId: branch?.id || null,
+      });
       if (action.row.id) {
         await tx.update(catalogImportRows).set({ status: 'APPLIED' }).where(eq(catalogImportRows.id, action.row.id));
       }
@@ -239,8 +383,8 @@ export async function applyCatalogImportRun(
             ? Object.values(action.row.rowJson.attributes).filter(Boolean).join(' / ') || action.row.title
             : action.row.title,
           sku: action.row.internalSku || action.row.rowJson.internalSku,
-          barcode: null,
-          costPrice: rowCost(),
+          barcode: action.row.rowJson.barcode || null,
+          costPrice: rowCostPrice(action.row.rowJson),
           salePrice: rowPrice(action.row.rowJson),
           attributesJson: action.row.rowJson.attributes || {},
           active: false,
@@ -248,6 +392,14 @@ export async function applyCatalogImportRun(
         .returning({ id: productVariants.id });
 
       createdVariants++;
+      await persistCatalogExtensions(tx as typeof db, {
+        row: action.row,
+        productId,
+        variantId: created.id,
+        sourceSystem,
+        sourceNamespace,
+        branchId: branch?.id || null,
+      });
       await tx.insert(externalProductMappings).values({
         sourceSystem,
         sourceNamespace,

@@ -12,12 +12,22 @@ export type ImportRowInput = {
   barcode?: string;
   costPrice: number;
   salePrice: number;
+  wholesalePrice?: number;
   initialStock: number;
   variantName?: string;
   imageUrl?: string;
+  images?: string[];
   description?: string;
   reorderLevel?: number;
   isActive?: boolean;
+  brandName?: string;
+  supplierName?: string;
+  expiryDate?: string;
+  warrantyMonths?: number;
+  maxDiscountAmount?: number;
+  singleDiscount?: boolean;
+  discountPercent?: number;
+  raw?: Record<string, string>;
 };
 
 export type ImportRowPreview = ImportRowInput & {
@@ -72,6 +82,36 @@ function cleanHeaderKey(h: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
+function parseNumber(value: string | undefined): number {
+  const cleaned = (value || '').replace(/[^0-9.-]/g, '').trim();
+  if (!cleaned) return 0;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseOptionalNumber(value: string | undefined): number | undefined {
+  const cleaned = (value || '').replace(/[^0-9.-]/g, '').trim();
+  if (!cleaned) return undefined;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseFlexibleBool(value: string | undefined): boolean | undefined {
+  const normalized = (value || '').trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (['1', 'yes', 'true', 'y', 'single'].includes(normalized)) return true;
+  if (['0', 'no', 'false', 'n'].includes(normalized)) return false;
+  return undefined;
+}
+
+function normalizeSourceDate(value: string | undefined): string | undefined {
+  const raw = (value || '').trim();
+  if (!raw || raw === '0000-00-00' || /^0000-00-\d{2}$/.test(raw)) return undefined;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return undefined;
+  const parsed = new Date(`${raw}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? undefined : raw;
+}
+
 export function parseProductCsv(csvText: string): ImportRowInput[] {
   const lines = csvText
     .replace(/^\uFEFF/, '')
@@ -99,21 +139,33 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
   const barcodeI = idx(['gtinupceanorisbn', 'gtin', 'upc', 'ean', 'isbn', 'barcode', 'barcodee', 'itembarcode', 'barcodevalue']);
   const regPriceI = idx(['regularprice', 'price', 'retailprice', 'standardprice', 'msrp', 'unitprice', 'variantprice']);
   const salePriceI = idx(['saleprice', 'specialprice', 'sellprice', 'discountedprice', 'promoprice']);
+  const wholesalePriceI = idx(['coopwholesaleprice', 'wholesaleprice', 'tradeprice', 'b2bprice']);
   const costI = idx(['costprice', 'cost', 'unitcost', 'purchaseprice', 'buyprice', 'supplierprice']);
-  const stockI = idx(['stock', 'initialstock', 'quantity', 'qty', 'stockquantity', 'inventory', 'onhand']);
+  const stockI = idx(['stock', 'initialstock', 'quantity', 'quantitystock', 'qty', 'stockquantity', 'inventory', 'onhand']);
   const inStockI = idx(['instock', 'stockstatus', 'availability']);
   const catI = idx(['categories', 'category', 'productcategory', 'itemcategory', 'cat', 'department', 'dept', 'collection']);
   const imgI = idx(['images', 'imageurl', 'image', 'featuredimage', 'imagesrc', 'photourl', 'thumbnail']);
   const descI = idx(['description', 'productdescription', 'bodyhtml', 'details', 'fulltext']);
   const shortDescI = idx(['shortdescription', 'summary', 'excerpt', 'tagline']);
-  const lowStockI = idx(['lowstockamount', 'reorderlevel', 'minstock', 'minimumquantity', 'reorderpoint']);
+  const lowStockI = idx(['lowstockamount', 'lowqty', 'reorderlevel', 'minstock', 'minimumquantity', 'reorderpoint']);
   const pubI = idx(['published', 'isactive', 'status', 'visible', 'active', 'visibilityincatalog']);
   const variantI = idx(['variantname', 'variant', 'sizecolor', 'size', 'color', 'attributes', 'attribute1value']);
+  const brandI = idx(['brandname', 'brands', 'brand', 'manufacturer']);
+  const supplierI = idx(['suppliername', 'supplier', 'vendor']);
+  const expiryI = idx(['expiredateymd', 'expirydate', 'expirationdate', 'expiredate', 'bestbefore']);
+  const warrantyI = idx(['warrentymonths', 'warrantymonths', 'warranty', 'warrantymonth']);
+  const maxDiscountI = idx(['maxdiscountamount', 'maxdiscount', 'discountcap']);
+  const singleDiscountI = idx(['singlediscount', 'singleitemdiscount']);
+  const discountPercentI = idx(['dis', 'discountpercent', 'discountpercentage', 'discount']);
 
   const rows: ImportRowInput[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const cols = parseCsvLine(lines[i], delimiter);
+    const raw: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      raw[header] = cols[index] || '';
+    });
     const name = nameI >= 0 ? cols[nameI]?.trim() : '';
     let sku = skuI >= 0 ? cols[skuI]?.trim() : '';
     const idVal = idI >= 0 ? cols[idI]?.trim() : '';
@@ -130,15 +182,16 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
     if (!name || !sku) continue;
 
     // Price Resolution: prefer SalePrice if > 0, else RegularPrice
-    const regPrice = regPriceI >= 0 ? Number(cols[regPriceI]?.replace(/[^0-9.]/g, '')) || 0 : 0;
-    const salePrice = salePriceI >= 0 ? Number(cols[salePriceI]?.replace(/[^0-9.]/g, '')) || 0 : 0;
+    const regPrice = regPriceI >= 0 ? parseNumber(cols[regPriceI]) : 0;
+    const salePrice = salePriceI >= 0 ? parseNumber(cols[salePriceI]) : 0;
     const effectivePrice = salePrice > 0 ? salePrice : regPrice > 0 ? regPrice : 0;
 
     // Cost Price
-    const costPrice = costI >= 0 ? Number(cols[costI]?.replace(/[^0-9.]/g, '')) || 0 : 0;
+    const costPrice = costI >= 0 ? parseNumber(cols[costI]) : 0;
+    const wholesalePrice = wholesalePriceI >= 0 ? parseOptionalNumber(cols[wholesalePriceI]) : undefined;
 
     // Stock Quantity Resolution
-    let initialStock = stockI >= 0 ? Number(cols[stockI]?.replace(/[^0-9.-]/g, '')) || 0 : 0;
+    let initialStock = stockI >= 0 ? parseNumber(cols[stockI]) : 0;
     if (initialStock <= 0 && inStockI >= 0) {
       const inStockVal = cols[inStockI]?.toLowerCase();
       if (inStockVal === '1' || inStockVal === 'yes' || inStockVal === 'instock') {
@@ -156,9 +209,14 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
 
     // Image URL Resolution (extract first valid URL)
     let imageUrl: string | undefined;
+    let images: string[] = [];
     if (imgI >= 0 && cols[imgI]?.trim()) {
       const rawImgs = cols[imgI].trim();
-      const firstImg = rawImgs.split(/[,|]/)[0]?.trim();
+      images = rawImgs
+        .split(/[,|]/)
+        .map((part) => part.trim())
+        .filter((part) => /^https?:\/\//i.test(part));
+      const firstImg = images[0];
       if (firstImg && /^https?:\/\//i.test(firstImg)) {
         imageUrl = firstImg;
       }
@@ -170,7 +228,7 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
     const description = desc || shortDesc || undefined;
 
     // Reorder Level / Low stock
-    const reorderLevel = lowStockI >= 0 ? Math.max(1, Number(cols[lowStockI]) || 10) : 10;
+    const reorderLevel = lowStockI >= 0 ? Math.max(0, parseNumber(cols[lowStockI]) || 10) : 10;
 
     // Published / Active status
     let isActive = true;
@@ -200,12 +258,22 @@ export function parseProductCsv(csvText: string): ImportRowInput[] {
       barcode,
       costPrice,
       salePrice: effectivePrice,
-      initialStock: Math.max(0, initialStock),
+      wholesalePrice,
+      initialStock,
       variantName: variantName || undefined,
       imageUrl,
+      images,
       description,
       reorderLevel,
       isActive,
+      brandName: brandI >= 0 ? cols[brandI]?.trim() || undefined : undefined,
+      supplierName: supplierI >= 0 ? cols[supplierI]?.trim() || undefined : undefined,
+      expiryDate: expiryI >= 0 ? normalizeSourceDate(cols[expiryI]) : undefined,
+      warrantyMonths: warrantyI >= 0 ? parseOptionalNumber(cols[warrantyI]) : undefined,
+      maxDiscountAmount: maxDiscountI >= 0 ? parseOptionalNumber(cols[maxDiscountI]) : undefined,
+      singleDiscount: singleDiscountI >= 0 ? parseFlexibleBool(cols[singleDiscountI]) : undefined,
+      discountPercent: discountPercentI >= 0 ? parseOptionalNumber(cols[discountPercentI]) : undefined,
+      raw,
     });
   }
 
@@ -221,6 +289,11 @@ export async function validateImportRows(rows: ImportRowInput[]): Promise<Import
     /* database offline/unit test mode */
   }
   const seenInBatch = new Set<string>();
+  const barcodeCounts = new Map<string, number>();
+  for (const row of rows) {
+    const barcode = row.barcode?.trim();
+    if (barcode) barcodeCounts.set(barcode, (barcodeCounts.get(barcode) || 0) + 1);
+  }
 
   return rows.map((row, rowIndex) => {
     const skuKey = row.sku.toUpperCase();
@@ -237,6 +310,16 @@ export async function validateImportRows(rows: ImportRowInput[]): Promise<Import
     } else if (!row.barcode) {
       status = 'WARNING';
       note = 'Missing barcode — will use SKU as barcode';
+    }
+
+    if (row.barcode && (barcodeCounts.get(row.barcode) || 0) > 1) {
+      if (status !== 'COLLISION') status = 'WARNING';
+      note = note ? `${note}; duplicate barcode in CSV` : 'Duplicate barcode in CSV';
+    }
+
+    if (row.initialStock < 0) {
+      if (status !== 'COLLISION') status = 'WARNING';
+      note = note ? `${note}; negative stock will be quarantined` : 'Negative stock will be quarantined';
     }
 
     if (row.salePrice <= 0) {
@@ -314,6 +397,7 @@ export async function commitImportRows(rows: ImportRowPreview[]): Promise<Import
             barcode: row.barcode || row.sku,
             costPrice: String(row.costPrice.toFixed(2)),
             salePrice: String(row.salePrice.toFixed(2)),
+            wholesalePrice: row.wholesalePrice != null ? String(row.wholesalePrice.toFixed(2)) : undefined,
             imageUrl: row.imageUrl || undefined,
             description: row.description || undefined,
             reorderLevel: row.reorderLevel ?? 10,
@@ -333,6 +417,7 @@ export async function commitImportRows(rows: ImportRowPreview[]): Promise<Import
             barcode: row.barcode || row.sku,
             costPrice: String(row.costPrice.toFixed(2)),
             salePrice: String(row.salePrice.toFixed(2)),
+            wholesalePrice: row.wholesalePrice != null ? String(row.wholesalePrice.toFixed(2)) : undefined,
             imageUrl: row.imageUrl || null,
             description: row.description || null,
             reorderLevel: row.reorderLevel ?? 10,

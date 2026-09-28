@@ -1,56 +1,14 @@
 import { createHash } from 'crypto';
+import type {
+  UniversalCatalogStagingResult,
+  UniversalStagedCatalogFamily,
+  UniversalStagedCatalogRow,
+} from './universal-catalog';
+import { emptyUniversalStagingResult } from './universal-catalog';
 
-export type WooStockStatus = 'unknown' | 'provided' | 'invalid' | 'flagOnly';
-
-export type WooStagedRow = {
-  rowIndex: number;
-  sourceId: string;
-  sourceHash: string;
-  type: string;
-  title: string;
-  rawSku: string;
-  internalSku: string;
-  parentRaw: string | null;
-  regularPrice: number | null;
-  salePrice: number | null;
-  currentPrice: number | null;
-  categories: string[][];
-  tags: string[];
-  images: string[];
-  description: string | null;
-  shortDescription: string | null;
-  attributes: Record<string, string>;
-  publishedInSource: boolean;
-  stock: {
-    status: WooStockStatus;
-    quantity: number | null;
-    inStockFlag: boolean | null;
-  };
-  warnings: string[];
-};
-
-export type WooStagedFamily = {
-  parent: WooStagedRow;
-  children: WooStagedRow[];
-};
-
-export type WooStagingSummary = {
-  totalRows: number;
-  variableParents: number;
-  simpleProducts: number;
-  childVariations: number;
-  orphanChildren: number;
-  rowsWithWarnings: number;
-  sourceFileHash: string;
-};
-
-export type WooStagingResult = {
-  rows: WooStagedRow[];
-  families: WooStagedFamily[];
-  simpleProducts: WooStagedRow[];
-  orphanChildren: WooStagedRow[];
-  summary: WooStagingSummary;
-};
+export type WooStagedRow = UniversalStagedCatalogRow;
+export type WooStagedFamily = UniversalStagedCatalogFamily;
+export type WooStagingResult = UniversalCatalogStagingResult;
 
 function fingerprint(value: string): string {
   return createHash('sha256').update(value).digest('hex');
@@ -149,6 +107,21 @@ function parseBool(value: string | undefined): boolean | null {
   return null;
 }
 
+function parseOptionalInt(value: string | undefined): number | null {
+  const amount = parseAmount(value);
+  if (amount == null) return null;
+  const rounded = Math.trunc(amount);
+  return rounded >= 0 ? rounded : null;
+}
+
+function normalizeSourceDate(value: string | undefined): string | null {
+  const raw = (value || '').trim();
+  if (!raw || raw === '0000-00-00' || /^0000-00-\d{2}$/.test(raw)) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const parsed = new Date(`${raw}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : raw;
+}
+
 function splitList(value: string | undefined): string[] {
   return (value || '')
     .split(',')
@@ -187,7 +160,7 @@ function buildAttributeMap(columns: Record<string, string>): Record<string, stri
   return attrs;
 }
 
-function resolveStock(quantity: number | null, inStockFlag: boolean | null) {
+function resolveStock(quantity: number | null, inStockFlag: boolean | null): UniversalStagedCatalogRow['stock'] {
   if (quantity != null && quantity < 0) {
     return { status: 'invalid' as const, quantity, inStockFlag };
   }
@@ -203,7 +176,7 @@ function resolveStock(quantity: number | null, inStockFlag: boolean | null) {
 export function stageWooCommerceCatalog(csvText: string): WooStagingResult {
   const normalized = csvText.replace(/^\uFEFF/, '');
   if (!normalized) {
-    return emptyResult(fingerprint(csvText));
+    return emptyUniversalStagingResult('woocommerce', fingerprint(csvText));
   }
 
   const firstLine = normalized.split(/\r?\n/, 1)[0] || '';
@@ -212,12 +185,12 @@ export function stageWooCommerceCatalog(csvText: string): WooStagingResult {
   const delimiter = tabCount > commaCount ? '\t' : ',';
   const records = parseCsvRecords(normalized, delimiter);
   if (records.length < 2) {
-    return emptyResult(fingerprint(csvText));
+    return emptyUniversalStagingResult('woocommerce', fingerprint(csvText));
   }
 
   const headers = records[0].map(cleanHeaderKey);
 
-  const rows: WooStagedRow[] = [];
+  const rows: UniversalStagedCatalogRow[] = [];
   for (let i = 1; i < records.length; i++) {
     const values = records[i];
     const columns: Record<string, string> = {};
@@ -229,9 +202,13 @@ export function stageWooCommerceCatalog(csvText: string): WooStagingResult {
     const title = columns.name?.trim() || columns.title?.trim() || '';
       if (!sourceId || !title) continue;
 
-    const type = (columns.type || 'simple').trim().toLowerCase();
+    const typeRaw = (columns.type || 'simple').trim().toLowerCase();
+    const type = typeRaw === 'variation' || typeRaw === 'variable' || typeRaw === 'service' ? typeRaw : 'simple';
     const rawSku = (columns.sku || '').trim();
     const internalSku = stableInternalSku(sourceId, rawSku);
+    const barcode = (columns.gtinupceanorisbn || columns.gtin || columns.upc || columns.ean || columns.isbn || columns.barcode || '').trim() || null;
+    const costPrice = parseAmount(columns.cost || columns.costprice || columns.purchaseprice);
+    const wholesalePrice = parseAmount(columns.wholesaleprice || columns.coopwholesaleprice || columns.tradeprice);
     const regularPrice = parseAmount(columns.regularprice || columns.price);
     const salePrice = parseAmount(columns.saleprice);
     const currentPrice = salePrice ?? regularPrice;
@@ -240,15 +217,21 @@ export function stageWooCommerceCatalog(csvText: string): WooStagingResult {
     const stock = resolveStock(stockQuantity, inStockFlag);
     const warnings: string[] = [];
 
-    if (!rawSku) warnings.push('Missing source SKU; deterministic internal SKU generated.');
+    if (!rawSku) warnings.push('Missing source SKU; deterministic internal SKU generated and requires review.');
     if (stock.status === 'invalid') warnings.push('Negative stock quarantined; do not create stock ledger movement.');
     if (stock.status === 'flagOnly') warnings.push('Stock is a source flag only; physical count required.');
+    if (stock.status === 'provided' && (stock.quantity || 0) > 0) {
+      warnings.push('Stock quantity staged for review; physical count approval required.');
+    }
     if (salePrice != null && regularPrice != null && salePrice > regularPrice) {
       warnings.push('Sale price is above regular price.');
     }
     if (!parseImages(columns.images).length) warnings.push('No valid source image URL.');
+    const rawExpiry = columns.expirydate || columns.expiredate || columns.bestbefore;
+    const expiryDate = normalizeSourceDate(rawExpiry);
+    if (rawExpiry?.trim() && !expiryDate) warnings.push('Invalid expiry date ignored.');
 
-    const staged: WooStagedRow = {
+    const staged: UniversalStagedCatalogRow = {
       rowIndex: i,
       sourceId,
       sourceHash: fingerprint(JSON.stringify(values)),
@@ -257,16 +240,40 @@ export function stageWooCommerceCatalog(csvText: string): WooStagingResult {
       rawSku,
       internalSku,
       parentRaw: (columns.parent || '').trim() || null,
+      barcode,
+      costPrice,
+      wholesalePrice,
       regularPrice,
       salePrice,
       currentPrice,
       categories: parseCategories(columns.categories),
       tags: splitList(columns.tags),
       images: parseImages(columns.images),
+      brandName: (columns.brands || columns.brand || columns.brandname || '').trim() || null,
+      supplierName: (columns.supplier || columns.suppliername || columns.vendor || '').trim() || null,
+      expiryDate,
+      warrantyMonths: parseOptionalInt(columns.warrantymonths || columns.warranty || columns.warrentymonths),
+      maxDiscountAmount: parseAmount(columns.maxdiscountamount || columns.maxdiscount),
+      singleDiscount: parseBool(columns.singlediscount || columns.singleitemdiscount),
+      discountPercent: parseAmount(columns.discountpercent || columns.discountpercentage || columns.dis),
+      dimensions: {
+        weightValue: parseAmount(columns.weightg || columns.weightoz || columns.weight),
+        weightUnit: columns.weightg ? 'g' : columns.weightoz ? 'oz' : columns.weight ? null : null,
+        lengthCm: parseAmount(columns.lengthcm || columns.length),
+        widthCm: parseAmount(columns.widthcm || columns.width),
+        heightCm: parseAmount(columns.heightcm || columns.height),
+      },
       description: (columns.description || '').trim() || null,
       shortDescription: (columns.shortdescription || '').trim() || null,
       attributes: buildAttributeMap(columns),
       publishedInSource: parseBool(columns.published) === true,
+      itemType: type === 'service' ? 'SERVICE' : 'PHYSICAL',
+      reviewRequired:
+        !rawSku ||
+        stock.status === 'invalid' ||
+        stock.status === 'flagOnly' ||
+        (stock.status === 'provided' && (stock.quantity || 0) > 0),
+      raw: columns,
       stock,
       warnings,
     };
@@ -275,9 +282,9 @@ export function stageWooCommerceCatalog(csvText: string): WooStagingResult {
   }
 
   const parentBySku = new Map(rows.filter((row) => row.type === 'variable').map((row) => [sourceKey(row.rawSku), row]));
-  const families: WooStagedFamily[] = [];
-  const familyChildren = new Map<string, WooStagedRow[]>();
-  const orphanChildren: WooStagedRow[] = [];
+  const families: UniversalStagedCatalogFamily[] = [];
+  const familyChildren = new Map<string, UniversalStagedCatalogRow[]>();
+  const orphanChildren: UniversalStagedCatalogRow[] = [];
 
   for (const child of rows.filter((row) => row.type === 'variation')) {
     const parent = child.parentRaw ? parentBySku.get(sourceKey(child.parentRaw)) : undefined;
@@ -298,6 +305,7 @@ export function stageWooCommerceCatalog(csvText: string): WooStagingResult {
   const simpleProducts = rows.filter((row) => row.type === 'simple');
 
   return {
+    sourceSystem: 'woocommerce',
     rows,
     families,
     simpleProducts,
@@ -306,28 +314,12 @@ export function stageWooCommerceCatalog(csvText: string): WooStagingResult {
       totalRows: rows.length,
       variableParents: families.length,
       simpleProducts: simpleProducts.length,
+      services: rows.filter((row) => row.type === 'service').length,
       childVariations: rows.filter((row) => row.type === 'variation').length,
       orphanChildren: orphanChildren.length,
       rowsWithWarnings: rows.filter((row) => row.warnings.length > 0).length,
+      rowsReviewRequired: rows.filter((row) => row.reviewRequired).length,
       sourceFileHash: fingerprint(csvText),
-    },
-  };
-}
-
-function emptyResult(sourceFileHash: string): WooStagingResult {
-  return {
-    rows: [],
-    families: [],
-    simpleProducts: [],
-    orphanChildren: [],
-    summary: {
-      totalRows: 0,
-      variableParents: 0,
-      simpleProducts: 0,
-      childVariations: 0,
-      orphanChildren: 0,
-      rowsWithWarnings: 0,
-      sourceFileHash,
     },
   };
 }
