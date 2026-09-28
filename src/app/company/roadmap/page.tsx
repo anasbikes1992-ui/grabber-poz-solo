@@ -6,6 +6,7 @@ import {
   FileText,
   LineChart,
   LockKeyhole,
+  ScrollText,
   Server,
   ShieldCheck,
   Store,
@@ -21,24 +22,24 @@ const milestones = [
   },
   {
     title: 'Milestone 2 - Company Admin Surface',
-    status: 'In progress',
+    status: 'Done',
     owner: 'Product',
-    goal: 'Owner/Admin has one command surface for CRM, identity, settings, staff, storefront, backups, ops, and handover.',
-    checks: ['/company dashboard', '/company/admin command center', '/company/settings profile/logo', 'No dead admin links'],
+    goal: 'Owner/Admin has one command surface for CRM, identity, settings, staff, storefront, backups, ops, audit, and handover.',
+    checks: ['/company dashboard', '/company/admin command center', '/company/settings profile/logo', '/company/audit action history'],
   },
   {
     title: 'Milestone 3 - Client Provisioning Register',
-    status: 'Next',
+    status: 'Done',
     owner: 'CEO/CTO',
     goal: 'Track prospects from lead to won client to isolated app/database handover.',
     checks: ['Client status pipeline', 'Provisioning checklist', 'DB/app/env checklist', 'Handover notes'],
   },
   {
-    title: 'Milestone 4 - Inventory Demand Planning',
-    status: 'Planned',
+    title: 'Milestone 4 - ERP Readiness & Demand Planning',
+    status: 'Next',
     owner: 'Inventory',
-    goal: 'Turn sales and stock data into safe replenishment recommendations before auto-purchasing.',
-    checks: ['ABC/XYZ classes', 'Safety stock', 'Reorder points', 'Suggested PO review'],
+    goal: 'Turn existing sales, stock, GRN, supplier, and ledger data into safe read-only recommendations before any PO automation.',
+    checks: ['102 schema tables mapped', 'ABC/XYZ classes', 'Safety stock and reorder points', 'Suggested PO review'],
   },
   {
     title: 'Milestone 5 - Security & Quality Gate',
@@ -52,11 +53,21 @@ const milestones = [
 const links = [
   { href: '/company/leads', label: 'Lead CRM', icon: Store },
   { href: '/company/clients', label: 'Client Provisioning', icon: Server },
+  { href: '/company/audit', label: 'Audit Trail', icon: ScrollText },
   { href: '/company/settings', label: 'Company Settings', icon: FileText },
   { href: '/settings/staff', label: 'Staff & Roles', icon: ShieldCheck },
   { href: '/settings/installation', label: 'Cloud & License', icon: Database },
   { href: '/ai/demand', label: 'Demand Planning', icon: LineChart },
   { href: '/ops', label: 'Ops Health', icon: LockKeyhole },
+];
+
+const erpStatus = [
+  { area: 'POS, Orders, Stock Ledger', status: 'Certified core', detail: 'Checkout, COD, split payments, stock ledger, returns, shifts, transfers, and GL invariants are covered by tests.' },
+  { area: 'Purchasing / GRN / AP', status: 'Implemented foundation', detail: 'Purchase orders, GRN, supplier accounts, AP invoices/payments, and AP journal posting exist. Remaining: PO approval workflow and supplier scorecards.' },
+  { area: 'HR / Payroll', status: 'Implemented foundation', detail: 'Employees, attendance, leave, payroll runs/lines, EPF/ETF/PAYE stub, wage payment, statutory remittance, and exports exist. Remaining: official IRD PAYE table certification and biometric clocks.' },
+  { area: 'Company Admin', status: 'Live', detail: 'Lead CRM, clients register, settings, roadmap, SuperAdmin command center, and audit trail are live.' },
+  { area: 'Forecast / Replenishment', status: 'Next build', detail: 'Current /ai/demand is signal-only. Remaining: forecast tables, SKU classifications, reorder suggestions, and PO review queue.' },
+  { area: 'Compliance', status: 'Foundation only', detail: 'E-invoice submissions table exists. Remaining: certified IRD gateway, VAT return pack, and production provider certification.' },
 ];
 
 export default function CompanyRoadmapPage() {
@@ -127,6 +138,29 @@ export default function CompanyRoadmapPage() {
             ))}
           </div>
         </aside>
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wide text-emerald-300">ERP Readiness Matrix</p>
+            <h2 className="mt-1 text-lg font-black">What is complete and what remains</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">Schema SSOT: `src/db/schema.ts` with 102 table definitions.</p>
+        </div>
+        <div className="mt-4 grid gap-3">
+          {erpStatus.map((item) => (
+            <article key={item.area} className="rounded-lg border border-border bg-background/40 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-sm font-black">{item.area}</h3>
+                <span className="w-fit rounded-full border border-emerald-500/30 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-300">
+                  {item.status}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.detail}</p>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   );

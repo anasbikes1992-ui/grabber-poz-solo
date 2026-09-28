@@ -315,7 +315,7 @@ export default function SettingsPage() {
                   <span>Configured by vertical pack</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Retail & Wholesale, Electronics & Repairs, Restaurant/Cafe, Salon/Services, Party/Event, and future Grocery/Pharmacy readiness.
+                  Retail & Wholesale, Fashion, Jewelry & Watches, Electronics & Repairs, Restaurant/Cafe, Salon/Services, Party/Event, Grocery, Pharmacy, Rental, and Auto Parts readiness.
                 </p>
               </div>
             </div>

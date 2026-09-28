@@ -11,6 +11,7 @@ Status: active SSOT for the Grabberpoz.com company admin workstream.
 - `/company/admin` is the SuperAdmin command center over existing CRUD areas.
 - `/company/roadmap` is the in-app CEO/CTO roadmap and acceptance checklist.
 - `/company/clients` is the client provisioning register and handover checklist.
+- `/company/audit` is the Owner/Admin/Manager read-only audit trail over `audit_logs`.
 - The POZ company/demo app uses the existing Supabase cloud Postgres database.
 - ThePartyStore remains isolated on its own database.
 
@@ -43,6 +44,7 @@ Implemented scope:
 - `/company/settings` profile/logo editor.
 - `/company/admin` SuperAdmin command center.
 - `/company/roadmap` in-app roadmap and command links.
+- `/company/audit` filtered audit log viewer.
 - Navigation links under Commerce and Settings.
 - Existing `/settings` page can also edit `logoUrl`.
 
@@ -51,10 +53,11 @@ Exit criteria:
 - Owner/Admin can reach the roadmap from `/company`, `/company/admin`, and the Settings nav.
 - Company logo URL persists through `business_profile.logo_url`.
 - No dead links in the admin command center.
+- Company audit trail renders recent protected actions without exposing raw stack traces.
 
 ## Milestone 3 - Proper SuperAdmin CRUD
 
-Status: started. Client provisioning register is now implemented; Coolify automation remains future work.
+Status: started. Client provisioning register and company audit trail are now implemented; Coolify automation remains future work.
 
 CRUD modules:
 - Leads: already live at `/company/leads`.
@@ -62,7 +65,7 @@ CRUD modules:
 - Company profile: `/company/settings`.
 - Client provisioning register: `/company/clients`, backed by `company_clients` and `company_onboarding_tasks`.
 - Deployment register: read-only first, then write controls only if Coolify API credentials are available.
-- Audit trail: expose filtered `audit_logs` view for company admin actions.
+- Audit trail: `/company/audit`, backed by `audit_logs`.
 
 Recommended new tables later:
 - `company_deployments`
@@ -114,3 +117,4 @@ Non-goals:
 4. Submit one lead on `grabberpoz.com`.
 5. Confirm it appears in `/company/leads`.
 6. Confirm `/company`, `/company/settings`, `/company/admin`, and `/company/roadmap` render for Owner/Admin.
+7. Confirm `/company/audit` renders recent logs for Owner/Admin/Manager.

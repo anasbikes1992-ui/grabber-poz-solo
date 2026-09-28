@@ -7,6 +7,7 @@ import {
   DatabaseBackup,
   FileText,
   ListChecks,
+  ScrollText,
   Server,
   Settings,
   ShieldCheck,
@@ -64,13 +65,21 @@ const sections = [
     cta: 'Open ops',
     icon: FileText,
   },
+  {
+    title: 'Audit Trail',
+    desc: 'Review protected company, staff, commerce, stock, and agent action history.',
+    href: '/company/audit',
+    cta: 'Open audit logs',
+    icon: ScrollText,
+  },
 ];
 
 const milestones = [
   { label: 'Live company deployment', state: 'Done', tone: 'emerald' },
   { label: 'Lead CRM + admin capture', state: 'Done', tone: 'emerald' },
   { label: 'Company profile/logo settings', state: 'Live', tone: 'emerald' },
-  { label: 'Client onboarding register', state: 'Next', tone: 'amber' },
+  { label: 'Client onboarding register', state: 'Live', tone: 'emerald' },
+  { label: 'Company audit trail view', state: 'Live', tone: 'emerald' },
   { label: 'Deployment register + Coolify hooks', state: 'Planned', tone: 'zinc' },
   { label: 'Inventory demand planning', state: 'Planned', tone: 'zinc' },
 ];

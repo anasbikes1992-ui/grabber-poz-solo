@@ -85,6 +85,7 @@ Do NOT refactor:
 - SuperAdmin command center at `/company/admin` (Owner/Admin entry point for company CRUD areas)
 - Company roadmap at `/company/roadmap` (CEO/CTO milestones, SOP links, acceptance checks)
 - Client provisioning register at `/company/clients` (isolated app/DB readiness and handover checklist)
+- Company audit trail at `/company/audit` (read-only action history from `audit_logs`)
 - RBAC-protected: Owner/Admin/Manager/Marketing by route and action
 - Lead statuses: NEW -> CONTACTED -> DEMO_SCHEDULED -> PROPOSAL_SENT -> WON/LOST/ARCHIVED
 
@@ -269,8 +270,8 @@ npm run release:gate-r1       # R1 automated gate
 - [x] SuperAdmin command center over existing CRUD surfaces
 - [x] In-app CEO/CTO roadmap route
 - [x] Client provisioning register with default handover checklist
+- [x] Company admin audit trail view
 - [ ] Deployment register after Coolify API/token approval
-- [ ] Company admin audit trail view
 - [x] Jewelry & Watches vertical preset, storefront preset, and intelligence pack
 
 ### Phase 1 -- Inventory Demand Planning
@@ -293,8 +294,8 @@ npm run release:gate-r1       # R1 automated gate
 - [ ] 375px smoke pass for all 20 main staff pages
 
 ### Phase C -- ERP Completion
-- [ ] Purchase order approval workflow
-- [ ] Cost price variance alerts
+- [ ] Purchase order approval workflow (PO/GRN/AP tables exist; approval gate remains)
+- [ ] Cost price variance alerts (stock and transfer variance exist; supplier cost alerting remains)
 - [ ] Multi-currency display
 - [ ] Payroll final export
 
