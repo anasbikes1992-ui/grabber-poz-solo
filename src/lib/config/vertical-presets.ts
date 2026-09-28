@@ -4,6 +4,7 @@ export type VerticalPresetId =
   | 'mobilerepair'
   | 'electronics'
   | 'fashion'
+  | 'jewelry'
   | 'grocery'
   | 'restaurant'
   | 'salon'
@@ -145,6 +146,34 @@ export const VERTICAL_PRESETS: Record<VerticalPresetId, VerticalPreset> = {
       'Fast size–color variant matrix grid',
       'Barcode sticker printing',
       'Return inspection and store credit',
+    ],
+  },
+  jewelry: {
+    id: 'jewelry',
+    label: 'Jewelry & Watches',
+    description: 'Serialized high-value pieces, certificates, luxury storefront, appointments, and Polim Potha-ready sales',
+    natureOfBusiness: 'Jewelry, watches & luxury accessories retail',
+    exampleMerchant: 'Jewelry boutique, watch counter, gold and gemstone retailer',
+    vertical: 'jewelry',
+    flags: {
+      repairs: false,
+      restaurant: false,
+      hirePurchase: true,
+      appointments: true,
+      loyalty: true,
+      wholesale: false,
+      grocery: false,
+      whatsapp: true,
+      creative: true,
+      ...OFF_NEW,
+    },
+    itemTypes: ['PHYSICAL', 'SERIALIZED', 'SERVICE'],
+    posModes: ['RETAIL_SALE', 'HP_COLLECTION'],
+    adaptedWorkflows: [
+      'Serialized SKU and certificate notes for high-value pieces',
+      'Ring size, metal, stone, and watch strap variant discipline',
+      'Appointment-led showroom handover and resizing/service follow-ups',
+      'Luxury storefront preset with refined jewelry product cards',
     ],
   },
   grocery: {

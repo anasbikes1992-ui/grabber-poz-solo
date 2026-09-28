@@ -72,7 +72,7 @@ Do NOT refactor:
 - Cart, checkout (COD, PayHere, WebXPay)
 - Customer account, order tracking
 - Wishlist, reviews, promotions
-- Layout templates (6) + theme presets (vibe, ocean, party, etc.)
+- Layout templates (6) + theme presets (vibe, ocean, atelier-gold, party, etc.)
 - Category sitemap
 
 ### Company Platform (GrabberPOZ.com)
@@ -93,7 +93,7 @@ Do NOT refactor:
 - DB-grounded tools, role-gated execution
 
 ### Vertical Packs
-- general-retail, fashion, electronics, grocery, repairs, restaurant, pharmacy, party
+- general-retail, fashion, jewelry/watches, electronics, grocery, repairs, restaurant, pharmacy, party
 - Activated via `business_config.verticalPacks[]`
 
 ---
@@ -172,6 +172,8 @@ npm run db:bootstrap
 POST /api/seed { demo: false }
 # 6. Set vertical pack
 PATCH /api/settings/business { verticalPacks: ['fashion'] }
+# Jewelry/watch clients select the Jewelry & Watches preset in Settings, which maps to:
+# verticalPreset='jewelry', storefront preset='atelier-gold', layoutTemplate='jewelry'
 # 7. Set staff
 POST /api/settings/staff { name: 'Owner Name', role: 'OWNER', pin: 'xxxx' }
 ```
@@ -269,6 +271,7 @@ npm run release:gate-r1       # R1 automated gate
 - [x] Client provisioning register with default handover checklist
 - [ ] Deployment register after Coolify API/token approval
 - [ ] Company admin audit trail view
+- [x] Jewelry & Watches vertical preset, storefront preset, and intelligence pack
 
 ### Phase 1 -- Inventory Demand Planning
 - [ ] Read-only planner from sales, stock, purchasing, and supplier data

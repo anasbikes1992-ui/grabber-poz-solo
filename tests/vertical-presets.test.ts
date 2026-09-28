@@ -22,8 +22,17 @@ describe('vertical business presets', () => {
     expect(VERTICAL_PRESETS.fashion.flags.grocery).toBe(false);
   });
 
+  it('defines jewelry and watches as a high-value serialized preset', () => {
+    const jewelry = VERTICAL_PRESETS.jewelry;
+    expect(jewelry.label).toBe('Jewelry & Watches');
+    expect(jewelry.itemTypes).toContain('SERIALIZED');
+    expect(jewelry.flags.appointments).toBe(true);
+    expect(jewelry.flags.hirePurchase).toBe(true);
+  });
+
   it('lists all business nature presets', () => {
     const ids = listVerticalPresets().map((p) => p.id);
+    expect(ids).toContain('jewelry');
     expect(ids).toContain('restaurant');
     expect(ids).toContain('wholesale');
     expect(ids).toContain('salon');

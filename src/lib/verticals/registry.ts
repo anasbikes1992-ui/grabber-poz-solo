@@ -14,11 +14,13 @@ import { GENERAL_RETAIL_PACK } from './packs/general-retail';
 import { PHARMACY_PACK } from './packs/pharmacy';
 import { RENTAL_PACK } from './packs/rental';
 import { AUTOPARTS_PACK } from './packs/autoparts';
+import { JEWELRY_PACK } from './packs/jewelry';
 
 export const VERTICAL_REGISTRY: Record<VerticalType, VerticalPack> = {
   GENERAL_RETAIL: GENERAL_RETAIL_PACK,
   GROCERY: GROCERY_PACK,
   FASHION: FASHION_PACK,
+  JEWELRY: JEWELRY_PACK,
   ELECTRONICS: ELECTRONICS_PACK,
   RESTAURANT: RESTAURANT_PACK,
   HARDWARE: HARDWARE_PACK,

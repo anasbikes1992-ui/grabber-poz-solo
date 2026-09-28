@@ -12,7 +12,7 @@ Status: Implemented for demo recovery and template/preset architecture. Keep thi
   - `verticalPack`: operational feature flags and domain workflows.
 - Do not rewrite commerce, POS, stock, checkout APIs, or schema for theme work.
 - ThePartyStore remains `layoutTemplate=party` and `presetId=party-pop`.
-- `vibe` and `ocean` are implemented visual presets. `vibe` maps to `fashion`; `ocean` maps to `energy`.
+- `vibe`, `ocean`, and `atelier-gold` are implemented visual presets. `vibe` maps to `fashion`; `ocean` maps to `energy`; `atelier-gold` maps to `jewelry`.
 - Six layout templates are implemented as root `data-layout-template` values with CSS differentiation: `party`, `fashion`, `tech_repair`, `retail_wholesale`, `jewelry`, and `energy`.
 
 ## Milestones
@@ -29,6 +29,7 @@ Status: Implemented for demo recovery and template/preset architecture. Keep thi
 - `volta` resolves to `tech_repair` only when repairs are enabled; otherwise `retail_wholesale`.
 - `vibe` resolves to `fashion`.
 - `ocean` resolves to `energy`.
+- `atelier-gold` resolves to `jewelry`.
 - Everything else resolves to `retail_wholesale`.
 
 ## Cleanup Policy

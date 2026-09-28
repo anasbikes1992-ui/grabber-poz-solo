@@ -34,6 +34,14 @@ describe('Vertical Intelligence Packs', () => {
     expect(pack.seoTemplates.primaryKeywords).toContain('phone repair Colombo');
   });
 
+  it('correctly retrieves specialized Jewelry & Watches vertical pack', () => {
+    const pack = getVerticalPack('JEWELRY');
+    expect(pack.id).toBe('JEWELRY');
+    expect(pack.inventoryRules.enableSerializedTracking).toBe(true);
+    expect(pack.inventoryRules.deadStockThresholdDays).toBe(120);
+    expect(pack.seoTemplates.primaryKeywords).toContain('watches Colombo');
+  });
+
   it('correctly retrieves specialized Restaurant vertical pack', () => {
     const pack = getVerticalPack('RESTAURANT');
     expect(pack.id).toBe('RESTAURANT');

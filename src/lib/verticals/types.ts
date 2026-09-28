@@ -7,6 +7,7 @@ export type VerticalType =
   | 'GENERAL_RETAIL'
   | 'GROCERY'
   | 'FASHION'
+  | 'JEWELRY'
   | 'ELECTRONICS'
   | 'RESTAURANT'
   | 'HARDWARE'

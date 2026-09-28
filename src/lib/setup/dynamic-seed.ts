@@ -37,6 +37,12 @@ const PRESET_CATALOGS: Partial<Record<VerticalPresetId, CatalogItem[]>> = {
     { sku: 'DEMO-CHINO-32', slug: 'demo-chino', name: 'Stretch Chino Trousers', sale: '6500.00', cost: '3400.00', category: 'Apparel' },
     { sku: 'DEMO-POLO-XL', slug: 'demo-polo', name: 'Pique Cotton Polo', sale: '3800.00', cost: '1900.00', category: 'Apparel' },
   ],
+  jewelry: [
+    { sku: 'JW-GOLD-RING-18K', slug: '18k-gold-ring', name: '18K Gold Ring', sale: '185000.00', cost: '148000.00', category: 'Fine Jewelry' },
+    { sku: 'JW-GEM-PENDANT', slug: 'gemstone-pendant', name: 'Gemstone Pendant', sale: '92000.00', cost: '65000.00', category: 'Fine Jewelry' },
+    { sku: 'JW-WATCH-AUTO', slug: 'automatic-dress-watch', name: 'Automatic Dress Watch', sale: '275000.00', cost: '220000.00', category: 'Watches' },
+    { sku: 'JW-RESIZE-SVC', slug: 'ring-resizing-service', name: 'Ring Resizing Service', sale: '4500.00', cost: '1200.00', category: 'Services' },
+  ],
   grocery: [
     { sku: 'GROC-MILK-1L', slug: 'fresh-milk-1l', name: 'Fresh Milk 1L', sale: '420.00', cost: '280.00', category: 'Dairy' },
     { sku: 'GROC-RICE-5KG', slug: 'basmati-rice-5kg', name: 'Basmati Rice 5kg', sale: '1850.00', cost: '1400.00', category: 'Pantry' },

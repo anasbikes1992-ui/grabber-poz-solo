@@ -17,6 +17,7 @@ describe('storefront theme presets', () => {
     expect(ids).toContain('volta');
     expect(ids).toContain('vibe');
     expect(ids).toContain('ocean');
+    expect(ids).toContain('atelier-gold');
     expect(ids.length).toBeGreaterThanOrEqual(6);
   });
 
@@ -46,6 +47,7 @@ describe('storefront theme presets', () => {
     expect(resolveStorefrontLayoutTemplate(undefined, 'party-pop')).toBe('party');
     expect(resolveStorefrontLayoutTemplate(undefined, 'vibe')).toBe('fashion');
     expect(resolveStorefrontLayoutTemplate(undefined, 'ocean')).toBe('energy');
+    expect(resolveStorefrontLayoutTemplate(undefined, 'atelier-gold')).toBe('jewelry');
     expect(resolveStorefrontLayoutTemplate(undefined, 'volta', { repairs: true })).toBe('tech_repair');
     expect(resolveStorefrontLayoutTemplate(undefined, 'volta')).toBe('retail_wholesale');
   });

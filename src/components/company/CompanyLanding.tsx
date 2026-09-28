@@ -11,8 +11,10 @@ import {
   Sparkles,
   CheckCircle2,
   ArrowRight,
+  Gem,
   Monitor,
   TrendingUp,
+  Wrench,
   Lock,
   Menu,
   X,
@@ -25,6 +27,23 @@ const CompanyLandingBelowFold = dynamic(
   () => import('./CompanyLandingBelowFold').then((m) => m.CompanyLandingBelowFold),
   { ssr: true, loading: () => <div className="min-h-[40vh] bg-slate-950" aria-busy="true" /> },
 );
+
+const heroSystemCards = [
+  { label: 'Counter POS', sub: 'Barcode & Thermal', icon: Monitor },
+  { label: 'Inventory', sub: 'Warehouses & GRN', icon: Boxes },
+  { label: 'Polim Potha', sub: 'Credit Ledger', icon: BookOpen },
+  { label: 'Online Store', sub: 'Synced Catalog', icon: Store },
+  { label: 'SL Gateways', sub: 'PayHere & BNPL', icon: CreditCard },
+  { label: 'Business OS', sub: 'Financial Reports', icon: TrendingUp },
+];
+
+const verticalSignals = [
+  { label: 'Fashion', icon: Sparkles },
+  { label: 'Jewelry & Watches', icon: Gem },
+  { label: 'Party Stores', icon: Store },
+  { label: 'Repairs', icon: Wrench },
+  { label: 'Grocery', icon: Boxes },
+];
 
 /** `demoUrl`: origin of the demo merchant (e.g. https://demo.grabberpoz.com). Empty = same origin. */
 export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
@@ -88,6 +107,7 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
             </Link>
             <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-300">
               <a href="#features" className="hover:text-amber-400 transition-colors">Features</a>
+              <a href="#verticals" className="hover:text-amber-400 transition-colors">Industries</a>
               <a href="#polim-potha" className="hover:text-amber-400 transition-colors">Polim Potha</a>
               <a href="#hardware" className="hover:text-amber-400 transition-colors">Hardware</a>
               <a href="#payments" className="hover:text-amber-400 transition-colors">Payments</a>
@@ -138,6 +158,7 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
           >
             {[
               ['#features', 'Features'],
+              ['#verticals', 'Industries'],
               ['#polim-potha', 'Polim Potha'],
               ['#hardware', 'Hardware'],
               ['#payments', 'Payments'],
@@ -172,11 +193,9 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
 
       <main id="main-content">
       {/* Hero Section */}
-      <section className="relative pt-20 pb-28 overflow-hidden">
-        {/* Ambient background glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
-
+      <section className="relative overflow-hidden border-b border-slate-900 pt-16 pb-24 sm:pt-20 sm:pb-28">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-950/20 to-transparent pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -190,6 +209,21 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
           <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
             Run your shop counter, touch POS, inventory, customer credit (Polim Potha), online store, and local payment gateways from one connected, standalone system.
           </p>
+
+          <div className="mb-10 flex flex-wrap items-center justify-center gap-2">
+            {verticalSignals.map((item) => {
+              const Icon = item.icon;
+              return (
+                <span
+                  key={item.label}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs font-bold text-slate-200 shadow-sm transition-colors duration-200 hover:border-amber-500/40 hover:text-amber-300"
+                >
+                  <Icon className="h-4 w-4 text-amber-400" aria-hidden />
+                  {item.label}
+                </span>
+              );
+            })}
+          </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4 mb-16">
             <a
@@ -217,21 +251,19 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
 
           {/* System Architecture Connectivity Bar */}
           <div className="max-w-5xl mx-auto bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
-              A Single Real-time Data Backbone
-            </p>
+            <div className="mb-4 flex flex-col items-center justify-center gap-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                A Single Real-time Data Backbone
+              </p>
+              <p className="text-xs text-slate-500">
+                One Pro package. Business type, logo, storefront style, and modules are selected in Settings.
+              </p>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-left">
-              {[
-                { label: 'Counter POS', sub: 'Barcode & Thermal', icon: Monitor },
-                { label: 'Inventory', sub: 'Warehouses & GRN', icon: Boxes },
-                { label: 'Polim Potha', sub: 'Credit Ledger', icon: BookOpen },
-                { label: 'Online Store', sub: 'Synced Catalog', icon: Store },
-                { label: 'SL Gateways', sub: 'PayHere & BNPL', icon: CreditCard },
-                { label: 'Business OS', sub: 'Financial Reports', icon: TrendingUp },
-              ].map((item) => {
+              {heroSystemCards.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} className="bg-slate-800/60 border border-slate-700/50 p-3.5 rounded-xl">
+                  <div key={item.label} className="bg-slate-800/60 border border-slate-700/50 p-3.5 rounded-xl transition-colors duration-200 hover:border-amber-500/40">
                     <Icon className="w-5 h-5 text-amber-400 mb-2" />
                     <div className="text-sm font-bold text-white leading-tight">{item.label}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{item.sub}</div>

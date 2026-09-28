@@ -10,6 +10,7 @@ export type StorefrontSeedMode = 'standard' | 'demo';
 
 function storefrontPresetForVertical(presetId: VerticalPresetId) {
   if (presetId === 'mobilerepair' || presetId === 'electronics') return 'volta';
+  if (presetId === 'jewelry') return 'atelier-gold';
   if (presetId === 'restaurant') return 'hearth';
   if (presetId === 'grocery') return 'spindrift';
   return 'grabber';
@@ -17,6 +18,7 @@ function storefrontPresetForVertical(presetId: VerticalPresetId) {
 
 function standardHeroTitle(presetId: VerticalPresetId, storeName: string) {
   if (presetId === 'mobilerepair' || presetId === 'electronics') return `${storeName} - Devices & Repairs`;
+  if (presetId === 'jewelry') return `${storeName} - Fine Jewelry & Watches`;
   if (presetId === 'restaurant') return `Welcome to ${storeName}`;
   return `${storeName} - Shop Online`;
 }

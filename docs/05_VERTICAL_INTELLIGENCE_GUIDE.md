@@ -49,7 +49,18 @@ Instead of building 10 disconnected software applications for different industri
 
 ---
 
-### 2.3 Electronics & Mobile Repair (`ELECTRONICS`)
+### 2.3 Jewelry & Watches (`JEWELRY`)
+* **Primary Focus**: Serialized high-value stock, certificate completeness, VIP customer follow-up, and slow-moving luxury inventory.
+* **Inventory Rules**: 21-day lead time, 30-day safety stock, 120-day dead stock threshold, serialized tracking enabled.
+* **Domain KPIs**:
+  * `HIGH_VALUE_STOCK_EXPOSURE`: Total value of serialized jewelry and watch inventory on hand (Target: reviewed weekly).
+  * `CERTIFICATE_COMPLETENESS`: Share of high-value SKUs with certificate or appraisal notes (Target: > 95%).
+  * `LUXURY_STOCK_TURN`: Sell-through speed for pieces older than 120 days (Target: improving month over month).
+* **SEO & Schema**: `Product` schema with jewelry, watches, gold, gemstone, and secure handover keywords.
+
+---
+
+### 2.4 Electronics & Mobile Repair (`ELECTRONICS`)
 * **Primary Focus**: Serialized IMEI tracking, warranty claim rates, accessory attachments, and repair ticket throughput.
 * **Inventory Rules**: 7-day lead time, 14-day safety stock, 45-day dead stock threshold, serialized tracking enabled.
 * **Domain KPIs**:
@@ -60,7 +71,7 @@ Instead of building 10 disconnected software applications for different industri
 
 ---
 
-### 2.4 Restaurant, Café & KOT (`RESTAURANT`)
+### 2.5 Restaurant, Café & KOT (`RESTAURANT`)
 * **Primary Focus**: Kitchen order ticket (KOT) prep speed, table turnover velocity, raw food cost %, and peak dining hours.
 * **Inventory Rules**: 1-day lead time, 2-day safety stock, 5-day dead stock threshold.
 * **Domain KPIs**:
@@ -71,7 +82,7 @@ Instead of building 10 disconnected software applications for different industri
 
 ---
 
-### 2.5 Hardware & Building Supplies (`HARDWARE`)
+### 2.6 Hardware & Building Supplies (`HARDWARE`)
 * **Primary Focus**: Contractor credit ledger aging, bulk purchasing, weight/dimension stock, and supplier price consistency.
 * **Inventory Rules**: 7-day lead time, 14-day safety stock, 90-day dead stock threshold.
 * **Domain KPIs**:
@@ -82,7 +93,7 @@ Instead of building 10 disconnected software applications for different industri
 
 ---
 
-### 2.6 General Retail (`GENERAL_RETAIL`)
+### 2.7 General Retail (`GENERAL_RETAIL`)
 * **Primary Focus**: Omnichannel balance, customer loyalty, standard margins, and cross-sell promotions.
 * **Inventory Rules**: 5-day lead time, 10-day safety stock, 45-day dead stock threshold.
 * **Domain KPIs**: Omnichannel order velocity, blended gross margin (> 32%), and low stock SKU percentage (< 5%).

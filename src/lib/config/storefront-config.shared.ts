@@ -105,7 +105,7 @@ export type StorefrontInteractiveFx = 'confetti' | 'neon' | 'gold' | 'bubbles' |
 export type StorefrontCarouselEffect = 'spring-showcase' | 'cyber-glow' | 'ken-burns' | 'parallax-wave' | 'kinetic-snap';
 
 export type StorefrontTheme = {
-  /** Preset id from theme-presets.ts (grabber, party-pop, neon-carnival, royal-gold, ...). */
+  /** Preset id from theme-presets.ts (grabber, party-pop, neon-carnival, royal-gold, atelier-gold, ...). */
   presetId?: string;
   /** White-label display name for the storefront shell/footer. */
   storeName?: string;
@@ -153,7 +153,7 @@ export function resolveStorefrontLayoutTemplate(
   if (['party-pop', 'neon-carnival', 'pastel-wonderland', 'cyber-kinetic'].includes(id)) return 'party';
   if (['vibe', 'octaboot', 'spindrift'].includes(id)) return 'fashion';
   if (id === 'volta') return flags?.repairs ? 'tech_repair' : 'retail_wholesale';
-  if (['royal-gold'].includes(id)) return 'jewelry';
+  if (['royal-gold', 'atelier-gold'].includes(id)) return 'jewelry';
   if (['ocean'].includes(id)) return 'energy';
   return 'retail_wholesale';
 }

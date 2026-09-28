@@ -22,6 +22,8 @@ import {
   Send,
   Loader2,
   Lock,
+  Gem,
+  Wrench,
 } from 'lucide-react';
 
 export type CompanyLeadForm = {
@@ -33,6 +35,39 @@ export type CompanyLeadForm = {
   branchCount: string;
   message: string;
 };
+
+const verticalCapabilityCards = [
+  {
+    title: 'Fashion & Apparel',
+    desc: 'Size, color, seasonal drops, barcode labels, and loyalty-led returns.',
+    icon: Sparkles,
+  },
+  {
+    title: 'Jewelry & Watches',
+    desc: 'Serialized pieces, certificate notes, high-value receipts, and refined storefronts.',
+    icon: Gem,
+  },
+  {
+    title: 'Party & Events',
+    desc: 'Theme collections, bundles, occasions, and celebration-first storefronts.',
+    icon: Store,
+  },
+  {
+    title: 'Mobile & Repairs',
+    desc: 'IMEI devices, service intake, parts issue, warranties, and customer updates.',
+    icon: Wrench,
+  },
+  {
+    title: 'Grocery & Pharmacy',
+    desc: 'Fast checkout, batch/expiry flows, FEFO handling, and repeat customers.',
+    icon: Boxes,
+  },
+  {
+    title: 'Wholesale & Hardware',
+    desc: 'Quotations, contractor credit, bulk pricing, purchasing, and GRN control.',
+    icon: Building2,
+  },
+];
 
 export function CompanyLandingBelowFold({
   demoUrl = '',
@@ -365,6 +400,51 @@ export function CompanyLandingBelowFold({
         </div>
       </section>
 
+      {/* Vertical Packs Section */}
+      <section id="verticals" className="py-24 border-t border-slate-800/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.4fr] gap-10 items-start">
+            <div className="space-y-5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Configured, Not Tiered</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+                One Pro system adapted to the client business
+              </h2>
+              <p className="text-slate-300 leading-relaxed text-base">
+                Grabber POZ sells one complete package. During onboarding, the owner selects the business nature in Settings, applies the matching vertical pack, and chooses the storefront look that fits the brand.
+              </p>
+              <Link
+                href={`${demoUrl}/settings`}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:border-amber-500/40 hover:text-amber-300"
+              >
+                <span>Preview Settings Vault</span>
+                <ArrowRight className="w-4 h-4" aria-hidden />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {verticalCapabilityCards.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div
+                    key={card.title}
+                    className="min-h-36 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/40 hover:bg-slate-900"
+                  >
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400">
+                      <Icon className="h-5 w-5" aria-hidden />
+                    </div>
+                    <h3 className="text-base font-black text-white">{card.title}</h3>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-400">{card.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pro Platform Section */}
       <section id="pricing" className="py-24 border-t border-slate-800/80 bg-slate-900/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -642,6 +722,7 @@ export function CompanyLandingBelowFold({
                       className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
                       <option value="Fashion & Apparel">Fashion & Apparel</option>
+                      <option value="Jewelry & Watches">Jewelry & Watches</option>
                       <option value="Party & Events">Party & Events</option>
                       <option value="Electronics & Mobile Repair">Electronics & Mobile Repair</option>
                       <option value="Grocery & Supermarket">Grocery & Supermarket</option>
