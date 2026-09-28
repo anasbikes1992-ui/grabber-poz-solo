@@ -48,7 +48,13 @@ export async function POST(req: Request) {
       businessType: body.businessType || 'General Retail',
       branchCount: body.branchCount || '1',
       message: body.message || '',
+      status: 'NEW',
+      source: 'company_landing',
+      notes: '',
+      nextAction: null,
       createdAt: now,
+      updatedAt: now,
+      lastContactedAt: null,
     };
 
     try {
@@ -62,8 +68,8 @@ export async function POST(req: Request) {
           businessType: leadRecord.businessType,
           branchCount: leadRecord.branchCount,
           message: leadRecord.message,
-          status: 'NEW',
-          source: 'company_landing',
+          status: leadRecord.status,
+          source: leadRecord.source,
         })
         .returning({ id: companyLeads.id });
       if (lead?.id) leadId = lead.id;

@@ -8,19 +8,19 @@ type Status = (typeof STATUSES)[number];
 
 type CompanyLead = {
   id: string;
-  businessName: string;
-  ownerName: string;
-  phone: string;
-  email: string;
-  businessType: string;
-  branchCount: string;
-  message: string;
-  status: Exclude<Status, 'ALL'>;
+  businessName?: string | null;
+  ownerName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  businessType?: string | null;
+  branchCount?: string | null;
+  message?: string | null;
+  status?: Exclude<Status, 'ALL'> | null;
   source?: string;
-  notes: string;
+  notes?: string | null;
   nextAction?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   lastContactedAt?: string | null;
 };
 
@@ -63,16 +63,24 @@ function statusClass(status: string) {
   return 'border-purple-500/40 bg-purple-500/10 text-purple-300';
 }
 
+function normalizeStatus(status: CompanyLead['status'] | LeadForm['status'] | null | undefined): LeadForm['status'] {
+  return STATUSES.includes(status as Status) ? (status as LeadForm['status']) : 'NEW';
+}
+
+function statusLabel(status: CompanyLead['status'] | LeadForm['status'] | null | undefined) {
+  return normalizeStatus(status).replace(/_/g, ' ');
+}
+
 function formFromLead(lead: CompanyLead): LeadForm {
   return {
-    businessName: lead.businessName,
-    ownerName: lead.ownerName,
-    phone: lead.phone,
-    email: lead.email,
-    businessType: lead.businessType,
-    branchCount: lead.branchCount,
-    message: lead.message,
-    status: lead.status,
+    businessName: lead.businessName || '',
+    ownerName: lead.ownerName || '',
+    phone: lead.phone || '',
+    email: lead.email || '',
+    businessType: lead.businessType || 'General Retail',
+    branchCount: lead.branchCount || '1',
+    message: lead.message || '',
+    status: normalizeStatus(lead.status),
     notes: lead.notes || '',
     nextAction: lead.nextAction || '',
   };
@@ -115,7 +123,10 @@ export default function CompanyLeadsPage() {
     const next = new Map<string, number>();
     for (const s of STATUSES) next.set(s, 0);
     next.set('ALL', leads.length);
-    for (const lead of leads) next.set(lead.status, (next.get(lead.status) || 0) + 1);
+    for (const lead of leads) {
+      const leadStatus = normalizeStatus(lead.status);
+      next.set(leadStatus, (next.get(leadStatus) || 0) + 1);
+    }
     return next;
   }, [leads]);
 
@@ -218,7 +229,7 @@ export default function CompanyLeadsPage() {
                     status === s ? 'border-emerald-400 text-emerald-300' : 'border-border text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {s.replace(/_/g, ' ')} {counts.get(s) ? `(${counts.get(s)})` : ''}
+                  {s === 'ALL' ? 'ALL' : statusLabel(s)} {counts.get(s) ? `(${counts.get(s)})` : ''}
                 </button>
               ))}
             </div>
@@ -250,16 +261,16 @@ export default function CompanyLeadsPage() {
                     }`}
                   >
                     <span className="min-w-0">
-                      <span className="block truncate font-bold">{lead.businessName}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{lead.businessType} - {lead.branchCount}</span>
+                      <span className="block truncate font-bold">{lead.businessName || 'Unnamed business'}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{lead.businessType || 'General Retail'} - {lead.branchCount || '1'}</span>
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate">{lead.ownerName}</span>
-                      <span className="block truncate text-xs text-muted-foreground">{lead.email}</span>
+                      <span className="block truncate">{lead.ownerName || 'No owner recorded'}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{lead.email || lead.phone || '-'}</span>
                     </span>
                     <span>
-                      <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-black ${statusClass(lead.status)}`}>
-                        {lead.status.replace(/_/g, ' ')}
+                      <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-black ${statusClass(normalizeStatus(lead.status))}`}>
+                        {statusLabel(lead.status)}
                       </span>
                     </span>
                     <span className="text-xs text-muted-foreground">{dateLabel(lead.createdAt)}</span>
@@ -280,7 +291,7 @@ export default function CompanyLeadsPage() {
               <button
                 type="button"
                 onClick={archive}
-                disabled={saving || selected.status === 'ARCHIVED'}
+                disabled={saving || normalizeStatus(selected.status) === 'ARCHIVED'}
                 className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-border px-3 text-xs font-bold text-muted-foreground transition hover:text-foreground disabled:opacity-50"
               >
                 <Archive className="h-3.5 w-3.5" />
@@ -328,7 +339,7 @@ export default function CompanyLeadsPage() {
               Status
               <select className="mt-1 min-h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-emerald-500" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as LeadForm['status'] })}>
                 {STATUSES.filter((s) => s !== 'ALL').map((s) => (
-                  <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+                  <option key={s} value={s}>{statusLabel(s)}</option>
                 ))}
               </select>
             </label>

@@ -7,6 +7,7 @@ import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-err
 
 const ALLOWED_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'MARKETING'] as const;
 const LEAD_STATUSES = ['NEW', 'CONTACTED', 'DEMO_SCHEDULED', 'PROPOSAL_SENT', 'WON', 'LOST', 'ARCHIVED'] as const;
+type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 const updateSchema = z.object({
   id: z.string().uuid(),
@@ -62,10 +63,40 @@ function serializeLead(row: typeof companyLeads.$inferSelect) {
   };
 }
 
+function normalizeLeadStatus(value: unknown): LeadStatus {
+  return LEAD_STATUSES.includes(value as LeadStatus) ? (value as LeadStatus) : 'NEW';
+}
+
+function normalizeLegacyLead(value: unknown) {
+  const raw = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const now = new Date().toISOString();
+  const createdAt = typeof raw.createdAt === 'string' && raw.createdAt ? raw.createdAt : now;
+  const id = typeof raw.id === 'string' && raw.id ? raw.id : `legacy_${createdAt}_${String(raw.email || raw.phone || 'lead')}`;
+
+  return {
+    id,
+    businessName: typeof raw.businessName === 'string' ? raw.businessName : '',
+    ownerName: typeof raw.ownerName === 'string' ? raw.ownerName : '',
+    phone: typeof raw.phone === 'string' ? raw.phone : '',
+    email: typeof raw.email === 'string' ? raw.email : '',
+    businessType: typeof raw.businessType === 'string' && raw.businessType ? raw.businessType : 'General Retail',
+    branchCount: typeof raw.branchCount === 'string' && raw.branchCount ? raw.branchCount : '1',
+    message: typeof raw.message === 'string' ? raw.message : '',
+    status: normalizeLeadStatus(raw.status),
+    source: typeof raw.source === 'string' && raw.source ? raw.source : 'company_landing',
+    notes: typeof raw.notes === 'string' ? raw.notes : '',
+    nextAction: typeof raw.nextAction === 'string' ? raw.nextAction : null,
+    assignedTo: typeof raw.assignedTo === 'string' ? raw.assignedTo : null,
+    createdAt,
+    updatedAt: typeof raw.updatedAt === 'string' && raw.updatedAt ? raw.updatedAt : createdAt,
+    lastContactedAt: typeof raw.lastContactedAt === 'string' ? raw.lastContactedAt : null,
+  };
+}
+
 async function legacyLeads() {
   const [row] = await db.select().from(businessConfig).limit(1);
   const cfg = (row?.configJson || {}) as Record<string, unknown>;
-  return Array.isArray(cfg.commercialLeads) ? cfg.commercialLeads : [];
+  return Array.isArray(cfg.commercialLeads) ? cfg.commercialLeads.map(normalizeLegacyLead) : [];
 }
 
 export async function GET(req: Request) {
@@ -73,10 +104,10 @@ export async function GET(req: Request) {
     await requireCompanyLeadAdmin();
     const { searchParams } = new URL(req.url);
     const rawStatus = searchParams.get('status')?.trim().toUpperCase();
-    const status = rawStatus && rawStatus !== 'ALL' && LEAD_STATUSES.includes(rawStatus as never)
-      ? rawStatus
+    const status = rawStatus && rawStatus !== 'ALL' && LEAD_STATUSES.includes(rawStatus as LeadStatus)
+      ? rawStatus as LeadStatus
       : undefined;
-    const q = searchParams.get('q')?.trim();
+    const q = searchParams.get('q')?.trim().toLowerCase();
 
     try {
       const filters = [
@@ -109,7 +140,20 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: true, leads: rows.map(serializeLead), stats });
     } catch (err) {
       console.error('Company leads table read failed; using legacy config JSON', err);
-      return NextResponse.json({ success: true, leads: await legacyLeads(), stats: {}, legacy: true });
+      let leads = await legacyLeads();
+      if (status) leads = leads.filter((lead) => lead.status === status);
+      if (q) {
+        leads = leads.filter((lead) =>
+          [lead.businessName, lead.ownerName, lead.email, lead.phone]
+            .some((value) => value.toLowerCase().includes(q)),
+        );
+      }
+      const stats = LEAD_STATUSES.reduce<Record<string, number>>((acc, s) => {
+        acc[s] = 0;
+        return acc;
+      }, {});
+      for (const lead of leads) stats[lead.status] = (stats[lead.status] || 0) + 1;
+      return NextResponse.json({ success: true, leads, stats, legacy: true });
     }
   } catch (err: unknown) {
     const e = err as { status?: number; message?: string };
