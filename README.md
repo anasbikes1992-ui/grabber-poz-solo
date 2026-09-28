@@ -1,7 +1,7 @@
 # Grabber Business OS & Jarvis Autonomous OS
 **Single-Business Edition: Commerce Core + Physical Operations + Jarvis Autonomous Business OS**
 
-[![Tests](https://img.shields.io/badge/Tests-625%2B%20Passing-emerald)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-629%20Passing-emerald)](https://github.com/)
 [![Database](https://img.shields.io/badge/Database-Postgres%20Drizzle-blue)](https://github.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-Single%20Business%20Solo-purple)](https://github.com/)
 [![Auth](https://img.shields.io/badge/Security-Dual%20Session%20HMAC-green)](https://github.com/)
@@ -50,7 +50,7 @@ Useful: `npm run typecheck` | `npm run analyze:sizes` | `npm run release:gate`
 
 | Track | Status |
 |-------|--------|
-| Core commerce hardening | Green locally: typecheck, 625 tests, production build |
+| Core commerce hardening | Green locally: typecheck, 629 tests, production build |
 | Company site | Live on Coolify at `grabberpoz.com`; company/demo host split is active |
 | Demo storefront | Live at `demo.grabberpoz.com` with seeded catalog and theme picker |
 | ThePartyStore | Live client storefront on its dedicated app/database; final handover checks remain |
@@ -61,6 +61,8 @@ Useful: `npm run typecheck` | `npm run analyze:sizes` | `npm run release:gate`
 Landing: `LANDING_MODE=company|storefront` controls HQ marketing vs client shop at `/`; when unset, host fallback decides. There is no `auto` mode.
 
 Database note: the active company/demo app currently uses the configured Supabase cloud Postgres. The exited Coolify Supabase service in the POZ project is not the live serving database; do not replace it during launch polish without a backup-first migration plan.
+
+Company admin note: `/company` is the company dashboard, `/company/leads` is the prospect CRM, `/company/settings` controls company profile/logo, and `/company/admin` is the Owner/Admin command center. See [`docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md`](docs/COMPANY_ADMIN_SUPERADMIN_PLAN.md).
 
 ---
 

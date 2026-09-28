@@ -79,8 +79,11 @@ Do NOT refactor:
 - Marketing landing page with lead capture form
 - Leads saved to `company_leads` DB table (migration 0022)
 - Legacy JSON backup kept as fallback
+- Company dashboard at `/company`
 - Admin CRM at `/company/leads` (search, filter, edit, archive, status pipeline)
-- RBAC-protected: Owner/Manager only
+- Company settings at `/company/settings` (profile, tax, receipt, logo URL)
+- SuperAdmin command center at `/company/admin` (Owner/Admin entry point for company CRUD areas)
+- RBAC-protected: Owner/Admin/Manager/Marketing by route and action
 - Lead statuses: NEW -> CONTACTED -> DEMO_SCHEDULED -> PROPOSAL_SENT -> WON/LOST/ARCHIVED
 
 ### Jarvis / AI
@@ -248,9 +251,10 @@ npm run release:gate-r1       # R1 automated gate
 ## 9. ROADMAP
 
 ### Immediate (Deploy now)
-- [ ] Trigger Coolify redeploy from main (commit 392a13e)
-- [ ] Run db:bootstrap on POZ company DB (adds company_leads)
-- [ ] Smoke: lead form -> /company/leads -> verify saved
+- [ ] Trigger Coolify redeploy from main (latest commit)
+- [x] Apply `company_leads` migration on POZ company DB
+- [x] Smoke: lead form -> /company/leads -> verify saved
+- [ ] Smoke: /company, /company/settings, /company/admin after redeploy
 - [ ] Smoke: /adminpoz login -> POS sale -> report
 - [ ] Smoke: /shop -> checkout COD
 
@@ -283,8 +287,8 @@ npm run release:gate-r1       # R1 automated gate
 
 | Item | Status | Action |
 |------|--------|--------|
-| company_leads table | Migration ready | Run db:bootstrap on POZ DB |
-| Coolify redeploy | Pending | Trigger in Coolify from main |
+| company_leads table | Applied on POZ Supabase | Keep ThePartyStore DB untouched |
+| Coolify redeploy | Pending | Trigger in Coolify from latest main |
 | 0013_drop_legacy_triggers.sql | Pending (.pending) | Apply manually after verifying |
 | Sentry DSN | Optional | Add NEXT_PUBLIC_SENTRY_DSN in Coolify |
 | Party Store catalog import approval | Backlog | Phase A |

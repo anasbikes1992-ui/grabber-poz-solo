@@ -99,6 +99,7 @@ export async function upsertBusinessProfile(input: {
   name?: string;
   legalName?: string;
   taxNumber?: string;
+  logoUrl?: string;
   receiptHeader?: string;
   receiptFooter?: string;
   currency?: string;

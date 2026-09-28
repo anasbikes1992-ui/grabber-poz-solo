@@ -29,6 +29,8 @@ import {
   FileText,
   Clock,
   Briefcase,
+  Building2,
+  ShieldCheck,
   Share2,
   ExternalLink,
 } from 'lucide-react';
@@ -141,6 +143,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     { href: '/orders', label: t('orders', lang), icon: ShoppingBag, desc: 'Live counter & online orders' },
     { href: '/returns', label: t('returns', lang), icon: RotateCcw, desc: 'Return authorizations & refunds' },
     { href: '/customers', label: t('customers', lang), icon: Users, desc: 'Customer accounts & history' },
+    { href: '/company', label: 'Company Dashboard', icon: Building2, desc: 'Company admin command hub' },
     { href: '/company/leads', label: 'Company Leads', icon: Briefcase, desc: 'Prospects, demos & onboarding' },
     { href: '/store/builder', label: 'Storefront CMS', icon: Palette, desc: 'Online theme & hero layout' },
     { href: '/shop', label: 'Live Storefront', icon: ExternalLink, desc: 'View customer-facing catalog', external: true },
@@ -190,6 +193,8 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
   const settingsItems = [
     { href: '/app', label: t('hub', lang), icon: LayoutDashboard, desc: 'Operational dashboard & alerts' },
     { href: '/shifts', label: 'Cash Drawer Shifts', icon: Clock, desc: 'Register open & close counts' },
+    { href: '/company/admin', label: 'SuperAdmin', icon: ShieldCheck, desc: 'Company owner/admin command center' },
+    { href: '/company/settings', label: 'Company Settings', icon: Building2, desc: 'Company logo & public profile' },
     { href: '/settings', label: 'Business Settings', icon: Settings, desc: 'Company profile & tax defaults' },
     { href: '/settings/installation', label: 'Cloud & License', icon: Briefcase, desc: 'Dedicated host & status' },
   ];

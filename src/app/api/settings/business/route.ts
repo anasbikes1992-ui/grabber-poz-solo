@@ -62,6 +62,7 @@ export async function PUT(req: Request) {
       name: body.name,
       legalName: body.legalName,
       taxNumber: body.taxNumber,
+      logoUrl: body.logoUrl,
       receiptHeader: body.receiptHeader,
       receiptFooter: body.receiptFooter,
       currency: body.currency,

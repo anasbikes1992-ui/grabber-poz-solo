@@ -11,6 +11,7 @@ type BusinessProfile = {
   name: string;
   legalName: string;
   taxNumber: string;
+  logoUrl: string;
   receiptHeader: string;
   receiptFooter: string;
   currency: string;
@@ -28,6 +29,7 @@ export default function SettingsPage() {
     name: '',
     legalName: '',
     taxNumber: '',
+    logoUrl: '',
     receiptHeader: '',
     receiptFooter: '',
     currency: 'LKR',
@@ -59,6 +61,7 @@ export default function SettingsPage() {
           name: data.profile.name || '',
           legalName: data.profile.legalName || '',
           taxNumber: data.profile.taxNumber || '',
+          logoUrl: data.profile.logoUrl || '',
           receiptHeader: data.profile.receiptHeader || '',
           receiptFooter: data.profile.receiptFooter || '',
           currency: data.profile.currency || 'LKR',
@@ -346,6 +349,19 @@ export default function SettingsPage() {
                   type="text"
                   value={profile.taxNumber}
                   onChange={(e) => setProfile((p) => ({ ...p, taxNumber: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
+                />
+              </div>
+              <div>
+                <label htmlFor="settings-logo-url" className="text-muted-foreground block mb-1">
+                  Company Logo URL
+                </label>
+                <input
+                  id="settings-logo-url"
+                  type="text"
+                  value={profile.logoUrl}
+                  onChange={(e) => setProfile((p) => ({ ...p, logoUrl: e.target.value }))}
+                  placeholder="/uploads/grabber-logo.png or https://..."
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-foreground font-medium"
                 />
               </div>
