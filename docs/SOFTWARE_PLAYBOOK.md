@@ -32,7 +32,7 @@ Client DNS
 
 ```mermaid
 flowchart TD
-  A[1 Intake + package] --> B[2 env:validate P0]
+  A[1 Intake + Pro scope] --> B[2 env:validate P0]
   B --> C[3 Dedicated Postgres + schema]
   C --> D[4 Deploy on Grabber VPS]
   D --> E[5 Sentry DSN + cron]
@@ -41,7 +41,7 @@ flowchart TD
   G --> H[8 Ready for Re-Testing P0]
   H --> I[9 Physical POS smoke]
   I --> J[10 Rotate secrets / PIN]
-  J --> K[11 Optional COMMS / SOCIAL / AI credits]
+  J --> K[11 Provider setup / vertical readiness]
   K --> L[12 7-day acceptance]
   L --> M[13 Handover + maintenance start]
 ```
@@ -59,7 +59,7 @@ Collect using [`CLIENT_ONBOARDING_CREDENTIALS.md`](./CLIENT_ONBOARDING_CREDENTIA
 - Product / customer / supplier CSVs  
 - Domain + DNS contact  
 - Optional: WhatsApp, pixels, PayHere, courier keys  
-- Contracted packages: CORE / COMMS / SOCIAL Cx / VERTICALS  
+- Contracted scope: Grabber Business OS Pro plus vertical pack, providers, data migration size, hardware, branch count, and handover services
 
 ### Step 2 — Environment file
 
@@ -153,7 +153,9 @@ Record as **PHYSICAL_POS_SMOKE PASS**.
 - Confirm no demo shopper password left as default for real customers.  
 - Store secrets in vault; never in git.
 
-### Step 10 — Optional packages
+### Step 10 — Provider and vertical readiness
+
+These are configured inside the same Grabber Business OS Pro product. They are not software feature tiers.
 
 **COMMS:** set `WHATSAPP_*`, `NEXT_PUBLIC_WHATSAPP_NUMBER`, Meta webhook → `/api/whatsapp/webhook`, subscribe `messages`.  
 

@@ -103,13 +103,13 @@ Recommended offer:
 
 - One-time setup fee for onboarding, data import, branding, and training.
 - Monthly subscription for hosting, updates, support, backups, and maintenance.
-- Optional add-ons for hardware, barcode printers, payment gateway setup, WhatsApp automation, custom storefront polish, and extra training.
+- Quoted implementation extras for hardware, barcode printers, payment gateway setup, WhatsApp automation, custom storefront polish, data cleanup, extra training, and additional branches. These do not create lower or higher software packages.
 
 Suggested pricing shape:
 
-- Starter single-shop package for small retailers.
-- Pro package as the main offer: POS, online store, inventory, customers, Polim Potha, reports, staff, suppliers, purchasing, and vertical module selection.
-- Premium onboarding for businesses needing imports, custom domain, payment gateway, advanced storefront, or multiple branches.
+- One software product: Grabber Business OS Pro.
+- One commercial base: license/setup plus monthly hosting, updates, support, backups, and maintenance.
+- Variable implementation scope: migration size, custom domain, payment gateway, advanced storefront, hardware, training, branch count, and vertical depth are quoted as services around the same Pro platform.
 
 The strongest sales message:
 

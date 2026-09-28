@@ -176,7 +176,7 @@ Track H (onboarding/scale)  ─────────────────�
 ### Definition of done for this review
 - Track A–B, D–F, H acceptance criteria remain exactly as defined in `goalplan.md` Section 9 and `docs/ROADMAP.md` release gates — this document adds insertion points, not new exit criteria for existing work.
 - Track C and G items are considered done when: CI blocks merges on failing typecheck/test/build/release-gate; Playwright smoke + visual regression run in CI; `/pos` and `/shop` are installable PWAs; the two open a11y items are closed and verified by the a11y test suite; at least the four already-drafted theme presets are wired to vertical packs in onboarding step 1.
-- Each Section 4 module is considered scoped-and-ready when it has a one-page spec (problem, schema delta if any, package tier, and explicit exclusions) added to `docs/CLAIMS_AND_SCOPE.md` and `docs/COMMERCIAL_MODEL.md` **before** any client-facing claim is made about it — consistent with the existing claims discipline.
+- Each Section 4 module is considered scoped-and-ready when it has a one-page spec (problem, schema delta if any, commercial scope, and explicit exclusions) added to `docs/CLAIMS_AND_SCOPE.md` and `docs/COMMERCIAL_MODEL.md` **before** any client-facing claim is made about it — consistent with the existing claims discipline.
 
 ---
 
