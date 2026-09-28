@@ -826,6 +826,37 @@ export const orderAutomationEvents = pgTable('order_automation_events', {
   statusIdx: index('order_automation_events_status_idx').on(t.status),
 }));
 
+export const fulfillmentWorkItems = pgTable('fulfillment_work_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  workType: text('work_type').notNull(),
+  status: text('status').notNull().default('READY'),
+  detailJson: jsonb('detail_json').$type<Record<string, unknown>>().notNull().default({}),
+  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  orderIdx: index('fulfillment_work_items_order_idx').on(t.orderId, t.createdAt),
+  typeStatusIdx: index('fulfillment_work_items_type_status_idx').on(t.workType, t.status),
+}));
+
+export const barcodeLabelQueue = pgTable('barcode_label_queue', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sourceType: text('source_type').notNull(),
+  sourceId: text('source_id').notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }),
+  quantity: integer('quantity').notNull().default(1),
+  status: text('status').notNull().default('QUEUED'),
+  detailJson: jsonb('detail_json').$type<Record<string, unknown>>().notNull().default({}),
+  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  sourceIdx: index('barcode_label_queue_source_idx').on(t.sourceType, t.sourceId),
+  statusIdx: index('barcode_label_queue_status_idx').on(t.status),
+}));
+
 export const orderReturns = pgTable('order_returns', {
   id: uuid('id').primaryKey().defaultRandom(),
   originalOrderId: uuid('original_order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),

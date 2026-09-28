@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Truck, MapPin, RefreshCw, PackageCheck } from 'lucide-react';
+import { Truck, MapPin, RefreshCw, PackageCheck, ClipboardList, FileText } from 'lucide-react';
 
 type ShipmentRow = {
   orderId: string;
@@ -231,6 +231,27 @@ export default function DeliveryBoardPage() {
                     </span>
                   </td>
                   <td className="py-3 text-right space-x-1">
+                    <Link
+                      href={`/api/orders/${encodeURIComponent(d.orderNumber)}/pick-list`}
+                      target="_blank"
+                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-200 font-semibold text-[11px] inline-flex items-center gap-1"
+                    >
+                      <ClipboardList className="h-3 w-3" /> Pick
+                    </Link>
+                    <Link
+                      href={`/api/orders/${encodeURIComponent(d.orderNumber)}/packing-slip`}
+                      target="_blank"
+                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-200 font-semibold text-[11px] inline-flex items-center gap-1"
+                    >
+                      <FileText className="h-3 w-3" /> Slip
+                    </Link>
+                    <Link
+                      href={`/api/orders/${encodeURIComponent(d.orderNumber)}/delivery-note`}
+                      target="_blank"
+                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 text-zinc-200 font-semibold text-[11px] inline-flex items-center gap-1"
+                    >
+                      <Truck className="h-3 w-3" /> Note
+                    </Link>
                     {!d.trackingNumber && d.status === 'PENDING_DISPATCH' && (
                       <button
                         type="button"

@@ -2,7 +2,18 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, RefreshCw, ArrowLeft, Filter, FileText, ChevronDown, Workflow } from 'lucide-react';
+import {
+  ShoppingBag,
+  RefreshCw,
+  ArrowLeft,
+  Filter,
+  FileText,
+  ChevronDown,
+  Workflow,
+  ClipboardList,
+  PackageCheck,
+  Truck,
+} from 'lucide-react';
 
 type Order = {
   id: string;
@@ -163,15 +174,15 @@ export default function OrdersPage() {
                 <div className="flex gap-1 mt-2 flex-wrap">
                   <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] uppercase">{o.orderStatus}</span>
                   <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] uppercase">{o.paymentStatus}</span>
-                <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] uppercase">
-                  {o.items?.length || 0} line(s)
-                </span>
-                {o.automationSummary && (
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 text-[10px] uppercase">
-                    {o.automationSummary.done}/{o.automationSummary.total} automated
+                  <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] uppercase">
+                    {o.items?.length || 0} line(s)
                   </span>
-                )}
-              </div>
+                  {o.automationSummary && (
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 text-[10px] uppercase">
+                      {o.automationSummary.done}/{o.automationSummary.total} automated
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase">
@@ -246,6 +257,29 @@ export default function OrdersPage() {
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <h2 className="text-xs font-extrabold uppercase tracking-wider text-zinc-300">Invoice breakdown</h2>
                     <span className="text-[10px] font-bold text-zinc-500">{o.items?.length || 0} item line(s)</span>
+                  </div>
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <Link
+                      href={`/api/orders/${encodeURIComponent(o.receiptNo)}/pick-list`}
+                      target="_blank"
+                      className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-zinc-900 px-2.5 py-1 text-[10px] font-bold text-zinc-200 hover:text-emerald-300"
+                    >
+                      <ClipboardList className="h-3 w-3" /> Pick List
+                    </Link>
+                    <Link
+                      href={`/api/orders/${encodeURIComponent(o.receiptNo)}/packing-slip`}
+                      target="_blank"
+                      className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-zinc-900 px-2.5 py-1 text-[10px] font-bold text-zinc-200 hover:text-emerald-300"
+                    >
+                      <PackageCheck className="h-3 w-3" /> Packing Slip
+                    </Link>
+                    <Link
+                      href={`/api/orders/${encodeURIComponent(o.receiptNo)}/delivery-note`}
+                      target="_blank"
+                      className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-zinc-900 px-2.5 py-1 text-[10px] font-bold text-zinc-200 hover:text-emerald-300"
+                    >
+                      <Truck className="h-3 w-3" /> Delivery Note
+                    </Link>
                   </div>
                   {o.items?.length ? (
                     <div className="space-y-2">

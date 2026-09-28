@@ -33,6 +33,15 @@ Done when:
 
 ## Milestone 2 - Fulfillment Pack
 
+Status: in progress.
+
+Implemented foundation:
+- `fulfillment_work_items` table.
+- `barcode_label_queue` table.
+- Order fulfillment readiness API.
+- Printable pick list, packing slip, and delivery note for each order.
+- Orders and Delivery UI links to fulfillment documents.
+
 Goal: turn storefront/POS orders into operational work.
 
 Scope:
