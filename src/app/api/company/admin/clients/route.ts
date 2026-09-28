@@ -59,6 +59,27 @@ async function requireClientAdmin() {
   return assertRole(session, [...ALLOWED_ROLES]);
 }
 
+function isMissingClientRegisterSchema(error: unknown) {
+  const err = error as { code?: string; message?: string };
+  const message = String(err.message || '').toLowerCase();
+  return (
+    err.code === '42P01' ||
+    (err.code === '42703' && message.includes('company_')) ||
+    message.includes('company_clients') ||
+    message.includes('company_onboarding_tasks')
+  );
+}
+
+function clientRegisterSetupResponse(status = 503) {
+  return NextResponse.json({
+    success: status < 500,
+    setupRequired: true,
+    error: 'Client provisioning database tables are not ready',
+    setupMessage: 'Run npm run db:bootstrap on the POZ database to apply migration 0023_company_client_provisioning.sql.',
+    clients: [],
+  }, { status });
+}
+
 function serializeClient(row: typeof companyClients.$inferSelect, tasks: Array<typeof companyOnboardingTasks.$inferSelect> = []) {
   return {
     id: row.id,
@@ -159,6 +180,9 @@ export async function GET(req: Request) {
       clients: rows.map((row) => serializeClient(row, taskMap.get(row.id) || [])),
     });
   } catch (err: unknown) {
+    if (isMissingClientRegisterSchema(err)) {
+      return clientRegisterSetupResponse(200);
+    }
     const e = err as { status?: number; message?: string };
     if (e.status && e.status < 500) {
       return NextResponse.json({ success: false, error: e.message || 'Unauthorized' }, { status: e.status });
@@ -215,6 +239,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, client: serializeClient(client, tasks) });
   } catch (err: unknown) {
+    if (isMissingClientRegisterSchema(err)) {
+      return clientRegisterSetupResponse(503);
+    }
     const e = err as { status?: number; message?: string };
     if (e.status && e.status < 500) {
       return NextResponse.json({ success: false, error: e.message || 'Request failed' }, { status: e.status });
@@ -288,6 +315,9 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, client: serializeClient(client, tasks) });
   } catch (err: unknown) {
+    if (isMissingClientRegisterSchema(err)) {
+      return clientRegisterSetupResponse(503);
+    }
     const e = err as { status?: number; message?: string };
     if (e.status && e.status < 500) {
       return NextResponse.json({ success: false, error: e.message || 'Request failed' }, { status: e.status });

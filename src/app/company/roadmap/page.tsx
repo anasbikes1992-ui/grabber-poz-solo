@@ -70,6 +70,21 @@ const erpStatus = [
   { area: 'Compliance', status: 'Foundation only', detail: 'E-invoice submissions table exists. Remaining: certified IRD gateway, VAT return pack, and production provider certification.' },
 ];
 
+const recommendations = [
+  {
+    title: 'Run DB bootstrap after each company deploy',
+    detail: 'This keeps company_leads, company_clients, onboarding tasks, and future company admin tables aligned before UI smoke testing.',
+  },
+  {
+    title: 'Build demand planning as read-only recommendations first',
+    detail: 'Forecast tables, SKU classification, safety stock, and suggested PO review should ship before any automatic purchasing behavior.',
+  },
+  {
+    title: 'Keep settings entry under Company',
+    detail: 'Owners should start at /company/settings; advanced operational vault routes can remain behind that command surface.',
+  },
+];
+
 export default function CompanyRoadmapPage() {
   return (
     <div className="max-w-6xl space-y-6">
@@ -157,6 +172,18 @@ export default function CompanyRoadmapPage() {
                   {item.status}
                 </span>
               </div>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-4">
+        <p className="text-xs font-black uppercase tracking-wide text-amber-300">Recommended Next Moves</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {recommendations.map((item) => (
+            <article key={item.title} className="rounded-lg border border-border bg-background/40 p-3">
+              <h3 className="text-sm font-black">{item.title}</h3>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.detail}</p>
             </article>
           ))}

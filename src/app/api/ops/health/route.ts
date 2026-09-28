@@ -5,6 +5,7 @@ import { reconcileStockDrift } from '@/lib/inventory/stock-service';
 import { listAutomationLogs } from '@/lib/automation/rules-store';
 import { db, webhookEvents } from '@/db';
 import { eq } from 'drizzle-orm';
+import { publicErrorResponse } from '@/lib/api/http-errors';
 
 export async function GET() {
   try {
@@ -35,7 +36,7 @@ export async function GET() {
       stockDrift,
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return publicErrorResponse(err, { message: 'Could not load ops health', logMessage: 'Ops health load failed' });
   }
 }
 
@@ -52,6 +53,6 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return publicErrorResponse(err, { message: 'Could not update ops health', logMessage: 'Ops health update failed' });
   }
 }

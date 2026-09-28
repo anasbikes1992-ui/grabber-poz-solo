@@ -15,13 +15,18 @@ type Health = {
 export default function OpsHealthPage() {
   const [data, setData] = useState<Health | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setBusy(true);
+    setError(null);
     try {
       const res = await fetch('/api/ops/health');
       const json = await res.json();
-      if (json.success) setData(json);
+      if (!json.success) throw new Error(json.error || 'Could not load ops health');
+      setData(json);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load ops health');
     } finally {
       setBusy(false);
     }
@@ -58,6 +63,19 @@ export default function OpsHealthPage() {
           <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} /> Refresh
         </button>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+          <p className="font-black">Ops health could not load.</p>
+          <p className="mt-1 text-xs text-red-100/80">{error}</p>
+        </div>
+      )}
+
+      {!error && busy && !data && (
+        <div className="rounded-lg border border-border bg-card p-5 text-sm text-muted-foreground">
+          Loading ops health signals...
+        </div>
+      )}
 
       {data && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

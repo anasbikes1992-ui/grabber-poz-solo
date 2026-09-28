@@ -193,14 +193,16 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
   ];
 
   const settingsItems = [
-    { href: '/app', label: t('hub', lang), icon: LayoutDashboard, desc: 'Operational dashboard & alerts' },
-    { href: '/shifts', label: 'Cash Drawer Shifts', icon: Clock, desc: 'Register open & close counts' },
-    { href: '/company/admin', label: 'SuperAdmin', icon: ShieldCheck, desc: 'Company owner/admin command center' },
+    { href: '/company/admin', label: 'Company Admin', icon: ShieldCheck, desc: 'Owner/admin command center' },
+    { href: '/company', label: 'Company Dashboard', icon: Building2, desc: 'Company profile, leads & readiness' },
+    { href: '/company/settings', label: 'Company Settings', icon: Settings, desc: 'Logo, profile, tax & receipt identity' },
+    { href: '/company/leads', label: 'Company Leads', icon: Briefcase, desc: 'Prospects, demos & follow-ups' },
     { href: '/company/clients', label: 'Client Provisioning', icon: Server, desc: 'Isolated app, DB & handover register' },
-    { href: '/company/settings', label: 'Company Settings', icon: Building2, desc: 'Company logo & public profile' },
+    { href: '/company/audit', label: 'Audit Trail', icon: FileText, desc: 'Protected action history' },
     { href: '/company/roadmap', label: 'Company Roadmap', icon: ListChecks, desc: 'Milestones, SOP & next work order' },
-    { href: '/settings', label: 'Business Settings', icon: Settings, desc: 'Company profile & tax defaults' },
+    { href: '/settings/staff', label: 'Staff & Roles', icon: Users, desc: 'Users, roles, active status & PINs' },
     { href: '/settings/installation', label: 'Cloud & License', icon: Briefcase, desc: 'Dedicated host & status' },
+    { href: '/ops', label: 'Ops Health', icon: Clock, desc: 'Runtime, jobs & data integrity signals' },
   ];
 
   const userRole: SessionRole = (user?.role as SessionRole) || 'OWNER';
@@ -492,14 +494,14 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
                   }`}
                 >
                   <Settings className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Settings</span>
+                  <span>Company</span>
                   <ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === 'settings' ? 'rotate-180' : ''}`} />
                 </button>
 
                 {openDropdown === 'settings' && (
                   <div className="absolute top-full right-0 mt-1.5 w-60 rounded-2xl bg-popover/95 border border-border shadow-2xl backdrop-blur-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1">
-                      System & Operations
+                      Company Admin & Settings
                     </div>
                     {allowedSettings.map((item) => {
                       const Icon = item.icon;
@@ -770,7 +772,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                       <Settings className="w-3 h-3 text-zinc-400" />
-                      System & Operations
+                      Company Admin & Settings
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {allowedSettings.map((item) => (

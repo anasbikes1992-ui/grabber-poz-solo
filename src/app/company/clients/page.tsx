@@ -148,6 +148,7 @@ export default function CompanyClientsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [setupRequired, setSetupRequired] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -159,9 +160,11 @@ export default function CompanyClientsPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Load failed');
       setClients(data.clients || []);
+      setSetupRequired(data.setupRequired ? data.setupMessage || 'Client provisioning database tables are not ready.' : null);
       setError(null);
     } catch (err) {
       setError((err as Error).message);
+      setSetupRequired(null);
     } finally {
       setLoading(false);
     }
@@ -188,6 +191,7 @@ export default function CompanyClientsPage() {
     setForm(emptyForm);
     setMessage(null);
     setError(null);
+    setSetupRequired(null);
   };
 
   const selectClient = (client: CompanyClient) => {
@@ -195,6 +199,7 @@ export default function CompanyClientsPage() {
     setForm(formFromClient(client));
     setMessage(null);
     setError(null);
+    setSetupRequired(null);
   };
 
   const save = async () => {
@@ -301,6 +306,12 @@ export default function CompanyClientsPage() {
             </div>
           </div>
 
+          {setupRequired && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-100">
+              <p className="font-black">Client provisioning schema is pending.</p>
+              <p className="mt-1 text-xs leading-relaxed text-amber-100/80">{setupRequired}</p>
+            </div>
+          )}
           {error && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</p>}
           {message && <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">{message}</p>}
 
@@ -446,7 +457,7 @@ export default function CompanyClientsPage() {
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="mt-1 min-h-24 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-emerald-500" />
           </label>
 
-          <button type="button" onClick={save} disabled={saving} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-black text-zinc-950 transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60">
+          <button type="button" onClick={save} disabled={saving || Boolean(setupRequired)} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-black text-zinc-950 transition hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60">
             <Save className="h-4 w-4" />
             {saving ? 'Saving...' : selected ? 'Save Client' : 'Create Register'}
           </button>

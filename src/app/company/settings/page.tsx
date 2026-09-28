@@ -29,8 +29,8 @@ const emptyProfile: BusinessProfileForm = {
 const settingRoutes = [
   {
     href: '/settings',
-    label: 'Business Settings',
-    desc: 'Tax defaults, integrations, vertical modules, and backup vault.',
+    label: 'Advanced Settings Vault',
+    desc: 'Operational tax defaults, integrations, vertical modules, and backup vault.',
     icon: Settings,
   },
   {
@@ -205,9 +205,9 @@ export default function CompanySettingsPage() {
       <section className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-black">Connected Settings Routes</h2>
+            <h2 className="text-lg font-black">Company Settings Routes</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Company profile stays here. Operational settings continue to use the existing mature routes below.
+              Company profile starts here. Advanced operational settings continue to use the existing mature vault routes below.
             </p>
           </div>
           <Link href="/company/admin" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wide text-emerald-300 hover:text-emerald-200">
