@@ -98,9 +98,11 @@ Implemented:
 2. ABC/XYZ classification baseline.
 3. Safety stock and reorder point recommendations.
 4. Snapshot persistence into forecast and replenishment tables.
+5. Supplier/warehouse review queue at `/purchasing/recommendations`.
+6. Explicit draft PO creation from one reviewed recommendation.
 
 Remaining:
-1. Supplier-aware suggested PO review queue with owner/admin approval.
+1. Full PO approval state machine before GRN/payment.
 2. Forecast accuracy reporting using WMAPE and bias.
 3. Cost variance and supplier scorecards.
 
@@ -130,3 +132,4 @@ Non-goals:
 7. Confirm `/company/audit` renders recent logs for Owner/Admin/Manager.
 8. Confirm `/company/deployments` renders and can create a manual deployment record after migration 0024.
 9. Confirm `/ai/demand` renders and can save a forecast snapshot after migration 0025.
+10. Confirm `/purchasing/recommendations` renders and can create a draft PO after migration 0026.

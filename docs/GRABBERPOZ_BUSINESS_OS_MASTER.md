@@ -145,7 +145,7 @@ NEXT_PUBLIC_APP_URL=   # Full domain URL
 
 ### After Each Deploy
 ```bash
-npm run db:bootstrap   # Apply all pending migrations (including company admin 0022-0025)
+npm run db:bootstrap   # Apply all pending migrations (including company admin 0022-0026)
 POST /api/seed         # If fresh install: { demo: false }
 GET /api/health        # Verify
 GET /api/ops/health    # Verify integrations
@@ -281,7 +281,8 @@ npm run release:gate-r1       # R1 automated gate
 - [x] ABC/XYZ SKU classification baseline
 - [x] Safety stock and reorder point recommendations
 - [x] Forecast snapshots and draft replenishment recommendations
-- [ ] Supplier-aware suggested PO review queue
+- [x] Supplier-aware suggested PO review queue
+- [x] Explicit draft PO creation from one recommendation
 - [ ] Forecast accuracy reporting using WMAPE and bias
 
 ### Phase A -- Catalog Workspace
@@ -337,6 +338,9 @@ npm run release:gate-r1       # R1 automated gate
 | `src/app/ai/demand/page.tsx` | Demand planning workbench |
 | `src/app/api/inventory/demand/route.ts` | Demand planning API |
 | `drizzle/migrations/0025_inventory_demand_planning.sql` | Forecast and replenishment tables |
+| `src/app/purchasing/recommendations/page.tsx` | Replenishment review queue |
+| `src/app/api/purchasing/recommendations/route.ts` | Recommendation review and draft PO API |
+| `drizzle/migrations/0026_replenishment_review_workflow.sql` | Supplier/warehouse/PO linkage on recommendations |
 | `drizzle/migrations/0023_company_client_provisioning.sql` | Client provisioning tables |
 | `drizzle/migrations/0024_company_deployments.sql` | Company deployment register |
 | `src/components/ui/app-header.tsx` | Staff nav (all nav groups) |

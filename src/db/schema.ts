@@ -492,15 +492,23 @@ export const replenishmentRecommendations = pgTable('replenishment_recommendatio
   id: uuid('id').primaryKey().defaultRandom(),
   forecastItemId: uuid('forecast_item_id').references(() => forecastItems.id, { onDelete: 'cascade' }),
   productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  supplierId: uuid('supplier_id').references(() => suppliers.id, { onDelete: 'set null' }),
+  targetWarehouseId: uuid('target_warehouse_id').references(() => warehouses.id, { onDelete: 'set null' }),
+  approvedPoId: uuid('approved_po_id').references(() => purchaseOrders.id, { onDelete: 'set null' }),
   status: text('status').notNull().default('DRAFT'),
   suggestedOrderQty: integer('suggested_order_qty').notNull().default(0),
+  unitCost: numeric('unit_cost', { precision: 12, scale: 2 }),
   reason: text('reason').notNull().default(''),
+  notes: text('notes').notNull().default(''),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
   reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
 }, (t) => ({
   productIdx: index('replenishment_recommendations_product_idx').on(t.productId),
   statusIdx: index('replenishment_recommendations_status_idx').on(t.status),
+  supplierIdx: index('replenishment_recommendations_supplier_idx').on(t.supplierId),
+  warehouseIdx: index('replenishment_recommendations_warehouse_idx').on(t.targetWarehouseId),
+  poIdx: index('replenishment_recommendations_po_idx').on(t.approvedPoId),
 }));
 
 export const catalogImportRuns = pgTable('catalog_import_runs', {

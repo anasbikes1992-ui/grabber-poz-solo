@@ -108,7 +108,8 @@ Last updated: 2026-09-01
 | Jarvis drawer UI | KEEP | `src/components/ai/jarvis-drawer.tsx` | Wire to tools |
 | Agents | PARTIAL | `src/lib/agents/*`, `/ai/agents` | R6 — 12 agents live |
 | Creative generate | COMPLETE | `/api/creative/generate`, `/creative` | No approval workflow |
-| Demand planning | KEEP | `/ai/demand`, `/api/inventory/demand` | Read-only forecast snapshots and draft replenishment recommendations |
+| Demand planning | KEEP | `/ai/demand`, `/api/inventory/demand` | Forecast snapshots and replenishment recommendations |
+| Replenishment PO review | KEEP | `/purchasing/recommendations`, `/api/purchasing/recommendations` | Supplier/warehouse review and explicit draft PO creation |
 
 ---
 

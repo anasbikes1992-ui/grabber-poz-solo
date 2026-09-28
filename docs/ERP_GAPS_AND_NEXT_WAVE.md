@@ -1,7 +1,7 @@
 # ERP Gaps, SSOT Verification & Next Wave
 
 **Updated:** 2026-09-28
-**Schema SSOT:** `src/db/schema.ts` + migrations `0018_erp_verticals.sql` through `0025_inventory_demand_planning.sql`
+**Schema SSOT:** `src/db/schema.ts` + migrations `0018_erp_verticals.sql` through `0026_replenishment_review_workflow.sql`
 **Current schema footprint:** 107 table definitions in `src/db/schema.ts`
 
 ---
@@ -15,7 +15,7 @@
 | HR / payroll | Employees, attendance, leave requests, payroll runs, payroll lines, EPF/ETF/PAYE stub, wage payment, statutory remittance, and payroll exports exist. |
 | Vertical ERP depth | Pharmacy FEFO/controlled-drug logs, rental assets/contracts/deposits, restaurant KDS/menu/recipes, auto-parts fitment, repairs, warranties, and jewelry/watch vertical pack exist. |
 | Company admin | Leads CRM, clients provisioning register, deployment register, company settings, SuperAdmin command center, roadmap, and audit trail are live. |
-| Demand planning foundation | Forecast runs, forecast items, SKU classifications, replenishment recommendations, read-only planner UI, and snapshot persistence are live. |
+| Demand planning foundation | Forecast runs, forecast items, SKU classifications, replenishment recommendations, read-only planner UI, snapshot persistence, and PO review queue are live. |
 | Compliance foundation | E-invoice submissions, email templates, and webhook event tables exist. |
 
 ---
@@ -28,12 +28,12 @@ These are the remaining ERP gaps before claiming “full ERP complete”:
    - Purchase order approval workflow on top of existing PO/GRN/AP tables
    - Supplier scorecards
    - Cost price variance alerts
-   - Suggested PO review queue
+   - Bulk conversion of approved recommendations into supplier-grouped POs
 
 2. **Forecast accuracy and planning maturity**
    - WMAPE and bias reporting
    - Supplier-aware lead-time defaults
-   - Owner/Admin approval flow from recommendation to purchase order
+   - Recommendation-to-PO accuracy audit after receiving
 
 3. **Compliance certification**
    - Certified IRD e-invoice provider integration

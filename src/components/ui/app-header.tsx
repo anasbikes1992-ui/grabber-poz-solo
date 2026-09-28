@@ -161,6 +161,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     { href: '/inventory/transfer', label: 'Stock Transfers', icon: ArrowLeftRight, desc: 'Inter-branch stock dispatch' },
     { href: '/inventory/stock-take', label: 'Stock Take Audit', icon: Package, desc: 'Physical audit & variance' },
     { href: '/ai/demand', label: 'Demand Planning', icon: BarChart3, desc: 'Forecast snapshots & replenishment radar' },
+    { href: '/purchasing/recommendations', label: 'PO Review Queue', icon: ListChecks, desc: 'Approve recommendations into draft POs' },
     { href: '/barcodes', label: 'Barcode Hangtags', icon: Barcode, desc: 'Thermal labels & printing' },
   ];
 

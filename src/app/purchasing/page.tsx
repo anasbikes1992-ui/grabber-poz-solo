@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Truck, Plus, CheckCircle2, PackageCheck, AlertCircle, Grid3X3 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { buildMatrixPoLines, matrixGridKey, matrixPoSummary } from '@/lib/purchasing/matrix-po';
@@ -225,6 +226,12 @@ export default function PurchasingPage() {
           <p className="text-xs text-muted-foreground mt-0.5">Durable POs via /api/purchasing/orders</p>
         </div>
         <div className="flex gap-2">
+          <Link
+            href="/purchasing/recommendations"
+            className="px-4 py-2 min-h-11 rounded-xl bg-zinc-800 border border-zinc-700 text-xs font-bold flex items-center gap-2 hover:border-emerald-500/50"
+          >
+            <PackageCheck className="h-3.5 w-3.5" /> PO Review
+          </Link>
           <button
             type="button"
             onClick={() => {

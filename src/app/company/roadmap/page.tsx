@@ -39,7 +39,7 @@ const milestones = [
     status: 'In progress',
     owner: 'Inventory',
     goal: 'Turn existing sales, stock, GRN, supplier, and ledger data into safe recommendations before any PO automation.',
-    checks: ['107 schema tables mapped', 'ABC/XYZ classes', 'Safety stock and reorder points', 'Forecast snapshots saved'],
+    checks: ['107 schema tables mapped', 'ABC/XYZ classes', 'Safety stock and reorder points', 'PO review queue'],
   },
   {
     title: 'Milestone 5 - Security & Quality Gate',
@@ -67,7 +67,7 @@ const erpStatus = [
   { area: 'Purchasing / GRN / AP', status: 'Implemented foundation', detail: 'Purchase orders, GRN, supplier accounts, AP invoices/payments, and AP journal posting exist. Remaining: PO approval workflow and supplier scorecards.' },
   { area: 'HR / Payroll', status: 'Implemented foundation', detail: 'Employees, attendance, leave, payroll runs/lines, EPF/ETF/PAYE stub, wage payment, statutory remittance, and exports exist. Remaining: official IRD PAYE table certification and biometric clocks.' },
   { area: 'Company Admin', status: 'Live', detail: 'Lead CRM, clients register, deployment register, settings, roadmap, SuperAdmin command center, and audit trail are live.' },
-  { area: 'Forecast / Replenishment', status: 'Foundation live', detail: '/ai/demand now computes read-only recommendations, saves forecast snapshots, and creates draft replenishment recommendations. Remaining: supplier-aware PO review queue and forecast accuracy reporting.' },
+  { area: 'Forecast / Replenishment', status: 'Foundation live', detail: '/ai/demand computes recommendations and /purchasing/recommendations converts one reviewed recommendation into a draft PO. Remaining: forecast accuracy reporting and supplier scorecards.' },
   { area: 'Compliance', status: 'Foundation only', detail: 'E-invoice submissions table exists. Remaining: certified IRD gateway, VAT return pack, and production provider certification.' },
 ];
 
@@ -78,7 +78,7 @@ const recommendations = [
   },
   {
     title: 'Build demand planning as read-only recommendations first',
-    detail: 'Forecast tables, SKU classification, safety stock, and suggested PO review should ship before any automatic purchasing behavior.',
+    detail: 'Forecast tables, SKU classification, safety stock, and suggested PO review now exist. Keep automatic purchasing disabled until approval gates mature.',
   },
   {
     title: 'Keep settings entry under Company',
