@@ -32,7 +32,7 @@ export async function GET(req: Request) {
     const returns = await db.select().from(orderReturns).orderBy(desc(orderReturns.createdAt)).limit(100);
     return NextResponse.json({ success: true, returns });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -63,6 +63,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, ...result });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: e.status || 400 });
   }
 }

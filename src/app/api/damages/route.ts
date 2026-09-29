@@ -22,7 +22,7 @@ export async function GET() {
     const rows = await db.select().from(damages).orderBy(desc(damages.createdAt)).limit(100);
     return NextResponse.json({ success: true, damages: rows });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message, damages: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', damages: [] }, { status: 500 });
   }
 }
 
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, damage: row });
   } catch (err) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: e.status || 500 });
   }
 }
 
@@ -91,7 +91,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true });
   } catch (err) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: e.status || 500 });
   }
 }
 
@@ -185,6 +185,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
   } catch (err) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: e.status || 500 });
   }
 }

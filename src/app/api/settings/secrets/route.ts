@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: e.status || 500 });
   }
 }
 
@@ -91,6 +91,6 @@ export async function GET() {
       note: 'Ciphertext only — use decrypt server-side; never return plaintext via this route',
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

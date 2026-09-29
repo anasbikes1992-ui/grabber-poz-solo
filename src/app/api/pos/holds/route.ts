@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     const holds = await listPosHolds(branchId);
     return NextResponse.json({ success: true, holds });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, hold: result.order, grandTotal: result.grandTotal });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -91,6 +91,6 @@ export async function DELETE(req: Request) {
     if (!ok) return NextResponse.json({ success: false, error: 'Hold not found' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

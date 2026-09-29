@@ -31,7 +31,7 @@ export async function GET(_req: Request, ctx: RouteCtx) {
         .where(eq(fulfillmentWorkItems.orderId, order.orderId))
         .limit(100);
     } catch (err) {
-      if (!String((err as Error).message || '').includes('fulfillment_work_items')) throw err;
+      if (!String(err || '').includes('fulfillment_work_items')) throw err;
     }
 
     return NextResponse.json({
@@ -55,7 +55,7 @@ export async function GET(_req: Request, ctx: RouteCtx) {
       },
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -106,6 +106,6 @@ export async function POST(req: Request, ctx: RouteCtx) {
 
     return NextResponse.json({ success: true, queued });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

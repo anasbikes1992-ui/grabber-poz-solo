@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     const rules = await listAutomationRules();
     return NextResponse.json({ success: true, rules });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -52,6 +52,6 @@ export async function PUT(req: Request) {
     const rules = await saveAutomationRules(body.rules || []);
     return NextResponse.json({ success: true, rules });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

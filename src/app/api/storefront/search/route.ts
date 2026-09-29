@@ -9,6 +9,6 @@ export async function GET(req: Request) {
     const products = await searchStorefrontProducts(q, { categorySlug: category, limit: 50 });
     return NextResponse.json({ success: true, products, query: q });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, products: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', products: [] }, { status: 500 });
   }
 }

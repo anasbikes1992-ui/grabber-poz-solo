@@ -98,6 +98,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, code: 'PAY_PROCESSED' });
   } catch (err: unknown) {
     const e = err as { message?: string };
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

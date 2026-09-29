@@ -31,7 +31,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
       statusFlow: REPAIR_STATUS_FLOW,
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -91,7 +91,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       updatedBy: session && !isDemoUserId(session.userId) ? session.userId : null,
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -102,6 +102,6 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
     await db.delete(repairJobs).where(eq(repairJobs.id, id));
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

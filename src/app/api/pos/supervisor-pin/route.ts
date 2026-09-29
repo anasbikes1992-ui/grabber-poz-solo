@@ -42,6 +42,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'Invalid supervisor PIN' }, { status: 401 });
   } catch (err: unknown) {
     const e = err as { message?: string };
-    return NextResponse.json({ success: false, error: e.message || 'Verify failed' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Verify failed' }, { status: 500 });
   }
 }

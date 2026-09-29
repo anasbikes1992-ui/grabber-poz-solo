@@ -137,7 +137,7 @@ export async function GET() {
   } catch (err: unknown) {
     const e = err as { message?: string };
     return NextResponse.json(
-      { success: false, error: e.message || 'Failed to check integration health' },
+      { success: false, error: 'Failed to check integration health' },
       { status: 500 },
     );
   }

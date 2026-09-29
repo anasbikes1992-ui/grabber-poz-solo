@@ -19,7 +19,7 @@ export async function GET() {
     const rows = await db.select().from(tradeInVouchers).orderBy(desc(tradeInVouchers.createdAt)).limit(50);
     return NextResponse.json({ success: true, vouchers: rows });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -57,6 +57,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, ...result });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

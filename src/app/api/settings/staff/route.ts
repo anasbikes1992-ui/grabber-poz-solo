@@ -62,7 +62,7 @@ export async function GET() {
       }),
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message, staff: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', staff: [] }, { status: 500 });
   }
 }
 
@@ -152,7 +152,7 @@ export async function POST(req: Request) {
     }, { status: 201 });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message || 'Staff creation failed' }, { status: e.status || 500 });
+    return NextResponse.json({ success: false, error: 'Staff creation failed' }, { status: e.status || 500 });
   }
 }
 
@@ -224,6 +224,6 @@ export async function PUT(req: Request) {
     });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message || 'Staff update failed' }, { status: e.status || 500 });
+    return NextResponse.json({ success: false, error: 'Staff update failed' }, { status: e.status || 500 });
   }
 }

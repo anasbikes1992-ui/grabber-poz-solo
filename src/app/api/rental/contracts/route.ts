@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     const contracts = overdue ? await listOverdueContracts() : await listContracts();
     return NextResponse.json({ success: true, contracts });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, contracts: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', contracts: [] }, { status: 500 });
   }
 }
 
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const contract = await createContract({ ...body, createdBy: session.userId });
     return NextResponse.json({ success: true, contract });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -68,6 +68,6 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, contract });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

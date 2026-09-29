@@ -25,7 +25,7 @@ export async function GET() {
     const rows = await listPrescriptions();
     return NextResponse.json({ success: true, prescriptions: rows });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, prescriptions: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', prescriptions: [] }, { status: 500 });
   }
 }
 
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ success: true, prescription: rx });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -77,6 +77,6 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, prescription });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

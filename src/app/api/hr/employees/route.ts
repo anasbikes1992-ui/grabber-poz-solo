@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     const payroll = include === 'payroll' || include === 'all' ? await listPayrollRuns() : undefined;
     return NextResponse.json({ success: true, employees, leave, payroll });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, employees: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', employees: [] }, { status: 500 });
   }
 }
 
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     const employee = await createEmployee(body);
     return NextResponse.json({ success: true, employee });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -130,6 +130,6 @@ export async function PATCH(req: Request) {
       { status: 400 },
     );
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

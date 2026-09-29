@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     }
     return NextResponse.json({ success: true, recipes: recipesEnriched, lowStockAlerts: alerts });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, recipe });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -84,6 +84,6 @@ export async function PATCH(req: Request) {
     await db.update(recipes).set({ active: body.active ?? true, name: body.name }).where(eq(recipes.id, body.recipeId));
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

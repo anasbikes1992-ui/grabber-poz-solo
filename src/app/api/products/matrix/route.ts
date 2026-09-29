@@ -53,6 +53,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, created: created.length, variants: created });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

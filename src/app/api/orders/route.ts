@@ -161,7 +161,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, orders: mapped, total: mapped.length });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -219,8 +219,8 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true, order: saved });
   } catch (err) {
     if (err instanceof InvalidStateTransitionError) {
-      return NextResponse.json({ success: false, error: err.message }, { status: 409 });
+      return NextResponse.json({ success: false, error: 'Request failed' }, { status: 409 });
     }
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

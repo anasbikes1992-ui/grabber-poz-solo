@@ -18,7 +18,7 @@ export async function GET() {
     const invoices = await listInvoices();
     return NextResponse.json({ success: true, invoices });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, invoices: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', invoices: [] }, { status: 500 });
   }
 }
 
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const invoice = await createDraftInvoice({ ...body, createdBy: session.userId });
     return NextResponse.json({ success: true, invoice });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -56,6 +56,6 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: false, error: 'action must be post|pay' }, { status: 400 });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

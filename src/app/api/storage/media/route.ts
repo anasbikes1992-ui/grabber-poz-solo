@@ -127,6 +127,6 @@ export async function GET(req: Request) {
     });
   } catch (err: unknown) {
     const e = err as { message?: string };
-    return NextResponse.json({ success: false, error: e.message || 'Media list failed' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Media list failed' }, { status: 500 });
   }
 }

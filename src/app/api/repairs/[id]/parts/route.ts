@@ -30,7 +30,7 @@ export async function GET(_req: Request, { params }: RouteParams) {
       partsAmount: job.partsAmount,
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -60,6 +60,6 @@ export async function POST(req: Request, { params }: RouteParams) {
       partsLines: result.partsLines,
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

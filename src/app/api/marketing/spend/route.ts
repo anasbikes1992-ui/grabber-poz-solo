@@ -19,7 +19,7 @@ export async function GET() {
     }
     return NextResponse.json({ success: true, spend: rows, summary: { total, byChannel } });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message, spend: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', spend: [] }, { status: 500 });
   }
 }
 
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, spend: row });
   } catch (err) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: e.status || 500 });
   }
 }
 
@@ -68,6 +68,6 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true });
   } catch (err) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: e.status || 500 });
   }
 }

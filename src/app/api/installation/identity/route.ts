@@ -6,6 +6,6 @@ export async function GET() {
     const identity = await getPublicInstallationIdentity();
     return NextResponse.json({ success: true, identity });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

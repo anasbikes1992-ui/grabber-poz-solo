@@ -11,7 +11,7 @@ export async function GET() {
     const credits = await getCreativeCredits();
     return NextResponse.json({ success: true, credits });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -28,6 +28,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, credits });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message }, { status: e.status || 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: e.status || 500 });
   }
 }

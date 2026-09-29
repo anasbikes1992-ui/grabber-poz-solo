@@ -29,7 +29,7 @@ export async function GET() {
     });
   } catch (err: unknown) {
     return NextResponse.json(
-      { success: false, error: (err as Error).message, submissions: [] },
+      { success: false, error: 'Request failed', submissions: [] },
       { status: 500 },
     );
   }
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     const row = await createEinvoiceDraft(orderNumber, session.userId);
     return NextResponse.json({ success: true, submission: row });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -74,6 +74,6 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: false, error: 'action must be queue|submit' }, { status: 400 });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

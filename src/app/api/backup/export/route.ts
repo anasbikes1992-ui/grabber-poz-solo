@@ -93,7 +93,7 @@ export async function GET(req: Request) {
     const e = err as { message?: string };
     return NextResponse.json({
       success: false,
-      error: e.message,
+      error: 'Request failed',
       hint: 'Backup requires live DATABASE_URL',
     }, { status: 500 });
   }

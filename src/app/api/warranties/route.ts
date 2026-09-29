@@ -46,7 +46,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, warranties });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message, warranties: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', warranties: [] }, { status: 500 });
   }
 }
 
@@ -178,6 +178,6 @@ export async function POST(req: Request) {
       },
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

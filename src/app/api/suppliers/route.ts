@@ -36,7 +36,7 @@ export async function GET() {
       }),
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, suppliers: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', suppliers: [] }, { status: 500 });
   }
 }
 
@@ -156,7 +156,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, supplier });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -190,6 +190,6 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, supplier });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

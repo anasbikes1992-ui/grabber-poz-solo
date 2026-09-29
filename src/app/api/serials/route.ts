@@ -18,7 +18,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, results: rows });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, serial: row });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -70,6 +70,6 @@ export async function PATCH(req: Request) {
     if (!row) return NextResponse.json({ success: false, error: 'Serial not found' }, { status: 404 });
     return NextResponse.json({ success: true, serial: row });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

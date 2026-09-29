@@ -18,7 +18,7 @@ export async function GET() {
     const assets = await listAssets();
     return NextResponse.json({ success: true, assets });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, assets: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', assets: [] }, { status: 500 });
   }
 }
 
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const asset = await createAsset(body);
     return NextResponse.json({ success: true, asset });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -41,6 +41,6 @@ export async function PATCH(req: Request) {
     const asset = await updateAsset(body.id, body);
     return NextResponse.json({ success: true, asset });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

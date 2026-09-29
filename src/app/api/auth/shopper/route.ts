@@ -114,7 +114,7 @@ export async function POST(req: Request) {
       customer: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone },
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -253,7 +253,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, message: 'Profile updated successfully' });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 

@@ -72,6 +72,7 @@ ${rows.map((r) => `<tr><td>${r.name}</td><td>${r.qty}</td><td>${r.unitPrice.toFi
       },
     });
   } catch (err: unknown) {
-    return new NextResponse((err as Error).message, { status: 500 });
+    console.error('Invoice render failed', err);
+    return new NextResponse('Could not render invoice', { status: 500 });
   }
 }

@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const result = await recordAbandonedCheckout(db, { phone, customerId, cart, promoCode });
     return NextResponse.json({ success: true, ...result });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -46,6 +46,6 @@ export async function GET(req: Request) {
       promoCode: cart.promoCode,
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

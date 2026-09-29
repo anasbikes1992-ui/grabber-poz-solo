@@ -72,7 +72,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, shipments });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -184,7 +184,7 @@ export async function POST(req: Request) {
       delivery: result.delivery,
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -270,6 +270,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true, delivery: updated });
   } catch (err) {
     const e = err as { message?: string; status?: number };
-    return NextResponse.json({ success: false, error: e.message || 'Failed to update delivery' }, { status: e.status || 400 });
+    return NextResponse.json({ success: false, error: 'Failed to update delivery' }, { status: e.status || 400 });
   }
 }

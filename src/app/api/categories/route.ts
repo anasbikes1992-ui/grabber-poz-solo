@@ -20,7 +20,7 @@ export async function GET() {
   } catch (err: unknown) {
     const e = err as { message?: string };
     return NextResponse.json(
-      { success: false, error: e.message || 'Failed to fetch categories', categories: [] },
+      { success: false, error: 'Failed to fetch categories', categories: [] },
       { status: 500 },
     );
   }
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     return NextResponse.json(
-      { success: false, error: e.message || 'Failed to create category' },
+      { success: false, error: 'Failed to create category' },
       { status: e.status || 400 },
     );
   }
@@ -110,7 +110,7 @@ export async function PATCH(req: Request) {
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     return NextResponse.json(
-      { success: false, error: e.message || 'Failed to update category' },
+      { success: false, error: 'Failed to update category' },
       { status: e.status || 400 },
     );
   }
@@ -157,7 +157,7 @@ export async function DELETE(req: Request) {
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     return NextResponse.json(
-      { success: false, error: e.message || 'Failed to delete category' },
+      { success: false, error: 'Failed to delete category' },
       { status: e.status || 400 },
     );
   }

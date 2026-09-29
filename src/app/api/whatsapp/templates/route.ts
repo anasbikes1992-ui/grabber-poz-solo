@@ -9,7 +9,7 @@ export async function GET() {
     const templates = await listWhatsAppTemplates();
     return NextResponse.json({ success: true, templates });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }
 
@@ -25,6 +25,6 @@ export async function PUT(req: Request) {
     const templates = await saveWhatsAppTemplates(body.templates || []);
     return NextResponse.json({ success: true, templates });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

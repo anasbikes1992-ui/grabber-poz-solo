@@ -62,7 +62,7 @@ export async function GET(req: Request) {
       rules: { earnPerHundredLkr: 1, redeemValuePerPointLkr: 1 },
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, members: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', members: [] }, { status: 500 });
   }
 }
 
@@ -143,7 +143,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, member });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -165,7 +165,7 @@ export async function PATCH(req: Request) {
       .returning();
     return NextResponse.json({ success: true, member: updated });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -178,6 +178,6 @@ export async function DELETE(req: Request) {
     await db.delete(loyaltyMembers).where(eq(loyaltyMembers.id, id));
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

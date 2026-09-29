@@ -108,6 +108,6 @@ export async function PUT(req: Request) {
     });
   } catch (err: unknown) {
     const e = err as { message?: string };
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, makes, models, generations });
   } catch (err: unknown) {
     return NextResponse.json(
-      { success: false, error: (err as Error).message, makes: [], models: [], generations: [] },
+      { success: false, error: 'Request failed', makes: [], models: [], generations: [] },
       { status: 500 },
     );
   }
@@ -68,6 +68,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: false, error: 'type must be make|model|generation' }, { status: 400 });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

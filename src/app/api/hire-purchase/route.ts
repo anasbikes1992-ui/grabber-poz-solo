@@ -59,7 +59,7 @@ export async function GET() {
       summary: { totalArrears, overdueCount: contracts.filter((c) => c.arrears.overdue).length },
     });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message, contracts: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', contracts: [] }, { status: 500 });
   }
 }
 
@@ -137,7 +137,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, contract });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -161,7 +161,7 @@ export async function PATCH(req: Request) {
       .returning();
     return NextResponse.json({ success: true, contract: updated });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }
 
@@ -177,6 +177,6 @@ export async function DELETE(req: Request) {
       .where(eq(hirePurchaseContracts.id, id));
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 400 });
   }
 }

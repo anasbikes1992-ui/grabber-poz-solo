@@ -89,7 +89,7 @@ export async function GET(req: Request) {
       })),
     });
   } catch (err) {
-    return NextResponse.json({ success: false, error: (err as Error).message, items: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Request failed', items: [] }, { status: 500 });
   }
 }
 
@@ -198,6 +198,6 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     const status = (err as { status?: number }).status || 500;
-    return NextResponse.json({ success: false, error: (err as Error).message }, { status });
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status });
   }
 }

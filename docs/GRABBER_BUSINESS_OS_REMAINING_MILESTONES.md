@@ -145,6 +145,9 @@ Implemented foundation:
 - Configurable rate-limit foundations already exist.
 - Upload MIME, size, extension, and magic-byte validation already exist.
 - Added `npm run security:audit` to check auth coverage, rate-limit config, upload validation, source-map exposure, hardcoded secret patterns, and raw 500 error leakage.
+- Removed raw 500 error leakage from legacy API routes.
+- Promoted `npm run security:audit` into `npm run check`.
+- Cleared dependency audit with a safe Drizzle Kit patch and targeted transitive `esbuild` override.
 
 Goal: make the platform safer to hand over repeatedly.
 
@@ -161,9 +164,8 @@ Done when:
 - Release gates document and enforce the production safety checks.
 
 Remaining polish:
-- Clean all remaining staff API raw 500 error responses and promote `security:audit` into `npm run check`.
-- Run dependency audit and apply safe package upgrades in a separate low-risk patch.
 - Add live read-only smoke script coverage for bank match, ERP control, and provider health.
+- Keep dependency audit in release notes and re-run before every client handover.
 
 ## Milestone 7 - Client Handover Polish
 

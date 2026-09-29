@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: e.message || 'Seed failed',
+        error: 'Seed failed',
         hint: 'Ensure DATABASE_URL points to a schema matching src/db/schema.ts (npm run db:bootstrap)',
       },
       { status: 500 },

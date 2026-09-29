@@ -33,7 +33,7 @@ export async function POST(req: Request) {
         payload = JSON.parse(decryptedJson);
       } catch (err: any) {
         return NextResponse.json(
-          { success: false, error: `Decryption failed: ${err.message}` },
+          { success: false, error: 'Decryption failed' },
           { status: 400 },
         );
       }
@@ -69,8 +69,7 @@ export async function POST(req: Request) {
       integrityChecks: integrity.checks,
       timestamp: new Date().toISOString(),
     });
-  } catch (err: unknown) {
-    const e = err as { message?: string };
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  } catch (_err: unknown) {
+    return NextResponse.json({ success: false, error: 'Request failed' }, { status: 500 });
   }
 }

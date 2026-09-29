@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     return NextResponse.json(
-      { success: false, error: (err as Error).message },
+      { success: false, error: 'Request failed' },
       { status: 500 },
     );
   }
