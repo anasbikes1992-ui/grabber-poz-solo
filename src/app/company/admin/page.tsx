@@ -47,6 +47,13 @@ const sections = [
     icon: Cloud,
   },
   {
+    title: 'Handover Readiness',
+    desc: 'Confirm dedicated app, isolated DB, deployment health, smoke test, and SOP gate before client handover.',
+    href: '/company/handover',
+    cta: 'Open handover gate',
+    icon: ClipboardCheck,
+  },
+  {
     title: 'Demand Planning',
     desc: 'Review SKU velocity, stockout risk, and draft replenishment recommendations.',
     href: '/ai/demand',
@@ -95,6 +102,7 @@ const milestones = [
   { label: 'Lead CRM + admin capture', state: 'Done', tone: 'emerald' },
   { label: 'Company profile/logo settings', state: 'Live', tone: 'emerald' },
   { label: 'Client onboarding register', state: 'Live', tone: 'emerald' },
+  { label: 'Handover readiness gate', state: 'Live', tone: 'emerald' },
   { label: 'Company audit trail view', state: 'Live', tone: 'emerald' },
   { label: 'Deployment register', state: 'Live', tone: 'emerald' },
   { label: 'Read-only demand planning', state: 'Live', tone: 'emerald' },

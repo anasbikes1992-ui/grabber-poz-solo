@@ -167,6 +167,14 @@ Remaining polish:
 
 ## Milestone 7 - Client Handover Polish
 
+Status: foundation implemented.
+
+Implemented foundation:
+- Added a handover readiness service that checks client register status, onboarding checklist, linked deployment health, smoke-test task, SOP task, domain, and database readiness.
+- Added `/api/company/admin/handover` for owner/admin handover readiness reporting.
+- Added `/company/handover` owner UI with ready/review/blocked summary cards, blockers, deployment status, and SOP gate.
+- Linked Handover Readiness under Company navigation, SuperAdmin command center, and roadmap.
+
 Goal: make onboarding repeatable for ThePartyStore and every future client.
 
 Scope:
@@ -177,6 +185,11 @@ Scope:
 
 Done when:
 - A client can be provisioned, tested, trained, and handed over from one SOP without tribal knowledge.
+
+Remaining polish:
+- Run ThePartyStore live handover smoke and record the checklist in `/company/clients`.
+- Add exportable PDF/CSV handover report after the first live smoke.
+- Add hardware acceptance fields for scanner, printer, cash drawer, and tablet/mobile sign-off.
 
 ## Guardrails
 

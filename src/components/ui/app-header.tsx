@@ -36,6 +36,7 @@ import {
   ListChecks,
   Server,
   Cloud,
+  ClipboardCheck,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -202,6 +203,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     { href: '/company/leads', label: 'Company Leads', icon: Briefcase, desc: 'Prospects, demos & follow-ups' },
     { href: '/company/clients', label: 'Client Provisioning', icon: Server, desc: 'Isolated app, DB & handover register' },
     { href: '/company/deployments', label: 'Deployment Register', icon: Cloud, desc: 'App, DB, domain & health tracking' },
+    { href: '/company/handover', label: 'Handover Readiness', icon: ClipboardCheck, desc: 'Client readiness, smoke and SOP gate' },
     { href: '/company/audit', label: 'Audit Trail', icon: FileText, desc: 'Protected action history' },
     { href: '/company/roadmap', label: 'Company Roadmap', icon: ListChecks, desc: 'Milestones, SOP & next work order' },
     { href: '/settings/staff', label: 'Staff & Roles', icon: Users, desc: 'Users, roles, active status & PINs' },
