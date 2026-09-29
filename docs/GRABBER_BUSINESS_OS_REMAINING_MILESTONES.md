@@ -15,6 +15,7 @@ Every client gets the full supported platform. Differences between clients are i
 - Universal catalog import staging is present for WooCommerce-style, POS-style, Shopify-like, and standard CSV sources.
 - Product import support tables exist for metadata, media links, and supplier preferences.
 - Products from customer CSV files must still go through staging, review, approval, and apply. Do not import blindly.
+- Company inquiry/demo/sales WhatsApp automation is present for Grabberpoz.com leads, configured from Company Settings or `COMPANY_SALES_WHATSAPP`/`OWNER_WHATSAPP`.
 
 ## Milestone 1 - Order Automation Timeline
 
@@ -81,6 +82,7 @@ Remaining polish:
 - Add a staff UI panel for recent communication events and customer CLV.
 - Auto-queue receipt/review jobs from approved order lifecycle hooks after a final live smoke.
 - Add email fallback when WhatsApp is not configured.
+- Run one live company inquiry with Meta WhatsApp credentials and confirm automation logs + inbox thread show owner alert and prospect reply.
 
 ## Milestone 4 - Bank And Reconciliation Pack
 

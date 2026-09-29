@@ -4,6 +4,10 @@ import { z } from 'zod';
 import { db, auditLogs, businessConfig, companyLeads } from '@/db';
 import { assertRole, requireActiveStaffSession } from '@/lib/auth/session';
 import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
+import {
+  runCompanyLeadStatusAutomation,
+  runCompanyLeadSubmittedAutomation,
+} from '@/lib/company/whatsapp-automation';
 
 const ALLOWED_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'MARKETING'] as const;
 const LEAD_STATUSES = ['NEW', 'CONTACTED', 'DEMO_SCHEDULED', 'PROPOSAL_SENT', 'WON', 'LOST', 'ARCHIVED'] as const;
@@ -172,6 +176,7 @@ export async function PATCH(req: Request) {
       return validationErrorResponse(parsed.error.issues[0]?.message || 'Invalid lead update');
     }
     const body = parsed.data;
+    const [previousLead] = await db.select().from(companyLeads).where(eq(companyLeads.id, body.id)).limit(1);
     const update = {
       businessName: body.businessName,
       ownerName: body.ownerName,
@@ -202,6 +207,12 @@ export async function PATCH(req: Request) {
       entityId: lead.id,
       afterState: serializeLead(lead),
     });
+
+    try {
+      await runCompanyLeadStatusAutomation(serializeLead(lead), previousLead?.status);
+    } catch (err) {
+      console.error('Company WhatsApp lead status automation failed', err);
+    }
 
     return NextResponse.json({ success: true, lead: serializeLead(lead) });
   } catch (err: unknown) {
@@ -246,6 +257,15 @@ export async function POST(req: Request) {
       entityId: lead.id,
       afterState: serializeLead(lead),
     });
+
+    try {
+      await runCompanyLeadSubmittedAutomation(serializeLead(lead));
+      if (lead.status && lead.status !== 'NEW') {
+        await runCompanyLeadStatusAutomation(serializeLead(lead), 'NEW');
+      }
+    } catch (err) {
+      console.error('Company WhatsApp manual lead automation failed', err);
+    }
 
     return NextResponse.json({ success: true, lead: serializeLead(lead) });
   } catch (err: unknown) {

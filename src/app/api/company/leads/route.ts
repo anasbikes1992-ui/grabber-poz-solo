@@ -3,6 +3,7 @@ import { db, businessConfig, auditLogs, companyLeads } from '@/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
+import { runCompanyLeadSubmittedAutomation } from '@/lib/company/whatsapp-automation';
 
 export interface CompanyLeadInput {
   businessName: string;
@@ -107,6 +108,12 @@ export async function POST(req: Request) {
       });
     } catch {
       /* ignore audit write failure */
+    }
+
+    try {
+      await runCompanyLeadSubmittedAutomation({ ...leadRecord, id: leadId });
+    } catch (err) {
+      console.error('Company WhatsApp lead automation failed', err);
     }
 
     return NextResponse.json({

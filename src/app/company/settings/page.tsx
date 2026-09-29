@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Building2, DatabaseBackup, ImageIcon, Save, Settings, ShieldCheck, Store, Warehouse } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, DatabaseBackup, ImageIcon, MessageCircle, Save, Settings, ShieldCheck, Store, Warehouse } from 'lucide-react';
 
 type BusinessProfileForm = {
   name: string;
@@ -13,6 +13,10 @@ type BusinessProfileForm = {
   receiptFooter: string;
   currency: string;
   timezone: string;
+  companyWhatsAppEnabled: boolean;
+  companyAutoReplyToLead: boolean;
+  companySalesWhatsapp: string;
+  companyDemoUrl: string;
 };
 
 const emptyProfile: BusinessProfileForm = {
@@ -24,6 +28,10 @@ const emptyProfile: BusinessProfileForm = {
   receiptFooter: '',
   currency: 'LKR',
   timezone: 'Asia/Colombo',
+  companyWhatsAppEnabled: true,
+  companyAutoReplyToLead: true,
+  companySalesWhatsapp: '',
+  companyDemoUrl: '',
 };
 
 const settingRoutes = [
@@ -82,6 +90,10 @@ export default function CompanySettingsPage() {
         receiptFooter: next.receiptFooter || '',
         currency: next.currency || 'LKR',
         timezone: next.timezone || 'Asia/Colombo',
+        companyWhatsAppEnabled: data.companyWhatsAppAutomation?.enabled !== false,
+        companyAutoReplyToLead: data.companyWhatsAppAutomation?.autoReplyToLead !== false,
+        companySalesWhatsapp: data.companyWhatsAppAutomation?.salesWhatsapp || '',
+        companyDemoUrl: data.companyWhatsAppAutomation?.demoUrl || '',
       });
       setError(null);
     } catch (err) {
@@ -95,8 +107,8 @@ export default function CompanySettingsPage() {
     void load();
   }, [load]);
 
-  const save = async (event: FormEvent) => {
-    event.preventDefault();
+  const save = async (event?: FormEvent) => {
+    event?.preventDefault();
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -104,7 +116,22 @@ export default function CompanySettingsPage() {
       const res = await fetch('/api/settings/business', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profile),
+        body: JSON.stringify({
+          name: profile.name,
+          legalName: profile.legalName,
+          taxNumber: profile.taxNumber,
+          logoUrl: profile.logoUrl,
+          receiptHeader: profile.receiptHeader,
+          receiptFooter: profile.receiptFooter,
+          currency: profile.currency,
+          timezone: profile.timezone,
+          companyWhatsAppAutomation: {
+            enabled: profile.companyWhatsAppEnabled,
+            autoReplyToLead: profile.companyAutoReplyToLead,
+            salesWhatsapp: profile.companySalesWhatsapp,
+            demoUrl: profile.companyDemoUrl,
+          },
+        }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Save failed');
@@ -201,6 +228,65 @@ export default function CompanySettingsPage() {
           </div>
         </aside>
       </form>
+
+      <section className="rounded-lg border border-border bg-card p-4">
+        <div className="flex items-start gap-3">
+          <MessageCircle className="mt-1 h-5 w-5 text-emerald-300" />
+          <div>
+            <h2 className="text-lg font-black">Company WhatsApp Sales Automation</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Automates Grabberpoz.com inquiries, demo scheduling, proposal follow-ups, and won-client onboarding messages.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <label className="block text-xs font-bold">
+            Sales WhatsApp Number
+            <input
+              disabled={loading}
+              value={profile.companySalesWhatsapp}
+              onChange={(e) => setProfile({ ...profile, companySalesWhatsapp: e.target.value })}
+              placeholder="9477XXXXXXX"
+              className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-emerald-500 disabled:opacity-60"
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground">Used for internal sales-owner alerts. Falls back to COMPANY_SALES_WHATSAPP or OWNER_WHATSAPP env.</span>
+          </label>
+          <label className="block text-xs font-bold">
+            Demo URL
+            <input
+              disabled={loading}
+              value={profile.companyDemoUrl}
+              onChange={(e) => setProfile({ ...profile, companyDemoUrl: e.target.value })}
+              placeholder="https://demo.grabberpoz.com"
+              className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-emerald-500 disabled:opacity-60"
+            />
+          </label>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="flex min-h-12 items-center gap-3 rounded-lg border border-border bg-background/40 px-3 text-sm font-bold">
+            <input
+              type="checkbox"
+              checked={profile.companyWhatsAppEnabled}
+              onChange={(e) => setProfile({ ...profile, companyWhatsAppEnabled: e.target.checked })}
+              className="h-4 w-4 accent-emerald-500"
+            />
+            Enable company WhatsApp automation
+          </label>
+          <label className="flex min-h-12 items-center gap-3 rounded-lg border border-border bg-background/40 px-3 text-sm font-bold">
+            <input
+              type="checkbox"
+              checked={profile.companyAutoReplyToLead}
+              onChange={(e) => setProfile({ ...profile, companyAutoReplyToLead: e.target.checked })}
+              className="h-4 w-4 accent-emerald-500"
+            />
+            Auto-reply to new inquiries and sales-stage changes
+          </label>
+        </div>
+        <button type="button" onClick={() => void save()} disabled={saving || loading} className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-black text-zinc-950 transition duration-200 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60">
+          <Save className="h-4 w-4" />
+          {saving ? 'Saving...' : 'Save WhatsApp Automation'}
+        </button>
+      </section>
 
       <section className="rounded-lg border border-border bg-card p-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
