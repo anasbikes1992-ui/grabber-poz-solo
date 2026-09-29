@@ -100,7 +100,7 @@ const runbook = `# Provision runbook — ${clientName}
     stock automations).
 11. Coolify database → Backups: daily \`0 2 * * *\` to the S3 destination,
     retention 14 days; run Backup Now once and test a restore.
-12. Phase 0 checklist: docs/FULL_PROOF_PLAN.md §5 (WhatsApp, POS smoke, release:gate)
+12. Launch checklist: docs/02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md and docs/RELEASE_GATE.md
 
 See: docs/COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md · docs/PROVISION_NEXT_CLIENT.md
 `;

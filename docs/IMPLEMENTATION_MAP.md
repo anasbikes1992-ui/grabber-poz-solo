@@ -169,6 +169,6 @@ Never add parallel checkout or pricing logic in UI or AI layers.
 
 ## Related
 
-- [`ROADMAP.md`](./ROADMAP.md) — sprints & releases
+- [`02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md`](./02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md) - sprints, releases, and handover SOP
 - [`correction.md`](./correction.md) — tracked fix IDs
 - [`BUSINESS_OS_MYPOZ_EXTRACTION_AUDIT.md`](./BUSINESS_OS_MYPOZ_EXTRACTION_AUDIT.md) — historical audit

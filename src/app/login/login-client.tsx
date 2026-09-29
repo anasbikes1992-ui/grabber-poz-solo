@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldCheck, UserCheck, ArrowRight, KeyRound, CheckCircle2, Palette } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
@@ -252,17 +253,17 @@ export default function LoginClient() {
         </p>
         <p className="text-[10px] text-muted-foreground text-center">
           Shopping online?{' '}
-          <a href="/shop/login" className="text-emerald-400 underline underline-offset-2">
+          <Link href="/shop/login" className="text-emerald-400 underline underline-offset-2">
             Customer sign in
-          </a>
+          </Link>
           {' · '}
-          <a href="/shop" className="text-emerald-400 underline underline-offset-2">
+          <Link href="/shop" className="text-emerald-400 underline underline-offset-2">
             Storefront
-          </a>
+          </Link>
           {' · '}
-          <a href="/" className="text-emerald-400 underline underline-offset-2">
+          <Link href="/" className="text-emerald-400 underline underline-offset-2">
             GrabberPoz.com
-          </a>
+          </Link>
         </p>
       </form>
 

@@ -34,4 +34,4 @@ DB-06 exit.
 
 ## Phase 0 operator (manual)
 
-See [`FULL_PROOF_PLAN.md`](./FULL_PROOF_PLAN.md) §5 — PIN, WhatsApp Meta, POS smoke, `release:gate`.
+See [`02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md`](./02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md) and [`RELEASE_GATE.md`](./RELEASE_GATE.md) for PIN, WhatsApp Meta, POS smoke, and release-gate checks.

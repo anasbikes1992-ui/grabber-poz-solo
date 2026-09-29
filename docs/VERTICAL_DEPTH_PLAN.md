@@ -4,7 +4,7 @@
 **Question:** Are restaurant / salon verticals robust (recipes, COGS, inventory, commissions, HR) with a full customizable ROAS engine per shop nature?  
 **Verdict:** **Not yet.** Restaurant is deepest (KOT/KDS + recipe BOM depletion) but missing food-cost rollup, bill settle, waste, modifiers, QR menu. Salon is a thin appointments shell — no service catalog, consumables BOM, commission, or payroll. Retail COGS on product sale is real; margin/ROAS reporting is partial/stubbed. Cost & ROAS engines must be **pluggable by vertical**, not one-size-fits-all.
 
-**SSOT links:** [`FULL_PROOF_PLAN.md`](./FULL_PROOF_PLAN.md) · [`BUSINESS_OS_VERTICALS.md`](./BUSINESS_OS_VERTICALS.md) · [`correction.md`](./correction.md) VERT-01 · Canvas: `vertical-depth-plan.canvas.tsx`
+**SSOT links:** [`05_VERTICAL_INTELLIGENCE_GUIDE.md`](./05_VERTICAL_INTELLIGENCE_GUIDE.md) · [`BUSINESS_OS_VERTICALS.md`](./BUSINESS_OS_VERTICALS.md) · archived `correction.md` VERT-01 · Canvas: `vertical-depth-plan.canvas.tsx`
 
 ## Wave C status (2026-09-10)
 

@@ -169,7 +169,7 @@ Ruflo: skip until fleet of 6 instances needs shared memory/checklists.
 
 - [`WAVE_A_OPTIMIZATION.md`](./WAVE_A_OPTIMIZATION.md) — done  
 - [`WAVE_B3_OPS_CHECKLIST.md`](./WAVE_B3_OPS_CHECKLIST.md) — Contabo/Coolify per-tenant ops  
-- [`CLEANREPORT.md`](./CLEANREPORT.md) / [`../cleanreport.md`](../cleanreport.md) — quality baseline  
-- [`SYSTEM_SSOT_AND_ROBUSTNESS.md`](./SYSTEM_SSOT_AND_ROBUSTNESS.md) — SSOT  
+- [`docs/README.md`](./README.md) - canonical documentation index
+- [`01_SYSTEM_ARCHITECTURE.md`](./01_SYSTEM_ARCHITECTURE.md) - architecture SSOT
 - [`COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md`](./COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md) — fleet  
 - `npm run analyze:sizes` — Wave C heavy-module line counts  

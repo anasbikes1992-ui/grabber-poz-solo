@@ -1,19 +1,25 @@
-# docs/archive — superseded snapshots
+# docs/archive - Superseded Snapshots
 
-Moved 2026-09-11 during Coolify deploy recovery. Prefer live SSOT:
+This folder keeps historical plans, audits, and duplicate docs for traceability. Do not use archived files as implementation authority unless a current numbered doc links to them for context.
 
-| Archived | Use instead |
-|----------|-------------|
-| `READY_FOR_RETESTING.md` | [`RELEASE_GATE.md`](../RELEASE_GATE.md) · [`FULL_PROOF_PLAN.md`](../FULL_PROOF_PLAN.md) §5 |
-| `STAGE_READINESS.md` | [`CLAIMS_AND_SCOPE.md`](../CLAIMS_AND_SCOPE.md) · [`SOFTWARE_PLAYBOOK.md`](../SOFTWARE_PLAYBOOK.md) |
-| `NEXT_PHASES.md` | [`ROADMAP.md`](../ROADMAP.md) · [`FULL_PROOF_PLAN.md`](../FULL_PROOF_PLAN.md) |
-| `PRODUCT_AUDIT.md` | [`VERTICAL_DEPTH_PLAN.md`](../VERTICAL_DEPTH_PLAN.md) · [`FULL_PROOF_PLAN.md`](../FULL_PROOF_PLAN.md) |
-| `Grabber Business OS — Repository Review…` | [`01_SYSTEM_ARCHITECTURE.md`](../01_SYSTEM_ARCHITECTURE.md) |
+## Current Sources Of Truth
 
-Additional cleanup control:
+| Need | Use instead |
+| --- | --- |
+| Architecture | [`../01_SYSTEM_ARCHITECTURE.md`](../01_SYSTEM_ARCHITECTURE.md) |
+| Client onboarding, deployment, handover | [`../02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md`](../02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md) |
+| Commerce and operations | [`../03_COMMERCE_AND_OPERATIONS_PLAYBOOK.md`](../03_COMMERCE_AND_OPERATIONS_PLAYBOOK.md) |
+| Jarvis and automation | [`../04_JARVIS_AUTONOMOUS_OS_MANUAL.md`](../04_JARVIS_AUTONOMOUS_OS_MANUAL.md) |
+| Verticals and storefront themes | [`../05_VERTICAL_INTELLIGENCE_GUIDE.md`](../05_VERTICAL_INTELLIGENCE_GUIDE.md) |
+| Release checks | [`../RELEASE_GATE.md`](../RELEASE_GATE.md) |
 
-| Archived | Use instead |
-|----------|-------------|
-| `REFACTOR_DELETE_REGISTER_2026-09-23.md` | [`GRABBER_SYSTEM_REFACTOR_PLAN.md`](../GRABBER_SYSTEM_REFACTOR_PLAN.md) |
+## Archived Sets
 
-Do not link archived snapshots from runbooks. Delete permanently only after 30 days unused.
+| Archived folder/file | Reason |
+| --- | --- |
+| `2026-09-29-doc-consolidation/root/` | Root-level duplicate plans and handover notes folded into README and numbered docs. |
+| `2026-09-29-doc-consolidation/docs/` | Old SSOT, master, roadmap, and proposal docs replaced by the numbered canonical tree. |
+| `REFACTOR_DELETE_REGISTER_2026-09-23.md` | Historical cleanup register. |
+| `READY_FOR_RETESTING.md`, `STAGE_READINESS.md`, `NEXT_PHASES.md`, `PRODUCT_AUDIT.md` | Historical launch snapshots. |
+
+Delete permanently only after the team confirms no operational runbook or release gate still references the archived file.

@@ -1,82 +1,47 @@
-# GRABBER SOLO / BUSINESS OS — MASTER DOCUMENTATION INDEX
+# Grabber Business OS Documentation
 
-Welcome to the official documentation for **Grabber Solo / Grabber Business OS (Single-Business Edition)** and the **Jarvis Autonomous Business OS**.
+This directory has one canonical documentation tree. If facts conflict, trust this order:
 
-**Current refactor SSOT:** [`GRABBER_SYSTEM_REFACTOR_PLAN.md`](./GRABBER_SYSTEM_REFACTOR_PLAN.md) covers catalog, sales, invoices, storefront controls, and cleanup phases.
+1. Source code and database migrations.
+2. The numbered master docs below.
+3. Release-gate and operational runbooks.
+4. Archived snapshots in `docs/archive/`.
 
-**SSOT tip:** Schema = `src/db/schema.ts` (**99** tables). If a badge or older doc says otherwise, trust the schema.  
-**Gaps & next wave:** [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md) · **Ops:** [`WAVE_B3_OPS_CHECKLIST.md`](./WAVE_B3_OPS_CHECKLIST.md)
+## Canonical Master Docs
 
----
+| Doc | Purpose |
+| --- | --- |
+| [01 System Architecture](./01_SYSTEM_ARCHITECTURE.md) | Single-business architecture, system boundaries, auth, database, and core modules. |
+| [02 Client Onboarding & Deployment](./02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md) | New client provisioning, isolated app/database handover, deployment and certification SOP. |
+| [03 Commerce & Operations](./03_COMMERCE_AND_OPERATIONS_PLAYBOOK.md) | POS, storefront, inventory, purchasing, returns, shifts, GL, and operational workflows. |
+| [04 Jarvis Autonomous OS](./04_JARVIS_AUTONOMOUS_OS_MANUAL.md) | Approval-gated automation, WhatsApp/Jarvis actions, policies, and safety boundaries. |
+| [05 Vertical Intelligence](./05_VERTICAL_INTELLIGENCE_GUIDE.md) | Vertical packs, storefront themes, and business-specific operating modes. |
 
-| **[Full Proof Plan](./FULL_PROOF_PLAN.md)** | Phases 0–4 + operator checklist | Production proof track |
-| **[ERP Gaps & Next Wave](./ERP_GAPS_AND_NEXT_WAVE.md)** | Missing verticals/tables + M7 | Post Wave A–C |
-| **[Wave B/C Robustness](./WAVE_B_C_ROBUSTNESS_PLAN.md)** | Storefront restore + splits | B0–C done |
-| **[Coolify incident 2026-09-11](./DEPLOY_INCIDENT_COOLIFY_2026-09-11.md)** | Contabo build failure + secret leak | Must-read before Coolify redeploy |
-| **[docs/archive](./archive/README.md)** | Superseded snapshots | Do not use for runbooks |
+## Current Facts
 
----
+- Product: one sellable package, **Grabber Business OS Pro**. Vertical packs configure the client business; they are not pricing tiers.
+- Architecture: one client app and one private Postgres database per business. No shared client database.
+- Schema SSOT: `src/db/schema.ts` and numbered `drizzle/` migrations; current schema has 107 tables.
+- Verification baseline: `npm run check` is expected to pass typecheck, 657 Vitest tests, the security audit, and production build.
+- Company/admin surfaces: `/company`, `/company/leads`, `/company/clients`, `/company/settings`, `/company/admin`, `/company/roadmap`.
 
-## 🏛️ 1. Architecture & Domain Engine Guides
+## Live Operational Runbooks
 
-| Document | Title & Focus | Scope & Highlights |
-| :--- | :--- | :--- |
-| **[01 System Architecture](./01_SYSTEM_ARCHITECTURE.md)** | **Master System Architecture & Tech Stack** | Single-business database topology, **99** PostgreSQL tables (see `schema.ts`), double-entry GL, and HMAC security. |
-| **[Domain Architecture](./GRABBER_DOMAIN_ARCHITECTURE.md)** | **Canonical Domain Engine Specifications** | Server-authoritative pricing, immutable stock ledger, and unified multi-channel commerce core. |
-| **[Offline POS Subsystem](./GRABBER_OFFLINE_POS.md)** | **5-Store IndexedDB Offline Architecture** | Catalog snapshots, customer cache, transaction journal, sequence UUIDs, and reconnect backoff sync. |
-| **[Returns & Reverse Commerce](./GRABBER_RETURNS_REFUNDS.md)** | **Itemized Returns & Pro-Rata Accounting** | `orderReturnLines` schema, discount/tax proration, grading/restocking, and Polim Potha credit refunds. |
-| **[Commerce Invariants Ledger](./GRABBER_INVENTORY_ACCOUNTING_INVARIANTS.md)** | **The 20 Golden Invariants of Grabber Solo** | Mathematical invariants for GL balance ($\sum D = \sum C$), stock deltas, and idempotency gates. |
-| **[Vertical Adaptor Framework](./GRABBER_VERTICAL_ENGINE_ARCHITECTURE.md)** | **Vertical Intelligence Pack Architecture** | Modular adaptors for Grocery, Fashion, Electronics, Mobile Repair, Restaurant, and Hire Purchase. |
+These are intentionally kept outside the numbered docs because scripts, release gates, or handover steps reference them directly:
 
----
+| Runbook | Purpose |
+| --- | --- |
+| [RELEASE_GATE](./RELEASE_GATE.md) | Merge/deploy gate checklist. |
+| [PROVISION_NEXT_CLIENT](./PROVISION_NEXT_CLIENT.md) | Next-client provisioning checklist. |
+| [FRESH_START](./FRESH_START.md) | Fresh database/bootstrap notes used by fleet tests. |
+| [LEGACY_MIGRATION_BRIDGE](./LEGACY_MIGRATION_BRIDGE.md) | Legacy database bridge validation. |
+| [LIGHTHOUSE_MOBILE](./LIGHTHOUSE_MOBILE.md) | Mobile performance smoke workflow. |
+| [ERP_GAPS_AND_NEXT_WAVE](./ERP_GAPS_AND_NEXT_WAVE.md) | Remaining ERP gaps and next-wave controls. |
+| [GRABBER_GAP_REGISTER](./GRABBER_GAP_REGISTER.md) | Closed/open gap ledger. |
+| [COMPANY_ADMIN_SUPERADMIN_PLAN](./COMPANY_ADMIN_SUPERADMIN_PLAN.md) | Company admin/HQ surface plan. |
+| [COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK](./COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md) | Coolify deployment SOP. |
 
-## 🏆 2. Certification & Audit Ledgers (Pass 1–3)
+## Archive Policy
 
-| Document | Purpose | Key Content |
-| :--- | :--- | :--- |
-| **[Odoo Parity Matrix](./GRABBER_ODOO_PARITY_MATRIX.md)** | **Odoo-Class Feature Benchmark** | Full benchmark comparing Grabber Solo against Odoo Community & Enterprise standards. |
-| **[Feature Certification Report](./GRABBER_FEATURE_CERTIFICATION.md)** | **Independent Certification Matrix** | Verified F5 production ratings and evidence anchors across all horizontal domains. |
-| **[False-Positive Register](./GRABBER_CERTIFICATION_FALSE_POSITIVES.md)** | **Adversarial Audit & Corrected Claims** | Transparent disclosure of disproven claims, downgrades, and hardened validation fixes. |
-| **[Master Gap Register](./GRABBER_GAP_REGISTER.md)** | **Remediation & Roadmapped Scope** | Closed issues ledger (GAP-001–007) and scheduled Phase 4 vertical extensions. |
-
----
-
-## 🚀 3. Operational Playbooks & Deployment
-
-| Playbook | Purpose | Key Content |
-| :--- | :--- | :--- |
-| **[02 Deployment & Onboarding](./02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md)** | **Client Onboarding Playbook** | 15-minute setup: Supabase DB, migrations bootstrap, Vercel/VPS deploy, DNS binding. |
-| **[Grabberpoz + ThePartyStore Launch](./GRABBERPOZ_AND_THEPARTYSTORE_LAUNCH.md)** | **Company + First Client Go-Live** | Runtime env, routing, and acceptance checks for `grabberpoz.com` and `thepartystore.grabberpoz.com`. |
-| **[03 Commerce & Operations](./03_COMMERCE_AND_OPERATIONS_PLAYBOOK.md)** | **Physical Operations Playbook** | Fast counter POS, barcode scanning, shift registers, Polim Potha customer credit, and GRN. |
-| **[04 Jarvis Autonomous OS](./04_JARVIS_AUTONOMOUS_OS_MANUAL.md)** | **Jarvis Operational Manual** | Closed-loop brain, Action Policy Matrix, Owner Morning Brief, SEO audit, and profit attribution. |
-| **[05 Vertical Intelligence](./05_VERTICAL_INTELLIGENCE_GUIDE.md)** | **Vertical Packs Guide** | Specialized domain parameters, KPIs, and prompt templates across active vertical packs. |
-
----
-
-## ⚡ Quick Operational Command Reference
-
-```bash
-# Run full automated test suite (556+ tests / 87 files — re-count with npm test)
-npm test
-
-# Heavy client module line counts (Wave C)
-npm run analyze:sizes
-
-# Run complete release gate suite (env validate, auth coverage, RLS, typecheck, tests)
-npm run release:gate
-
-# Typecheck the entire TypeScript codebase
-npm run typecheck
-
-# Bootstrap fresh database with numbered migrations and Chart of Accounts
-npm run db:bootstrap
-
-# Validate API authentication coverage (119 endpoints certified)
-npm run auth:coverage
-
-# Pre-flight environment check before production deployment
-npm run env:validate
-
-# Run Level 4 client database certification gate
-npm run client:certify -- --client "Client Store Name" --slug "clientstore"
-```
+Superseded plans, duplicate root docs, old SSOT files, and stale roadmaps live under `docs/archive/`.
+Do not use archived files as implementation authority unless a current numbered doc explicitly points to them for historical context.

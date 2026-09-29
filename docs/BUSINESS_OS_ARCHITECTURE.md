@@ -5,7 +5,7 @@
 > Creative GPU path is **optional** — see [`BUSINESS_OS_CREATIVE_FACTORY.md`](./BUSINESS_OS_CREATIVE_FACTORY.md).  
 > Ops: [`SOFTWARE_PLAYBOOK.md`](./SOFTWARE_PLAYBOOK.md) · Index: [`README.md`](./README.md)
 
-> **Execution docs:** [`ROADMAP.md`](./ROADMAP.md) · [`IMPLEMENTATION_MAP.md`](./IMPLEMENTATION_MAP.md) · [`RELEASE_GATE.md`](./RELEASE_GATE.md) · [`correction.md`](./correction.md)
+> **Execution docs:** [`02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md`](./02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md) · [`IMPLEMENTATION_MAP.md`](./IMPLEMENTATION_MAP.md) · [`RELEASE_GATE.md`](./RELEASE_GATE.md) · archived `correction.md`
 
 ---
 

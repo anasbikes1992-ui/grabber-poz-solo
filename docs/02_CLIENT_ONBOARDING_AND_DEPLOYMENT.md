@@ -28,7 +28,7 @@ Before provisioning a new client installation, collect the following:
    ```bash
    npm run db:bootstrap
    ```
-   *Applies migrations `0000_init` through `0002_bridges` and creates all 49 core tables with RLS policies and double-entry General Ledger structures.*
+   *Applies the numbered `drizzle/` migration chain and creates the current 107-table schema with RLS policies, double-entry General Ledger structures, company onboarding tables, and vertical module tables.*
 
 ---
 
@@ -82,7 +82,7 @@ npm run client:certify -- --client "Shopping Station" --slug "shoppingstation"
 ```
 
 The certification suite verifies 12 automated checks:
-1. `SCHEMA_MIGRATIONS`: All 49 tables and foreign keys exist.
+1. `SCHEMA_MIGRATIONS`: All current schema tables and foreign keys exist.
 2. `RLS_POLICIES`: Row-level security active on all customer-sensitive tables.
 3. `COMMERCE_ATOMICITY`: Test transaction creates order, line items, and stock movement in a single atomic commit.
 4. `GENERAL_LEDGER_BALANCE`: Sum of all Debits strictly equals sum of Credits.

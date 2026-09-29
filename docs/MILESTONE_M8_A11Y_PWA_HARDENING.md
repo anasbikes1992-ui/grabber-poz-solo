@@ -3,7 +3,7 @@
 **Date:** 2026-09-17
 **Status:** CLOSED — code, tests, and docs verified in this pass
 **Preceding milestone:** `M7` Client Deployment & Onboarding Console ([`implementation_plan.md`](../implementation_plan.md))
-**Origin:** Track C ("new reliability/engineering items") of [`BUSINESS_REVIEW_AND_GROWTH_ROADMAP_2026.md`](./BUSINESS_REVIEW_AND_GROWTH_ROADMAP_2026.md) and the open Critical-2 (checkout labels) item in [`A11Y_AUDIT.md`](./A11Y_AUDIT.md).
+**Origin:** archived Track C ("new reliability/engineering items") and the open Critical-2 (checkout labels) item in [`A11Y_AUDIT.md`](./A11Y_AUDIT.md).
 
 ---
 
@@ -24,7 +24,7 @@ Everything else proposed in the growth roadmap (Forecast, Local Pay, Group roll-
 - Direct inspection of [`src/app/shop/checkout/page.tsx`](../src/app/shop/checkout/page.tsx) showed C2's core issues (missing `htmlFor`, missing `autoComplete`, missing `role="radiogroup"`) had **already been fixed** in a prior, undocumented pass — the audit note was stale, not the code. The two genuinely remaining gaps were:
   - The client-side error banner had no `role="alert"`, so validation/checkout failures were not announced to assistive tech.
   - Several secondary text elements still used `text-zinc-500` / `text-slate-500` on dark surfaces, measuring under the WCAG 1.4.3 AA 4.5:1 threshold per the audit's own contrast table.
-- `docs/CODEBASE_MAP_AND_IMPROVEMENTS.md` still listed "checkout labels + PromotionPopup still open" — also stale relative to current code; corrected in Section 5 below.
+- archived codebase review notes still listed "checkout labels + PromotionPopup still open" - also stale relative to current code; corrected in Section 5 below.
 - No `manifest.json`, service worker, or app icon existed anywhere in the repo (`public/` only contained `.gitkeep` and `uploads/`), confirming the PWA gap identified in the growth-roadmap technical review was real.
 
 ---
@@ -76,12 +76,12 @@ Both commands were re-run after every edit in this milestone, not just at the en
 
 ## 5. Documentation corrections made in this pass
 
-Docs are updated in the same change as the code they describe, per this repo's own claims discipline (`docs/CLAIMS_AND_SCOPE.md` §6, `goalplan.md` Definition of Done):
+Docs are updated in the same change as the code they describe, per this repo's own claims discipline (`docs/CLAIMS_AND_SCOPE.md` Section 6):
 
 - [`docs/A11Y_AUDIT.md`](./A11Y_AUDIT.md) — C2 marked fixed with file/line evidence; release-gate checklist items for checkout ticked.
-- [`docs/CODEBASE_MAP_AND_IMPROVEMENTS.md`](./CODEBASE_MAP_AND_IMPROVEMENTS.md) — "Public a11y" grade and P0 checkout-label row updated to reflect current code, not the 2026-09-11 snapshot.
-- [`docs/ROADMAP.md`](./ROADMAP.md) — this milestone recorded as the item after `M7`.
-- [`docs/BUSINESS_REVIEW_AND_GROWTH_ROADMAP_2026.md`](./BUSINESS_REVIEW_AND_GROWTH_ROADMAP_2026.md) — Track C's PWA and a11y rows marked done, pointing here.
+- Archived codebase review notes recorded the "Public a11y" grade and P0 checkout-label row for historical context.
+- [`02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md`](./02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md) remains the live handover SOP.
+- [`A11Y_AUDIT.md`](./A11Y_AUDIT.md) remains the live accessibility evidence file.
 
 ---
 
@@ -92,4 +92,4 @@ Docs are updated in the same change as the code they describe, per this repo's o
 - The PWA shell has no offline-navigation fallback page; a hard offline reload of an uncached route still fails as before. Only static assets are cached — this was a deliberate scope boundary (Section 3.2), not an oversight.
 - Per-route manifest scoping (`/shop` installing to its own `start_url`) is deferred, per Section 3.2.
 
-These are carried forward into `docs/BUSINESS_REVIEW_AND_GROWTH_ROADMAP_2026.md` Track C/G rather than silently dropped.
+These are carried forward into the numbered docs and gap registers rather than silently dropped.

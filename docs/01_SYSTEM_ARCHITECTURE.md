@@ -51,7 +51,7 @@
                      │
        ┌─────────────▼─────────────┐
        │   POSTGRESQL RELATIONAL   │
-       │ (49 Drizzle Schema Tables)│
+       │ (107 Drizzle Schema Tables)│
        └───────────────────────────┘
 ```
 
@@ -63,7 +63,7 @@
 |:---|:---|:---|
 | **Web App Framework** | Next.js 15 (React 19, App Router, Server Actions) | Unified back-office portal, touch POS, and SEO storefront. |
 | **Styling & UI Craft** | Vanilla Tailwind CSS, Radix UI, Lucide Icons | Dark-first Zinc-950 / Emerald design system, accessible focus rings. |
-| **Data Persistence** | PostgreSQL (Supabase or Self-Hosted), Drizzle ORM | 49 ACID relational tables, double-entry general ledger, audit trails. |
+| **Data Persistence** | PostgreSQL (Supabase or Self-Hosted), Drizzle ORM | 107 ACID relational tables, double-entry general ledger, audit trails. |
 | **Authentication** | Dual-Session (HMAC Staff PIN Cookie + Shopper Session) | Verified edge session validation via Next.js Middleware. |
 | **Autonomous Intelligence** | Jarvis Business Brain + 10 Vertical Intelligence Packs | Closed-loop anomaly detection, KPI tracking, and opportunity discovery. |
 | **SEO & Growth Engine** | Dynamic JSON-LD Schema, Semantic Keyword Intent Analyzer | Automated metadata audits, FAQ schema, and LocalBusiness branch pages. |
@@ -74,7 +74,7 @@
 
 ## 4. Relational Database Design & Schema Highlights
 
-The database schema (defined in `src/db/schema.ts`) contains 49 core tables structured around double-entry accounting and strict inventory control:
+The database schema (defined in `src/db/schema.ts`) contains 107 current tables structured around double-entry accounting, strict inventory control, company onboarding, vertical modules, and automation:
 
 ```
 ┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐

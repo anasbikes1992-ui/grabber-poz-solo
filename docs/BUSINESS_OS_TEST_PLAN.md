@@ -63,7 +63,7 @@ The automated E2E test suite executes the complete operational lifecycle in sequ
 |---------|----------------|
 | `npm test` | Golden business invariants, vertical math, a11y smoke (≥25 tests) |
 | `npm run typecheck` | TypeScript compile |
-| `npm run client:certify` | Schema (49 tables) + synthetic SQL commerce/GL chains |
+| `npm run client:certify` | Current schema + synthetic SQL commerce/GL chains |
 | `CERTIFY_HTTP_BASE_URL=… npm run client:certify` | Optional live HTTP probes |
 
 **Process gate for human / UAT re-test:** [`docs/READY_FOR_RETESTING.md`](./READY_FOR_RETESTING.md)  

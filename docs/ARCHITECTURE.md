@@ -138,4 +138,4 @@ Modular flag system allowing single instances to adapt to specific merchant type
 | `src/lib/catalog/` | Product services, bulk operations, CSV import/export engines. |
 | `src/lib/auth/` | Edge & Node session verification, cryptographic signing, permission policies. |
 | `src/db/schema.ts` | Unified relational PostgreSQL schema and enum definitions. |
-| `docs/` | Comprehensive documentation (`ROADMAP.md`, `PRODUCT_AUDIT.md`, `TECHNICAL_HANDOVER_GUIDE.md`). |
+| `docs/` | Comprehensive documentation (numbered master docs, release gates, and `TECHNICAL_HANDOVER_GUIDE.md`). |

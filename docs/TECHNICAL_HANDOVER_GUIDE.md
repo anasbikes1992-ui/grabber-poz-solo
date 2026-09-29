@@ -15,4 +15,4 @@
 | Fresh deploy | [`FRESH_START.md`](./FRESH_START.md) |
 | Doc index | [`README.md`](./README.md) |
 
-Schema SSOT: `src/db/schema.ts` (~49 tables). Prefer `db:bootstrap` / migrations / `db:push` per Fresh Start — not legacy one-shot SQL alone.
+Schema SSOT: `src/db/schema.ts` (107 current tables). Prefer `db:bootstrap` / migrations / `db:push` per Fresh Start - not legacy one-shot SQL alone.

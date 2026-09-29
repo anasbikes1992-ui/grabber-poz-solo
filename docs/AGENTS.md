@@ -92,4 +92,4 @@ node scripts/release-gate.mjs r6 --env-file .env.prod.txt --production
 - [`RELEASE_GATE.md`](./RELEASE_GATE.md) — R6 exit criteria
 - [`ERP_GAPS_AND_NEXT_WAVE.md`](./ERP_GAPS_AND_NEXT_WAVE.md) — Wave E verticals + ERP foundation
 - [`REPAIRS_STOREFRONT_BLUEPRINT.md`](./REPAIRS_STOREFRONT_BLUEPRINT.md) — repairs + agents plan
-- [`ROADMAP.md`](./ROADMAP.md) — release train
+- [`02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md`](./02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md) - release train and handover SOP

@@ -165,5 +165,5 @@ fresh and shown once — hand these to the owner immediately; none of them is
 
 - [`COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md`](./COOLIFY_4_CLIENT_DEPLOYMENT_PLAYBOOK.md) — full per-tenant playbook
 - [`DEPLOY_INCIDENT_COOLIFY_2026-09-11.md`](./DEPLOY_INCIDENT_COOLIFY_2026-09-11.md) — the build-secret-leak incident and its fix
-- [`ROADMAP.md`](./ROADMAP.md) — future work
+- [`02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md`](./02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md) - provisioning and future handover work
 - [`.env.example`](../.env.example)

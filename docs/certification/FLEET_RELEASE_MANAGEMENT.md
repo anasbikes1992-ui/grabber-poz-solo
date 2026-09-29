@@ -79,6 +79,6 @@ Migrations: through **0012** (wishlist + WhatsApp). Drop bridges only via **0013
 
 ## 6. Related
 
-- Phase 0 checklist: [`FULL_PROOF_PLAN.md`](../FULL_PROOF_PLAN.md) §5  
+- Launch checklist: [`02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md`](../02_CLIENT_ONBOARDING_AND_DEPLOYMENT.md) and [`RELEASE_GATE.md`](../RELEASE_GATE.md)  
 - Lighthouse: [`LIGHTHOUSE_MOBILE.md`](../LIGHTHOUSE_MOBILE.md)  
 - Legacy bridges: [`LEGACY_MIGRATION_BRIDGE.md`](../LEGACY_MIGRATION_BRIDGE.md)  

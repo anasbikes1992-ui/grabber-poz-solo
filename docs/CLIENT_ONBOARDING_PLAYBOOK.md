@@ -13,7 +13,7 @@ Operational handbook for provisioning, validating, certifying, and handing over 
 ## 1. Commercial Architecture & Service Level Standard
 
 * **Architecture Model:** Dedicated Single-Business Instance (1 Business = 1 Isolated Supabase PostgreSQL + 1 Vercel Edge Deployment + optional Storage bucket).
-* **Schema SSOT:** [`src/db/schema.ts`](../src/db/schema.ts) (**49 tables**). Prefer `npm run db:push`. `drizzle/supabase_setup.sql` is legacy reference only; RLS baseline is `drizzle/rls_baseline.sql` (apply manually).
+* **Schema SSOT:** [`src/db/schema.ts`](../src/db/schema.ts) (**107 current tables**). Prefer `npm run db:bootstrap` for migrations. `drizzle/supabase_setup.sql` is legacy reference only; RLS baseline is `drizzle/rls_baseline.sql` (apply manually).
 * **Dual surface:** Public storefront at `/` (shoppers); staff OS at `/app` via `/login` (PIN session).
 * **Delivery SLA:** Same-day go-live only after **schema/SQL cert passes**, **Ready for Re-Testing P0**, and **manual** owner auth + POS smoke — not after docs alone.
 * **Zero Cross-Tenant Leakage:** Dedicated database isolates Polim Potha, GL, customers, and inventory.
@@ -143,7 +143,7 @@ Full re-provision: drop/recreate schema from SSOT (`db:push`), re-seed, then re-
 ## 4. Operational Handover Checklist
 
 - [ ] `npm run env:validate -- --production` → 0 P0 errors
-- [ ] Schema matches `src/db/schema.ts` (49 tables + COA seed)
+- [ ] Schema matches `src/db/schema.ts` (current 107-table schema + COA seed)
 - [ ] Catalog migrated / seeded; rejected rows reviewed
 - [ ] Vercel domain + SSL active
 - [ ] `npm run client:certify` → no P0 failures
