@@ -148,6 +148,7 @@ Implemented foundation:
 - Removed raw 500 error leakage from legacy API routes.
 - Promoted `npm run security:audit` into `npm run check`.
 - Cleared dependency audit with a safe Drizzle Kit patch and targeted transitive `esbuild` override.
+- Extended `npm run ops:smoke` with optional read-only staff checks for Ops Health, provider health, bank reconciliation, ERP control, handover readiness, and client register using `CERTIFY_STAFF_COOKIE`.
 
 Goal: make the platform safer to hand over repeatedly.
 
@@ -164,8 +165,7 @@ Done when:
 - Release gates document and enforce the production safety checks.
 
 Remaining polish:
-- Add live read-only smoke script coverage for bank match, ERP control, and provider health.
-- Keep dependency audit in release notes and re-run before every client handover.
+- Keep dependency audit and `ops:smoke` output in release notes and re-run before every client handover.
 
 ## Milestone 7 - Client Handover Polish
 

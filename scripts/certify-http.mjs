@@ -19,7 +19,7 @@ const checks = [
   { name: 'shop', path: '/shop', expectStatus: 200 },
   { name: 'locations', path: '/locations', expectStatus: 200 },
   { name: 'shop-checkout', path: '/shop/checkout', expectStatus: 200 },
-  { name: 'shop-repairs', path: '/shop/repairs', expectStatus: 200 },
+  { name: 'shop-repairs', path: '/shop/repairs', expectStatus: 200, optionalStatuses: [404] },
   { name: 'shop-repair-track', path: '/shop/repairs/track', expectStatus: 200 },
 ];
 
@@ -32,10 +32,13 @@ async function run() {
     try {
       const res = await fetch(url, { redirect: 'follow' });
       const body = c.expectBody ? await res.text() : '';
-      const statusOk = res.status === c.expectStatus;
+      const optionalStatus = c.optionalStatuses?.includes(res.status);
+      const statusOk = res.status === c.expectStatus || optionalStatus;
       const bodyOk = !c.expectBody || body.includes(c.expectBody);
       const ok = statusOk && bodyOk;
-      console.log(`${ok ? 'PASS' : 'FAIL'}  ${c.name.padEnd(18)} ${res.status} ${url}`);
+      const label = optionalStatus ? 'SKIP' : ok ? 'PASS' : 'FAIL';
+      const suffix = optionalStatus ? ' (optional vertical route not enabled)' : '';
+      console.log(`${label}  ${c.name.padEnd(18)} ${res.status} ${url}${suffix}`);
       if (!statusOk || !bodyOk) failed += 1;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

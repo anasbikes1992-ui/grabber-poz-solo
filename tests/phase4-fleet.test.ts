@@ -24,7 +24,14 @@ describe('Phase 4 fleet & hygiene', () => {
   it('ops:smoke and lighthouse scripts wired', () => {
     expect(fs.existsSync(path.join(root, 'scripts/ops-smoke.mjs'))).toBe(true);
     expect(fs.existsSync(path.join(root, 'scripts/lighthouse-mobile.mjs'))).toBe(true);
+    expect(read('scripts/ops-smoke.mjs')).toContain('CERTIFY_STAFF_COOKIE');
+    expect(read('scripts/ops-smoke.mjs')).toContain('/api/accounts/bank');
+    expect(read('scripts/ops-smoke.mjs')).toContain('/api/erp/control');
+    expect(read('scripts/ops-smoke.mjs')).toContain('/api/integrations/health');
+    expect(read('scripts/ops-smoke.mjs')).toContain('/api/company/admin/handover');
     expect(read('package.json')).toContain('ops:smoke');
+    expect(read('scripts/certify-http.mjs')).toContain("name: 'shop-repairs'");
+    expect(read('scripts/certify-http.mjs')).toContain('optionalStatuses: [404]');
     expect(read('package.json')).toContain('lighthouse:shop');
     expect(fs.existsSync(path.join(root, 'docs/LIGHTHOUSE_MOBILE.md'))).toBe(true);
   });
