@@ -21,9 +21,9 @@ This directory has one canonical documentation tree. If facts conflict, trust th
 
 - Product: one sellable package, **Grabber Business OS Pro**. Vertical packs configure the client business; they are not pricing tiers.
 - Architecture: one client app and one private Postgres database per business. No shared client database.
-- Schema SSOT: `src/db/schema.ts` and numbered `drizzle/` migrations; current schema has 107 tables.
-- Verification baseline: `npm run check` is expected to pass typecheck, 657 Vitest tests, the security audit, and production build.
-- Company/admin surfaces: `/company`, `/company/leads`, `/company/clients`, `/company/settings`, `/company/admin`, `/company/roadmap`.
+- Schema SSOT: `src/db/schema.ts` and numbered `drizzle/` migrations; current schema has 108+ tables.
+- Verification baseline: `npm run check` is expected to pass typecheck, 687 Vitest tests, the security audit, and production build.
+- Company/admin surfaces: `/company`, `/company/leads`, `/company/clients`, `/company/servers`, `/company/settings`, `/company/admin`, `/company/roadmap`.
 
 ## Live Operational Runbooks
 
