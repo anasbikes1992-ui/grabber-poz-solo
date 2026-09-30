@@ -202,6 +202,7 @@ export function AppHeader({ onToggleJarvis }: AppHeaderProps) {
     { href: '/company/settings', label: 'Company Settings', icon: Settings, desc: 'Logo, profile, tax & receipt identity' },
     { href: '/company/leads', label: 'Company Leads', icon: Briefcase, desc: 'Prospects, demos & follow-ups' },
     { href: '/company/clients', label: 'Client Provisioning', icon: Server, desc: 'Isolated app, DB & handover register' },
+    { href: '/company/servers', label: 'Server Fleet', icon: Server, desc: 'VPS capacity, Coolify and slots' },
     { href: '/company/deployments', label: 'Deployment Register', icon: Cloud, desc: 'App, DB, domain & health tracking' },
     { href: '/company/handover', label: 'Handover Readiness', icon: ClipboardCheck, desc: 'Client readiness, smoke and SOP gate' },
     { href: '/company/audit', label: 'Audit Trail', icon: FileText, desc: 'Protected action history' },

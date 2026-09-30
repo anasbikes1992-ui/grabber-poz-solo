@@ -32,8 +32,8 @@ const milestones = [
     title: 'Milestone 3 - Client Provisioning Register',
     status: 'Done',
     owner: 'CEO/CTO',
-    goal: 'Track prospects from lead to won client to isolated app/database handover and deployment readiness.',
-    checks: ['Client status pipeline', 'Provisioning checklist', 'Deployment register', 'Handover readiness gate'],
+    goal: 'Track prospects from lead to won client to isolated app/database handover, server capacity, and deployment readiness.',
+    checks: ['Client status pipeline', 'Provisioning checklist', 'Server fleet registry', 'Deployment register', 'Handover readiness gate'],
   },
   {
     title: 'Milestone 4 - ERP Readiness & Demand Planning',
@@ -54,6 +54,7 @@ const milestones = [
 const links = [
   { href: '/company/leads', label: 'Lead CRM', icon: Store },
   { href: '/company/clients', label: 'Client Provisioning', icon: Server },
+  { href: '/company/servers', label: 'Server Fleet', icon: Server },
   { href: '/company/deployments', label: 'Deployments', icon: Database },
   { href: '/company/handover', label: 'Handover Readiness', icon: ClipboardCheck },
   { href: '/company/audit', label: 'Audit Trail', icon: ScrollText },

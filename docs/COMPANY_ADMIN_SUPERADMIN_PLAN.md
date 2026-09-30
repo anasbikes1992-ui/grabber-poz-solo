@@ -11,6 +11,7 @@ Status: active SSOT for the Grabberpoz.com company admin workstream.
 - `/company/admin` is the SuperAdmin command center over existing CRUD areas.
 - `/company/roadmap` is the in-app CEO/CTO roadmap and acceptance checklist.
 - `/company/clients` is the client provisioning register and handover checklist.
+- `/company/servers` is the server fleet registry for VPS/Coolify capacity.
 - `/company/deployments` is the app/database/domain deployment register.
 - `/company/audit` is the Owner/Admin/Manager read-only audit trail over `audit_logs`.
 - `/ai/demand` is the read-only demand planning workbench backed by forecast snapshots and replenishment recommendations.
@@ -67,7 +68,8 @@ CRUD modules:
 - Staff/users: use `/settings/staff` unless a dedicated `/company/admin/users` wrapper is approved.
 - Company profile: `/company/settings`.
 - Client provisioning register: `/company/clients`, backed by `company_clients` and `company_onboarding_tasks`.
-- Deployment register: `/company/deployments`, backed by `company_deployments`.
+- Server fleet registry: `/company/servers`, backed by `company_servers`.
+- Deployment register: `/company/deployments`, backed by `company_deployments`, with optional `server_id`.
 - Audit trail: `/company/audit`, backed by `audit_logs`.
 
 Implemented demand planning tables:
@@ -85,9 +87,15 @@ Implemented client provisioning fields:
 
 Implemented deployment register fields:
 - Business/app identity: business name, app name, environment, repository, branch, commit SHA.
-- Infrastructure references: target domain, database name, Coolify project ID, Coolify service ID.
-- Readiness state: app status, database status, deploy status, health status.
-- Ops handover: notes, next action, last deployed timestamp, last checked timestamp.
+- Infrastructure references: target domain, database name, server ID, Coolify project ID, Coolify service ID.
+- Readiness state: app status, database status, deploy status, health status, backup status.
+- Ops handover: notes, next action, last deployed timestamp, last checked timestamp, last backup timestamp, last heartbeat timestamp.
+
+Implemented server fleet fields:
+- VPS identity: name, provider, region, IP/hostname, Coolify URL.
+- Capacity: CPU, RAM, disk, max clients, assigned clients from linked deployments.
+- Safety status: health, disk usage, RAM pressure, backup status, capacity state.
+- Scale rule: five normal clients per VPS by default; block assignment at full capacity, `DOWN`, disk >= 85%, or high RAM pressure.
 
 ## Milestone 4 - Inventory Demand Planning
 
@@ -131,5 +139,6 @@ Non-goals:
 6. Confirm `/company`, `/company/settings`, `/company/admin`, and `/company/roadmap` render for Owner/Admin.
 7. Confirm `/company/audit` renders recent logs for Owner/Admin/Manager.
 8. Confirm `/company/deployments` renders and can create a manual deployment record after migration 0024.
-9. Confirm `/ai/demand` renders and can save a forecast snapshot after migration 0025.
-10. Confirm `/purchasing/recommendations` renders and can create a draft PO after migration 0026.
+9. Confirm `/company/servers` renders and can create a manual server record after migration 0032.
+10. Confirm `/ai/demand` renders and can save a forecast snapshot after migration 0025.
+11. Confirm `/purchasing/recommendations` renders and can create a draft PO after migration 0026.

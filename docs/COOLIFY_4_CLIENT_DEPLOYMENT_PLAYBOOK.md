@@ -38,6 +38,26 @@ DNS (Hostinger): A records → `109.123.246.84` for `@`, `www`, `demo`,
 
 ## 1. Fleet layout
 
+For 25 clients, run a small fleet instead of one oversized server:
+
+- `grabberpoz.com` remains the company control portal and stores only client/server/deployment metadata.
+- Each paying client keeps one isolated app and one isolated private Postgres database.
+- One normal VPS should hold up to 5 normal retail clients by default.
+- At 25 normal clients, plan 5 VPS servers, each with its own Coolify controller and private client databases.
+- Heavy clients count as more than one slot: large catalogs, image-heavy stores, restaurant/KDS, high counter traffic, or enterprise SLA clients may need a dedicated VPS.
+- Register every VPS in `/company/servers`, then link every app/database deployment in `/company/deployments` to that server.
+
+Capacity rules:
+
+| Signal | Action |
+|---|---|
+| 0-3/5 clients | Healthy for normal retail clients |
+| 4/5 clients | Warning: prepare the next VPS |
+| 5/5 clients | Full: do not assign another client |
+| Disk >= 75% | Warning: avoid heavy clients |
+| Disk >= 85% | Block new clients |
+| Health `DOWN` or RAM pressure `HIGH` | Block new clients |
+
 ```
 Traefik :443 (Let's Encrypt)
  ├─ grabberpoz.com / www / demo ─► grabber-demo          build: Dockerfile on VPS, auto-deploy from main

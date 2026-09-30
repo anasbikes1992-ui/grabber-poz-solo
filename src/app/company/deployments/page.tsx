@@ -14,6 +14,7 @@ type HealthStatus = (typeof HEALTH_STATUSES)[number];
 
 type Deployment = {
   id: string;
+  serverId?: string | null;
   businessName: string;
   appName: string;
   environment: string;
@@ -28,13 +29,17 @@ type Deployment = {
   databaseStatus: WorkStatus;
   deployStatus: Exclude<DeployStatus, 'ALL'>;
   healthStatus: HealthStatus;
+  backupStatus?: 'UNKNOWN' | 'OK' | 'STALE' | 'FAILED' | 'MISSING';
   notes: string;
   nextAction?: string | null;
   lastDeployedAt?: string | null;
   lastCheckedAt?: string | null;
+  lastBackupAt?: string | null;
+  lastHeartbeatAt?: string | null;
 };
 
 type DeploymentForm = {
+  serverId: string;
   businessName: string;
   appName: string;
   environment: string;
@@ -49,11 +54,13 @@ type DeploymentForm = {
   databaseStatus: WorkStatus;
   deployStatus: Exclude<DeployStatus, 'ALL'>;
   healthStatus: HealthStatus;
+  backupStatus: 'UNKNOWN' | 'OK' | 'STALE' | 'FAILED' | 'MISSING';
   notes: string;
   nextAction: string;
 };
 
 const emptyForm: DeploymentForm = {
+  serverId: '',
   businessName: '',
   appName: '',
   environment: 'production',
@@ -68,6 +75,7 @@ const emptyForm: DeploymentForm = {
   databaseStatus: 'NOT_STARTED',
   deployStatus: 'NOT_STARTED',
   healthStatus: 'UNKNOWN',
+  backupStatus: 'UNKNOWN',
   notes: '',
   nextAction: 'Create app, database, env vars, and bootstrap',
 };
@@ -94,6 +102,7 @@ function statusClass(value: string) {
 
 function formFromDeployment(deployment: Deployment): DeploymentForm {
   return {
+    serverId: deployment.serverId || '',
     businessName: deployment.businessName || '',
     appName: deployment.appName || '',
     environment: deployment.environment || 'production',
@@ -108,6 +117,7 @@ function formFromDeployment(deployment: Deployment): DeploymentForm {
     databaseStatus: deployment.databaseStatus || 'NOT_STARTED',
     deployStatus: deployment.deployStatus || 'NOT_STARTED',
     healthStatus: deployment.healthStatus || 'UNKNOWN',
+    backupStatus: deployment.backupStatus || 'UNKNOWN',
     notes: deployment.notes || '',
     nextAction: deployment.nextAction || '',
   };
@@ -178,7 +188,7 @@ export default function CompanyDeploymentsPage() {
     setMessage(null);
     setError(null);
     try {
-      const payload = { ...form };
+      const payload = { ...form, serverId: form.serverId.trim() || null };
       const res = await fetch('/api/company/admin/deployments', {
         method: selected ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -210,6 +220,10 @@ export default function CompanyDeploymentsPage() {
         <div className="flex flex-wrap gap-2">
           <Link href="/company/roadmap" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-bold text-foreground transition hover:border-emerald-400 hover:text-emerald-200 active:scale-[0.98]">
             Roadmap
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link href="/company/servers" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-bold text-foreground transition hover:border-emerald-400 hover:text-emerald-200 active:scale-[0.98]">
+            Server Fleet
             <ArrowRight className="h-4 w-4" />
           </Link>
           <button
@@ -319,12 +333,22 @@ export default function CompanyDeploymentsPage() {
               <input value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-emerald-500" />
             </label>
             <label className="block text-xs font-bold">
+              Server ID
+              <span className="relative mt-1 block">
+                <Server className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input value={form.serverId} onChange={(e) => setForm({ ...form, serverId: e.target.value })} placeholder="company_servers.id" className="min-h-11 w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-500" />
+              </span>
+            </label>
+            <label className="block text-xs font-bold">
               App Name
               <span className="relative mt-1 block">
                 <Server className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input value={form.appName} onChange={(e) => setForm({ ...form, appName: e.target.value })} className="min-h-11 w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-500" />
               </span>
             </label>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-xs font-bold">
               Domain
               <span className="relative mt-1 block">
@@ -352,6 +376,12 @@ export default function CompanyDeploymentsPage() {
               Health Status
               <select value={form.healthStatus} onChange={(e) => setForm({ ...form, healthStatus: e.target.value as HealthStatus })} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-emerald-500">
                 {HEALTH_STATUSES.map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </label>
+            <label className="block text-xs font-bold">
+              Backup Status
+              <select value={form.backupStatus} onChange={(e) => setForm({ ...form, backupStatus: e.target.value as DeploymentForm['backupStatus'] })} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-emerald-500">
+                {['UNKNOWN', 'OK', 'STALE', 'FAILED', 'MISSING'].map((item) => <option key={item}>{item}</option>)}
               </select>
             </label>
             <label className="block text-xs font-bold">

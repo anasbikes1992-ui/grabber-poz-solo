@@ -12,6 +12,7 @@ const HEALTH_STATUSES = ['UNKNOWN', 'HEALTHY', 'DEGRADED', 'DOWN'] as const;
 
 const deploymentSchema = z.object({
   clientId: z.string().uuid().optional().nullable(),
+  serverId: z.string().uuid().optional().nullable(),
   businessName: z.string().trim().min(2).max(120),
   appName: z.string().trim().min(2).max(180),
   environment: z.string().trim().min(2).max(80).optional(),
@@ -26,10 +27,13 @@ const deploymentSchema = z.object({
   databaseStatus: z.enum(WORK_STATUSES).optional(),
   deployStatus: z.enum(DEPLOY_STATUSES).optional(),
   healthStatus: z.enum(HEALTH_STATUSES).optional(),
+  backupStatus: z.enum(['UNKNOWN', 'OK', 'STALE', 'FAILED', 'MISSING']).optional(),
   notes: z.string().trim().max(2000).optional(),
   nextAction: z.string().trim().max(240).optional().nullable(),
   lastDeployedAt: z.string().datetime().optional().nullable(),
   lastCheckedAt: z.string().datetime().optional().nullable(),
+  lastBackupAt: z.string().datetime().optional().nullable(),
+  lastHeartbeatAt: z.string().datetime().optional().nullable(),
 });
 
 const updateSchema = deploymentSchema.partial().extend({ id: z.string().uuid() });
@@ -42,7 +46,7 @@ async function requireDeploymentAdmin() {
 function isMissingDeploymentSchema(error: unknown) {
   const err = error as { code?: string; message?: string };
   const message = String(err.message || '').toLowerCase();
-  return err.code === '42P01' || message.includes('company_deployments');
+  return err.code === '42P01' || err.code === '42703' || message.includes('company_deployments');
 }
 
 function deploymentSetupResponse(status = 503) {
@@ -59,6 +63,7 @@ function serializeDeployment(row: typeof companyDeployments.$inferSelect) {
   return {
     id: row.id,
     clientId: row.clientId,
+    serverId: row.serverId,
     businessName: row.businessName,
     appName: row.appName,
     environment: row.environment,
@@ -73,10 +78,13 @@ function serializeDeployment(row: typeof companyDeployments.$inferSelect) {
     databaseStatus: row.databaseStatus,
     deployStatus: row.deployStatus,
     healthStatus: row.healthStatus,
+    backupStatus: row.backupStatus,
     notes: row.notes,
     nextAction: row.nextAction,
     lastDeployedAt: row.lastDeployedAt?.toISOString() || null,
     lastCheckedAt: row.lastCheckedAt?.toISOString() || null,
+    lastBackupAt: row.lastBackupAt?.toISOString() || null,
+    lastHeartbeatAt: row.lastHeartbeatAt?.toISOString() || null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -136,6 +144,7 @@ export async function POST(req: Request) {
       .insert(companyDeployments)
       .values({
         clientId: body.clientId || null,
+        serverId: body.serverId || null,
         businessName: body.businessName,
         appName: body.appName,
         environment: body.environment || 'production',
@@ -150,10 +159,13 @@ export async function POST(req: Request) {
         databaseStatus: body.databaseStatus || 'NOT_STARTED',
         deployStatus: body.deployStatus || 'NOT_STARTED',
         healthStatus: body.healthStatus || 'UNKNOWN',
+        backupStatus: body.backupStatus || 'UNKNOWN',
         notes: body.notes || '',
         nextAction: body.nextAction || 'Create app, database, env vars, and bootstrap',
         lastDeployedAt: body.lastDeployedAt ? new Date(body.lastDeployedAt) : null,
         lastCheckedAt: body.lastCheckedAt ? new Date(body.lastCheckedAt) : null,
+        lastBackupAt: body.lastBackupAt ? new Date(body.lastBackupAt) : null,
+        lastHeartbeatAt: body.lastHeartbeatAt ? new Date(body.lastHeartbeatAt) : null,
       })
       .returning();
 
@@ -187,6 +199,7 @@ export async function PATCH(req: Request) {
       .update(companyDeployments)
       .set({
         clientId: body.clientId,
+        serverId: body.serverId,
         businessName: body.businessName,
         appName: body.appName,
         environment: body.environment,
@@ -201,10 +214,13 @@ export async function PATCH(req: Request) {
         databaseStatus: body.databaseStatus,
         deployStatus: body.deployStatus,
         healthStatus: body.healthStatus,
+        backupStatus: body.backupStatus,
         notes: body.notes,
         nextAction: body.nextAction,
         lastDeployedAt: body.lastDeployedAt ? new Date(body.lastDeployedAt) : body.lastDeployedAt === null ? null : undefined,
         lastCheckedAt: body.lastCheckedAt ? new Date(body.lastCheckedAt) : body.lastCheckedAt === null ? null : undefined,
+        lastBackupAt: body.lastBackupAt ? new Date(body.lastBackupAt) : body.lastBackupAt === null ? null : undefined,
+        lastHeartbeatAt: body.lastHeartbeatAt ? new Date(body.lastHeartbeatAt) : body.lastHeartbeatAt === null ? null : undefined,
         updatedAt: new Date(),
       })
       .where(eq(companyDeployments.id, body.id))

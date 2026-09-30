@@ -47,6 +47,13 @@ const sections = [
     icon: Cloud,
   },
   {
+    title: 'Server Fleet',
+    desc: 'Track VPS capacity, Coolify URLs, client slots, disk pressure, backups, and assignment readiness.',
+    href: '/company/servers',
+    cta: 'Open fleet',
+    icon: Server,
+  },
+  {
     title: 'Handover Readiness',
     desc: 'Confirm dedicated app, isolated DB, deployment health, smoke test, and SOP gate before client handover.',
     href: '/company/handover',
@@ -105,6 +112,7 @@ const milestones = [
   { label: 'Handover readiness gate', state: 'Live', tone: 'emerald' },
   { label: 'Company audit trail view', state: 'Live', tone: 'emerald' },
   { label: 'Deployment register', state: 'Live', tone: 'emerald' },
+  { label: 'Server fleet registry', state: 'Live', tone: 'emerald' },
   { label: 'Read-only demand planning', state: 'Live', tone: 'emerald' },
   { label: 'Coolify API hooks', state: 'Planned', tone: 'zinc' },
   { label: 'PO review workflow from forecasts', state: 'Planned', tone: 'zinc' },
