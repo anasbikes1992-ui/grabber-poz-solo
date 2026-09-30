@@ -280,7 +280,7 @@ export const companyServers = pgTable('company_servers', {
 export const companyDeployments = pgTable('company_deployments', {
   id: uuid('id').primaryKey().defaultRandom(),
   clientId: uuid('client_id'),
-  serverId: uuid('server_id'),
+  serverId: uuid('server_id').references(() => companyServers.id, { onDelete: 'set null' }),
   businessName: text('business_name').notNull(),
   appName: text('app_name').notNull(),
   environment: text('environment').notNull().default('production'),

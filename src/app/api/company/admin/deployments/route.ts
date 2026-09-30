@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { db, auditLogs, companyDeployments } from '@/db';
 import { assertRole, requireActiveStaffSession } from '@/lib/auth/session';
 import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
+import { isMissingRelation } from '@/lib/company/server-fleet';
+import { assertServerAssignable } from '@/lib/company/server-fleet-db';
 
 const ALLOWED_ROLES = ['OWNER', 'ADMIN', 'MANAGER'] as const;
 const WORK_STATUSES = ['NOT_STARTED', 'PLANNED', 'IN_PROGRESS', 'READY', 'BLOCKED'] as const;
@@ -44,9 +46,7 @@ async function requireDeploymentAdmin() {
 }
 
 function isMissingDeploymentSchema(error: unknown) {
-  const err = error as { code?: string; message?: string };
-  const message = String(err.message || '').toLowerCase();
-  return err.code === '42P01' || err.code === '42703' || message.includes('company_deployments');
+  return isMissingRelation(error);
 }
 
 function deploymentSetupResponse(status = 503) {
@@ -140,7 +140,9 @@ export async function POST(req: Request) {
     if (!parsed.success) return validationErrorResponse(parsed.error.issues[0]?.message || 'Invalid deployment');
     const body = parsed.data;
 
-    const [deployment] = await db
+    const [deployment] = await db.transaction(async (tx) => {
+      if (body.serverId) await assertServerAssignable(tx, body.serverId);
+      return tx
       .insert(companyDeployments)
       .values({
         clientId: body.clientId || null,
@@ -168,6 +170,7 @@ export async function POST(req: Request) {
         lastHeartbeatAt: body.lastHeartbeatAt ? new Date(body.lastHeartbeatAt) : null,
       })
       .returning();
+    });
 
     await db.insert(auditLogs).values({
       actorId: session.userId,
@@ -195,7 +198,16 @@ export async function PATCH(req: Request) {
     if (!parsed.success) return validationErrorResponse(parsed.error.issues[0]?.message || 'Invalid deployment update');
     const body = parsed.data;
 
-    const [deployment] = await db
+    const [deployment] = await db.transaction(async (tx) => {
+      if (body.serverId) {
+        const [current] = await tx
+          .select({ serverId: companyDeployments.serverId })
+          .from(companyDeployments)
+          .where(eq(companyDeployments.id, body.id))
+          .limit(1);
+        if (current && current.serverId !== body.serverId) await assertServerAssignable(tx, body.serverId);
+      }
+      return tx
       .update(companyDeployments)
       .set({
         clientId: body.clientId,
@@ -225,6 +237,7 @@ export async function PATCH(req: Request) {
       })
       .where(eq(companyDeployments.id, body.id))
       .returning();
+    });
 
     if (!deployment) return NextResponse.json({ success: false, error: 'Deployment not found' }, { status: 404 });
 

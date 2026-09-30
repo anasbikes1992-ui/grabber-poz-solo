@@ -71,3 +71,17 @@ export function sortServersForAssignment<T extends ServerCapacityInput>(servers:
     return aRatio - bRatio || a.diskUsagePercent - b.diskUsagePercent;
   });
 }
+
+function pgCode(error: unknown): string | undefined {
+  const err = error as { code?: string; cause?: { code?: string } } | null;
+  return err?.code || err?.cause?.code;
+}
+
+export function isUniqueViolation(error: unknown) {
+  return pgCode(error) === '23505';
+}
+
+export function isMissingRelation(error: unknown) {
+  const code = pgCode(error);
+  return code === '42P01' || code === '42703';
+}

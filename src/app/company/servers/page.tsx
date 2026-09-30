@@ -129,6 +129,7 @@ export default function CompanyServersPage() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [setupRequired, setSetupRequired] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -162,7 +163,29 @@ export default function CompanyServersPage() {
     return [...servers].sort((a, b) => Number(b.canAssignClient) - Number(a.canAssignClient) || a.assignedClients - b.assignedClients);
   }, [servers]);
 
+  async function remove() {
+    if (!selected) return;
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/company/admin/servers?id=${encodeURIComponent(selected.id)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Delete failed');
+      setSelected(null);
+      setForm(emptyForm);
+      setMessage('Server deleted');
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+    } finally {
+      setConfirmDelete(false);
+      setSaving(false);
+    }
+  }
+
   function startNew() {
+    setConfirmDelete(false);
     setSelected(null);
     setForm(emptyForm);
     setMessage(null);
@@ -170,6 +193,7 @@ export default function CompanyServersPage() {
   }
 
   function selectServer(server: FleetServer) {
+    setConfirmDelete(false);
     setSelected(server);
     setForm(formFromServer(server));
     setMessage(null);
@@ -340,6 +364,17 @@ export default function CompanyServersPage() {
             <Save className="h-4 w-4" />
             {saving ? 'Saving...' : selected ? 'Save Server' : 'Create Server'}
           </button>
+
+          {selected && selected.assignedClients === 0 && (
+            confirmDelete ? (
+              <div className="flex gap-2">
+                <button type="button" onClick={remove} disabled={saving} className="min-h-11 flex-1 rounded-lg bg-red-500 px-4 text-sm font-black text-white transition hover:bg-red-400 disabled:opacity-60">Confirm delete</button>
+                <button type="button" onClick={() => setConfirmDelete(false)} disabled={saving} className="min-h-11 flex-1 rounded-lg border border-border px-4 text-sm font-bold">Cancel</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setConfirmDelete(true)} disabled={saving} className="min-h-11 w-full rounded-lg border border-red-500/40 px-4 text-sm font-bold text-red-300 transition hover:bg-red-500/10 disabled:opacity-60">Delete server</button>
+            )
+          )}
         </aside>
       </div>
     </div>

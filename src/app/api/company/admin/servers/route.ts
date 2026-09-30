@@ -1,23 +1,31 @@
 import { NextResponse } from 'next/server';
 import { and, desc, eq, ilike, or } from 'drizzle-orm';
 import { z } from 'zod';
-import { db, auditLogs, companyDeployments, companyServers } from '@/db';
+import { db, auditLogs, companyServers } from '@/db';
 import { assertRole, requireActiveStaffSession } from '@/lib/auth/session';
 import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
-import { evaluateServerCapacity } from '@/lib/company/server-fleet';
+import { evaluateServerCapacity, isMissingRelation, isUniqueViolation } from '@/lib/company/server-fleet';
+import { deploymentCountsByServer, EMPTY_COUNTS, type DeploymentCounts } from '@/lib/company/server-fleet-db';
 
 const ALLOWED_ROLES = ['OWNER', 'ADMIN', 'MANAGER'] as const;
 const HEALTH_STATUSES = ['UNKNOWN', 'HEALTHY', 'DEGRADED', 'DOWN'] as const;
 const RAM_PRESSURES = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH'] as const;
 const BACKUP_STATUSES = ['UNKNOWN', 'OK', 'STALE', 'FAILED', 'MISSING'] as const;
 
+const emptyToNull = (value: unknown) => (typeof value === 'string' && value.trim() === '' ? null : value);
+const nullableText = (max: number) => z.preprocess(emptyToNull, z.string().trim().max(max).nullable().optional());
+const httpUrl = z.preprocess(
+  emptyToNull,
+  z.string().trim().max(220).url().refine((v) => /^https?:\/\//i.test(v), 'Coolify URL must start with http(s)://').nullable().optional(),
+);
+
 const serverSchema = z.object({
   name: z.string().trim().min(2).max(120),
   provider: z.string().trim().min(2).max(80).optional(),
   region: z.string().trim().max(120).optional(),
-  publicIp: z.string().trim().max(80).optional().nullable(),
-  hostname: z.string().trim().max(180).optional().nullable(),
-  coolifyUrl: z.string().trim().max(220).optional().nullable(),
+  publicIp: nullableText(80),
+  hostname: nullableText(180),
+  coolifyUrl: httpUrl,
   cpuCores: z.coerce.number().int().min(1).max(256).optional(),
   ramGb: z.coerce.number().int().min(1).max(2048).optional(),
   diskGb: z.coerce.number().int().min(10).max(100_000).optional(),
@@ -27,7 +35,7 @@ const serverSchema = z.object({
   ramPressure: z.enum(RAM_PRESSURES).optional(),
   backupStatus: z.enum(BACKUP_STATUSES).optional(),
   notes: z.string().trim().max(2000).optional(),
-  nextAction: z.string().trim().max(240).optional().nullable(),
+  nextAction: nullableText(240),
   lastHeartbeatAt: z.string().datetime().optional().nullable(),
 });
 
@@ -39,14 +47,7 @@ async function requireServerAdmin() {
 }
 
 function isMissingServerSchema(error: unknown) {
-  const err = error as { code?: string; message?: string };
-  const message = String(err.message || '').toLowerCase();
-  return (
-    err.code === '42P01' ||
-    err.code === '42703' ||
-    message.includes('company_servers') ||
-    message.includes('server_id')
-  );
+  return isMissingRelation(error);
 }
 
 function serverSetupResponse(status = 503) {
@@ -59,27 +60,7 @@ function serverSetupResponse(status = 503) {
   }, { status });
 }
 
-async function deploymentCountsByServer() {
-  const rows = await db.select({
-    id: companyDeployments.id,
-    serverId: companyDeployments.serverId,
-    deployStatus: companyDeployments.deployStatus,
-    healthStatus: companyDeployments.healthStatus,
-  }).from(companyDeployments);
-
-  const counts = new Map<string, { assignedClients: number; liveClients: number; unhealthyClients: number }>();
-  for (const row of rows) {
-    if (!row.serverId) continue;
-    const existing = counts.get(row.serverId) || { assignedClients: 0, liveClients: 0, unhealthyClients: 0 };
-    existing.assignedClients += 1;
-    if (row.deployStatus === 'LIVE') existing.liveClients += 1;
-    if (['DEGRADED', 'DOWN'].includes(row.healthStatus)) existing.unhealthyClients += 1;
-    counts.set(row.serverId, existing);
-  }
-  return counts;
-}
-
-function serializeServer(row: typeof companyServers.$inferSelect, counts = { assignedClients: 0, liveClients: 0, unhealthyClients: 0 }) {
+function serializeServer(row: typeof companyServers.$inferSelect, counts: DeploymentCounts = EMPTY_COUNTS) {
   const capacity = evaluateServerCapacity({
     assignedClients: counts.assignedClients,
     maxClients: row.maxClients,
@@ -211,6 +192,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, server: serialized });
   } catch (err: unknown) {
+    if (isUniqueViolation(err)) return NextResponse.json({ success: false, error: 'A server with this name already exists' }, { status: 409 });
     if (isMissingServerSchema(err)) return serverSetupResponse(503);
     const e = err as { status?: number; message?: string };
     if (e.status && e.status < 500) {
@@ -266,11 +248,53 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true, server: serialized });
   } catch (err: unknown) {
+    if (isUniqueViolation(err)) return NextResponse.json({ success: false, error: 'A server with this name already exists' }, { status: 409 });
     if (isMissingServerSchema(err)) return serverSetupResponse(503);
     const e = err as { status?: number; message?: string };
     if (e.status && e.status < 500) {
       return NextResponse.json({ success: false, error: e.message || 'Request failed' }, { status: e.status });
     }
     return publicErrorResponse(err, { message: 'Could not update server', logMessage: 'Company server update failed' });
+  }
+}
+
+const deleteSchema = z.object({ id: z.string().uuid() });
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await requireServerAdmin();
+    const fromQuery = new URL(req.url).searchParams.get('id');
+    const parsed = deleteSchema.safeParse({ id: fromQuery ?? (await req.json().catch(() => ({}))).id });
+    if (!parsed.success) return validationErrorResponse('Valid server id required');
+    const { id } = parsed.data;
+
+    const result = await db.transaction(async (tx) => {
+      const [server] = await tx.select().from(companyServers).where(eq(companyServers.id, id)).for('update');
+      if (!server) return { status: 404 as const };
+      const counts = (await deploymentCountsByServer(tx)).get(id);
+      if (counts && counts.assignedClients > 0) return { status: 409 as const, assigned: counts.assignedClients };
+      await tx.delete(companyServers).where(eq(companyServers.id, id));
+      await tx.insert(auditLogs).values({
+        actorId: session.userId,
+        action: 'COMPANY_SERVER_DELETED',
+        entity: 'company_server',
+        entityId: id,
+        beforeState: serializeServer(server),
+      });
+      return { status: 200 as const };
+    });
+
+    if (result.status === 404) return NextResponse.json({ success: false, error: 'Server not found' }, { status: 404 });
+    if (result.status === 409) {
+      return NextResponse.json({ success: false, error: `Reassign ${result.assigned} deployment(s) first` }, { status: 409 });
+    }
+    return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    if (isMissingServerSchema(err)) return serverSetupResponse(503);
+    const e = err as { status?: number; message?: string };
+    if (e.status && e.status < 500) {
+      return NextResponse.json({ success: false, error: e.message || 'Request failed' }, { status: e.status });
+    }
+    return publicErrorResponse(err, { message: 'Could not delete server', logMessage: 'Company server delete failed' });
   }
 }

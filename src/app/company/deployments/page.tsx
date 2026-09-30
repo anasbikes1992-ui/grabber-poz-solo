@@ -38,6 +38,15 @@ type Deployment = {
   lastHeartbeatAt?: string | null;
 };
 
+type FleetOption = {
+  id: string;
+  name: string;
+  assignedClients: number;
+  maxClients: number;
+  capacityLabel: string;
+  canAssignClient: boolean;
+};
+
 type DeploymentForm = {
   serverId: string;
   businessName: string;
@@ -131,6 +140,7 @@ export default function CompanyDeploymentsPage() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fleet, setFleet] = useState<FleetOption[]>([]);
   const [setupRequired, setSetupRequired] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +168,13 @@ export default function CompanyDeploymentsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    fetch('/api/company/admin/servers')
+      .then((res) => res.json())
+      .then((data) => setFleet(data.success ? data.servers || [] : []))
+      .catch(() => setFleet([]));
+  }, [deployments.length]);
 
   const counts = useMemo(() => {
     const next = new Map<string, number>();
@@ -333,10 +350,17 @@ export default function CompanyDeploymentsPage() {
               <input value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-emerald-500" />
             </label>
             <label className="block text-xs font-bold">
-              Server ID
+              Server
               <span className="relative mt-1 block">
                 <Server className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input value={form.serverId} onChange={(e) => setForm({ ...form, serverId: e.target.value })} placeholder="company_servers.id" className="min-h-11 w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-500" />
+                <select value={form.serverId} onChange={(e) => setForm({ ...form, serverId: e.target.value })} className="min-h-11 w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-emerald-500">
+                  <option value="">Unassigned</option>
+                  {fleet.map((server) => (
+                    <option key={server.id} value={server.id} disabled={!server.canAssignClient && server.id !== selected?.serverId}>
+                      {server.name} — {server.assignedClients}/{server.maxClients} · {server.capacityLabel}
+                    </option>
+                  ))}
+                </select>
               </span>
             </label>
             <label className="block text-xs font-bold">
