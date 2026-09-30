@@ -57,7 +57,7 @@ Useful: `npm run typecheck` | `npm run analyze:sizes` | `npm run release:gate`
 | Wave B3 Contabo ops | Checklist ready; use `/api/health` for Coolify health checks |
 | M8 A11y + PWA | Closed |
 | Server fleet control | `/company/servers` tracks Coolify/VPS capacity, health, and 5-client-per-VPS planning |
-| **Next** | Apply migration `0032`, smoke `/company/servers`, run backup/restore drill, then supervise first sale/order |
+| **Next** | Apply migrations `0032-0033`, smoke `/company/servers`, run backup/restore drill, then supervise first sale/order |
 
 Landing: `LANDING_MODE=company|storefront` controls HQ marketing vs client shop at `/`; when unset, host fallback decides. There is no `auto` mode.
 
