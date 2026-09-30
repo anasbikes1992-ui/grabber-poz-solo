@@ -1,7 +1,21 @@
 import { NextResponse } from 'next/server';
-import { db, orders, orderItems, payments, journalEntries, journalLines, polimPothaAccounts, customers, products, stockBalances } from '@/db';
+import { createHash } from 'node:crypto';
+import { db, orders, orderItems, payments, journalEntries, journalLines, polimPothaAccounts, customers, products, stockBalances, backupRecords } from '@/db';
 import { getSession } from '@/lib/auth/session';
 import { encryptBackupData } from '@/lib/backup/crypto-backup';
+
+async function recordBackupExport(input: { fileName: string; sizeBytes: number; checksum: string; encrypted: boolean }) {
+  try {
+    await db.insert(backupRecords).values({
+      backupType: input.encrypted ? 'FULL_ENCRYPTED_EXPORT' : 'FULL_EXPORT',
+      fileUrl: input.fileName,
+      sizeBytes: input.sizeBytes,
+      checksum: input.checksum,
+    });
+  } catch (err) {
+    console.error('Backup export record insert failed', err);
+  }
+}
 
 export async function GET(req: Request) {
   try {
@@ -73,20 +87,36 @@ export async function GET(req: Request) {
         );
       }
       const encryptedPkg = encryptBackupData(JSON.stringify(payload), encryptionKey, counts);
-      return new NextResponse(JSON.stringify(encryptedPkg, null, 2), {
+      const body = JSON.stringify(encryptedPkg, null, 2);
+      const fileName = `grabber-backup-encrypted-${Date.now()}.json`;
+      await recordBackupExport({
+        fileName,
+        sizeBytes: Buffer.byteLength(body),
+        checksum: encryptedPkg.checksum || createHash('sha256').update(body).digest('hex'),
+        encrypted: true,
+      });
+      return new NextResponse(body, {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="grabber-backup-encrypted-${Date.now()}.json"`,
+          'Content-Disposition': `attachment; filename="${fileName}"`,
         },
       });
     }
 
-    return new NextResponse(JSON.stringify(payload, null, 2), {
+    const body = JSON.stringify(payload, null, 2);
+    const fileName = `grabber-backup-${Date.now()}.json`;
+    await recordBackupExport({
+      fileName,
+      sizeBytes: Buffer.byteLength(body),
+      checksum: createHash('sha256').update(body).digest('hex'),
+      encrypted: false,
+    });
+    return new NextResponse(body, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename="grabber-backup-${Date.now()}.json"`,
+        'Content-Disposition': `attachment; filename="${fileName}"`,
       },
     });
   } catch (err: unknown) {
@@ -98,4 +128,3 @@ export async function GET(req: Request) {
     }, { status: 500 });
   }
 }
-

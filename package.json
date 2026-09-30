@@ -35,6 +35,7 @@
     "client:certify:http": "node scripts/certify-http.mjs",
     "client:certify:auth": "node scripts/certify-auth-http.mjs",
     "ops:smoke": "node scripts/ops-smoke.mjs",
+    "ops:heartbeat": "node scripts/ops-heartbeat.mjs",
     "lighthouse:shop": "node scripts/lighthouse-mobile.mjs shop",
     "lighthouse:product": "node scripts/lighthouse-mobile.mjs product",
     "lighthouse:checkout": "node scripts/lighthouse-mobile.mjs checkout",

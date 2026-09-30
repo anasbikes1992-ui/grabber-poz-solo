@@ -105,3 +105,25 @@ The certification suite verifies 12 automated checks:
 - [ ] Cashier staff accounts configured with restricted PINs.
 - [ ] Initial register shift opened with starting cash float.
 - [ ] Level 4 Certification Report provided to owner.
+
+---
+
+## 4. First-Sale And Ops Survival Gate
+
+Do not call a client live until this gate is complete:
+
+- [ ] Real supervised sale completed: order -> payment/COD record -> stock movement -> shift close -> GL journal.
+- [ ] First return/refund path tested on a non-critical sale.
+- [ ] Encrypted backup exported from `/api/backup/export?encrypt=true`.
+- [ ] Backup restore rehearsal completed against a separate test database, never the client production DB.
+- [ ] `backup_records` contains the latest backup export and `/api/ops/health` reports backup status `OK`.
+- [ ] Coolify scheduled task runs `npm run ops:heartbeat` every 15 minutes with `CRON_SECRET`.
+- [ ] Owner/admin cookie is rotated into the monitor only if protected `/api/ops/health` checks are required.
+
+Recommended Coolify command:
+
+```bash
+CERTIFY_HTTP_BASE_URL=https://client-domain.example CRON_SECRET=$CRON_SECRET npm run ops:heartbeat
+```
+
+Use `CERTIFY_STAFF_COOKIE` only in a private monitor environment when you need protected DB/ops checks. Never paste staff cookies into public uptime tools.

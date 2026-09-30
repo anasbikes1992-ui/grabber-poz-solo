@@ -7,6 +7,7 @@ import { db, customerCommunicationEvents, webhookEvents } from '@/db';
 import { eq, sql } from 'drizzle-orm';
 import { publicErrorResponse } from '@/lib/api/http-errors';
 import { isWhatsAppConfigured } from '@/lib/integrations/whatsapp';
+import { getOpsHeartbeat, summarizeHeartbeat } from '@/lib/ops/production-heartbeat';
 
 export async function GET() {
   try {
@@ -32,9 +33,14 @@ export async function GET() {
     } catch {
       stockDrift = [];
     }
+    const heartbeat = await getOpsHeartbeat();
+    const heartbeatSummary = summarizeHeartbeat(heartbeat);
 
     return NextResponse.json({
       success: true,
+      status: heartbeatSummary.status,
+      failures: heartbeatSummary.failures,
+      warnings: heartbeatSummary.warnings,
       deadJobs: deadJobs.length,
       deadJobRows: deadJobs,
       failedWebhooks: failedWebhooks.length,
@@ -47,6 +53,7 @@ export async function GET() {
       providers: {
         whatsappConfigured: isWhatsAppConfigured(),
       },
+      heartbeat,
     });
   } catch (err) {
     return publicErrorResponse(err, { message: 'Could not load ops health', logMessage: 'Ops health load failed' });
