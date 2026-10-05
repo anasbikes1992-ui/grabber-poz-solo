@@ -43,12 +43,15 @@ describe('a11y smoke — critical pages', () => {
     expect(src).toMatch(/id=["']main-content["']/);
   });
 
-  it('Company landing has main landmark, mobile nav, Staff Portal, and labeled lead form', () => {
+  it('Company landing has main landmark, accessible mobile menu, client login, and labeled lead form', () => {
     const hero = read('src/components/company/CompanyLanding.tsx');
     const below = read('src/components/company/CompanyLandingBelowFold.tsx');
     expect(hero).toMatch(/id=["']main-content["']/);
     expect(hero).toMatch(/landing-mobile-nav/);
-    expect(hero).toMatch(/Staff Portal/);
+    expect(hero).toMatch(/Client login/);
+    expect(hero).toMatch(/role="dialog"/);
+    expect(hero).toMatch(/aria-expanded/);
+    expect(hero).toMatch(/Escape/);
     expect(below).toMatch(/htmlFor=["']lead-business-name["']/);
   });
 

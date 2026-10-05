@@ -28,6 +28,10 @@ const companyLeadSchema = z.object({
 export async function POST(req: Request) {
   try {
     const raw = await req.json();
+    // Honeypot: the hidden "website" field is only ever filled by bots. Pretend success, store nothing.
+    if (typeof raw?.website === 'string' && raw.website.trim() !== '') {
+      return NextResponse.json({ success: true, message: 'Thanks, we will be in touch.' });
+    }
     if (!raw?.businessName?.trim?.() || !raw?.ownerName?.trim?.() || !raw?.phone?.trim?.() || !raw?.email?.trim?.()) {
       return validationErrorResponse('Please provide your business name, owner name, phone, and email.');
     }

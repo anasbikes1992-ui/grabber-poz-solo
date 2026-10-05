@@ -6,6 +6,8 @@ interface BrandLogoProps {
   size?: "sm" | "md" | "lg" | "xl";
   showTagline?: boolean;
   showSoloBadge?: boolean;
+  /** `ink`: dark-on-light wordmark for the light company site. */
+  variant?: "default" | "ink";
   className?: string;
 }
 
@@ -13,6 +15,7 @@ export function BrandLogo({
   size = "md",
   showTagline = true,
   showSoloBadge = true,
+  variant = "default",
   className = "",
 }: BrandLogoProps) {
   const sizeClasses = {
@@ -27,10 +30,20 @@ export function BrandLogo({
   return (
     <div className={`inline-flex flex-col items-start select-none font-sans ${className}`}>
       <div className={`flex items-center gap-1.5 font-black tracking-tight ${currentSize.text}`}>
-        <span className="text-lime-400 font-extrabold tracking-wider filter drop-shadow-[0_0_8px_rgba(163,230,53,0.4)] flex items-center">
+        <span
+          className={
+            variant === "ink"
+              ? "text-cs-ink font-extrabold tracking-wider flex items-center"
+              : "text-lime-400 font-extrabold tracking-wider filter drop-shadow-[0_0_8px_rgba(163,230,53,0.4)] flex items-center"
+          }
+        >
           GR
           <span
-            className="inline-flex items-center justify-center p-0.5 mx-0.5 rounded-lg bg-lime-400 text-zinc-950 shadow-sm shadow-lime-400/50"
+            className={
+              variant === "ink"
+                ? "inline-flex items-center justify-center p-0.5 mx-0.5 rounded-lg bg-cs-brick text-white"
+                : "inline-flex items-center justify-center p-0.5 mx-0.5 rounded-lg bg-lime-400 text-zinc-950 shadow-sm shadow-lime-400/50"
+            }
             aria-hidden="true"
           >
             <svg

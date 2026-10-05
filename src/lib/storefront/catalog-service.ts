@@ -108,7 +108,8 @@ export function buildStorefrontFamilyItems({
       unitPrice: Number(p.salePrice),
       unitCost: Number(p.costPrice),
       stock: stockMap.get(stockKey(p.id, null)) ?? 0,
-      variant: p.sku,
+      // Internal SKU is never a shopper-facing label.
+      variant: '',
       variantCount: 0,
       imageUrl: p.imageUrl,
       description: p.description,

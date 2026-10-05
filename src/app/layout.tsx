@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Nunito_Sans, Plus_Jakarta_Sans, Rubik } from 'next/font/google';
+import { Bricolage_Grotesque, Nunito_Sans, Plus_Jakarta_Sans, Rubik } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/app-shell';
 import { StorefrontAnalytics } from '@/components/storefront/storefront-analytics';
@@ -11,6 +11,12 @@ const baseUrl = siteBaseUrl();
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-plus-jakarta',
+  display: 'swap',
+});
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-bricolage',
   display: 'swap',
 });
 
@@ -29,15 +35,15 @@ const nunitoSans = Nunito_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: 'Grabber POZ | Retail & Commerce OS',
+    default: 'Grabber POZ | POS, stock and online store',
     template: '%s | Grabber POZ',
   },
   description:
     'Online storefront for shoppers + staff POS, inventory, Polim Potha, and vertical operations.',
   alternates: { canonical: baseUrl },
   openGraph: {
-    title: 'Grabber POZ | Retail & Commerce OS',
-    description: 'POS, inventory, customer credit, storefront, and Sri Lankan payments in one standalone system.',
+    title: 'Grabber POZ | POS, stock and online store',
+    description: 'POS, stock, customer credit and an online store for Sri Lankan shops, in one system.',
     url: baseUrl,
     siteName: 'Grabber POZ',
     type: 'website',
@@ -45,8 +51,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Grabber POZ | Retail & Commerce OS',
-    description: 'POS, inventory, customer credit, storefront, and Sri Lankan payments in one standalone system.',
+    title: 'Grabber POZ | POS, stock and online store',
+    description: 'POS, stock, customer credit and an online store for Sri Lankan shops, in one system.',
     images: [absoluteUrl(DEFAULT_OG_IMAGE, baseUrl)],
   },
   manifest: '/manifest.json',
@@ -60,7 +66,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const pixels = await resolveMarketingPixels();
   return (
-    <html lang="en" className={`${plusJakartaSans.variable} ${rubik.variable} ${nunitoSans.variable} dark`} suppressHydrationWarning>
+    <html lang="en" className={`${plusJakartaSans.variable} ${bricolage.variable} ${rubik.variable} ${nunitoSans.variable} dark`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

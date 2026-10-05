@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ProductImage } from '@/components/storefront/ProductImage';
 import { safeJsonLd } from '@/lib/security/escape';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -93,7 +94,7 @@ export default async function ProductDetailPage({ params }: Props) {
           {
             productId: product.id,
             name: product.name,
-            variantLabel: product.sku,
+            variantLabel: '',
             unitPrice: product.salePrice,
             unitCost: product.costPrice,
             stock: product.stock,
@@ -260,12 +261,12 @@ export default async function ProductDetailPage({ params }: Props) {
                     className="group rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--sf-accent)]"
                   >
                     <div className="overflow-hidden rounded-2xl bg-[var(--sf-background)]">
-                      {item.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.imageUrl} alt={item.name} className="aspect-square w-full object-contain p-4 transition group-hover:scale-105" />
-                      ) : (
-                        <div className="flex aspect-square items-center justify-center text-xs text-[var(--sf-secondary)]">No image</div>
-                      )}
+                      <ProductImage
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="aspect-square w-full object-contain p-4 transition group-hover:scale-105"
+                        fallbackClassName="aspect-square w-full"
+                      />
                     </div>
                     <p className="mt-3 line-clamp-2 text-sm font-bold">{item.name}</p>
                     <p className="mt-1 text-xs text-[var(--sf-secondary)]">{item.category || 'Related item'}</p>
