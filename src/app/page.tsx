@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import { resolveLandingMode } from '@/lib/config/landing-mode';
-import { loadStorefrontCatalog } from '@/lib/storefront/catalog-service';
+import { loadStorefrontCatalog, toPublicCatalogItem } from '@/lib/storefront/catalog-service';
 import { DEFAULT_OG_IMAGE, absoluteUrl, siteBaseUrlFromHost } from '@/lib/storefront/seo';
 
 export const dynamic = 'force-dynamic';
@@ -82,7 +82,7 @@ export default async function HomePage() {
     return (
       <StorefrontHome
         cms={cms}
-        initialCatalog={catalog.items}
+        initialCatalog={catalog.items.map(toPublicCatalogItem)}
         initialBranchId={catalog.branchId}
       />
     );

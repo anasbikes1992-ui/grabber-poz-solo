@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { safeJsonLd } from '@/lib/security/escape';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -41,7 +42,7 @@ export default async function CategoryPage({ params }: Props) {
       {/* Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
 
       <header className="border-b bg-white px-4 py-6 shadow-sm">

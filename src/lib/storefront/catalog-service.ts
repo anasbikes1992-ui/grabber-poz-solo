@@ -22,6 +22,14 @@ export type StorefrontCatalogItem = {
   categoryId?: string | null;
 };
 
+/** Max stock quantity revealed to anonymous visitors. */
+export const PUBLIC_STOCK_CAP = 50;
+
+/** Strip internal economics from a catalog item before it is sent to an unauthenticated client. */
+export function toPublicCatalogItem(item: StorefrontCatalogItem): StorefrontCatalogItem {
+  return { ...item, unitCost: 0, stock: Math.min(Math.max(item.stock, 0), PUBLIC_STOCK_CAP) };
+}
+
 type CatalogProductRow = {
   id: string;
   slug: string;

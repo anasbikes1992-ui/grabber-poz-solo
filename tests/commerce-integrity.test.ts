@@ -494,9 +494,9 @@ describe('Critical regression matrix (all 8 scenarios)', () => {
     expect(audit.capturedTotal).toBe(0); // No premature captured revenue
   });
 
-  it('Scenario 3: Online paid — captured, confirmed order, stock deducted', () => {
+  it('Scenario 3: Online gateway — pending until webhook, confirmed order, stock held', () => {
     const statuses = resolveCheckoutStatuses('STOREFRONT', 'PAYHERE');
-    expect(statuses.paymentStatus).toBe('PAID');
+    expect(statuses.paymentStatus).toBe('PENDING');
     expect(statuses.orderStatus).toBe('CONFIRMED');
     expect(statuses.decrementStock).toBe(true);
   });

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { safeJsonLd } from '@/lib/security/escape';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
@@ -39,7 +40,7 @@ export default async function LocationPage({ params }: Props) {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(page.schema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(page.schema) }}
       />
       <header className="border-b bg-white px-4 py-6 shadow-sm">
         <div className="mx-auto max-w-3xl space-y-1">

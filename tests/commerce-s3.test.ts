@@ -17,11 +17,14 @@ describe('order-lifecycle', () => {
     expect(s.fulfillmentStatus).toBe('PENDING');
   });
 
-  it('storefront card moves to assigned fulfillment', () => {
-    const s = resolveCheckoutStatuses('STOREFRONT', 'CARD');
-    expect(s.orderStatus).toBe('CONFIRMED');
-    expect(s.paymentStatus).toBe('PAID');
-    expect(s.fulfillmentStatus).toBe('ASSIGNED');
+  it('storefront gateway tender stays PENDING until a verified webhook settles it', () => {
+    for (const method of ['CARD', 'PAYHERE', 'WEBXPAY', 'STRIPE'] as const) {
+      const s = resolveCheckoutStatuses('STOREFRONT', method);
+      expect(s.orderStatus).toBe('CONFIRMED');
+      expect(s.paymentStatus).toBe('PENDING');
+      expect(s.fulfillmentStatus).toBe('PENDING');
+      expect(s.decrementStock).toBe(true);
+    }
   });
 
   it('applies valid order transition presets', () => {

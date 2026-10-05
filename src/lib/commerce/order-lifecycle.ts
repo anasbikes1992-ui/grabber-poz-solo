@@ -49,10 +49,13 @@ export function resolveCheckoutStatuses(
         decrementStock: true,
       };
     }
+    // Online/gateway tender: never PAID at checkout. Stock is held (decremented) and the order
+    // stays PENDING until a verified gateway webhook settles it; unpaid orders are expired by
+    // expireUnpaidOnlineOrders() and their stock restored.
     return {
       orderStatus: 'CONFIRMED',
-      paymentStatus: 'PAID',
-      fulfillmentStatus: 'ASSIGNED',
+      paymentStatus: 'PENDING',
+      fulfillmentStatus: 'PENDING',
       decrementStock: true,
     };
   }

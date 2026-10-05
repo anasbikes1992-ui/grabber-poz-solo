@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { escapeHtml } from '@/lib/security/escape';
 import {
   customers,
   deliveries,
@@ -11,14 +12,6 @@ import {
 import type { FulfillmentOrderInput } from '@/lib/orders/fulfillment-pack';
 
 export type FulfillmentDocumentKind = 'pick-list' | 'packing-slip' | 'delivery-note';
-
-function escapeHtml(value: unknown) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 export async function loadFulfillmentOrder(orderNumber: string): Promise<FulfillmentOrderInput | null> {
   const [order] = await db.select().from(orders).where(eq(orders.orderNumber, orderNumber)).limit(1);

@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db, customers, orderItems, orders, products } from '@/db';
 import { getSession } from '@/lib/auth/session';
 import { verifyOrderAccess } from '@/lib/tracking/order-tracker';
+import { escapeHtml } from '@/lib/security/escape';
 
 type RouteCtx = { params: Promise<{ orderNumber: string }> };
 
@@ -44,7 +45,7 @@ export async function GET(req: Request, ctx: RouteCtx) {
     }
 
     const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"/><title>Tax Invoice ${order.orderNumber}</title>
+<html><head><meta charset="utf-8"/><title>Tax Invoice ${escapeHtml(order.orderNumber)}</title>
 <style>
 body{font-family:system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:1rem;color:#111}
 h1{font-size:1.25rem} table{width:100%;border-collapse:collapse;margin:1rem 0}
@@ -53,9 +54,9 @@ tfoot td{font-weight:bold}.meta{color:#555;font-size:.8rem}
 @media print{button{display:none}}
 </style></head><body>
 <h1>Tax Invoice</h1>
-<p class="meta">Order: ${order.orderNumber}<br/>Date: ${new Date(order.createdAt).toLocaleString()}<br/>Customer: ${customerName}</p>
+<p class="meta">Order: ${escapeHtml(order.orderNumber)}<br/>Date: ${escapeHtml(new Date(order.createdAt).toLocaleString())}<br/>Customer: ${escapeHtml(customerName)}</p>
 <table><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>VAT</th><th>Total</th></tr></thead><tbody>
-${rows.map((r) => `<tr><td>${r.name}</td><td>${r.qty}</td><td>${r.unitPrice.toFixed(2)}</td><td>${r.tax.toFixed(2)}</td><td>${r.total.toFixed(2)}</td></tr>`).join('')}
+${rows.map((r) => `<tr><td>${escapeHtml(r.name)}</td><td>${r.qty}</td><td>${r.unitPrice.toFixed(2)}</td><td>${r.tax.toFixed(2)}</td><td>${r.total.toFixed(2)}</td></tr>`).join('')}
 </tbody><tfoot>
 <tr><td colspan="4">Subtotal</td><td>${Number(order.subtotal).toFixed(2)}</td></tr>
 <tr><td colspan="4">Discount</td><td>-${Number(order.discountTotal).toFixed(2)}</td></tr>
@@ -68,7 +69,9 @@ ${rows.map((r) => `<tr><td>${r.name}</td><td>${r.qty}</td><td>${r.unitPrice.toFi
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
-        'Content-Disposition': `inline; filename="invoice-${order.orderNumber}.html"`,
+        'Content-Disposition': `inline; filename="invoice-${order.orderNumber.replace(/[^A-Za-z0-9_-]/g, '_')}.html"`,
+        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch (err: unknown) {

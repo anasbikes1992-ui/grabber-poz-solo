@@ -14,6 +14,8 @@ export type SessionRole =
   | 'ACCOUNTANT'
   | 'MARKETING';
 
+const STAFF_ROLES = new Set<string>(['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAREHOUSE', 'ACCOUNTANT', 'MARKETING']);
+
 export interface SessionUser {
   userId: string;
   email: string;
@@ -56,7 +58,7 @@ async function hmacSign(payloadB64: string): Promise<string> {
 }
 
 export async function encodeSessionEdge(user: SessionUser, maxAgeSec = 43200): Promise<string> {
-  const body = { ...user, exp: Math.floor(Date.now() / 1000) + maxAgeSec };
+  const body = { ...user, kind: 'staff', exp: Math.floor(Date.now() / 1000) + maxAgeSec };
   const payloadB64 = b64urlFromString(JSON.stringify(body));
   const sig = await hmacSign(payloadB64);
   return `${payloadB64}.${sig}`;
@@ -79,7 +81,8 @@ export async function decodeSessionEdge(token: string | undefined | null): Promi
   if (mismatch !== 0) return null;
   try {
     const json = atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/'));
-    const body = JSON.parse(json) as SessionUser & { exp: number };
+    const body = JSON.parse(json) as SessionUser & { exp: number; kind?: string };
+    if (body.kind !== 'staff' || !body.userId || !STAFF_ROLES.has(body.role)) return null;
     if (!body.exp || body.exp < Math.floor(Date.now() / 1000)) return null;
     return {
       userId: body.userId,

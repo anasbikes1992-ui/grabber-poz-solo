@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { safeJsonLd } from '@/lib/security/escape';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { StorefrontShell } from '@/components/storefront/storefront-shell';
@@ -148,7 +149,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <StorefrontShell cms={cms}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <main className="bg-[var(--sf-background)] text-[var(--sf-foreground)]">
         <section className="border-b border-[var(--sf-border)] bg-[var(--sf-muted)]/35">
           <div className="mx-auto max-w-6xl px-4 py-4 text-xs font-semibold sm:px-6">

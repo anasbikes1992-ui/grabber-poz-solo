@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { db, orders, payments, webhookEvents } from '@/db';
+import { db, orders, webhookEvents } from '@/db';
+import { settleGatewayPayment } from '@/lib/commerce/payment-settlement';
 import { getWebXPayConfig } from '@/lib/payments/lkr-provider';
 import { auditWebXPayWebhook } from '@/lib/payments/webxpay/webhook';
 import { mapWebXPayStatus } from '@/lib/payments/webxpay/mapper';
@@ -29,18 +30,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // PAY-006 & PAY-007: Deduplication & Replay Protection
-    try {
-      await db.insert(webhookEvents).values({
-        provider: 'webxpay',
-        providerEventId,
-        payload: params,
-        status: 'PENDING',
-      });
-    } catch {
-      return NextResponse.json({ success: true, deduped: true, code: 'PAY_006_DUPLICATE_IGNORED' });
-    }
-
     const [order] = orderNumber
       ? await db.select().from(orders).where(eq(orders.orderNumber, orderNumber)).limit(1)
       : [null];
@@ -60,39 +49,40 @@ export async function POST(req: Request) {
     });
 
     if (!audit.valid) {
-      await db
-        .update(webhookEvents)
-        .set({ status: 'FAILED', processedAt: new Date() })
-        .where(eq(webhookEvents.providerEventId, providerEventId));
       return NextResponse.json(
         { success: false, error: audit.error, code: audit.code },
         { status: 400 },
       );
     }
 
-    const canonicalStatus = mapWebXPayStatus(params.status || params.status_code || '');
-    if (canonicalStatus === 'CAPTURED' && order) {
-      if (order.paymentStatus !== 'PAID') {
-        await db.update(orders).set({ paymentStatus: 'PAID', updatedAt: new Date() }).where(eq(orders.id, order.id));
-      }
+    // PAY-006 & PAY-007: Deduplication & Replay Protection — only after the callback is verified,
+    // so a forged request cannot pre-claim a genuine transaction id.
+    try {
+      await db.insert(webhookEvents).values({
+        provider: 'webxpay',
+        providerEventId,
+        payload: params,
+        status: 'PENDING',
+      });
+    } catch {
+      return NextResponse.json({ success: true, deduped: true, code: 'PAY_006_DUPLICATE_IGNORED' });
+    }
 
-      await db
-        .insert(payments)
-        .values({
-          orderId: order.id,
-          method: 'WEBXPAY',
-          amount: params.amount || String(order.grandTotal),
-          currency: params.currency || 'LKR',
-          providerRef: params.transaction_id || params.payment_id,
-          status: 'SUCCESS',
-          idempotencyKey: `webxpay_${providerEventId}`,
-        })
-        .onConflictDoNothing();
+    const canonicalStatus = mapWebXPayStatus(params.status || params.status_code || '');
+    let eventStatus = 'PROCESSED';
+    if (canonicalStatus === 'CAPTURED' && order) {
+      const result = await settleGatewayPayment({
+        orderNumber: order.orderNumber,
+        providerRef: params.transaction_id || params.payment_id,
+        amount: params.amount,
+        currency: params.currency,
+      });
+      if (!result.settled) eventStatus = 'NEEDS_REVIEW';
     }
 
     await db
       .update(webhookEvents)
-      .set({ status: 'PROCESSED', processedAt: new Date() })
+      .set({ status: eventStatus, processedAt: new Date() })
       .where(eq(webhookEvents.providerEventId, providerEventId));
 
     return NextResponse.json({ success: true, code: 'PAY_PROCESSED' });

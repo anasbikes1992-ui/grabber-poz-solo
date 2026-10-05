@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { db, orders, payments, webhookEvents } from '@/db';
+import { db, orders, webhookEvents } from '@/db';
+import { settleGatewayPayment } from '@/lib/commerce/payment-settlement';
 import { getPayHereConfig } from '@/lib/payments/lkr-provider';
 import {
   payHereWebhookSecretRequired,
@@ -32,19 +33,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // PAY-006 & PAY-007: Deduplication & Replay Protection
-    try {
-      await db.insert(webhookEvents).values({
-        provider: 'payhere',
-        providerEventId,
-        payload: params,
-        status: 'PENDING',
-      });
-    } catch {
-      // Event already recorded — return idempotent success
-      return NextResponse.json({ success: true, deduped: true, code: 'PAY_006_DUPLICATE_IGNORED' });
-    }
-
     // Lookup referenced order
     const [order] = orderNumber
       ? await db.select().from(orders).where(eq(orders.orderNumber, orderNumber)).limit(1)
@@ -66,40 +54,42 @@ export async function POST(req: Request) {
     });
 
     if (!audit.valid) {
-      await db
-        .update(webhookEvents)
-        .set({ status: 'FAILED', processedAt: new Date() })
-        .where(eq(webhookEvents.providerEventId, providerEventId));
       return NextResponse.json(
         { success: false, error: audit.error, code: audit.code },
         { status: 400 },
       );
     }
 
-    const statusCode = params.status_code;
-    if (statusCode === '2' && order) {
-      // Transition payment status if not already PAID
-      if (order.paymentStatus !== 'PAID') {
-        await db.update(orders).set({ paymentStatus: 'PAID', updatedAt: new Date() }).where(eq(orders.id, order.id));
-      }
+    // PAY-006 & PAY-007: Deduplication & Replay Protection.
+    // Recorded only AFTER the signature/amount audit passes, so a forged callback cannot
+    // pre-claim a genuine payment_id and block the real notification.
+    try {
+      await db.insert(webhookEvents).values({
+        provider: 'payhere',
+        providerEventId,
+        payload: params,
+        status: 'PENDING',
+      });
+    } catch {
+      return NextResponse.json({ success: true, deduped: true, code: 'PAY_006_DUPLICATE_IGNORED' });
+    }
 
-      await db
-        .insert(payments)
-        .values({
-          orderId: order.id,
-          method: 'PAYHERE',
-          amount: params.payhere_amount || String(order.grandTotal),
-          currency: params.payhere_currency || 'LKR',
-          providerRef: params.payment_id,
-          status: 'SUCCESS',
-          idempotencyKey: `payhere_${providerEventId}`,
-        })
-        .onConflictDoNothing();
+    const statusCode = params.status_code;
+    let eventStatus = 'PROCESSED';
+    if (statusCode === '2' && order) {
+      const result = await settleGatewayPayment({
+        orderNumber: order.orderNumber,
+        providerRef: params.payment_id,
+        amount: params.payhere_amount,
+        currency: params.payhere_currency,
+      });
+      // Paid after the hold expired (stock already released): flag for manual refund.
+      if (!result.settled) eventStatus = 'NEEDS_REVIEW';
     }
 
     await db
       .update(webhookEvents)
-      .set({ status: 'PROCESSED', processedAt: new Date() })
+      .set({ status: eventStatus, processedAt: new Date() })
       .where(eq(webhookEvents.providerEventId, providerEventId));
 
     return NextResponse.json({ success: true, code: 'PAY_PROCESSED' });
