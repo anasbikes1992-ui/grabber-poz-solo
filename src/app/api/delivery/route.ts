@@ -1,13 +1,33 @@
 import { NextResponse } from 'next/server';
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
-import { db, customers, deliveries, orders, orderItems, payments } from '@/db';
+import { db, customers, deliveries, deliveryEvents, deliveryRiders, orders, orderItems, payments } from '@/db';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 import { dispatchOrderViaKoombiyo, loadCustomerForOrder } from '@/lib/delivery/dispatch-order';
+import {
+  buildRiderDeliveryMessage,
+  notificationStatusFromWhatsApp,
+  selectAutoRider,
+  type DeliveryRiderCandidate,
+  type RiderAssignmentMode,
+} from '@/lib/delivery/riders';
+import { sendWhatsAppText } from '@/lib/integrations/whatsapp';
 import { recordReturn } from '@/lib/inventory/stock-service';
 
 function formatPaymentMethod(methods: string[]) {
   if (methods.length > 1) return 'SPLIT';
   return methods[0] || 'CASH';
+}
+
+const ACTIVE_RIDER_DELIVERY_STATUSES = ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'] as const;
+
+function isInHouseProvider(value: string) {
+  const normalized = value.trim().toLowerCase().replace(/[_\s]+/g, '-');
+  return normalized === 'in-house' || normalized === 'in-house-delivery' || normalized === 'direct';
+}
+
+function deliveryNoteUrl(req: Request, orderNumber: string) {
+  const base = process.env.APP_URL || new URL(req.url).origin;
+  return `${base.replace(/\/$/, '')}/api/orders/${encodeURIComponent(orderNumber)}/delivery-note`;
 }
 
 export async function GET() {
@@ -30,6 +50,12 @@ export async function GET() {
         ? await db.select().from(deliveries).where(inArray(deliveries.orderId, orderIds))
         : [];
     const deliveryByOrder = new Map(deliveryRows.map((d) => [d.orderId, d]));
+    const riderIds = [...new Set(deliveryRows.map((d) => d.riderId).filter(Boolean) as string[])];
+    const riderRows =
+      riderIds.length > 0
+        ? await db.select().from(deliveryRiders).where(inArray(deliveryRiders.id, riderIds))
+        : [];
+    const riderById = new Map(riderRows.map((r) => [r.id, r]));
 
     const paymentRows =
       orderIds.length > 0
@@ -52,10 +78,12 @@ export async function GET() {
     const shipments = rows.map((o) => {
       const c = o.customerId ? customerMap.get(o.customerId) : undefined;
       const d = deliveryByOrder.get(o.id);
+      const rider = d?.riderId ? riderById.get(d.riderId) : undefined;
       const payMethods = paymentsByOrder.get(o.id) || [];
       return {
         orderId: o.id,
         orderNumber: o.orderNumber,
+        deliveryId: d?.id || null,
         customerName: c?.name || 'Walk-in',
         customerMobile: c?.phone || '',
         shippingAddress: d?.deliveryAddress || c?.address || '',
@@ -67,6 +95,12 @@ export async function GET() {
         trackingNumber: d?.trackingNumber || null,
         dispatchedAt: d?.dispatchedAt || null,
         codAmount: d?.codAmount != null ? Number(d.codAmount) : 0,
+        riderId: d?.riderId || null,
+        riderName: rider?.name || null,
+        riderPhone: rider?.phone || null,
+        riderWhatsappPhone: rider?.whatsappPhone || null,
+        assignmentMode: d?.assignmentMode || null,
+        riderNotificationStatus: d?.riderNotificationStatus || null,
       };
     });
 
@@ -132,34 +166,131 @@ export async function POST(req: Request) {
     const requestedPartner = String(body.courierPartner || body.provider || 'Koombiyo').trim();
 
     // In-House / Direct Delivery provider support
-    if (requestedPartner.toLowerCase() === 'in-house' || requestedPartner.toUpperCase() === 'IN_HOUSE') {
-      const trackingNumber = `INH-${Date.now().toString().slice(-8)}`;
-      const [newDelivery] = await db
-        .insert(deliveries)
-        .values({
-          orderId,
-          courierPartner: 'In-House',
-          trackingNumber,
-          status: 'ASSIGNED',
-          recipientName,
-          recipientPhone,
-          deliveryAddress: address,
-          codAmount: codAmount ? String(codAmount.toFixed(2)) : null,
-          dispatchedAt: new Date(),
-        })
-        .returning();
+    if (isInHouseProvider(requestedPartner)) {
+      const explicitRiderId = String(body.riderId || '').trim() || null;
+      let selectedRider: typeof deliveryRiders.$inferSelect | null = null;
+      let assignmentMode: RiderAssignmentMode | null = null;
+
+      if (explicitRiderId) {
+        const [rider] = await db.select().from(deliveryRiders).where(eq(deliveryRiders.id, explicitRiderId)).limit(1);
+        if (!rider || !rider.active) {
+          return NextResponse.json({ success: false, error: 'Active rider not found' }, { status: 404 });
+        }
+        selectedRider = rider;
+        assignmentMode = 'MANUAL';
+      } else if (body.autoAssign === true) {
+        const riders = await db.select().from(deliveryRiders).where(eq(deliveryRiders.active, true));
+        const activeDeliveries = await db
+          .select()
+          .from(deliveries)
+          .where(inArray(deliveries.status, [...ACTIVE_RIDER_DELIVERY_STATUSES]));
+        const loadByRider = new Map<string, number>();
+        for (const d of activeDeliveries) {
+          if (!d.riderId) continue;
+          loadByRider.set(d.riderId, (loadByRider.get(d.riderId) || 0) + 1);
+        }
+        const candidate = selectAutoRider(
+          riders.map((r): DeliveryRiderCandidate => ({
+            id: r.id,
+            name: r.name,
+            whatsappPhone: r.whatsappPhone,
+            active: r.active,
+            homeBranchId: r.homeBranchId,
+            activeDeliveryCount: loadByRider.get(r.id) || 0,
+            lastAssignedAt: r.lastAssignedAt,
+          })),
+          order.branchId || order.fulfillmentLocationId,
+        );
+        if (!candidate) {
+          return NextResponse.json({ success: false, error: 'No active rider available for auto assignment' }, { status: 409 });
+        }
+        selectedRider = riders.find((r) => r.id === candidate.id) || null;
+        assignmentMode = 'AUTO';
+      }
+
+      const trackingNumber = existingDelivery?.trackingNumber || `INH-${Date.now().toString().slice(-8)}`;
+      const now = new Date();
+      const deliveryPayload = {
+        orderId,
+        courierPartner: 'In-House',
+        trackingNumber,
+        status: 'ASSIGNED' as const,
+        recipientName,
+        recipientPhone,
+        deliveryAddress: address,
+        codAmount: codAmount ? String(codAmount.toFixed(2)) : null,
+        riderId: selectedRider?.id || null,
+        assignmentMode,
+        riderNotificationStatus: selectedRider ? 'PENDING' : null,
+        assignmentNotes: body.assignmentNotes ? String(body.assignmentNotes).slice(0, 500) : null,
+        dispatchedAt: existingDelivery?.dispatchedAt || now,
+      };
+
+      const [newDelivery] = existingDelivery
+        ? await db.update(deliveries).set(deliveryPayload).where(eq(deliveries.id, existingDelivery.id)).returning()
+        : await db.insert(deliveries).values(deliveryPayload).returning();
 
       await db
         .update(orders)
-        .set({ fulfillmentStatus: 'ASSIGNED', updatedAt: new Date() })
+        .set({ fulfillmentStatus: 'ASSIGNED', updatedAt: now })
         .where(eq(orders.id, orderId));
+
+      if (selectedRider) {
+        await db.update(deliveryRiders).set({ lastAssignedAt: now, updatedAt: now }).where(eq(deliveryRiders.id, selectedRider.id));
+        await db.insert(deliveryEvents).values({
+          deliveryId: newDelivery.id,
+          orderId,
+          eventType: 'RIDER_ASSIGNED',
+          status: 'SUCCESS',
+          actorId: session?.userId || null,
+          detailJson: {
+            riderId: selectedRider.id,
+            riderName: selectedRider.name,
+            assignmentMode,
+          },
+        });
+
+        const text = buildRiderDeliveryMessage({
+          orderNumber: order.orderNumber,
+          customerName: recipientName,
+          customerPhone: recipientPhone,
+          address,
+          codAmount,
+          paymentStatus: order.paymentStatus,
+          trackingNumber,
+          deliveryNoteUrl: deliveryNoteUrl(req, order.orderNumber),
+        });
+        const sendResult = await sendWhatsAppText({ to: selectedRider.whatsappPhone, text });
+        const notificationStatus = notificationStatusFromWhatsApp(sendResult);
+        await db.update(deliveries).set({
+          riderNotificationStatus: notificationStatus,
+          riderNotificationMessageId: sendResult.success && 'messageId' in sendResult ? sendResult.messageId || null : null,
+          riderNotifiedAt: notificationStatus === 'SENT' || notificationStatus === 'STUB' ? new Date() : null,
+        }).where(eq(deliveries.id, newDelivery.id));
+        await db.insert(deliveryEvents).values({
+          deliveryId: newDelivery.id,
+          orderId,
+          eventType: notificationStatus === 'FAILED' ? 'RIDER_WHATSAPP_FAILED' : 'RIDER_WHATSAPP_SENT',
+          status: notificationStatus === 'FAILED' ? 'FAILED' : 'SUCCESS',
+          actorId: session?.userId || null,
+          detailJson: {
+            riderId: selectedRider.id,
+            to: selectedRider.whatsappPhone,
+            notificationStatus,
+            error: sendResult.success ? undefined : sendResult.error,
+          },
+        });
+      }
+
+      const [updatedDelivery] = await db.select().from(deliveries).where(eq(deliveries.id, newDelivery.id)).limit(1);
 
       return NextResponse.json({
         success: true,
         trackingNumber,
         courierPartner: 'In-House',
-        stub: false,
-        delivery: newDelivery,
+        rider: selectedRider,
+        assignmentMode,
+        delivery: updatedDelivery || newDelivery,
       });
     }
 
@@ -229,6 +360,42 @@ export async function PATCH(req: Request) {
       fulfillmentStatus: nextStatus as 'PENDING' | 'ASSIGNED' | 'PICKED_UP' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'FAILED' | 'RETURNED',
       updatedAt: new Date(),
     }).where(eq(orders.id, current.orderId));
+    await db.insert(deliveryEvents).values({
+      deliveryId,
+      orderId: current.orderId,
+      eventType: 'DELIVERY_STATUS_CHANGED',
+      status: 'SUCCESS',
+      actorId: session?.userId || null,
+      detailJson: {
+        from: current.status,
+        to: nextStatus,
+      },
+    });
+
+    if (body.notifyRider === true && current.riderId) {
+      const [rider] = await db.select().from(deliveryRiders).where(eq(deliveryRiders.id, current.riderId)).limit(1);
+      const [order] = await db.select().from(orders).where(eq(orders.id, current.orderId)).limit(1);
+      if (rider && order) {
+        const result = await sendWhatsAppText({
+          to: rider.whatsappPhone,
+          text: `Delivery update: ${order.orderNumber} is now ${nextStatus.replace(/_/g, ' ')}.\nTracking: ${current.trackingNumber || 'N/A'}`,
+        });
+        const notificationStatus = notificationStatusFromWhatsApp(result);
+        await db.insert(deliveryEvents).values({
+          deliveryId,
+          orderId: current.orderId,
+          eventType: notificationStatus === 'FAILED' ? 'RIDER_STATUS_WHATSAPP_FAILED' : 'RIDER_STATUS_WHATSAPP_SENT',
+          status: notificationStatus === 'FAILED' ? 'FAILED' : 'SUCCESS',
+          actorId: session?.userId || null,
+          detailJson: {
+            riderId: rider.id,
+            to: rider.whatsappPhone,
+            notificationStatus,
+            error: result.success ? undefined : result.error,
+          },
+        });
+      }
+    }
 
     // Automated Return-to-Origin (RTO) Stock Restock on RETURNED
     if (nextStatus === 'RETURNED' && body.autoRestock !== false) {
