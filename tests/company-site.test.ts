@@ -56,8 +56,11 @@ describe('company site: copy has no shop-owner-hostile jargon', () => {
     'src/components/company/CompanyLandingBelowFold.tsx',
     'src/components/company/Faq.tsx',
     'src/app/pricing/page.tsx',
+    'src/components/company/PublicInfoPage.tsx',
+    'src/app/contact/page.tsx',
+    'src/lib/public/legal-pages.ts',
   ].map((f) => [f, readFileSync(f, 'utf8')] as const);
-  const banned = ['HMAC', 'SHA256', 'Regression Certified', 'Sandbox', 'Canonical Reconciliation', 'FEFO', 'GRN', 'ESC/POS', 'Business OS', 'Settings Vault', 'single-tenant', 'Jarvis', 'KDS'];
+  const banned = ['COMPANY_SALES_WHATSAPP', 'HMAC', 'SHA256', 'Regression Certified', 'Sandbox', 'Canonical Reconciliation', 'FEFO', 'GRN', 'ESC/POS', 'Business OS', 'Pro demo', 'tenant database', 'Settings Vault', 'single-tenant', 'Jarvis', 'KDS'];
 
   it.each(files)('%s', (_f, src) => {
     for (const term of banned) expect(src).not.toContain(term);

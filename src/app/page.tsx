@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { companyWhatsappNumber } from '@/lib/public/contact-links';
 import { availableMarketingAssets } from '@/lib/company/marketing-assets';
 import { headers } from 'next/headers';
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
@@ -94,7 +95,7 @@ export default async function HomePage() {
     <CompanyLanding
       demoUrl={process.env.COMPANY_DEMO_URL || 'https://demo.grabberpoz.com'}
       // Read at request time (server) so the number is not frozen at build time.
-      whatsappNumber={process.env.COMPANY_WHATSAPP_NUMBER || process.env.COMPANY_SALES_WHATSAPP || process.env.OWNER_WHATSAPP || ''}
+      whatsappNumber={companyWhatsappNumber()}
       assets={availableMarketingAssets()}
     />
   );

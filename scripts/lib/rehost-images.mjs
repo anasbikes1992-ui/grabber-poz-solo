@@ -5,7 +5,7 @@ export const IMAGE_ATTR_KEYS = ['imageUrl', 'image', 'image_url', 'img', 'featur
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 /** True when the URL points at a host we do not control (and so can break at any time). */
-export function isExternalImageUrl(url, extraOwnHosts = []) {
+export function isExternalImageUrl(url, extraOwnHosts = [], rehostHosts = []) {
   if (!url || typeof url !== 'string') return false;
   const value = url.trim();
   if (!value || value.startsWith('/') || value.startsWith('data:')) return false;
@@ -15,6 +15,9 @@ export function isExternalImageUrl(url, extraOwnHosts = []) {
   } catch {
     return false;
   }
+  // Hosts we were asked to move (e.g. the old Supabase project) count as external even though
+  // they would normally be treated as ours.
+  if (rehostHosts.some((h) => host === h.toLowerCase())) return true;
   const own = [...OWN_HOST_SUFFIXES, ...extraOwnHosts.map((h) => h.toLowerCase())];
   return !own.some((suffix) => host === suffix.replace(/^\./, '') || host.endsWith(suffix.startsWith('.') ? suffix : `.${suffix}`));
 }
@@ -35,12 +38,12 @@ export function sniffImage(bytes) {
 }
 
 /** Collect external image URLs from a variant's attributes JSON. */
-export function externalAttrImages(attributes, extraOwnHosts = []) {
+export function externalAttrImages(attributes, extraOwnHosts = [], rehostHosts = []) {
   const out = [];
   if (!attributes || typeof attributes !== 'object') return out;
   for (const key of IMAGE_ATTR_KEYS) {
     const v = attributes[key];
-    if (typeof v === 'string' && isExternalImageUrl(v, extraOwnHosts)) out.push({ key, url: v });
+    if (typeof v === 'string' && isExternalImageUrl(v, extraOwnHosts, rehostHosts)) out.push({ key, url: v });
   }
   return out;
 }

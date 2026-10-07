@@ -18,6 +18,15 @@ describe('rehost-product-images helpers', () => {
     expect(isExternalImageUrl('https://grabberpoz.com.evil.io/a.jpg')).toBe(true);
   });
 
+  it('rehosts explicitly named hosts even when they are normally ours', () => {
+    const url = 'https://abc.supabase.co/storage/v1/object/public/products/a.jpg';
+    expect(isExternalImageUrl(url)).toBe(false);
+    expect(isExternalImageUrl(url, [], ['abc.supabase.co'])).toBe(true);
+    expect(isExternalImageUrl('https://other.supabase.co/x.jpg', [], ['abc.supabase.co'])).toBe(false);
+    expect(externalAttrImages({ imageUrl: url }, [], ['abc.supabase.co'])).toHaveLength(1);
+    expect(externalAttrImages({ imageUrl: url })).toHaveLength(0);
+  });
+
   it('identifies images by magic bytes, not by name', () => {
     expect(sniffImage(Buffer.from([0xff, 0xd8, 0xff, 0xe0]))?.ext).toBe('jpg');
     expect(sniffImage(Buffer.from([0x89, 0x50, 0x4e, 0x47]))?.ext).toBe('png');

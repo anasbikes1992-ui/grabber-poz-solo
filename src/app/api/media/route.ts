@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 import { randomUUID } from 'crypto';
 import { assertCanMutateCommerce, requireStaffSession } from '@/lib/auth/session';
 import { getAppUrl, getSupabaseUrl } from '@/lib/config/app-url';
 import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
 import { safeUploadBucket, validateUploadFile } from '@/lib/security/upload-validation';
+import { saveLocalUpload, storageProvider } from '@/lib/storage/local-uploads';
 import {
   createMediaAssetRecord,
   deleteMediaAssetRecord,
@@ -41,7 +40,7 @@ export async function POST(req: Request) {
     const upload = await validateUploadFile(file, 15 * 1024 * 1024);
 
     const originalFilename = upload.originalName;
-    const uniqueName = `${randomUUID()}.${upload.extension}`;
+    const uniqueName = `${randomUUID()}.${upload.extension}`; // Supabase object name
 
     const supabaseUrl = getSupabaseUrl();
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -49,7 +48,7 @@ export async function POST(req: Request) {
     let publicUrl = '';
     let provider = 'local';
 
-    if (supabaseUrl && serviceKey) {
+    if (storageProvider() === 'supabase' && supabaseUrl && serviceKey) {
       const bucket = safeUploadBucket(form.get('bucket'), 'products');
       const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${uniqueName}`;
       const res = await fetch(uploadUrl, {
@@ -71,16 +70,9 @@ export async function POST(req: Request) {
     }
 
     if (!publicUrl) {
-      if (process.env.NODE_ENV === 'production') {
-        return NextResponse.json({ success: false, error: 'Upload storage is not configured' }, { status: 503 });
-      }
-      // Local fallback in public/uploads
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      await mkdir(uploadsDir, { recursive: true });
-      const dest = path.join(uploadsDir, uniqueName);
-      await writeFile(dest, upload.bytes);
-      const base = getAppUrl();
-      publicUrl = `${base}/uploads/${uniqueName}`;
+      // Local disk (persistent volume in production), served by /uploads/[...path].
+      const { relativePath } = await saveLocalUpload(upload.bytes, upload.extension);
+      publicUrl = `${getAppUrl()}${relativePath}`;
       provider = 'local';
     }
 

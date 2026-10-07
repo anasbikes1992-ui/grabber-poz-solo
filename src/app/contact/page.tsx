@@ -1,56 +1,42 @@
-import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
 import { PublicInfoPage } from '@/components/company/PublicInfoPage';
-import { publicWhatsAppHref } from '@/lib/public/contact-links';
+import { ButtonLink } from '@/components/company/ui/Button';
+import { companyWhatsappNumber, publicWhatsAppHref } from '@/lib/public/contact-links';
 import { buildLegalMetadata, getLegalPage, legalPageJsonLd } from '@/lib/public/legal-pages';
+import { safeJsonLd } from '@/lib/security/escape';
 
 const page = getLegalPage('contact');
 
 export const metadata = buildLegalMetadata(page);
 
 export default function ContactPage() {
-  const salesWhatsapp = process.env.COMPANY_SALES_WHATSAPP || process.env.OWNER_WHATSAPP || '';
-  const whatsappHref = publicWhatsAppHref(
-    salesWhatsapp,
-    'Hi Grabber POZ, I want a Grabber Business OS Pro demo.',
-  );
+  const salesWhatsapp = companyWhatsappNumber();
+  const whatsappHref = publicWhatsAppHref(salesWhatsapp, "Hi Grabber POZ, I'd like a demo for my shop.");
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(legalPageJsonLd(page)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(legalPageJsonLd(page)) }} />
       <PublicInfoPage page={page} salesWhatsapp={salesWhatsapp} />
-      <section className="bg-slate-950 px-4 pb-16 text-slate-100 sm:px-6">
-        <div className="mx-auto grid max-w-5xl gap-4 rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:grid-cols-2 sm:p-8">
-          <Link
-            href="/#contact"
-            className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 transition-colors hover:bg-amber-500/20"
-          >
-            <h2 className="text-lg font-black text-white">Book a Pro demo</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Submit the company inquiry form with your business type, branch count, and migration needs.
-            </p>
-          </Link>
-          {whatsappHref ? (
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 transition-colors hover:bg-emerald-500/20"
-            >
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-emerald-300" aria-hidden />
-                <h2 className="text-lg font-black text-white">WhatsApp sales</h2>
-              </div>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Use the configured company WhatsApp number for inquiries, demo scheduling, and client management follow-up.
-              </p>
-            </a>
-          ) : (
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/70 p-5">
-              <h2 className="text-lg font-black text-white">WhatsApp sales</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Configure COMPANY_SALES_WHATSAPP or the Company Settings WhatsApp automation number to enable this direct link.
-              </p>
+      <section className="company-site bg-cs-paper px-4 pb-16 font-sans text-cs-ink sm:px-6">
+        <div className="mx-auto grid max-w-4xl gap-4 rounded-2xl border border-cs-line bg-cs-sand p-6 sm:grid-cols-2 sm:p-8">
+          <div className="min-w-0 rounded-2xl border border-cs-line bg-cs-card p-5">
+            <h2 className="font-display text-xl font-bold">Book a free demo</h2>
+            <p className="mt-2 text-cs-muted">Tell us about your shop and we will call you to show how it works.</p>
+            <ButtonLink href="/#contact" className="mt-4">Book a demo</ButtonLink>
+          </div>
+          {whatsappHref && (
+            <div className="min-w-0 rounded-2xl border border-cs-line bg-cs-card p-5">
+              <h2 className="font-display text-xl font-bold">Chat on WhatsApp</h2>
+              <p className="mt-2 text-cs-muted">Ask a question or arrange a demo. We reply in Sinhala, Tamil or English.</p>
+              <ButtonLink
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                icon={<MessageCircle className="h-4 w-4" aria-hidden />}
+                className="mt-4"
+              >
+                Open WhatsApp
+              </ButtonLink>
             </div>
           )}
         </div>
