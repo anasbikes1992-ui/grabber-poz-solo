@@ -25,6 +25,7 @@ export async function POST(req: Request) {
   try {
     const rawBody = await req.text();
     const signature = req.headers.get('x-hub-signature-256');
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
 
     if (!verifyWhatsAppWebhookSignature(rawBody, signature)) {
       return NextResponse.json({ success: false, error: 'Invalid webhook signature' }, { status: 403 });
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
           /* inbox table may not be migrated yet */
         }
 
-        const reply = await handleInboundWhatsAppMessage(m.from, m.text);
+        const reply = await handleInboundWhatsAppMessage(m.from, m.text, { host });
         if (reply.handled) {
           autoReplies += reply.sent;
           if (reply.sent === 0 && 'results' in reply && reply.results?.length) {

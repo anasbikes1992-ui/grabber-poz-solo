@@ -24,6 +24,13 @@ const navLinks = [
   { href: '#contact', label: 'Contact' },
 ];
 
+const legalLinks = [
+  { href: '/terms', label: 'Terms' },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/delivery-policy', label: 'Delivery' },
+  { href: '/refund-policy', label: 'Refunds' },
+];
+
 /**
  * `demoUrl`: origin of the demo merchant (e.g. https://demo.grabberpoz.com). Empty = same origin.
  * `whatsappNumber`: sales WhatsApp number (digits); the floating chat button is hidden without it.
@@ -175,6 +182,13 @@ export function CompanyLanding({
               </a>
             ))}
           </nav>
+          <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-cs-line pt-4 text-sm text-cs-muted">
+            {legalLinks.map((l) => (
+              <Link key={l.href} href={l.href} className="inline-flex min-h-11 items-center hover:text-cs-ink" onClick={() => setMobileNavOpen(false)}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 
@@ -234,6 +248,9 @@ export function CompanyLanding({
             <Link href={`${demoUrl}/shop`} className="hover:text-cs-ink">Demo store</Link>
             <a href="#pricing" className="hover:text-cs-ink">Pricing</a>
             <a href="#contact" className="hover:text-cs-ink">Contact</a>
+            {legalLinks.map((l) => (
+              <Link key={l.href} href={l.href} className="hover:text-cs-ink">{l.label}</Link>
+            ))}
             <Link href={`${demoUrl}/adminpoz`} className="hover:text-cs-ink">Client login</Link>
           </div>
         </div>

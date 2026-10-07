@@ -2,10 +2,11 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Truck, MapPin, RefreshCw, PackageCheck, ClipboardList, FileText } from 'lucide-react';
+import { Truck, MapPin, RefreshCw, PackageCheck, ClipboardList, FileText, UserPlus, Send } from 'lucide-react';
 
 type ShipmentRow = {
   orderId: string;
+  deliveryId: string | null;
   orderNumber: string;
   customerName: string;
   customerMobile: string;
@@ -17,7 +18,23 @@ type ShipmentRow = {
   courierPartner: string | null;
   trackingNumber: string | null;
   codAmount: number;
+  riderId: string | null;
+  riderName: string | null;
+  riderPhone: string | null;
+  riderWhatsappPhone: string | null;
+  assignmentMode: string | null;
+  riderNotificationStatus: string | null;
   status: 'PENDING_DISPATCH' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+};
+
+type Rider = {
+  id: string;
+  name: string;
+  phone: string | null;
+  whatsappPhone: string;
+  active: boolean;
+  vehicleType: string | null;
+  notes: string | null;
 };
 
 function mapFulfillment(status: string): ShipmentRow['status'] {
@@ -34,6 +51,7 @@ function toRow(s: Record<string, unknown>): ShipmentRow {
   const codDue = isCod && String(s.paymentStatus) !== 'paid' ? Number(s.total || 0) : Number(s.codAmount || 0);
   return {
     orderId: String(s.orderId),
+    deliveryId: s.deliveryId ? String(s.deliveryId) : null,
     orderNumber: String(s.orderNumber),
     customerName: String(s.customerName || 'Walk-in'),
     customerMobile: String(s.customerMobile || ''),
@@ -45,24 +63,39 @@ function toRow(s: Record<string, unknown>): ShipmentRow {
     courierPartner: s.courierPartner ? String(s.courierPartner) : null,
     trackingNumber: s.trackingNumber ? String(s.trackingNumber) : null,
     codAmount: codDue,
+    riderId: s.riderId ? String(s.riderId) : null,
+    riderName: s.riderName ? String(s.riderName) : null,
+    riderPhone: s.riderPhone ? String(s.riderPhone) : null,
+    riderWhatsappPhone: s.riderWhatsappPhone ? String(s.riderWhatsappPhone) : null,
+    assignmentMode: s.assignmentMode ? String(s.assignmentMode) : null,
+    riderNotificationStatus: s.riderNotificationStatus ? String(s.riderNotificationStatus) : null,
     status: mapFulfillment(fulfillment),
   };
 }
 
 export default function DeliveryBoardPage() {
   const [deliveries, setDeliveries] = useState<ShipmentRow[]>([]);
+  const [riders, setRiders] = useState<Rider[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [riderSelections, setRiderSelections] = useState<Record<string, string>>({});
+  const [riderForm, setRiderForm] = useState({ name: '', whatsappPhone: '', phone: '', vehicleType: '' });
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/delivery');
+      const [res, riderRes] = await Promise.all([
+        fetch('/api/delivery'),
+        fetch('/api/delivery/riders'),
+      ]);
       const data = await res.json();
+      const riderData = await riderRes.json();
       if (!data.success) throw new Error(data.error || 'Failed to load shipments');
+      if (!riderData.success) throw new Error(riderData.error || 'Failed to load riders');
       setDeliveries((data.shipments || []).map(toRow));
+      setRiders(riderData.riders || []);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -92,6 +125,39 @@ export default function DeliveryBoardPage() {
     }
   };
 
+  const createRider = async () => {
+    setBusyId('rider-create');
+    try {
+      const res = await fetch('/api/delivery/riders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(riderForm),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to create rider');
+      setRiderForm({ name: '', whatsappPhone: '', phone: '', vehicleType: '' });
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const disableRider = async (id: string) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/delivery/riders?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to disable rider');
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const dispatchKoombiyo = async (row: ShipmentRow) => {
     setBusyId(row.orderId);
     try {
@@ -108,6 +174,34 @@ export default function DeliveryBoardPage() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const dispatchInHouse = async (row: ShipmentRow, autoAssign = false) => {
+    setBusyId(row.orderId);
+    try {
+      const riderId = riderSelections[row.orderId] || row.riderId || '';
+      const res = await fetch('/api/delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: row.orderId,
+          recipientName: row.customerName,
+          recipientPhone: row.customerMobile,
+          address: row.shippingAddress,
+          paymentMethod: row.paymentMethod,
+          courierPartner: 'In-House',
+          riderId: autoAssign ? undefined : riderId || undefined,
+          autoAssign,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to assign in-house rider');
       await load();
     } catch (err) {
       setError((err as Error).message);
@@ -167,6 +261,71 @@ export default function DeliveryBoardPage() {
       </div>
 
       <div className="p-5 rounded-2xl glass-card space-y-4">
+        <div>
+          <h3 className="text-sm font-black text-foreground flex items-center gap-2">
+            <UserPlus className="h-4 w-4 text-emerald-400" /> In-house Riders
+          </h3>
+          <p className="text-[11px] text-muted-foreground">Add store riders and assign delivery jobs by WhatsApp.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+          <input
+            value={riderForm.name}
+            onChange={(e) => setRiderForm({ ...riderForm, name: e.target.value })}
+            placeholder="Rider name"
+            className="px-3 py-2 rounded-xl bg-zinc-950/60 border border-zinc-800 text-xs"
+          />
+          <input
+            value={riderForm.whatsappPhone}
+            onChange={(e) => setRiderForm({ ...riderForm, whatsappPhone: e.target.value })}
+            placeholder="WhatsApp number"
+            className="px-3 py-2 rounded-xl bg-zinc-950/60 border border-zinc-800 text-xs"
+          />
+          <input
+            value={riderForm.phone}
+            onChange={(e) => setRiderForm({ ...riderForm, phone: e.target.value })}
+            placeholder="Phone (optional)"
+            className="px-3 py-2 rounded-xl bg-zinc-950/60 border border-zinc-800 text-xs"
+          />
+          <input
+            value={riderForm.vehicleType}
+            onChange={(e) => setRiderForm({ ...riderForm, vehicleType: e.target.value })}
+            placeholder="Bike / van"
+            className="px-3 py-2 rounded-xl bg-zinc-950/60 border border-zinc-800 text-xs"
+          />
+          <button
+            type="button"
+            disabled={busyId === 'rider-create' || !riderForm.name || !riderForm.whatsappPhone}
+            onClick={() => void createRider()}
+            className="px-3 py-2 rounded-xl bg-emerald-500 text-zinc-950 text-xs font-black disabled:opacity-50"
+          >
+            Add Rider
+          </button>
+        </div>
+        {riders.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {riders.map((r) => (
+              <div key={r.id} className="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950/40 text-xs">
+                <span className="font-bold">{r.name}</span>
+                <span className="text-muted-foreground"> · {r.whatsappPhone}</span>
+                {r.vehicleType && <span className="text-muted-foreground"> · {r.vehicleType}</span>}
+                {!r.active && <span className="ml-2 text-[10px] text-zinc-500">Disabled</span>}
+                {r.active && (
+                  <button
+                    type="button"
+                    disabled={busyId === r.id}
+                    onClick={() => void disableRider(r.id)}
+                    className="ml-2 text-[10px] text-amber-300 hover:underline disabled:opacity-50"
+                  >
+                    Disable
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="p-5 rounded-2xl glass-card space-y-4">
         {loading && <p className="text-xs text-muted-foreground">Loading shipments…</p>}
         {!loading && deliveries.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-8">No storefront delivery orders yet.</p>
@@ -178,6 +337,7 @@ export default function DeliveryBoardPage() {
                 <th className="pb-2.5 font-medium">Order</th>
                 <th className="pb-2.5 font-medium">Customer & Address</th>
                 <th className="pb-2.5 font-medium">Tracking</th>
+                <th className="pb-2.5 font-medium">Rider</th>
                 <th className="pb-2.5 font-medium text-right">COD</th>
                 <th className="pb-2.5 font-medium text-right">Status</th>
                 <th className="pb-2.5 font-medium text-right">Actions</th>
@@ -204,6 +364,38 @@ export default function DeliveryBoardPage() {
                       </div>
                     ) : (
                       <span className="text-[10px] text-zinc-500">Not dispatched</span>
+                    )}
+                  </td>
+                  <td className="py-3 min-w-[180px]">
+                    {d.riderName ? (
+                      <div>
+                        <p className="font-semibold text-foreground">{d.riderName}</p>
+                        <p className="text-[10px] text-zinc-500 font-mono">{d.riderWhatsappPhone || d.riderPhone}</p>
+                        {d.riderNotificationStatus && (
+                          <span
+                            className={`mt-1 inline-flex text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                              d.riderNotificationStatus === 'FAILED'
+                                ? 'bg-red-500/10 text-red-300'
+                                : d.riderNotificationStatus === 'PENDING'
+                                  ? 'bg-amber-500/10 text-amber-300'
+                                  : 'bg-emerald-500/10 text-emerald-300'
+                            }`}
+                          >
+                            {d.riderNotificationStatus}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <select
+                        value={riderSelections[d.orderId] || ''}
+                        onChange={(e) => setRiderSelections({ ...riderSelections, [d.orderId]: e.target.value })}
+                        className="w-full px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-[11px]"
+                      >
+                        <option value="">Select rider</option>
+                        {riders.filter((r) => r.active).map((r) => (
+                          <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
+                      </select>
                     )}
                   </td>
                   <td className="py-3 text-right">
@@ -261,6 +453,26 @@ export default function DeliveryBoardPage() {
                       >
                         <PackageCheck className="h-3 w-3" /> Koombiyo
                       </button>
+                    )}
+                    {d.status === 'PENDING_DISPATCH' && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={busyId === d.orderId || (!riderSelections[d.orderId] && !d.riderId)}
+                          onClick={() => void dispatchInHouse(d, false)}
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 font-semibold text-[11px] disabled:opacity-50 inline-flex items-center gap-1"
+                        >
+                          <Send className="h-3 w-3" /> In-House
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busyId === d.orderId || riders.filter((r) => r.active).length === 0}
+                          onClick={() => void dispatchInHouse(d, true)}
+                          className="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 font-semibold text-[11px] disabled:opacity-50"
+                        >
+                          Auto Rider
+                        </button>
+                      </>
                     )}
                     {d.status === 'PENDING_DISPATCH' && d.trackingNumber && (
                       <button

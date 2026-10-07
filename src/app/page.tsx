@@ -94,7 +94,7 @@ export default async function HomePage() {
     <CompanyLanding
       demoUrl={process.env.COMPANY_DEMO_URL || 'https://demo.grabberpoz.com'}
       // Read at request time (server) so the number is not frozen at build time.
-      whatsappNumber={process.env.COMPANY_WHATSAPP_NUMBER || process.env.COMPANY_SALES_WHATSAPP || ''}
+      whatsappNumber={process.env.COMPANY_WHATSAPP_NUMBER || process.env.COMPANY_SALES_WHATSAPP || process.env.OWNER_WHATSAPP || ''}
       assets={availableMarketingAssets()}
     />
   );

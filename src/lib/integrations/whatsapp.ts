@@ -13,7 +13,7 @@ export function resolveWhatsAppConfig() {
   // webhook handshake for a tenant that hasn't configured WhatsApp yet.
   const verifyToken = trimEnv(process.env.WHATSAPP_VERIFY_TOKEN);
   const appSecret = trimEnv(process.env.WHATSAPP_APP_SECRET);
-  const apiVersion = trimEnv(process.env.WHATSAPP_API_VERSION) || 'v21.0';
+  const apiVersion = trimEnv(process.env.WHATSAPP_API_VERSION) || 'v26.0';
   return { token, phoneId, verifyToken, appSecret, apiVersion };
 }
 

@@ -56,6 +56,17 @@ export const metadata: Metadata = {
     images: [absoluteUrl(DEFAULT_OG_IMAGE, baseUrl)],
   },
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/icon.svg',
+  },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Grabber' },
 };
 

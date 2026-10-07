@@ -874,9 +874,27 @@ export const payments = pgTable('payments', {
   orderIdIdx: index('payments_order_id_idx').on(t.orderId),
 }));
 
+export const deliveryRiders = pgTable('delivery_riders', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  phone: text('phone'),
+  whatsappPhone: text('whatsapp_phone').notNull(),
+  active: boolean('active').notNull().default(true),
+  homeBranchId: uuid('home_branch_id').references(() => branches.id, { onDelete: 'set null' }),
+  vehicleType: text('vehicle_type'),
+  notes: text('notes'),
+  lastAssignedAt: timestamp('last_assigned_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  activeIdx: index('delivery_riders_active_idx').on(t.active),
+  branchIdx: index('delivery_riders_home_branch_idx').on(t.homeBranchId),
+}));
+
 export const deliveries = pgTable('deliveries', {
   id: uuid('id').primaryKey().defaultRandom(),
   orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  riderId: uuid('rider_id').references(() => deliveryRiders.id, { onDelete: 'set null' }),
   courierPartner: text('courier_partner'), // Prompt, Koombiyo, Domex, In-House
   trackingNumber: text('tracking_number'),
   status: fulfillmentStatusEnum('status').notNull().default('PENDING'),
@@ -884,10 +902,35 @@ export const deliveries = pgTable('deliveries', {
   recipientPhone: text('recipient_phone'),
   deliveryAddress: text('delivery_address'),
   codAmount: numeric('cod_amount', { precision: 12, scale: 2 }),
+  assignmentMode: text('assignment_mode'), // MANUAL | AUTO
+  riderNotificationStatus: text('rider_notification_status'), // PENDING | SENT | FAILED | STUB
+  riderNotificationMessageId: text('rider_notification_message_id'),
+  riderNotifiedAt: timestamp('rider_notified_at', { withTimezone: true }),
+  assignmentNotes: text('assignment_notes'),
   dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  orderIdx: index('deliveries_order_idx').on(t.orderId),
+  riderIdx: index('deliveries_rider_idx').on(t.riderId),
+  statusIdx: index('deliveries_status_idx').on(t.status),
+}));
+
+export const deliveryEvents = pgTable('delivery_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  deliveryId: uuid('delivery_id').references(() => deliveries.id, { onDelete: 'cascade' }),
+  orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  eventType: text('event_type').notNull(),
+  status: text('status').notNull().default('INFO'),
+  detailJson: jsonb('detail_json').$type<Record<string, unknown>>().notNull().default({}),
+  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  deliveryIdx: index('delivery_events_delivery_idx').on(t.deliveryId, t.createdAt),
+  orderIdx: index('delivery_events_order_idx').on(t.orderId, t.createdAt),
+  typeIdx: index('delivery_events_type_idx').on(t.eventType),
+}));
 
 export const orderAutomationEvents = pgTable('order_automation_events', {
   id: uuid('id').primaryKey().defaultRandom(),

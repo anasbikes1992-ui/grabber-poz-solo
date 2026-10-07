@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 import { listCategorySlugs, listPublishedProductSlugs } from '@/lib/storefront/catalog-server';
 import { siteBaseUrlFromHost } from '@/lib/storefront/seo';
+import { PUBLIC_LEGAL_ROUTES } from '@/lib/public/legal-pages';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,9 +23,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/shop/repairs/book`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${base}/shop/repairs/track`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${base}/track`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${base}/shop/login`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${base}/shop/checkout`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${base}/locations`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
+    ...PUBLIC_LEGAL_ROUTES.map((route) => ({
+      url: `${base}${route}`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: route === '/contact' ? 0.7 : 0.55,
+    })),
   ];
 
   try {
