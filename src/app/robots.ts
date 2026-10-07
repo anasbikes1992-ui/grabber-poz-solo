@@ -11,6 +11,7 @@ const STAFF_DISALLOW = [
   '/api/',
   '/login',
   '/adminpoz',
+  '/company',
   '/dashboard',
   '/settings',
   '/inventory',
@@ -47,6 +48,8 @@ const STAFF_DISALLOW = [
   '/serials',
   '/store/builder',
   '/accounts',
+  '/shop/login',
+  '/shop/checkout',
 ];
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
@@ -61,7 +64,20 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/shop', '/shop/', '/products/', '/categories/', '/locations/', '/shop/repairs', '/shop/login'],
+        allow: [
+          '/',
+          '/shop',
+          '/shop/',
+          '/products/',
+          '/categories/',
+          '/locations/',
+          '/shop/repairs',
+          '/terms',
+          '/privacy',
+          '/delivery-policy',
+          '/refund-policy',
+          '/contact',
+        ],
         disallow: STAFF_DISALLOW,
       },
     ],

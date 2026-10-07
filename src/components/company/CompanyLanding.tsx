@@ -18,9 +18,11 @@ import {
   Lock,
   Menu,
   X,
+  MessageCircle,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import type { CompanyLeadForm } from '@/components/company/CompanyLandingBelowFold';
+import { publicWhatsAppHref } from '@/lib/public/contact-links';
 
 /** Below-fold sections load as a separate chunk; hero stays in the first paint. */
 const CompanyLandingBelowFold = dynamic(
@@ -46,7 +48,7 @@ const verticalSignals = [
 ];
 
 /** `demoUrl`: origin of the demo merchant (e.g. https://demo.grabberpoz.com). Empty = same origin. */
-export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
+export function CompanyLanding({ demoUrl = '', salesWhatsapp = '' }: { demoUrl?: string; salesWhatsapp?: string }) {
   // Lead Capture Form State
   const [formData, setFormData] = useState<CompanyLeadForm>({
     businessName: '',
@@ -61,6 +63,10 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
   const [submitted, setSubmitted] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [leadError, setLeadError] = useState<string | null>(null);
+  const whatsappHref = publicWhatsAppHref(
+    salesWhatsapp,
+    'Hi Grabber POZ, I want to inquire about Grabber Business OS Pro.',
+  );
 
   async function handleLeadSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -138,6 +144,17 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
               <span>Start Your Business</span>
               <ArrowRight className="w-4 h-4" aria-hidden />
             </a>
+            {whatsappHref && (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noreferrer"
+                className="hidden xl:inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                aria-label="WhatsApp Grabber POZ sales"
+              >
+                <MessageCircle className="h-4 w-4" aria-hidden />
+              </a>
+            )}
             <button
               type="button"
               className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-200"
@@ -166,6 +183,8 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
               ['#demos', 'Live Demos'],
               ['#contact', 'Contact'],
               ['/shop', 'Storefront Demo'],
+              ['/terms', 'Terms'],
+              ['/privacy', 'Privacy'],
             ].map(([href, label]) =>
               href.startsWith('#') ? (
                 <a
@@ -298,6 +317,15 @@ export function CompanyLanding({ demoUrl = '' }: { demoUrl?: string }) {
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#pricing" className="hover:text-white transition-colors">Pro Platform</a>
             <a href="#contact" className="hover:text-white transition-colors">Contact Sales</a>
+            {whatsappHref && (
+              <a href={whatsappHref} target="_blank" rel="noreferrer" className="hover:text-emerald-300 transition-colors">
+                WhatsApp Sales
+              </a>
+            )}
+            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="/delivery-policy" className="hover:text-white transition-colors">Delivery</Link>
+            <Link href="/refund-policy" className="hover:text-white transition-colors">Refunds</Link>
           </div>
         </div>
       </footer>

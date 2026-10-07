@@ -650,7 +650,15 @@ export default function ShopCheckoutPage() {
                   </button>
 
                   <p className="text-[10px] text-center text-zinc-400 pt-1">
-                    By placing this order, you agree to our Terms of Service & Privacy Policy.
+                    By placing this order, you agree to our{' '}
+                    <Link href="/terms" className="font-semibold text-emerald-300 underline underline-offset-2">
+                      Terms
+                    </Link>{' '}
+                    and{' '}
+                    <Link href="/privacy" className="font-semibold text-emerald-300 underline underline-offset-2">
+                      Privacy Policy
+                    </Link>
+                    .
                   </p>
                 </div>
               </div>

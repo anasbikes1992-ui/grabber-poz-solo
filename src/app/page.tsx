@@ -89,5 +89,10 @@ export default async function HomePage() {
   }
 
   const { CompanyLanding } = await import('@/components/company/CompanyLanding');
-  return <CompanyLanding demoUrl={process.env.COMPANY_DEMO_URL || 'https://demo.grabberpoz.com'} />;
+  return (
+    <CompanyLanding
+      demoUrl={process.env.COMPANY_DEMO_URL || 'https://demo.grabberpoz.com'}
+      salesWhatsapp={process.env.COMPANY_SALES_WHATSAPP || process.env.OWNER_WHATSAPP || ''}
+    />
+  );
 }

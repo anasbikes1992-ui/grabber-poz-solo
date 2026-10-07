@@ -1,0 +1,37 @@
+# Grabber POZ
+
+Grabber POZ is the public company site for Grabber Business OS Pro, a single-business retail and commerce operating system for Sri Lankan SMEs.
+
+Canonical site: https://grabberpoz.com
+
+## Public pages
+
+- https://grabberpoz.com/
+- https://grabberpoz.com/shop
+- https://grabberpoz.com/locations
+- https://grabberpoz.com/track
+- https://grabberpoz.com/shop/repairs
+- https://grabberpoz.com/shop/repairs/book
+- https://grabberpoz.com/shop/repairs/track
+- https://grabberpoz.com/terms
+- https://grabberpoz.com/privacy
+- https://grabberpoz.com/delivery-policy
+- https://grabberpoz.com/refund-policy
+- https://grabberpoz.com/contact
+
+## Product summary
+
+Grabber Business OS Pro combines counter POS, inventory, product variants, barcodes, GRN, purchasing, customer credit ledgers, online storefront, Sri Lankan payment gateways, WhatsApp workflows, delivery, returns, reports, backups, and vertical business packs.
+
+The commercial model is one full Pro package. Each client gets an isolated app and isolated database. Business-specific behavior is configured through settings, vertical modules, storefront theme/layout presets, provider credentials, and onboarding scope.
+
+## Important architecture constraints
+
+- No shared customer/order/payment/stock database across merchants.
+- Each live client should have its own application instance and database.
+- Company control pages track metadata, leads, provisioning, server fleet, health, and handover.
+- Storefront and POS pages belong to the merchant instance.
+
+## Contact
+
+Use https://grabberpoz.com/contact or the inquiry form on https://grabberpoz.com/#contact for demos, sales, onboarding, and client management.

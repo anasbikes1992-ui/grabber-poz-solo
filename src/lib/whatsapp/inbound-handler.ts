@@ -1,6 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { db, customers, hasDatabaseUrl, orders, repairJobs } from '@/db';
 import { getConfiguredAppUrl, getStoreName } from '@/lib/config/app-url';
+import { resolveLandingMode, type LandingMode } from '@/lib/config/landing-mode';
 import { isWhatsAppConfigured, normalizeWhatsAppTo, sendWhatsAppText } from '@/lib/integrations/whatsapp';
 import { listWhatsAppTemplates, renderTemplate } from '@/lib/whatsapp/templates';
 
@@ -8,6 +9,11 @@ import { listWhatsAppTemplates, renderTemplate } from '@/lib/whatsapp/templates'
 export const WHATSAPP_PLACEHOLDER_DIGITS = '94771234567';
 
 export type InboundIntent = 'greeting' | 'order' | 'repair' | 'staff' | 'menu' | 'unknown';
+export type CompanyInboundIntent = 'menu' | 'demo' | 'pricing' | 'sales' | 'store_demo' | 'unknown';
+export type InboundWhatsAppContext = {
+  host?: string | null;
+  landingMode?: LandingMode;
+};
 
 export function resolveStorefrontWhatsAppNumber(dbNumber?: string | null): string | undefined {
   const env = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim();
@@ -50,6 +56,19 @@ export function parseInboundIntent(text: string): InboundIntent {
   return 'unknown';
 }
 
+export function parseCompanyInboundIntent(text: string): CompanyInboundIntent {
+  const raw = text.trim();
+  if (isWhatsAppGreeting(raw)) return 'menu';
+
+  const t = raw.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (/^(1|one|demo|book|call|meeting|schedule)\b/.test(t)) return 'demo';
+  if (/^(2|two|pricing|price|cost|onboarding|package|proposal)\b/.test(t)) return 'pricing';
+  if (/^(3|three|sales|agent|human|talk|support|whatsapp)\b/.test(t)) return 'sales';
+  if (/^(4|four|store demo|demo store|storefront|shop|catalog)\b/.test(t)) return 'store_demo';
+  if (/^(menu|options|restart|start over|help)\b/.test(t)) return 'menu';
+  return 'unknown';
+}
+
 function storeName() {
   return getStoreName();
 }
@@ -62,6 +81,68 @@ function appUrl() {
   ).replace(/\/$/, '');
 }
 
+function companyDemoUrl() {
+  return (process.env.COMPANY_DEMO_URL?.trim() || 'https://demo.grabberpoz.com').replace(/\/$/, '');
+}
+
+function companySalesPhone() {
+  return (
+    process.env.COMPANY_SALES_WHATSAPP?.trim() ||
+    process.env.OWNER_WHATSAPP?.trim() ||
+    process.env.STAFF_ESCALATION_PHONE?.trim() ||
+    ''
+  );
+}
+
+function shouldUseCompanyWhatsAppMode(context?: InboundWhatsAppContext) {
+  const mode = context?.landingMode ?? resolveLandingMode(context?.host);
+  return mode === 'company';
+}
+
+export function buildCompanyWhatsAppReply(intent: CompanyInboundIntent) {
+  const base = appUrl();
+  const demo = companyDemoUrl();
+  const menu =
+    '*Grabber Business OS Pro*\n' +
+    'One full package for POS, inventory, Polim Potha, storefront, WhatsApp, delivery, reports, and client handover.\n\n' +
+    'Reply:\n' +
+    '*1* - Book a live demo\n' +
+    '*2* - Pricing / onboarding scope\n' +
+    '*3* - Talk to sales\n' +
+    '*4* - Open demo storefront';
+
+  switch (intent) {
+    case 'demo':
+      return (
+        '*Book a Grabber POZ demo*\n' +
+        `Start here: ${base}/#contact\n` +
+        `Demo storefront: ${demo}/shop\n\n` +
+        'Send your business type, branch count, and current POS/catalog situation so we can prepare the walkthrough.'
+      );
+    case 'pricing':
+      return (
+        '*Grabber Business OS Pro pricing*\n' +
+        'Every client gets the full Pro platform. Pricing changes by setup scope, branch count, data migration, hardware, provider setup, and support SLA.\n\n' +
+        `Request a scoped proposal: ${base}/#contact`
+      );
+    case 'sales':
+      return (
+        'Thanks. A Grabber POZ sales specialist will reply shortly.\n\n' +
+        'For fastest help, send your shop name, business type, location count, and what you want to replace or improve.'
+      );
+    case 'store_demo':
+      return (
+        '*Live demo storefront*\n' +
+        `${demo}/shop\n\n` +
+        'Use it to preview the customer shopping flow. Reply *1* if you want a guided demo.'
+      );
+    case 'unknown':
+      return `Sorry, I didn't catch that.\n\n${menu}`;
+    default:
+      return menu;
+  }
+}
+
 async function sendMessages(to: string, texts: string[]) {
   let sent = 0;
   const results: Awaited<ReturnType<typeof sendWhatsAppText>>[] = [];
@@ -71,6 +152,33 @@ async function sendMessages(to: string, texts: string[]) {
     if (result.success) sent += 1;
   }
   return { sent, results };
+}
+
+async function handleCompanyInboundIntent(from: string, inboundText: string) {
+  const intent = parseCompanyInboundIntent(inboundText);
+  const text = buildCompanyWhatsAppReply(intent);
+
+  if (intent === 'sales') {
+    const salesPhone = companySalesPhone();
+    if (salesPhone && !phonesMatch(salesPhone, from)) {
+      await sendWhatsAppText({
+        to: salesPhone,
+        text:
+          '*New Grabber POZ WhatsApp sales request*\n' +
+          `Customer: ${from}\n` +
+          `Message: ${inboundText.slice(0, 160) || 'Requested sales help'}`,
+      }).catch(() => undefined);
+    }
+  }
+
+  const { sent, results } = await sendMessages(from, [text]);
+  return {
+    handled: true as const,
+    intent: `company_${intent}` as const,
+    sent,
+    results,
+    configured: isWhatsAppConfigured(),
+  };
 }
 
 async function templateBody(ids: string[], names: string[], fallback: string) {
@@ -228,7 +336,15 @@ async function handleUnknownIntent(from: string) {
 }
 
 /** Route inbound customer text through greeting → menu → order / repair / staff flows. */
-export async function handleInboundWhatsAppMessage(from: string, inboundText: string) {
+export async function handleInboundWhatsAppMessage(
+  from: string,
+  inboundText: string,
+  context?: InboundWhatsAppContext,
+) {
+  if (shouldUseCompanyWhatsAppMode(context)) {
+    return handleCompanyInboundIntent(from, inboundText);
+  }
+
   const intent = parseInboundIntent(inboundText);
 
   switch (intent) {

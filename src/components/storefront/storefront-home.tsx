@@ -807,7 +807,16 @@ export function StorefrontHome({
         <StorefrontFooterCta cms={currentCms} />
 
         <footer className="border-t border-[var(--sf-border)] bg-[var(--sf-muted)]/40 py-8 text-center text-sm text-[var(--sf-secondary)]">
-          <p>© {new Date().getFullYear()} {currentCms.theme.storeName || 'Grabber Business OS'}</p>
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-4 px-4">
+            <p>© {new Date().getFullYear()} {currentCms.theme.storeName || 'Grabber Business OS'}</p>
+            <nav aria-label="Store policies" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs">
+              <Link href="/terms" className="hover:text-[var(--sf-accent)] hover:underline">Terms</Link>
+              <Link href="/privacy" className="hover:text-[var(--sf-accent)] hover:underline">Privacy</Link>
+              <Link href="/delivery-policy" className="hover:text-[var(--sf-accent)] hover:underline">Delivery Policy</Link>
+              <Link href="/refund-policy" className="hover:text-[var(--sf-accent)] hover:underline">Refunds & Returns</Link>
+              <Link href="/contact" className="hover:text-[var(--sf-accent)] hover:underline">Contact</Link>
+            </nav>
+          </div>
         </footer>
       </div>
     </StorefrontShell>
