@@ -1,5 +1,6 @@
 'use client';
 
+import { ProductImage } from '@/components/storefront/ProductImage';
 import Link from 'next/link';
 import { MessageCircle, Wrench } from 'lucide-react';
 import type { StorefrontBlock, StorefrontConfig } from '@/lib/config/storefront-config.shared';
@@ -145,17 +146,21 @@ export function StorefrontFeaturedSection({
             key={item.id}
             className="overflow-hidden rounded-2xl border border-[var(--sf-surface-border)] bg-[var(--sf-surface)] shadow-sm backdrop-blur transition-all duration-300 hover:border-[var(--sf-accent)]/50 hover:shadow-lg"
           >
-            {item.imageUrl && (
-              <Link href={item.slug ? `/products/${item.slug}` : '#'} className="block bg-[var(--sf-muted)]/35">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.imageUrl} alt={item.name} className="aspect-[4/3] w-full object-contain p-4" />
-              </Link>
-            )}
+            <Link href={item.slug ? `/products/${item.slug}` : '#'} className="block bg-[var(--sf-muted)]/35">
+              <ProductImage
+                src={item.imageUrl}
+                alt={item.name}
+                className="aspect-[4/3] w-full object-contain p-4"
+                fallbackClassName="aspect-[4/3] w-full"
+              />
+            </Link>
             <div className="p-4">
               <h3 className="line-clamp-2 font-semibold text-[var(--sf-foreground)]">{item.name}</h3>
-              <p className="mt-1 text-xs text-[var(--sf-secondary)]">
-                {item.variantCount && item.variantCount > 0 ? `${item.variantCount} options` : item.variant}
-              </p>
+              {(item.variantCount && item.variantCount > 0) || item.variant ? (
+                <p className="mt-1 text-xs text-[var(--sf-secondary)]">
+                  {item.variantCount && item.variantCount > 0 ? `${item.variantCount} options` : item.variant}
+                </p>
+              ) : null}
               <p className="mt-3 font-display text-lg font-bold text-[var(--sf-accent)]">{priceLabel(item)}</p>
               {item.variantCount && item.variantCount > 0 && item.slug ? (
                 <Link

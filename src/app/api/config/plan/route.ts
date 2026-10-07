@@ -7,7 +7,7 @@ import {
   setGrabberPlanMode,
   type GrabberVerticalPack,
 } from '@/lib/config/plan-mode';
-import { getSession } from '@/lib/auth/session';
+import { assertRole, getSession } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,8 +35,12 @@ export async function GET() {
 async function updatePlan(req: Request) {
   try {
     const session = await getSession();
-    if (!session && process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (process.env.NODE_ENV === 'production') {
+      if (!session) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      }
+      // Plan/vertical-pack changes are owner-level; middleware RBAC is skipped on this public prefix.
+      assertRole(session, ['OWNER', 'ADMIN']);
     }
 
     const body = await req.json();

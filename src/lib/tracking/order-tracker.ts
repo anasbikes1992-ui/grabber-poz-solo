@@ -18,7 +18,10 @@ export function normalizePhone(phone: string) {
 
 export function phoneLast4Matches(phone: string, last4: string) {
   const norm = normalizePhone(phone);
-  return norm.slice(-4) === last4.replace(/\D/g, '').slice(-4);
+  const want = last4.replace(/\D/g, '');
+  // Both sides must carry real digits: email-only customers store "email:..." (no digits), which
+  // would otherwise match any non-numeric guess.
+  return norm.length >= 4 && want.length === 4 && norm.slice(-4) === want;
 }
 
 export function verifyOrderAccess(

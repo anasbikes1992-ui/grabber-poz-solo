@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { storageProvider, uploadsDir } from '@/lib/storage/local-uploads';
 import { db, businessConfig } from '@/db';
 import { getSession } from '@/lib/auth/session';
 import { getSupabaseUrl } from '@/lib/config/app-url';
@@ -75,7 +76,8 @@ export async function GET() {
     };
 
     // 4. Storage Provider (Supabase vs Local)
-    const hasSupabaseStorage = Boolean(getSupabaseUrl() && process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const hasSupabaseStorage =
+      storageProvider() === 'supabase' && Boolean(getSupabaseUrl() && process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     const storage: IntegrationHealthItem = {
       id: 'storage',
@@ -85,7 +87,7 @@ export async function GET() {
       source: hasSupabaseStorage ? 'ENV' : 'NONE',
       fallbackDescription: hasSupabaseStorage
         ? 'Supabase Cloud Object Storage active (S3-compatible bucket).'
-        : 'Local filesystem storage active. For multi-instance Vercel deployments, configure Supabase Storage.',
+        : `Local disk storage active (${uploadsDir()}). Mount a persistent volume there in Coolify.`,
       setupGuide: 'Set SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY.',
     };
 

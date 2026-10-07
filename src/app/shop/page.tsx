@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
+import { safeJsonLd } from '@/lib/security/escape';
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import { StorefrontHome } from '@/components/storefront/storefront-home';
-import { loadStorefrontCatalog } from '@/lib/storefront/catalog-service';
+import { loadStorefrontCatalog, toPublicCatalogItem } from '@/lib/storefront/catalog-service';
 import { DEFAULT_OG_IMAGE, absoluteUrl, siteBaseUrl } from '@/lib/storefront/seo';
 
 export const dynamic = 'force-dynamic';
@@ -81,11 +82,11 @@ export default async function ShopCatalogPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
       <StorefrontHome
         cms={cms}
-        initialCatalog={catalog.items}
+        initialCatalog={catalog.items.map(toPublicCatalogItem)}
         initialBranchId={catalog.branchId}
       />
     </>

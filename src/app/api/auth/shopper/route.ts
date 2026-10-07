@@ -19,8 +19,11 @@ export async function POST(req: Request) {
     const email = body.email ? String(body.email).trim().toLowerCase() : '';
     const name = String(body.name || '').trim();
 
-    if (password.length < 4) {
-      return NextResponse.json({ success: false, error: 'Password min 4 characters' }, { status: 400 });
+    if (password.length < (action === 'register' ? 8 : 4)) {
+      return NextResponse.json(
+        { success: false, error: action === 'register' ? 'Password min 8 characters' : 'Invalid phone/email or password' },
+        { status: action === 'register' ? 400 : 401 },
+      );
     }
 
     if (action === 'register') {
@@ -33,32 +36,24 @@ export async function POST(req: Request) {
         .from(customers)
         .where(or(eq(customers.phone, phoneKey), email ? eq(customers.email, email) : eq(customers.phone, phoneKey)))
         .limit(1);
-      if (existing[0]?.hashedPassword) {
-        return NextResponse.json({ success: false, error: 'Account already exists — sign in' }, { status: 409 });
+      // Never attach credentials to an existing customer record (e.g. one created at the POS):
+      // that would let anyone who knows a phone number or email take over the account.
+      if (existing[0]) {
+        return NextResponse.json(
+          { success: false, error: 'An account with these details already exists. Sign in, or ask the store to activate online access.' },
+          { status: 409 },
+        );
       }
-      let customer = existing[0];
-      if (!customer) {
-        [customer] = await db
-          .insert(customers)
-          .values({
-            name,
-            phone: phoneKey,
-            email: email || null,
-            hashedPassword: hashShopperPassword(password),
-            active: true,
-          })
-          .returning();
-      } else {
-        [customer] = await db
-          .update(customers)
-          .set({
-            name,
-            email: email || customer.email,
-            hashedPassword: hashShopperPassword(password),
-          })
-          .where(eq(customers.id, customer.id))
-          .returning();
-      }
+      const [customer] = await db
+        .insert(customers)
+        .values({
+          name,
+          phone: phoneKey,
+          email: email || null,
+          hashedPassword: hashShopperPassword(password),
+          active: true,
+        })
+        .returning();
       await setCustomerSessionCookie({
         customerId: customer.id,
         name: customer.name,
@@ -95,11 +90,14 @@ export async function POST(req: Request) {
       });
     }
 
-    if (!customer || !customer.active) {
-      return NextResponse.json({ success: false, error: 'Account not found' }, { status: 401 });
-    }
-    if (!customer.hashedPassword || !verifyShopperPassword(password, customer.hashedPassword)) {
-      return NextResponse.json({ success: false, error: 'Invalid password' }, { status: 401 });
+    // Same response for unknown account, inactive account and wrong password (no account enumeration).
+    if (
+      !customer ||
+      !customer.active ||
+      !customer.hashedPassword ||
+      !verifyShopperPassword(password, customer.hashedPassword)
+    ) {
+      return NextResponse.json({ success: false, error: 'Invalid phone/email or password' }, { status: 401 });
     }
 
     await setCustomerSessionCookie({

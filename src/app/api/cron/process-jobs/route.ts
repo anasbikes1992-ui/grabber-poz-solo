@@ -3,6 +3,7 @@ import { claimBatch, markComplete, markFailed } from '@/lib/jobs/outbox';
 import { handleJob } from '@/lib/jobs/handlers';
 import { ensurePeriodicJobs } from '@/lib/jobs/periodic';
 import type { JobType } from '@/lib/jobs/outbox';
+import { expireUnpaidOnlineOrders } from '@/lib/commerce/payment-settlement';
 
 export const maxDuration = 60;
 
@@ -29,6 +30,10 @@ export async function GET(req: Request) {
 
   const workerId = `cron_${Date.now()}`;
   const scheduled = await ensurePeriodicJobs();
+  const expiry = await expireUnpaidOnlineOrders().catch((err) => {
+    console.error('Unpaid online order expiry failed', err);
+    return { expired: 0, scanned: 0 };
+  });
   const jobs = await claimBatch(workerId, 15);
   let processed = 0;
   let failed = 0;
@@ -44,7 +49,8 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ success: true, scheduled, claimed: jobs.length, processed, failed });
+  return NextResponse.json({ success: true, scheduled, claimed: jobs.length,
+    expiredUnpaidOrders: expiry.expired, processed, failed });
 }
 
 export async function POST(req: Request) {

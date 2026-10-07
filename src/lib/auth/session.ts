@@ -11,6 +11,7 @@ export type { SessionRole, SessionUser };
 export { COOKIE_NAME, DEV_OWNER_SESSION, isStaffMiddlewareOptional } from './session-constants';
 
 const MAX_AGE_SEC = EDGE_MAX;
+const STAFF_ROLES = new Set<string>(['OWNER', 'ADMIN', 'MANAGER', 'CASHIER', 'WAREHOUSE', 'ACCOUNTANT', 'MARKETING']);
 
 function authSecret(): string {
   const s = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET;
@@ -69,6 +70,7 @@ export function isTemporaryCredential(stored: string | null | undefined): boolea
 export function encodeSession(user: SessionUser): string {
   const body = {
     ...user,
+    kind: 'staff',
     exp: Math.floor(Date.now() / 1000) + MAX_AGE_SEC,
   };
   const payloadB64 = b64url(JSON.stringify(body));
@@ -88,7 +90,10 @@ export function decodeSession(token: string | undefined | null): SessionUser | n
   try {
     const body = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as SessionUser & {
       exp: number;
+      kind?: string;
     };
+    // Shopper cookies share the signing key: only tokens explicitly minted as staff may pass.
+    if (body.kind !== 'staff' || !body.userId || !STAFF_ROLES.has(body.role)) return null;
     if (!body.exp || body.exp < Math.floor(Date.now() / 1000)) return null;
     return {
       userId: body.userId,

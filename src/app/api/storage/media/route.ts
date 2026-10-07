@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readdir, stat } from 'fs/promises';
 import path from 'path';
+import { uploadsDir } from '@/lib/storage/local-uploads';
 
 export type MediaAssetItem = {
   id: string;
@@ -30,7 +31,7 @@ const ALLOWED_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'svg', 'gif']);
  */
 async function scanDir(
   dir: string,
-  basePublicDir: string,
+  uploadsRoot: string,
   depth = 3,
   items: MediaAssetItem[] = []
 ): Promise<MediaAssetItem[]> {
@@ -40,13 +41,13 @@ async function scanDir(
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        await scanDir(fullPath, basePublicDir, depth - 1, items);
+        await scanDir(fullPath, uploadsRoot, depth - 1, items);
       } else if (entry.isFile()) {
         const ext = path.extname(entry.name).replace('.', '').toLowerCase();
         if (ALLOWED_EXTS.has(ext)) {
           const stats = await stat(fullPath).catch(() => null);
           if (stats) {
-            const relFromPublic = path.relative(basePublicDir, fullPath).replace(/\\/g, '/');
+            const relFromPublic = `uploads/${path.relative(uploadsRoot, fullPath).replace(/\\/g, '/')}`;
             const cleanUrl = `/${relFromPublic.split('/').map(encodeURIComponent).join('/')}`;
             const pathParts = relFromPublic.split('/');
             const category = pathParts.length > 2 ? pathParts[pathParts.length - 2] : 'uploads';
@@ -80,15 +81,14 @@ export async function GET(req: Request) {
     const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '40', 10)));
     const category = searchParams.get('category')?.toLowerCase();
 
-    const publicDir = path.join(process.cwd(), 'public');
-    const generalUploadsDir = path.join(publicDir, 'uploads');
-    const clientsDir = path.join(publicDir, 'uploads', 'clients');
-
+    // Paths are reported relative to the uploads root under the /uploads URL prefix,
+    // so this works whether the uploads dir is public/uploads or a mounted volume.
+    const root = uploadsDir();
     const allItems: MediaAssetItem[] = [];
 
     // Scan general uploads and all tenant/client media directories dynamically
-    await scanDir(generalUploadsDir, publicDir, 4, allItems);
-    await scanDir(clientsDir, publicDir, 4, allItems);
+    await scanDir(root, root, 4, allItems);
+    await scanDir(path.join(root, 'clients'), root, 4, allItems);
 
     // Deduplicate by relativePath
     const uniqueMap = new Map<string, MediaAssetItem>();

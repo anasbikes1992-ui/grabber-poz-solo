@@ -101,6 +101,22 @@ async function resolveAccountId(tx: typeof db, code: string) {
   return row.id;
 }
 
+/**
+ * An idempotency key / client uuid may only replay an order the caller already owns. Otherwise anyone
+ * who guesses a key (e.g. `payhere_<uuid>`) would receive another customer's order and tracking token.
+ */
+export function assertIdempotentReuseAllowed(
+  existing: { customerId?: string | null; createdBy?: string | null },
+  input: { customerId?: string; actorId?: string },
+) {
+  const sameShopper = Boolean(existing.customerId && input.customerId && existing.customerId === input.customerId);
+  const sameActor = Boolean(existing.createdBy && input.actorId && existing.createdBy === input.actorId);
+  const unowned = !existing.customerId && !existing.createdBy;
+  if (!sameShopper && !sameActor && !unowned) {
+    throw Object.assign(new Error('Idempotency key already used'), { status: 409 });
+  }
+}
+
 export async function durableCheckout(input: CheckoutInput) {
   if (!input.items?.length) throw new Error('Cart is empty');
   if (!input.branchId) throw new Error('branchId is required');
@@ -116,12 +132,14 @@ export async function durableCheckout(input: CheckoutInput) {
         .limit(1);
       if (existingPay) {
         const [existingOrder] = await tx.select().from(orders).where(eq(orders.id, existingPay.orderId)).limit(1);
+        if (existingOrder) assertIdempotentReuseAllowed(existingOrder, input);
         return { reused: true as const, order: existingOrder, payment: existingPay };
       }
     }
     if (input.clientUuid) {
       const [existingOrder] = await tx.select().from(orders).where(eq(orders.clientUuid, input.clientUuid)).limit(1);
       if (existingOrder) {
+        assertIdempotentReuseAllowed(existingOrder, input);
         return { reused: true as const, order: existingOrder, payment: null };
       }
     }

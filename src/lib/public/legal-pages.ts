@@ -34,7 +34,7 @@ export const legalPages: Record<string, LegalPageDefinition> = {
         heading: 'Scope',
         body: [
           'These terms apply to Grabber POZ public company pages, demo storefronts, customer checkout flows, and client onboarding communications.',
-          'Each merchant using Grabber Business OS operates its own isolated application and database. Merchant-specific sales terms may be shown on that merchant storefront or receipt.',
+          'Each shop using Grabber POZ runs its own separate system and database. Merchant-specific sales terms may be shown on that merchant storefront or receipt.',
         ],
       },
       {
@@ -91,8 +91,8 @@ export const legalPages: Record<string, LegalPageDefinition> = {
       {
         heading: 'Client isolation',
         body: [
-          'Grabber Business OS is designed as a single-business deployment model. Each client receives its own app and database unless a separate written arrangement says otherwise.',
-          'Grabber POZ does not merge merchant orders, customers, stock, or payments into a shared tenant database.',
+          'Each client shop gets its own system and its own database, unless a separate written agreement says otherwise.',
+          'Grabber POZ does not mix the orders, customers, stock or payments of different shops.',
         ],
       },
       {
@@ -167,7 +167,7 @@ export const legalPages: Record<string, LegalPageDefinition> = {
       {
         heading: 'Payment reversal',
         body: [
-          'Approved refunds should follow the original payment method where available and should be recorded in the merchant system for stock, ledger, and audit integrity.',
+          'Approved refunds should follow the original payment method where available and should be recorded in the merchant system so stock and accounting records stay correct.',
           'Cash on delivery refunds are handled by the merchant after confirming payment collection and return eligibility.',
         ],
       },
@@ -178,13 +178,13 @@ export const legalPages: Record<string, LegalPageDefinition> = {
     title: 'Contact Grabber POZ',
     eyebrow: 'Sales, Demos, and Support',
     description:
-      'Contact Grabber POZ for Business OS Pro demos, onboarding, client management, WhatsApp sales, and store deployment questions.',
+      'Contact Grabber POZ for demos, setup, support, WhatsApp sales and online store questions.',
     updated: 'October 7, 2026',
     sections: [
       {
         heading: 'Sales and demos',
         body: [
-          'Use the company inquiry form to request a live walkthrough of POS, inventory, Polim Potha, storefront, WhatsApp, delivery, reports, and client handover.',
+          'Use the company inquiry form to request a live walkthrough of the counter POS, stock control, customer credit (Polim Potha), online store, WhatsApp, delivery and reports.',
           'For quick follow-up, use the configured company WhatsApp number when available.',
         ],
       },

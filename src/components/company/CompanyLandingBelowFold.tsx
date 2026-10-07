@@ -1,30 +1,32 @@
-﻿'use client';
+'use client';
 
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
-import Link from 'next/link';
 import {
-  Store,
-  CreditCard,
+  ArrowRight,
+  Barcode,
   BookOpen,
   Boxes,
-  Sparkles,
-  ShieldCheck,
+  Check,
   CheckCircle2,
-  ArrowRight,
+  CreditCard,
+  Loader2,
   Monitor,
   Printer,
-  Barcode,
   Smartphone,
-  Check,
-  MessageCircle,
-  TrendingUp,
-  Building2,
-  Send,
-  Loader2,
-  Lock,
-  Gem,
+  Store,
   Wrench,
+  Gem,
+  Shirt,
+  PartyPopper,
+  ShoppingBasket,
 } from 'lucide-react';
+import { ButtonLink, Button } from '@/components/company/ui/Button';
+import { ScreenshotFrame } from '@/components/company/ScreenshotFrame';
+import { Testimonials } from '@/components/company/Testimonials';
+import { Faq } from '@/components/company/Faq';
+import { COMPANY_WHATSAPP_MESSAGE } from '@/components/company/ui/WhatsAppButton';
+import { whatsappHref } from '@/lib/storefront/theme-vars';
+import type { MarketingAssetKey, MarketingAssets } from '@/lib/company/marketing-assets';
 
 export type CompanyLeadForm = {
   businessName: string;
@@ -34,43 +36,48 @@ export type CompanyLeadForm = {
   businessType: string;
   branchCount: string;
   message: string;
+  /** Honeypot: real visitors never see or fill this. */
+  website?: string;
 };
 
-const verticalCapabilityCards = [
+const shopTypes = [
+  { label: 'Clothing & fashion', icon: Shirt },
+  { label: 'Jewellery & watches', icon: Gem },
+  { label: 'Party & gift shops', icon: PartyPopper },
+  { label: 'Phone & repair shops', icon: Wrench },
+  { label: 'Grocery & supermarkets', icon: ShoppingBasket },
+  { label: 'Wholesale & hardware', icon: Boxes },
+];
+
+const benefitBlocks = [
   {
-    title: 'Fashion & Apparel',
-    desc: 'Size, color, seasonal drops, barcode labels, and loyalty-led returns.',
-    icon: Sparkles,
+    id: 'features',
+    title: 'Sell faster at the counter',
+    lead: 'Scan, bill and print the receipt in seconds, even when the shop is full.',
+    points: ['Scan barcodes or search by name', 'Cash, card and credit on one bill', 'Prints on standard receipt printers', 'Close your day with one tap'],
+    asset: 'pos' as MarketingAssetKey,
+    image: { src: '/marketing/pos-checkout.webp', alt: 'Counter screen with a bill being rung up', width: 1440, height: 900, device: 'laptop' as const },
   },
   {
-    title: 'Jewelry & Watches',
-    desc: 'Serialized pieces, certificate notes, high-value receipts, and refined storefronts.',
-    icon: Gem,
+    title: 'Always know what is in stock',
+    lead: 'Every sale, return and delivery updates your stock automatically.',
+    points: ['See low stock before it runs out', 'Receive supplier stock and print labels', 'Manage more than one branch', 'Sell the oldest stock first'],
+    asset: 'inventory' as MarketingAssetKey,
+    image: { src: '/marketing/inventory.webp', alt: 'Stock list showing items, quantities and low-stock warnings', width: 1440, height: 900, device: 'laptop' as const },
   },
   {
-    title: 'Party & Events',
-    desc: 'Theme collections, bundles, occasions, and celebration-first storefronts.',
-    icon: Store,
-  },
-  {
-    title: 'Mobile & Repairs',
-    desc: 'IMEI devices, service intake, parts issue, warranties, and customer updates.',
-    icon: Wrench,
-  },
-  {
-    title: 'Grocery & Pharmacy',
-    desc: 'Fast checkout, batch/expiry flows, FEFO handling, and repeat customers.',
-    icon: Boxes,
-  },
-  {
-    title: 'Wholesale & Hardware',
-    desc: 'Quotations, contractor credit, bulk pricing, purchasing, and GRN control.',
-    icon: Building2,
+    title: 'Open your online store',
+    lead: 'Your shop gets its own website, using the same products and stock as the counter.',
+    points: ['Customers order from their phone', 'Cash on delivery or card payment', 'No double entry, one stock for both', 'Share products on WhatsApp'],
+    asset: 'storefront' as MarketingAssetKey,
+    image: { src: '/marketing/storefront-phone.webp', alt: 'Online store product list on a phone', width: 390, height: 844, device: 'phone' as const },
   },
 ];
 
 export function CompanyLandingBelowFold({
   demoUrl = '',
+  whatsappNumber = '',
+  assets,
   formData,
   setFormData,
   submitting,
@@ -79,6 +86,8 @@ export function CompanyLandingBelowFold({
   onLeadSubmit,
 }: {
   demoUrl?: string;
+  whatsappNumber?: string;
+  assets?: MarketingAssets;
   formData: CompanyLeadForm;
   setFormData: Dispatch<SetStateAction<CompanyLeadForm>>;
   submitting: boolean;
@@ -86,697 +95,236 @@ export function CompanyLandingBelowFold({
   leadError: string | null;
   onLeadSubmit: (e: FormEvent) => void;
 }) {
+  const waLink = whatsappHref(whatsappNumber, COMPANY_WHATSAPP_MESSAGE);
+  const inputCls =
+    'w-full min-h-11 rounded-xl border border-cs-line bg-cs-card px-4 py-2.5 text-base text-cs-ink placeholder:text-stone-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cs-brick';
+  const labelCls = 'mb-1.5 block text-sm font-bold text-cs-ink';
+
   return (
     <>
-      {/* Feature Section 1: POS & Counter Experience */}
-      <section id="features" className="py-24 border-t border-slate-800/80 bg-slate-900/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase">
-                <Monitor className="w-3.5 h-3.5" />
-                <span>Counter Speed & Stability</span>
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-                High-Speed Retail POS Built for Rush Hours
-              </h2>
-              <p className="text-slate-300 leading-relaxed text-base">
-                Engineered for continuous operation at checkout counters. Scan barcodes, select variants, apply authorized discounts, split bills across cash and card, and issue receipts in milliseconds.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                {[
-                  'Instant barcode scan & SKU lookup',
-                  'Split tender: Cash, Card, Credit, QR',
-                  'Thermal receipt printing (58mm & 80mm)',
-                  'Cash drawer float & register shift closing',
-                  'Supervisor override & discount controls',
-                  'Branch-aware pricing and stock checks',
-                ].map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-sm text-slate-200">
-                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>{f}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* POS UI Preview Mock */}
-            <div className="bg-slate-900 border border-slate-700/80 rounded-2xl p-5 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-rose-500" />
-                  <span className="w-3 h-3 rounded-full bg-amber-500" />
-                  <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                  <span className="text-xs font-mono text-slate-400 ml-2">Grabber POS - Register 01 (Colombo 03)</span>
-                </div>
-                <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                  ONLINE | SHIFT OPEN
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2 space-y-2">
-                  <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 flex justify-between items-center text-sm">
-                    <div>
-                      <div className="font-bold text-white">Linen Casual Shirt (L)</div>
-                      <div className="text-xs text-slate-400 font-mono">SKU: DEMO-SHIRT-L</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-amber-400">LKR 4,500</div>
-                      <div className="text-xs text-slate-400">Qty: 2</div>
-                    </div>
-                  </div>
-                  <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 flex justify-between items-center text-sm">
-                    <div>
-                      <div className="font-bold text-white">Stretch Chino Trousers (32)</div>
-                      <div className="text-xs text-slate-400 font-mono">SKU: DEMO-CHINO-32</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-amber-400">LKR 6,500</div>
-                      <div className="text-xs text-slate-400">Qty: 1</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex flex-col justify-between">
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-400">
-                      <span>Subtotal</span>
-                      <span className="text-white font-mono">LKR 15,500</span>
-                    </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Promo (SAVE10)</span>
-                      <span className="text-emerald-400 font-mono">-LKR 1,550</span>
-                    </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>VAT (18%)</span>
-                      <span className="text-white font-mono">LKR 2,511</span>
-                    </div>
-                    <div className="border-t border-slate-700 pt-2 flex justify-between text-sm font-bold text-white">
-                      <span>Payable</span>
-                      <span className="text-amber-400 font-mono">LKR 16,461</span>
-                    </div>
-                  </div>
-                  <button className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs mt-4">
-                    Complete Cash Sale
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Section 2: Polim Potha (Customer Credit Ledger) */}
-      <section id="polim-potha" className="py-24 border-t border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="order-2 lg:order-1 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-amber-400" />
-                  <span className="font-bold text-sm text-white">Polim Potha - Customer Credit Account</span>
-                </div>
-                <span className="text-xs font-mono font-bold text-slate-300">Nimal Perera | 0771234567</span>
-              </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
-                  <div className="text-[10px] text-slate-400 uppercase font-bold">Credit Limit</div>
-                  <div className="text-base font-bold text-slate-200 font-mono">LKR 50,000</div>
-                </div>
-                <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
-                  <div className="text-[10px] text-slate-400 uppercase font-bold">Outstanding</div>
-                  <div className="text-base font-bold text-rose-400 font-mono">LKR 18,500</div>
-                </div>
-                <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
-                  <div className="text-[10px] text-slate-400 uppercase font-bold">Available</div>
-                  <div className="text-base font-bold text-emerald-400 font-mono">LKR 31,500</div>
-                </div>
-              </div>
-              <div className="space-y-2 text-xs">
-                <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/40 flex justify-between items-center">
-                  <div>
-                    <div className="font-bold text-slate-200">Invoice #INV-1092 (Credit Sale)</div>
-                    <div className="text-[11px] text-slate-400">2026-09-01 | 3 items</div>
-                  </div>
-                  <span className="font-mono font-bold text-rose-400">+LKR 8,500</span>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/40 flex justify-between items-center">
-                  <div>
-                    <div className="font-bold text-slate-200">Payment Received (Cash at Counter)</div>
-                    <div className="text-[11px] text-slate-400">2026-08-28 | Rec #REC-554</div>
-                  </div>
-                  <span className="font-mono font-bold text-emerald-400">-LKR 10,000</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="order-1 lg:order-2 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase">
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Sri Lankan Retail Tradition Digitized</span>
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-                Polim Potha - Customer Credit & Payment Ledger
-              </h2>
-              <p className="text-slate-300 leading-relaxed text-base">
-                Sri Lankan retail thrives on trusted customer credit. Grabber POZ replaces handwritten paper books with an authoritative digital ledger that enforces strict credit limits, tracks partial repayments, and maintains an unalterable audit trail.
-              </p>
-              <div className="space-y-3 pt-2">
-                {[
-                  'Customer-specific credit limits with manager override',
-                  'Automatic outstanding balance calculations on every sale',
-                  'Partial and full cash/card repayments with receipts',
-                  'Instant statement printing for dispute-free customer relations',
-                  'Tightly coupled with General Ledger accounts receivable (AR)',
-                ].map((point) => (
-                  <div key={point} className="flex items-center gap-2 text-sm text-slate-200">
-                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>{point}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Section 3: Hardware Compatibility */}
-      <section id="hardware" className="py-24 border-t border-slate-800/80 bg-slate-900/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase mb-4">
-            <Monitor className="w-3.5 h-3.5" />
-            <span>Counter Hardware Ready</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
-            Works with the Hardware You Already Own
+      <section className="border-b border-cs-line py-12" aria-labelledby="shop-types-heading">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 id="shop-types-heading" className="font-display text-xl font-bold text-cs-ink">
+            Built for shops like yours
           </h2>
-          <p className="text-slate-300 max-w-2xl mx-auto mb-16 text-base">
-            No proprietary, locked-in hardware required. Grabber POZ runs seamlessly in modern browsers across Windows PCs, touch terminals, laptops, and tablets.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-            {[
-              {
-                title: 'Barcode Scanners',
-                desc: 'Standard USB & Bluetooth handheld or omnidirectional presentation scanners.',
-                icon: Barcode,
-              },
-              {
-                title: 'Thermal Receipt Printers',
-                desc: 'Direct ESC/POS printing for 58mm and 80mm thermal receipt printers via USB or Network.',
-                icon: Printer,
-              },
-              {
-                title: 'Cash Drawers',
-                desc: 'Standard RJ11 cash drawers triggered automatically on receipt completion.',
-                icon: Store,
-              },
-              {
-                title: 'Touch POS & Tablets',
-                desc: 'Responsive touch interface optimized for 10" to 24" touch terminals, iPads, and PCs.',
-                icon: Smartphone,
-              },
-            ].map((hw) => {
-              const Icon = hw.icon;
-              return (
-                <div key={hw.title} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-3">
-                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-lg font-bold text-white">{hw.title}</h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">{hw.desc}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Section 4: Sri Lankan Payment Gateways */}
-      <section id="payments" className="py-24 border-t border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase mb-4">
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>Sri Lankan Payments Ecosystem</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
-              Certified Sri Lanka Payment Gateways
-            </h2>
-            <p className="text-slate-300 text-base">
-              Accept cards, wallets, and Buy Now Pay Later (BNPL) through standardized adapters that preserve complete payment and general ledger reconciliation.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                name: 'Cash on Delivery (COD)',
-                type: 'Counter & Storefront',
-                status: 'Production Ready',
-                statusColor: 'emerald',
-                desc: 'Standard courier delivery payment with driver collection and settlement tracking.',
-              },
-              {
-                name: 'PayHere Gateway',
-                type: 'Cards & Wallets',
-                status: 'Regression Certified',
-                statusColor: 'emerald',
-                desc: 'Visa, Mastercard, FriMi, Genie, EzCash, and mCash with HMAC-SHA256 callback verification.',
-              },
-              {
-                name: 'WebXPay',
-                type: 'Direct Card Processing',
-                status: 'Sandbox Ready',
-                statusColor: 'amber',
-                desc: 'Standardized card checkout through WebXPay secure payment forms.',
-              },
-              {
-                name: 'Koko BNPL',
-                type: '3-Month Installments',
-                status: 'Sandbox Ready',
-                statusColor: 'amber',
-                desc: 'Allow shoppers to split payments into 3 interest-free installments.',
-              },
-              {
-                name: 'Mintpay',
-                type: 'Pay Later (Online & Store)',
-                status: 'Sandbox Ready',
-                statusColor: 'amber',
-                desc: 'Shoppers pay in 3 while merchants receive full settlement upfront.',
-              },
-              {
-                name: 'Payzy',
-                type: 'Installment Checkout',
-                status: 'Sandbox Ready',
-                statusColor: 'amber',
-                desc: 'Flexible installment financing built into storefront checkout.',
-              },
-            ].map((gw) => (
-              <div key={gw.name} className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="text-xs font-mono text-slate-400 uppercase">{gw.type}</span>
-                    <span
-                      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${
-                        gw.statusColor === 'emerald'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                      }`}
-                    >
-                      {gw.status}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{gw.name}</h3>
-                  <p className="text-xs text-slate-400 leading-relaxed mb-4">{gw.desc}</p>
-                </div>
-                <div className="pt-3 border-t border-slate-800 text-[11px] text-slate-500 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                  <span>M3 Canonical Reconciliation Protected</span>
-                </div>
-              </div>
+          <ul className="mt-4 flex flex-wrap gap-3">
+            {shopTypes.map(({ label, icon: Icon }) => (
+              <li key={label} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-cs-line bg-cs-card px-4 text-sm font-semibold">
+                <Icon className="h-4 w-4 text-cs-brick" aria-hidden />
+                {label}
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
 
-      {/* Vertical Packs Section */}
-      <section id="verticals" className="py-24 border-t border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.4fr] gap-10 items-start">
-            <div className="space-y-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Configured, Not Tiered</span>
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-                One Pro system adapted to the client business
-              </h2>
-              <p className="text-slate-300 leading-relaxed text-base">
-                Grabber POZ sells one complete package. During onboarding, the owner selects the business nature in Settings, applies the matching vertical pack, and chooses the storefront look that fits the brand.
-              </p>
-              <Link
-                href={`${demoUrl}/settings`}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:border-amber-500/40 hover:text-amber-300"
-              >
-                <span>Preview Settings Vault</span>
-                <ArrowRight className="w-4 h-4" aria-hidden />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {verticalCapabilityCards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div
-                    key={card.title}
-                    className="min-h-36 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/40 hover:bg-slate-900"
-                  >
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400">
-                      <Icon className="h-5 w-5" aria-hidden />
-                    </div>
-                    <h3 className="text-base font-black text-white">{card.title}</h3>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-400">{card.desc}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pro Platform Section */}
-      <section id="pricing" className="py-24 border-t border-slate-800/80 bg-slate-900/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase mb-4">
-              <Boxes className="w-3.5 h-3.5" />
-              <span>One Pro Platform</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
-              Every Client Gets Grabber Business OS Pro
-            </h2>
-            <p className="text-slate-300 text-base">
-              No feature tiers and no shared tenant database. Each business receives the full platform, then selects the vertical pack, payment providers, storefront style, and onboarding scope that match its operation.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-            {/* Included core */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col justify-between">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Included Core</div>
-                <h3 className="text-2xl font-black text-white mb-2">Full Pro Platform</h3>
-                <p className="text-xs text-slate-400 mb-6">
-                  The operating system is complete from day one. Onboarding configures the business shape.
-                </p>
-                <div className="space-y-3 text-sm text-slate-300 mb-8">
-                  {[
-                    'Fast touch POS & thermal receipts',
-                    'Products, variants, barcodes & media',
-                    'Inventory, branches, warehouses & GRN',
-                    'Customers, orders, returns & quotations',
-                    'Polim Potha credit ledger',
-                    'Online storefront with live catalog',
-                    'Promotions, reports, backups & support',
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                      <span>{feat}</span>
-                    </div>
+      {benefitBlocks.map((block, i) => {
+        const hasImage = Boolean(assets?.[block.asset]);
+        return (
+          <section
+            key={block.title}
+            id={block.id}
+            className={`scroll-mt-24 border-b border-cs-line py-16 sm:py-24 ${i % 2 === 1 ? 'bg-cs-sand' : ''}`}
+          >
+            <div className={`mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:px-8 ${hasImage ? 'lg:grid-cols-2 lg:gap-16' : ''}`}>
+              <div className={`min-w-0 ${hasImage && i % 2 === 1 ? 'lg:order-2' : ''}`}>
+                <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{block.title}</h2>
+                <p className="mt-4 text-lg text-cs-muted">{block.lead}</p>
+                <ul className="mt-6 space-y-3">
+                  {block.points.map((p) => (
+                    <li key={p} className="flex items-start gap-3">
+                      <Check className="mt-1 h-5 w-5 shrink-0 text-cs-leaf" aria-hidden />
+                      <span>{p}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
-              <a
-                href="#contact"
-                className="w-full py-3 text-center rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-colors"
-              >
-                Book Pro Walkthrough
-              </a>
+              {hasImage && (
+                <div className={`min-w-0 ${i % 2 === 1 ? 'lg:order-1' : ''}`}>
+                  <ScreenshotFrame {...block.image} />
+                </div>
+              )}
             </div>
+          </section>
+        );
+      })}
 
-            {/* Vertical packs */}
-            <div className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500 rounded-3xl p-8 flex flex-col justify-between relative shadow-2xl shadow-amber-500/10">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 text-xs font-black uppercase px-3 py-0.5 rounded-full shadow-md">
-                Selected in Settings
-              </div>
-              <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-2">Business Configuration</div>
-                <h3 className="text-2xl font-black text-white mb-2">Vertical Packs</h3>
-                <p className="text-xs text-slate-400 mb-6">
-                  Turn on the workflows that match the client business without changing the product tier.
-                </p>
-                <div className="space-y-3 text-sm text-slate-200 mb-8">
-                  {[
-                    'Retail & wholesale operations',
-                    'Party/event catalog and package selling',
-                    'Electronics repair tickets and parts issue',
-                    'Restaurant/cafe menu and KDS readiness',
-                    'Salon/services appointment readiness',
-                    'WhatsApp, courier, and payment providers',
-                    'Jarvis agents with approval controls',
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                      <span className="font-medium">{feat}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <a
-                href="#contact"
-                className="w-full py-3.5 text-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/20 transition-all"
-              >
-                Configure My Pro Instance
-              </a>
+      <section id="credit" className="scroll-mt-24 border-b border-cs-line py-16 sm:py-24">
+        <div className={`mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:px-8 ${assets?.credit ? 'lg:grid-cols-2 lg:gap-16' : ''}`}>
+          <div className="min-w-0">
+            <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Customer credit, without the notebook</h2>
+            <p className="mt-4 text-lg text-cs-muted">
+              Polim Potha keeps every customer&apos;s credit and payments in one place, so you always know who owes what.
+            </p>
+            <ul className="mt-6 space-y-3">
+              {['Set a credit limit for each customer', 'Record part-payments in seconds', 'See every bill and payment in one statement', 'Balances update automatically'].map((p) => (
+                <li key={p} className="flex items-start gap-3">
+                  <BookOpen className="mt-1 h-5 w-5 shrink-0 text-cs-leaf" aria-hidden />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {assets?.credit && (
+            <div className="min-w-0">
+              <ScreenshotFrame
+                src="/marketing/credit-ledger.webp"
+                alt="A customer's credit statement showing bills, payments and the balance"
+                width={1440}
+                height={900}
+              />
             </div>
+          )}
+        </div>
+      </section>
 
-            {/* Implementation scope */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col justify-between">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Quote Drivers</div>
-                <h3 className="text-2xl font-black text-white mb-2">Implementation Scope</h3>
-                <p className="text-xs text-slate-400 mb-6">
-                  Pricing changes by setup effort, migration, hardware, and SLA; not by locking features away.
-                </p>
-                <div className="space-y-3 text-sm text-slate-300 mb-8">
-                  {[
-                    'Branch count and warehouse setup',
-                    'Catalog migration and media cleanup',
-                    'Hardware, printers, scanners, and labels',
-                    'Custom domain and brand handover',
-                    'Provider account setup and credentials',
-                    'Staff onboarding and support SLA',
-                  ].map((feat) => (
-                    <div key={feat} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                      <span>{feat}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <a
-                href="#contact"
-                className="w-full py-3 text-center rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-colors"
-              >
-                Discuss Scope
-              </a>
+      <section id="hardware" className="scroll-mt-24 border-b border-cs-line bg-cs-sand py-16" aria-labelledby="hardware-heading">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 id="hardware-heading" className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Works with what you already have</h2>
+          <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { icon: Barcode, t: 'Barcode scanners', d: 'Any standard USB scanner.' },
+              { icon: Printer, t: 'Receipt printers', d: '58mm and 80mm printers.' },
+              { icon: Monitor, t: 'Computers and tablets', d: 'Runs in the browser, no install.' },
+              { icon: Smartphone, t: 'Your phone', d: 'Check sales and stock from anywhere.' },
+            ].map(({ icon: Icon, t, d }) => (
+              <li key={t} className="min-w-0 rounded-2xl border border-cs-line bg-cs-card p-5">
+                <Icon className="mb-3 h-6 w-6 text-cs-brick" aria-hidden />
+                <h3 className="font-bold">{t}</h3>
+                <p className="mt-1 text-cs-muted">{d}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section id="payments" className="scroll-mt-24 border-b border-cs-line py-16" aria-labelledby="payments-heading">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 id="payments-heading" className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Get paid the way your customers pay</h2>
+          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="min-w-0 rounded-2xl border border-cs-line bg-cs-card p-6">
+              <CreditCard className="mb-3 h-6 w-6 text-cs-brick" aria-hidden />
+              <h3 className="text-lg font-bold">Cards and wallets with PayHere</h3>
+              <p className="mt-1 text-cs-muted">Visa, Mastercard, FriMi, Genie and more, online and at the counter.</p>
             </div>
+            <div className="min-w-0 rounded-2xl border border-cs-line bg-cs-card p-6">
+              <Store className="mb-3 h-6 w-6 text-cs-brick" aria-hidden />
+              <h3 className="text-lg font-bold">Cash on delivery</h3>
+              <p className="mt-1 text-cs-muted">Let customers pay when the order arrives, and track what each courier owes you.</p>
+            </div>
+          </div>
+          <p className="mt-4 text-sm text-cs-muted">Pay-in-instalment partners are on our roadmap. Ask us about your needs.</p>
+        </div>
+      </section>
+
+      <Testimonials />
+
+      <section id="pricing" className="scroll-mt-24 border-b border-cs-line bg-cs-sand py-16 sm:py-24" aria-labelledby="pricing-heading">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 id="pricing-heading" className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Pricing on request, based on your shop</h2>
+          <p className="mt-4 max-w-2xl text-lg text-cs-muted">
+            Every shop is different, so we quote after a short call. No surprise fees.
+          </p>
+          <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="min-w-0 rounded-2xl border border-cs-line bg-cs-card p-6">
+              <h3 className="text-lg font-bold">What decides the price</h3>
+              <ul className="mt-4 space-y-3">
+                {['How many branches and tills you have', 'Which extras you need: online store, customer credit, repairs', 'Setup and moving your existing product list'].map((p) => (
+                  <li key={p} className="flex items-start gap-3"><CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-cs-leaf" aria-hidden /><span>{p}</span></li>
+                ))}
+              </ul>
+            </div>
+            <div className="min-w-0 rounded-2xl border border-cs-line bg-cs-card p-6">
+              <h3 className="text-lg font-bold">Always included</h3>
+              <ul className="mt-4 space-y-3">
+                {['Setup and staff training', 'Your own private database and daily backups', 'Support in Sinhala, Tamil and English', 'Updates and new features'].map((p) => (
+                  <li key={p} className="flex items-start gap-3"><CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-cs-leaf" aria-hidden /><span>{p}</span></li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <ButtonLink href="#contact" size="lg" className="w-full sm:w-auto">Get a quote</ButtonLink>
+            {waLink && (
+              <ButtonLink href={waLink} variant="secondary" size="lg" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                Ask on WhatsApp
+              </ButtonLink>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Live Interactive Demo Section */}
-      <section id="demos" className="py-20 border-t border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-3xl font-black text-white mb-3">Test the System Right Now</h2>
-            <p className="text-slate-400 text-sm">
-              Explore the customer-facing storefront or launch the counter cashier POS.
-            </p>
-          </div>
+      <Faq />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-4 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mx-auto">
-                <Store className="w-7 h-7" />
-              </div>
-              <h3 className="text-xl font-bold text-white">Storefront Demo</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Experience what your shoppers see: browse sample catalog, test promo codes, add to bag, and simulate checkout.
-              </p>
-              <Link
-                href={`${demoUrl}/shop`}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-colors"
-              >
-                <span>Open Storefront Demo</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+      <section id="contact" className="scroll-mt-24 border-t border-cs-line bg-cs-sand py-16 sm:py-24" aria-labelledby="contact-heading">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+          <h2 id="contact-heading" className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Book your free demo</h2>
+          <p className="mt-3 text-lg text-cs-muted">Tell us about your shop. We will call you to show how it works.</p>
 
-            <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-4 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mx-auto">
-                <Monitor className="w-7 h-7" />
-              </div>
-              <h3 className="text-xl font-bold text-white">Counter Cashier POS</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Test the staff counter POS: select cashier role, enter PIN, scan barcodes, and ring up sales.
-              </p>
-              <Link
-                href={`${demoUrl}/adminpoz`}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-colors"
-              >
-                <span>Launch Cashier POS</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Lead Capture / Contact Section */}
-      <section id="contact" className="scroll-mt-28 py-24 border-t border-slate-800/80 bg-slate-900/60">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase mb-4">
-              <Send className="w-3.5 h-3.5" />
-              <span>Get Started</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">
-              Start Your Business with Grabber POZ
-            </h2>
-            <p className="text-slate-400 text-sm">
-              Fill out the form below. Our Colombo onboarding team will contact you to schedule a full demonstration and provision your instance.
-            </p>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+          <div className="mt-8 rounded-2xl border border-cs-line bg-cs-card p-6 sm:p-8">
             {submitted ? (
-              <div className="text-center py-12 space-y-4">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-bold text-white">Inquiry received</h3>
-                <p className="text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
-                  We have received your business inquiry. A Grabber POZ deployment specialist will reach out to you via WhatsApp or phone shortly.
-                </p>
-                <div className="pt-4">
-                  <Link
-                    href={`${demoUrl}/shop`}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm"
-                  >
-                    <span>Open Demo Storefront</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
+              <div className="space-y-4 py-8 text-center" role="status">
+                <CheckCircle2 className="mx-auto h-12 w-12 text-cs-leaf" aria-hidden />
+                <h3 className="font-display text-2xl font-bold">Thank you, we got your request</h3>
+                <p className="mx-auto max-w-md text-cs-muted">We will contact you on WhatsApp or phone shortly. Meanwhile, try the demo store.</p>
+                <ButtonLink href={`${demoUrl}/shop`} icon={<ArrowRight className="h-4 w-4" aria-hidden />}>Open the demo store</ButtonLink>
               </div>
             ) : (
               <form onSubmit={onLeadSubmit} className="space-y-5">
                 {leadError && (
-                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium">
-                    {leadError}
-                  </div>
+                  <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm font-medium text-red-800">{leadError}</div>
                 )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Honeypot: hidden from people and assistive tech; bots tend to fill it. */}
+                <div className="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden>
+                  <label htmlFor="lead-website">Website</label>
+                  <input id="lead-website" type="text" tabIndex={-1} autoComplete="off" value={formData.website ?? ''} onChange={(e) => setFormData({ ...formData, website: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="lead-business-name" className="text-xs font-bold text-slate-300 block mb-1.5">Business / Shop Name *</label>
-                    <input
-                      id="lead-business-name"
-                      type="text"
-                      required
-                      value={formData.businessName}
-                      onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                      placeholder="e.g. ABC Fashion"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
+                    <label htmlFor="lead-business-name" className={labelCls}>Shop name</label>
+                    <input id="lead-business-name" type="text" required autoComplete="organization" value={formData.businessName} onChange={(e) => setFormData({ ...formData, businessName: e.target.value })} placeholder="e.g. ABC Fashion" className={inputCls} />
                   </div>
                   <div>
-                    <label htmlFor="lead-owner-name" className="text-xs font-bold text-slate-300 block mb-1.5">Owner / Contact Name *</label>
-                    <input
-                      id="lead-owner-name"
-                      type="text"
-                      required
-                      value={formData.ownerName}
-                      onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                      placeholder="e.g. Kasun Fernando"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
+                    <label htmlFor="lead-owner-name" className={labelCls}>Your name</label>
+                    <input id="lead-owner-name" type="text" required autoComplete="name" value={formData.ownerName} onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })} placeholder="e.g. Kasun Fernando" className={inputCls} />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="lead-phone" className="text-xs font-bold text-slate-300 block mb-1.5">Phone / WhatsApp Number *</label>
-                    <input
-                      id="lead-phone"
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="077XXXXXXX"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
+                    <label htmlFor="lead-phone" className={labelCls}>Phone / WhatsApp</label>
+                    <input id="lead-phone" type="tel" required autoComplete="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="077 123 4567" className={inputCls} />
                   </div>
                   <div>
-                    <label htmlFor="lead-email" className="text-xs font-bold text-slate-300 block mb-1.5">Email Address *</label>
-                    <input
-                      id="lead-email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="owner@yourshop.lk"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
+                    <label htmlFor="lead-email" className={labelCls}>Email</label>
+                    <input id="lead-email" type="email" required autoComplete="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="you@yourshop.lk" className={inputCls} />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="lead-industry" className="text-xs font-bold text-slate-300 block mb-1.5">Business Industry</label>
-                    <select
-                      id="lead-industry"
-                      value={formData.businessType}
-                      onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    >
-                      <option value="Fashion & Apparel">Fashion & Apparel</option>
-                      <option value="Jewelry & Watches">Jewelry & Watches</option>
-                      <option value="Party & Events">Party & Events</option>
-                      <option value="Electronics & Mobile Repair">Electronics & Mobile Repair</option>
-                      <option value="Grocery & Supermarket">Grocery & Supermarket</option>
-                      <option value="Pharmacy & Health">Pharmacy & Health</option>
-                      <option value="Restaurant & Cafe">Restaurant & Cafe</option>
-                      <option value="Wholesale & Hardware">Wholesale & Hardware</option>
-                      <option value="Other Retail">Other Retail</option>
+                    <label htmlFor="lead-industry" className={labelCls}>What do you sell?</label>
+                    <select id="lead-industry" value={formData.businessType} onChange={(e) => setFormData({ ...formData, businessType: e.target.value })} className={inputCls}>
+                      {['Fashion & Apparel', 'Jewelry & Watches', 'Party & Events', 'Electronics & Mobile Repair', 'Grocery & Supermarket', 'Pharmacy & Health', 'Restaurant & Cafe', 'Wholesale & Hardware', 'Other Retail'].map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="lead-branches" className="text-xs font-bold text-slate-300 block mb-1.5">Branch Count</label>
-                    <select
-                      id="lead-branches"
-                      value={formData.branchCount}
-                      onChange={(e) => setFormData({ ...formData, branchCount: e.target.value })}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    >
-                      <option value="1">1 Location (Single Store)</option>
-                      <option value="2-3">2-3 Locations</option>
-                      <option value="4-10">4-10 Locations</option>
-                      <option value="10+">10+ Locations (Chain)</option>
+                    <label htmlFor="lead-branches" className={labelCls}>Number of shops</label>
+                    <select id="lead-branches" value={formData.branchCount} onChange={(e) => setFormData({ ...formData, branchCount: e.target.value })} className={inputCls}>
+                      <option value="1">1 shop</option>
+                      <option value="2-3">2-3 shops</option>
+                      <option value="4-10">4-10 shops</option>
+                      <option value="10+">More than 10</option>
                     </select>
                   </div>
                 </div>
-
                 <div>
-                  <label htmlFor="lead-message" className="text-xs font-bold text-slate-300 block mb-1.5">Additional Requirements or Questions</label>
-                  <textarea
-                    id="lead-message"
-                    rows={3}
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    placeholder="Tell us about your current POS, barcode scanner needs, or timeline..."
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
+                  <label htmlFor="lead-message" className={labelCls}>Anything we should know? (optional)</label>
+                  <textarea id="lead-message" rows={3} value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })} placeholder="Your current system, scanner or printer, or when you want to start" className={inputCls} />
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Submitting Inquiry...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Submit Inquiry & Schedule Demo</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                <Button type="submit" size="lg" disabled={submitting} className="w-full" icon={submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <ArrowRight className="h-4 w-4" aria-hidden />}>
+                  {submitting ? 'Sending...' : 'Book my free demo'}
+                </Button>
               </form>
             )}
           </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { ProductImage } from '@/components/storefront/ProductImage';
 import { useMemo, useState, useEffect } from 'react';
 import { ProductPurchasePanel, type PurchaseLine } from './product-purchase-panel';
 import { ProductWishlistButton } from './product-wishlist-button';
@@ -94,18 +95,12 @@ export function ProductDetailInteractive({
       {/* Left Column: Interactive Image Gallery */}
       <div className="space-y-4">
         <div className="group relative overflow-hidden rounded-[1.5rem] border border-[var(--sf-border)] bg-[var(--sf-surface)] shadow-lg shadow-[var(--sf-primary)]/5 transition-all">
-          {activeImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={activeImage}
-              alt={selectedLine?.variantLabel ? `${product.name} - ${selectedLine.variantLabel}` : product.name}
-              className="aspect-[4/3] max-h-[560px] w-full object-contain p-6 transition duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex aspect-[4/3] items-center justify-center bg-[var(--sf-muted)] text-center text-sm font-semibold text-[var(--sf-secondary)]">
-              Product image coming soon
-            </div>
-          )}
+          <ProductImage
+            src={activeImage}
+            alt={selectedLine?.variantLabel ? `${product.name} - ${selectedLine.variantLabel}` : product.name}
+            className="aspect-[4/3] max-h-[560px] w-full object-contain p-6 transition duration-300 group-hover:scale-105"
+            fallbackClassName="aspect-[4/3] w-full"
+          />
 
           {/* Active Variant / Photo Tag Overlay */}
           {activeThumbnail?.label && activeThumbnail.label !== 'Main' && (
@@ -136,8 +131,7 @@ export function ProductDetailInteractive({
                       : 'border-[var(--sf-border)] bg-[var(--sf-surface)] opacity-70 hover:opacity-100'
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={thumb.url} alt="" className="h-full w-full object-contain" />
+                  <ProductImage src={thumb.url} alt="" className="h-full w-full object-contain" fallbackClassName="h-full w-full" />
                   {thumb.label && (
                     <span className="sr-only">{thumb.label}</span>
                   )}
@@ -167,9 +161,11 @@ export function ProductDetailInteractive({
             <span className="rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3 py-1.5">
               {storefrontStockLabel(selectedLine ? selectedLine.stock : product.stock)}
             </span>
-            <span className="rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3 py-1.5 font-mono">
-              {selectedLine?.variantLabel || product.sku}
-            </span>
+            {selectedLine?.variantLabel && (
+              <span className="rounded-full border border-[var(--sf-border)] bg-[var(--sf-surface)] px-3 py-1.5">
+                {selectedLine.variantLabel}
+              </span>
+            )}
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
+import { safeJsonLd } from '@/lib/security/escape';
+import { ProductImage } from '@/components/storefront/ProductImage';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getCategoryWithProducts } from '@/lib/storefront/catalog-server';
@@ -41,7 +42,7 @@ export default async function CategoryPage({ params }: Props) {
       {/* Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
 
       <header className="border-b bg-white px-4 py-6 shadow-sm">
@@ -76,22 +77,14 @@ export default async function CategoryPage({ params }: Props) {
               className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md hover:border-slate-300"
             >
               <div>
-                {p.imageUrl ? (
-                  <div className="relative aspect-square w-full mb-4 overflow-hidden rounded-xl bg-slate-100">
-                    <Image
-                      src={p.imageUrl}
-                      alt={p.name}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                      unoptimized
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-square w-full mb-4 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
-                    No image available
-                  </div>
-                )}
+                <div className="relative aspect-square w-full mb-4 overflow-hidden rounded-xl bg-slate-100">
+                  <ProductImage
+                    src={p.imageUrl}
+                    alt={p.name}
+                    className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    fallbackClassName="absolute inset-0 h-full w-full"
+                  />
+                </div>
 
                 <h2 className="font-semibold text-slate-900 text-sm line-clamp-2">
                   <Link

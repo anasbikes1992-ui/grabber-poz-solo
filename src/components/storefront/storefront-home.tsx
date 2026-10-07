@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { ProductImage } from '@/components/storefront/ProductImage';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -234,7 +234,7 @@ export function StorefrontHome({
           barcode: hit.barcode,
           unitPrice: hit.salePrice,
           stock: 0,
-          variant: hit.sku,
+          variant: '',
           category: 'Uncategorized',
         } satisfies CatalogItem;
       });
@@ -548,7 +548,7 @@ export function StorefrontHome({
                     id="storefront-search"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search name, SKU, category..."
+                    placeholder="Search products or categories..."
                     aria-label="Search products"
                     className="w-full min-h-11 rounded-2xl border border-[var(--sf-border)] bg-[var(--sf-surface)] pl-4 pr-10 py-2.5 text-sm shadow-sm outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-[var(--sf-ring)]"
                   />
@@ -665,23 +665,20 @@ export function StorefrontHome({
                   <div>
                     {/* Image / Thumbnail Container */}
                     <div className="relative aspect-square w-full bg-[var(--sf-muted)]/50 overflow-hidden flex items-center justify-center border-b border-[var(--sf-border)]">
-                      {item.imageUrl ? (
-                        <Image
-                          src={item.imageUrl}
-                          alt={item.name}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center gap-1.5 text-[var(--sf-secondary)] opacity-60">
-                          <Package className="h-8 w-8" aria-hidden />
-                          <span className="text-[10px] font-semibold uppercase tracking-wider">
-                            {item.category || 'Product'}
-                          </span>
-                        </div>
-                      )}
+                      <ProductImage
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        fallbackClassName="absolute inset-0 h-full w-full"
+                        fallback={
+                          <div className="flex flex-col items-center justify-center gap-1.5 text-[var(--sf-secondary)] opacity-60">
+                            <Package className="h-8 w-8" aria-hidden />
+                            <span className="text-[10px] font-semibold uppercase tracking-wider">
+                              {item.category || 'Product'}
+                            </span>
+                          </div>
+                        }
+                      />
 
                       {/* Floating Category Badge */}
                       {item.category && item.category !== 'Uncategorized' && (
@@ -719,7 +716,7 @@ export function StorefrontHome({
                     <div className="p-4 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="px-2 py-0.5 rounded-md bg-[var(--sf-muted)] text-[var(--sf-secondary)] text-[10px] font-medium truncate">
-                          {item.variantCount && item.variantCount > 0 ? `${item.variantCount} options` : item.variant || item.sku}
+                          {item.variantCount && item.variantCount > 0 ? `${item.variantCount} options` : item.variant}
                         </span>
                       </div>
 

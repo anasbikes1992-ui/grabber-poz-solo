@@ -146,7 +146,8 @@ export async function processPosCheckout(body: PosCheckoutInput) {
   }
 
   const tradeInVoucherNumber = body.tradeInVoucherNumber;
-  let tradeInCredit = Number(body.tradeInCredit) || 0;
+  // Trade-in credit comes only from a server-validated voucher; any client-supplied amount is ignored.
+  let tradeInCredit = 0;
   if (tradeInVoucherNumber) {
     const [v] = await db
       .select()

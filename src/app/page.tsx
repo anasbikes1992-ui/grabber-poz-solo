@@ -1,15 +1,17 @@
 import type { Metadata } from 'next';
+import { companyWhatsappNumber } from '@/lib/public/contact-links';
+import { availableMarketingAssets } from '@/lib/company/marketing-assets';
 import { headers } from 'next/headers';
 import { readStorefrontConfig } from '@/lib/config/storefront-config';
 import { resolveLandingMode } from '@/lib/config/landing-mode';
-import { loadStorefrontCatalog } from '@/lib/storefront/catalog-service';
+import { loadStorefrontCatalog, toPublicCatalogItem } from '@/lib/storefront/catalog-service';
 import { DEFAULT_OG_IMAGE, absoluteUrl, siteBaseUrlFromHost } from '@/lib/storefront/seo';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const COMPANY_DESCRIPTION =
-  'Run your shop counter, touch POS, barcodes, inventory, customer credit (Polim Potha), online store, and Sri Lankan payment gateways from one connected standalone system.';
+  'Sell at the counter, track every item, give customers credit and take online orders. POS, stock and online store for Sri Lankan shops, in one system.';
 
 export async function generateMetadata(): Promise<Metadata> {
   const h = await headers();
@@ -39,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: 'Grabber POZ | The All-in-One Retail & Commerce OS for Sri Lanka',
+    title: 'Grabber POZ | POS, stock and online store for Sri Lankan shops',
     description: COMPANY_DESCRIPTION,
     keywords: [
       'POS Sri Lanka',
@@ -52,17 +54,17 @@ export async function generateMetadata(): Promise<Metadata> {
     ],
     alternates: { canonical: base },
     openGraph: {
-      title: 'Grabber POZ | Retail & Commerce OS for Sri Lanka',
+      title: 'Grabber POZ | POS, stock and online store for Sri Lankan shops',
       description:
-        'High-speed touch POS, Polim Potha credit ledger, multi-branch inventory, and integrated Sri Lankan payment gateways.',
+        'Sell at the counter, track stock, give customers credit and take online orders, all in one system for Sri Lankan shops.',
       url: base,
       siteName: 'Grabber POZ',
       type: 'website',
-      images: [{ url: ogImage, alt: 'Grabber POZ retail and commerce OS' }],
+      images: [{ url: ogImage, alt: 'Grabber POZ: POS, stock and online store for Sri Lankan shops' }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'Grabber POZ | Retail & Commerce OS for Sri Lanka',
+      title: 'Grabber POZ | POS, stock and online store for Sri Lankan shops',
       description: COMPANY_DESCRIPTION,
       images: [ogImage],
     },
@@ -82,7 +84,7 @@ export default async function HomePage() {
     return (
       <StorefrontHome
         cms={cms}
-        initialCatalog={catalog.items}
+        initialCatalog={catalog.items.map(toPublicCatalogItem)}
         initialBranchId={catalog.branchId}
       />
     );
@@ -92,7 +94,9 @@ export default async function HomePage() {
   return (
     <CompanyLanding
       demoUrl={process.env.COMPANY_DEMO_URL || 'https://demo.grabberpoz.com'}
-      salesWhatsapp={process.env.COMPANY_SALES_WHATSAPP || process.env.OWNER_WHATSAPP || ''}
+      // Read at request time (server) so the number is not frozen at build time.
+      whatsappNumber={companyWhatsappNumber()}
+      assets={availableMarketingAssets()}
     />
   );
 }

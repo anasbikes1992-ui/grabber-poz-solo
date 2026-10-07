@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 import { randomUUID } from 'crypto';
 import { assertCanMutateCommerce, getSession } from '@/lib/auth/session';
 import { getAppUrl, getSupabaseUrl } from '@/lib/config/app-url';
 import { publicErrorResponse, validationErrorResponse } from '@/lib/api/http-errors';
 import { safeUploadBucket, validateUploadFile } from '@/lib/security/upload-validation';
+import { saveLocalUpload, storageProvider } from '@/lib/storage/local-uploads';
 
 export async function POST(req: Request) {
   try {
@@ -26,7 +25,7 @@ export async function POST(req: Request) {
     const supabaseUrl = getSupabaseUrl();
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (supabaseUrl && serviceKey) {
+    if (storageProvider() === 'supabase' && supabaseUrl && serviceKey) {
       const bucket = safeUploadBucket(form.get('bucket'), 'products');
       const objectPath = `${randomUUID()}.${upload.extension}`;
       const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`;
@@ -57,17 +56,8 @@ export async function POST(req: Request) {
       });
     }
 
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ success: false, error: 'Upload storage is not configured' }, { status: 503 });
-    }
-
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadsDir, { recursive: true });
-    const filename = `${randomUUID()}.${upload.extension}`;
-    const dest = path.join(uploadsDir, filename);
-    await writeFile(dest, upload.bytes);
-
-    const relativePath = `/uploads/${filename}`;
+    // Local disk (persistent volume in production), served by /uploads/[...path].
+    const { relativePath } = await saveLocalUpload(upload.bytes, upload.extension);
     return NextResponse.json({
       success: true,
       url: `${getAppUrl()}${relativePath}`,

@@ -11,8 +11,21 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-plus-jakarta)", "system-ui", "sans-serif"],
+        display: ["var(--font-bricolage)", "var(--font-plus-jakarta)", "system-ui", "sans-serif"],
       },
       colors: {
+        // Company marketing site ("shop counter" palette): warm paper, ink, one brick accent.
+        cs: {
+          paper: "#FBF7F0",
+          card: "#FFFFFF",
+          ink: "#1C1917",
+          muted: "#57534E",
+          line: "#E7E0D4",
+          brick: "#C2410C",
+          "brick-dark": "#9A3412",
+          leaf: "#166534",
+          sand: "#F3ECDF",
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {

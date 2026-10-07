@@ -5,6 +5,8 @@ import { assertCanMutateCommerce, getSession, isDemoUserId, verifyPin } from '@/
 import { getCustomerSession } from '@/lib/auth/customer-session';
 import { processPosCheckout } from '@/lib/commerce/pos-checkout-service';
 
+const STOREFRONT_PAYMENT_METHODS = new Set(['COD', 'PAYHERE', 'WEBXPAY', 'STRIPE']);
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -15,6 +17,12 @@ export async function POST(req: Request) {
     const shopper = await getCustomerSession();
 
     if (isStorefront) {
+      // Shoppers may only pay on delivery or through a gateway (which settles via verified webhook).
+      // CASH/CARD/CREDIT or split tender on the storefront channel would otherwise create a PAID order.
+      const method = String(body.paymentMethod || '').toUpperCase();
+      if (!STOREFRONT_PAYMENT_METHODS.has(method) || (Array.isArray(body.payments) && body.payments.length > 0)) {
+        return NextResponse.json({ success: false, error: 'Unsupported payment method for online checkout' }, { status: 400 });
+      }
       if (!shopper && process.env.NODE_ENV === 'production' && process.env.AUTH_OPTIONAL !== 'true') {
         return NextResponse.json({ success: false, error: 'Sign in as a customer to checkout' }, { status: 401 });
       }
@@ -78,20 +86,19 @@ export async function POST(req: Request) {
       overrideUserId: authorizedOverrideUserId,
       promoCode: body.promoCode,
       tradeInVoucherNumber: body.tradeInVoucherNumber,
-      tradeInCredit: body.tradeInCredit,
       payments: body.payments,
       paymentMethod: body.paymentMethod,
       amount: body.amount,
       customerId: body.customerId,
-      orderNumber: body.orderNumber,
+      orderNumber: isStorefront ? undefined : body.orderNumber,
       registerId: body.registerId,
       shiftId: body.shiftId,
       clientUuid: body.clientUuid,
       idempotencyKey: body.idempotencyKey || body.clientUuid,
       terminalId: body.terminalId,
       clientSequence: body.clientSequence,
-      offlineSync: body.offlineSync,
-      allowStockUnderrun: body.allowStockUnderrun,
+      offlineSync: isStorefront ? undefined : body.offlineSync,
+      allowStockUnderrun: isStorefront ? undefined : body.allowStockUnderrun,
       shopperCustomerId: isStorefront && shopper ? shopper.customerId : undefined,
       actorId: session && !isDemoUserId(session.userId) ? session.userId : undefined,
       campaignId: body.campaignId,

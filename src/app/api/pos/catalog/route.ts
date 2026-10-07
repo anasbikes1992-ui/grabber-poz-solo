@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { loadStorefrontCatalog } from '@/lib/storefront/catalog-service';
+import { loadStorefrontCatalog, toPublicCatalogItem } from '@/lib/storefront/catalog-service';
+import { getSession } from '@/lib/auth/session';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -10,6 +11,9 @@ export async function GET(req: Request) {
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
   const limit = shouldPaginate ? Math.min(Math.max(Math.floor(requestedLimit), 1), 100) : 0;
   const result = await loadStorefrontCatalog(branchId);
+  // Cost price and exact stock are staff-only; anonymous/shopper callers get the public projection.
+  const isStaff = Boolean(await getSession());
+  if (result.ok && !isStaff) result.items = result.items.map(toPublicCatalogItem);
 
   if (!result.ok && result.error?.includes('not configured')) {
     return NextResponse.json(
