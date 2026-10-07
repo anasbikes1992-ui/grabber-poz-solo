@@ -68,6 +68,11 @@ export async function POST(req: Request) {
       provider: 'local',
     });
   } catch (err: unknown) {
+    // Auth errors carry their own status (401/403); don't turn them into a 500.
+    const status = (err as { status?: number }).status;
+    if (status && status >= 400 && status < 500) {
+      return NextResponse.json({ success: false, error: (err as Error).message || 'Request failed' }, { status });
+    }
     if (err instanceof Error && /upload|file|jpg|png|webp|gif|max/i.test(err.message)) {
       return validationErrorResponse(err.message);
     }
